@@ -233,7 +233,20 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
   ipcMain.on('from-osd', (event, message: string) => {
     if (message === 'showMainWin') {
       win.show()
-    } else if (message === 'playPrev') {
+    }
+    // ======== newADD start======
+    // 桌面歌词窗口控制主窗口显隐。
+    // 复用菜单栏播放器图标中已有的判断逻辑。
+    else if (message === 'toggleMainWin') {
+      if (win.isVisible()) {
+        win.hide()
+      } else {
+        win.show()
+        win.focus()
+      }
+    }
+    // =========== newADD end ========
+    else if (message === 'playPrev') {
       win.webContents.send('previous')
     } else if (message === 'playNext') {
       win.webContents.send('next')

@@ -11,6 +11,14 @@
     >
       <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
     </button>
+
+    <button
+      class="compact-main-window-button"
+      title="显示或隐藏主窗口"
+      @click.stop="toggleMainWindow"
+    >
+      <SvgIcon icon-class="logo" />
+    </button>
     <!-- =========== newADD end ======== -->
 
     <div v-show="isHover" class="compact-control-mask">
@@ -131,6 +139,25 @@ const playNext = () => {
  */
 const toggleLike = () => {
   window.mainApi?.send('from-osd', 'likeTrack')
+}
+// =========== newADD end ========
+
+// ======== newADD start======
+/**
+ * 切换主窗口的显示与隐藏状态。
+ *
+ * 详细说明：
+ * 桌面歌词窗口只发送 toggleMainWin 请求；
+ * 主进程根据主窗口当前是否可见，决定执行 hide() 或 show()。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   mainApi 不存在时使用可选链静默跳过。
+ */
+const toggleMainWindow = () => {
+  window.mainApi?.send('from-osd', 'toggleMainWin')
 }
 // =========== newADD end ========
 
@@ -345,6 +372,56 @@ onBeforeUnmount(() => {
     color: #ff4d6d;
   }
 }
+
+/* ======== newADD start====== */
+/*
+ * 主窗口显隐按钮。
+ *
+ * 位于爱心按钮左侧，不参与封面悬停播放按钮的布局。
+ */
+.compact-main-window-button {
+  position: absolute;
+  top: 0;
+  right: 12px;
+
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 10px;
+  height: 10px;
+  padding: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 50%;
+
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.48);
+
+  cursor: pointer;
+  opacity: 0.9;
+
+  -webkit-app-region: no-drag;
+
+  .svg-icon {
+    width: 8px;
+    height: 8px;
+  }
+
+  &:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.08);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+/* =========== newADD end ======== */
 
 /*
  * 悬停遮罩需要位于封面上方，但低于爱心按钮。

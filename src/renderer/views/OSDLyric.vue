@@ -4,35 +4,43 @@
     :class="{
       'is-lock': isLock,
       'compact-mode': isCompactMode,
-      'normal-mode': !isCompactMode
+      'normal-mode': !isCompactMode,
+      'is-custom-dragging': customOsdDragging
     }"
     :style="{ backgroundColor: bground.bg }"
     @mouseenter="hover = true"
-    @mouseleave="hover = false"
+    @mouseleave="handleMainMouseLeave"
   >
     <!--
       普通桌面歌词模式继续使用原来的顶部控制栏。
 
       紧凑模式不再显示顶部控制栏：
-      1. 节省 34px 高度；
-      2. 播放控制移动到左侧封面悬停层；
-      3. 使窗口可以压缩到约 56～70px 高。
+      1. 节省顶部空间；
+      2. 播放控制移动到封面悬停区域；
+      3. 允许桌面歌词窗口压缩到较小尺寸。
     -->
     <div v-show="!isLock && !isCompactMode">
-      <Header v-show="hover" :class="{ lock: isLock }" :style="headerStyle" />
+      <Header
+        v-show="hover"
+        :class="{ lock: isLock }"
+        :style="headerStyle"
+      />
 
-      <div v-show="!hover" class="header-title" :class="{ show: bground.alpha }">
+      <div
+        v-show="!hover"
+        class="header-title"
+        :class="{ show: bground.alpha }"
+      >
         {{ title }}
       </div>
     </div>
 
-    <!--
-      普通模式锁定后的解锁按钮。
-
-      Linux 中项目会自动取消 isLock，因此该按钮主要用于 macOS。
-      紧凑模式下也不显示它，避免覆盖只有几十像素高的歌词区域。
-    -->
-    <div v-show="isLock && !isCompactMode" class="control-lock" tabindex="-1">
+    <!-- 普通模式锁定后的解锁按钮 -->
+    <div
+      v-show="isLock && !isCompactMode"
+      class="control-lock"
+      tabindex="-1"
+    >
       <button
         v-if="!isLinux"
         v-show="showButtonWhenLock"
@@ -42,24 +50,21 @@
         tabindex="-1"
         @click="handleLock"
       >
-        <SvgIcon icon-class="lock" style="margin-right: 4px" tabindex="-1" />
+        <SvgIcon
+          icon-class="lock"
+          style="margin-right: 4px"
+          tabindex="-1"
+        />
         解锁
       </button>
     </div>
 
     <!-- ======== newADD start====== -->
-    <!--
-      紧凑桌面歌词模式。
-
-      左侧：
-      - 当前歌曲封面；
-      - 鼠标悬停后显示上一首、播放暂停、下一首。
-
-      右侧：
-      - 继续使用原来的 OsdLyricContainer；
-      - 保留逐字歌词、翻译、双行模式、滚动和对齐功能。
-    -->
-    <div v-if="isCompactMode" class="compact-osd-layout">
+    <!-- 紧凑桌面歌词布局 -->
+    <div
+      v-if="isCompactMode"
+      class="compact-osd-layout"
+    >
       <div class="compact-left-panel">
         <CompactCoverControls />
       </div>
@@ -69,17 +74,19 @@
       </div>
     </div>
 
-    <!-- 普通模式保持原来的歌词容器 -->
-    <LyricContainer v-else tabindex="-1" />
+    <!-- 普通模式继续使用原始歌词容器 -->
+    <LyricContainer
+      v-else
+      tabindex="-1"
+    />
     <!-- =========== newADD end ======== -->
 
     <!-- ======== newADD start====== -->
     <!--
-      自定义桌面歌词拖拽条。
+      底部自定义移动条。
 
-      使用 mousemove + IPC 计算绝对位置，不使用
-      -webkit-app-region: drag，从而保留你之前实现的
-      “允许窗口越过 macOS 菜单栏边界”的拖拽方式。
+      实际鼠标命中区域高于视觉细条，方便鼠标定位。
+      移动使用 mousemove + IPC，不使用 -webkit-app-region: drag。
     -->
     <div
       v-show="!isLock"
@@ -87,12 +94,57 @@
       title="拖动桌面歌词窗口"
       @mousedown="startCustomOsdDrag"
     />
+
+    <!--
+      无边框窗口四边透明命中区域。
+
+      这些元素不显示任何内容，只负责显示相应的缩放鼠标样式。
+    -->
+    <div
+      v-show="!isLock"
+      class="resize-edge resize-edge-top"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-edge resize-edge-right"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-edge resize-edge-bottom"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-edge resize-edge-left"
+    />
+
+    <!-- 无边框窗口四角透明命中区域 -->
+    <div
+      v-show="!isLock"
+      class="resize-corner resize-corner-top-left"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-corner resize-corner-top-right"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-corner resize-corner-bottom-right"
+    />
+    <div
+      v-show="!isLock"
+      class="resize-corner resize-corner-bottom-left"
+    />
     <!-- =========== newADD end ======== -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref
+} from 'vue'
 import { storeToRefs } from 'pinia'
 
 import Header from '../components/OsdHeader.vue'
@@ -109,23 +161,27 @@ const isLinux = window.env?.isLinux
 
 const osdLyricStore = useOsdLyricStore()
 
-const { isLock, type, playedLrcColor, backgroundColor, showButtonWhenLock } =
-  storeToRefs(osdLyricStore)
+const {
+  isLock,
+  type,
+  playedLrcColor,
+  backgroundColor,
+  showButtonWhenLock
+} = storeToRefs(osdLyricStore)
 
 const hover = ref(false)
 const title = ref('听你想听的音乐')
 
 // ======== newADD start======
 /**
- * 判断当前桌面歌词是否使用紧凑模式。
+ * 判断当前是否为紧凑桌面歌词模式。
  *
  * 详细说明：
- * 原项目使用 type === 'small' 表示 mini 桌面歌词窗口。
- * 这里直接把 small 模式映射为“封面控制区 + 双行歌词”的紧凑播放器，
- * normal 模式继续保留原来的完整桌面歌词界面。
+ * 原项目使用 `small` 表示 mini 桌面歌词窗口。
+ * 这里将 small 模式映射为封面控制区和双行歌词组成的紧凑布局。
  *
  * Returns:
- *   当桌面歌词类型为 small 时返回 true，否则返回 false。
+ *   当前 type 为 small 时返回 true，否则返回 false。
  *
  * Raises:
  *   不抛出异常。
@@ -134,7 +190,10 @@ const isCompactMode = computed(() => type.value === 'small')
 // =========== newADD end ========
 
 const lockStyle = computed(() => {
-  const textColor = playedLrcColor.value === 'white' ? '#222' : 'white'
+  const textColor =
+    playedLrcColor.value === 'white'
+      ? '#222'
+      : 'white'
 
   return {
     color: textColor,
@@ -143,12 +202,14 @@ const lockStyle = computed(() => {
 })
 
 const bground = computed(() => {
-  const parts = backgroundColor.value.slice(5, -1).split(',')
+  const parts = backgroundColor.value
+    .slice(5, -1)
+    .split(',')
 
-  const red = parseInt(parts[0].trim(), 10)
-  const green = parseInt(parts[1].trim(), 10)
-  const blue = parseInt(parts[2].trim(), 10)
-  const alpha = parseFloat(parts[3].trim())
+  const red = parseInt(parts[0]?.trim() || '0', 10)
+  const green = parseInt(parts[1]?.trim() || '0', 10)
+  const blue = parseInt(parts[2]?.trim() || '0', 10)
+  const alpha = parseFloat(parts[3]?.trim() || '0')
 
   if (!hover.value || isLock.value) {
     return {
@@ -158,7 +219,10 @@ const bground = computed(() => {
   }
 
   return {
-    bg: `rgba(${red}, ${green}, ${blue}, ${Math.min(alpha + 0.2, 1)})`,
+    bg: `rgba(${red}, ${green}, ${blue}, ${Math.min(
+      alpha + 0.2,
+      1
+    )})`,
     alpha
   }
 })
@@ -173,7 +237,7 @@ const headerStyle = computed(() => {
  * 切换桌面歌词窗口锁定状态。
  *
  * Returns:
- *   无返回值，直接修改 Pinia 中的 isLock。
+ *   无返回值。
  *
  * Raises:
  *   不抛出异常。
@@ -184,12 +248,12 @@ const handleLock = () => {
 
 // ======== newADD start======
 /**
- * 自定义拖拽过程中是否处于按住状态。
+ * 当前是否正在通过底部移动条拖动桌面歌词窗口。
  */
 const customOsdDragging = ref(false)
 
 /**
- * 保存自定义拖拽开始时的鼠标位置和窗口位置。
+ * 保存开始拖动时的鼠标位置与窗口边界。
  */
 const customOsdDragStart = ref({
   mouseX: 0,
@@ -201,23 +265,24 @@ const customOsdDragStart = ref({
 })
 
 /**
- * 开始自定义桌面歌词窗口拖拽。
+ * 开始自定义桌面歌词窗口拖动。
  *
  * 详细说明：
- * 记录按下鼠标时的屏幕坐标和窗口边界，然后注册全局
- * mousemove 和 mouseup 监听。后续移动距离由当前位置减去
- * 起始位置得到。
+ * 记录鼠标按下时的屏幕坐标、窗口坐标以及窗口尺寸。
+ * 后续根据鼠标的屏幕位移计算窗口的新绝对位置。
  *
  * Args:
- *   event: 底部拖拽条触发的鼠标按下事件。
+ *   event: 底部移动条触发的鼠标按下事件。
  *
  * Returns:
  *   无返回值。
  *
  * Raises:
- *   mainApi 不存在时不会在此函数中抛出异常。
+ *   不抛出异常。
  */
 const startCustomOsdDrag = (event: MouseEvent) => {
+  if (event.button !== 0) return
+
   event.preventDefault()
   event.stopPropagation()
 
@@ -232,23 +297,30 @@ const startCustomOsdDrag = (event: MouseEvent) => {
     height: window.outerHeight
   }
 
-  window.addEventListener('mousemove', handleCustomOsdDrag)
-  window.addEventListener('mouseup', stopCustomOsdDrag)
+  window.addEventListener(
+    'mousemove',
+    handleCustomOsdDrag
+  )
+
+  window.addEventListener(
+    'mouseup',
+    stopCustomOsdDrag
+  )
+
+  window.addEventListener(
+    'blur',
+    stopCustomOsdDrag
+  )
 }
 
 /**
- * 根据鼠标位移发送新的桌面歌词窗口绝对位置。
- *
- * 详细说明：
- * dx 和 dy 表示鼠标相对起始点的位移，将它们加到原始窗口坐标，
- * 得到新的 BrowserWindow x、y。宽度和高度保持拖拽开始时的值，
- * 避免移动窗口时发生尺寸变化。
+ * 根据鼠标位移移动桌面歌词窗口。
  *
  * Args:
  *   event: 当前 mousemove 鼠标事件。
  *
  * Returns:
- *   无返回值，通过 IPC 向主进程发送窗口边界。
+ *   无返回值，通过 IPC 向主进程发送窗口绝对坐标。
  *
  * Raises:
  *   mainApi 不存在时使用可选链静默跳过。
@@ -256,19 +328,36 @@ const startCustomOsdDrag = (event: MouseEvent) => {
 const handleCustomOsdDrag = (event: MouseEvent) => {
   if (!customOsdDragging.value) return
 
-  const dx = event.screenX - customOsdDragStart.value.mouseX
-  const dy = event.screenY - customOsdDragStart.value.mouseY
+  const dx =
+    event.screenX -
+    customOsdDragStart.value.mouseX
 
-  window.mainApi?.send('drag-osd-window-absolute', {
-    x: customOsdDragStart.value.windowX + dx,
-    y: customOsdDragStart.value.windowY + dy,
-    width: customOsdDragStart.value.width,
-    height: customOsdDragStart.value.height
-  })
+  const dy =
+    event.screenY -
+    customOsdDragStart.value.mouseY
+
+  window.mainApi?.send(
+    'drag-osd-window-absolute',
+    {
+      x:
+        customOsdDragStart.value.windowX +
+        dx,
+
+      y:
+        customOsdDragStart.value.windowY +
+        dy,
+
+      width:
+        customOsdDragStart.value.width,
+
+      height:
+        customOsdDragStart.value.height
+    }
+  )
 }
 
 /**
- * 结束自定义窗口拖拽并清理全局监听器。
+ * 结束自定义窗口拖动并清理全局监听器。
  *
  * Returns:
  *   无返回值。
@@ -279,16 +368,41 @@ const handleCustomOsdDrag = (event: MouseEvent) => {
 const stopCustomOsdDrag = () => {
   customOsdDragging.value = false
 
-  window.removeEventListener('mousemove', handleCustomOsdDrag)
-  window.removeEventListener('mouseup', stopCustomOsdDrag)
+  window.removeEventListener(
+    'mousemove',
+    handleCustomOsdDrag
+  )
+
+  window.removeEventListener(
+    'mouseup',
+    stopCustomOsdDrag
+  )
+
+  window.removeEventListener(
+    'blur',
+    stopCustomOsdDrag
+  )
 }
 // =========== newADD end ========
+
+/**
+ * 处理鼠标离开桌面歌词根容器。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   不抛出异常。
+ */
+const handleMainMouseLeave = () => {
+  hover.value = false
+}
 
 /**
  * 通知主进程鼠标已经离开桌面歌词窗口。
  *
  * 详细说明：
- * 原项目根据该消息恢复锁定状态或处理鼠标穿透行为。
+ * 原项目使用此消息恢复锁定状态或处理鼠标穿透逻辑。
  *
  * Returns:
  *   无返回值。
@@ -298,11 +412,14 @@ const stopCustomOsdDrag = () => {
  */
 const handleDocumentMouseLeave = () => {
   hover.value = false
-  window.mainApi?.send('windowMouseleave')
+
+  window.mainApi?.send(
+    'windowMouseleave'
+  )
 }
 
 /**
- * 接收主窗口发给桌面歌词窗口的状态更新。
+ * 接收主窗口发送给桌面歌词窗口的状态更新。
  *
  * Args:
  *   event: window message 事件。
@@ -311,24 +428,61 @@ const handleDocumentMouseLeave = () => {
  *   无返回值。
  *
  * Raises:
- *   消息字段缺失时不会主动抛出异常。
+ *   消息结构不完整时直接忽略。
  */
-const handleOsdStatusMessage = (event: MessageEvent) => {
-  if (event.data.type !== 'update-osd-status') return
+const handleOsdStatusMessage = (
+  event: MessageEvent
+) => {
+  if (
+    event.data?.type !==
+    'update-osd-status'
+  ) {
+    return
+  }
 
-  for (const [key, value] of Object.entries(event.data.data) as [string, any][]) {
-    if (key === 'title') {
-      title.value = value
-    }
+  const data = event.data.data ?? {}
+
+  if (
+    typeof data.title === 'string'
+  ) {
+    title.value = data.title
   }
 }
 
-document.addEventListener('mouseleave', handleDocumentMouseLeave)
-window.addEventListener('message', handleOsdStatusMessage)
-
-window.mainApi?.on('mouseInWindow', (_event: unknown, value: boolean) => {
+/**
+ * 接收主进程发送的鼠标是否位于窗口内的状态。
+ *
+ * Args:
+ *   _event: Electron IPC 事件，本函数不使用。
+ *   value: 鼠标是否位于桌面歌词窗口内。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   不抛出异常。
+ */
+const handleMouseInWindow = (
+  _event: unknown,
+  value: boolean
+) => {
   hover.value = value
-})
+}
+
+document.addEventListener(
+  'mouseleave',
+  handleDocumentMouseLeave
+)
+
+window.addEventListener(
+  'message',
+  handleOsdStatusMessage
+)
+
+window.mainApi?.on(
+  'mouseInWindow',
+  handleMouseInWindow
+)
 
 onMounted(() => {
   if (isLinux) {
@@ -339,14 +493,49 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopCustomOsdDrag()
 
-  document.removeEventListener('mouseleave', handleDocumentMouseLeave)
+  document.removeEventListener(
+    'mouseleave',
+    handleDocumentMouseLeave
+  )
 
-  window.removeEventListener('message', handleOsdStatusMessage)
+  window.removeEventListener(
+    'message',
+    handleOsdStatusMessage
+  )
+
+  window.removeEventListener(
+    'mousemove',
+    handleCustomOsdDrag
+  )
+
+  window.removeEventListener(
+    'mouseup',
+    stopCustomOsdDrag
+  )
+
+  window.removeEventListener(
+    'blur',
+    stopCustomOsdDrag
+  )
 })
 </script>
 
 <style lang="scss" scoped>
 #main {
+  /* ======== newADD start====== */
+  /*
+   * 窗口边缘和角落的透明鼠标命中区域大小。
+   *
+   * resize-edge-size：
+   * 四条边的检测宽度。
+   *
+   * resize-corner-size：
+   * 四个角的检测尺寸。
+   */
+  --resize-edge-size: 8px;
+  --resize-corner-size: 14px;
+  /* =========== newADD end ======== */
+
   position: relative;
 
   box-sizing: border-box;
@@ -361,22 +550,20 @@ onBeforeUnmount(() => {
     opacity 0.3s ease;
 }
 
-/* 普通桌面歌词继续保留原来的窗口内边距。 */
+/* 普通桌面歌词模式内边距。 */
 #main.normal-mode {
   padding: 10px 20px;
 }
 
 /* ======== newADD start====== */
 /*
- * 紧凑模式尽可能减少无效空间。
+ * 紧凑桌面歌词模式内边距。
  *
- * 推荐窗口尺寸：
- * 宽度：240～300px
- * 高度：60～76px
+ * 顺序：
+ * 上、右、下、左。
  */
 #main.compact-mode {
-  // 上、右、下、左
-  padding: 0px 3px 0px 0px;
+  padding: 0 3px 0 0;
 }
 /* =========== newADD end ======== */
 
@@ -419,6 +606,7 @@ onBeforeUnmount(() => {
   padding: 4px 10px;
 
   cursor: pointer;
+
   border: none;
   outline: none;
   background: none;
@@ -431,16 +619,16 @@ onBeforeUnmount(() => {
 /*
  * 紧凑桌面歌词整体布局。
  *
- * 左侧固定 60px：
- * 可容纳 52×52px 封面和悬停按钮。
- *
- * 右侧 minmax(0, 1fr)：
- * 自动占据剩余空间；
- * min-width: 0 保证窄窗口下歌词可以正确压缩。
+ * 左侧固定 50px；
+ * 右侧歌词自动占据剩余空间。
  */
 .compact-osd-layout {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
+
+  grid-template-columns:
+    50px
+    minmax(0, 1fr);
+
   column-gap: 1px;
   align-items: center;
 
@@ -466,38 +654,56 @@ onBeforeUnmount(() => {
 }
 
 /*
- * OsdLyricContainer 原来使用：
- * height: calc(100vh - 54px)
+ * 紧凑模式没有顶部工具栏，因此歌词容器使用全部高度。
  *
- * 在紧凑模式中已经没有顶部 34px 工具栏，
- * 因此覆盖为 100%，让双行歌词完整使用紧凑窗口高度。
- *
- * 这里只改高度和容器尺寸，不改变歌词内部 display，
- * 避免再次破坏歌词滚动定位。
+ * 不改变歌词内部 display，避免影响歌词滚动与逐字动画。
  */
 .compact-lyric-panel :deep(.container) {
   width: 100%;
   height: 100%;
   min-width: 0;
+
   overflow: hidden;
 }
 
-/*
- * mini 模式原来的歌词容器可能存在额外的外边距或内边距。
- * 这里只去除 lyric 外部横向空白，不改变行高和内部 span 结构。
- */
 .compact-lyric-panel :deep(.lyric) {
   box-sizing: border-box;
   max-width: 100%;
 }
 
 /*
- * 桌面歌词底部拖拽条。
+ * 底部移动条的透明鼠标命中区域。
  *
- * 使用自定义 mousemove + IPC 拖动，不能使用
- * -webkit-app-region: drag。
+ * 整体高度为 12px，方便鼠标定位；
+ * 实际显示出来的细条由 ::before 绘制。
+ *
+ * 层级 10002 高于窗口下边缘和角落命中层，
+ * 因此底部中央优先识别为移动操作。
  */
 .osd-drag-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  width: 72px;
+  height: 12px;
+
+  z-index: 10002;
+
+  background: transparent;
+
+  cursor: grab !important;
+  pointer-events: auto;
+
+  -webkit-app-region: no-drag;
+}
+
+/* 实际可见的底部移动细条。 */
+.osd-drag-bar::before {
+  content: '';
+
   position: absolute;
   left: 50%;
   bottom: 2px;
@@ -505,27 +711,156 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
 
   width: 52px;
-  height: 5px;
+  height: 4px;
 
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0);
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.18);
 
-  cursor: move;
-  z-index: 9999;
+  background:
+    rgba(255, 255, 255, 0);
+
+  box-shadow:
+    0 0 6px
+    rgba(0, 0, 0, 0.18);
+
+  pointer-events: none;
+
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.osd-drag-bar:hover::before {
+  background:
+    rgba(255, 255, 255, 0.52);
+}
+
+.osd-drag-bar:active {
+  cursor: grabbing !important;
+}
+
+/*
+ * 自定义拖动期间，强制所有内部元素显示 grabbing，
+ * 避免移动经过封面、歌词、按钮时光标发生跳变。
+ */
+#main.is-custom-dragging,
+#main.is-custom-dragging *,
+#main.is-custom-dragging .osd-drag-bar {
+  cursor: grabbing !important;
+}
+
+/* 普通模式使用更宽的移动条。 */
+#main.normal-mode .osd-drag-bar {
+  width: 90px;
+}
+
+#main.normal-mode
+  .osd-drag-bar::before {
+  width: 72px;
+}
+
+/*
+ * 窗口边缘与角落的透明鼠标命中层。
+ *
+ * 不显示背景，只设置位置、尺寸和对应 cursor。
+ */
+.resize-edge,
+.resize-corner {
+  position: absolute;
+
+  z-index: 10000;
+
+  background: transparent;
+  pointer-events: auto;
 
   -webkit-app-region: no-drag;
 }
 
-/* 普通模式下保留稍宽的拖拽条。 */
-#main.normal-mode .osd-drag-bar {
-  width: 72px;
-  height: 7px;
-  bottom: 3px;
+/* 上边缘 */
+.resize-edge-top {
+  top: 0;
+  left: var(--resize-corner-size);
+  right: var(--resize-corner-size);
+
+  height: var(--resize-edge-size);
+
+  cursor: ns-resize !important;
 }
 
-.osd-drag-bar:hover {
-  background: rgba(255, 255, 255, 0.52);
+/* 下边缘 */
+.resize-edge-bottom {
+  bottom: 0;
+  left: var(--resize-corner-size);
+  right: var(--resize-corner-size);
+
+  height: var(--resize-edge-size);
+
+  cursor: ns-resize !important;
+}
+
+/* 左边缘 */
+.resize-edge-left {
+  top: var(--resize-corner-size);
+  bottom: var(--resize-corner-size);
+  left: 0;
+
+  width: var(--resize-edge-size);
+
+  cursor: ew-resize !important;
+}
+
+/* 右边缘 */
+.resize-edge-right {
+  top: var(--resize-corner-size);
+  right: 0;
+  bottom: var(--resize-corner-size);
+
+  width: var(--resize-edge-size);
+
+  cursor: ew-resize !important;
+}
+
+/* 左上角 */
+.resize-corner-top-left {
+  top: 0;
+  left: 0;
+
+  width: var(--resize-corner-size);
+  height: var(--resize-corner-size);
+
+  cursor: nwse-resize !important;
+}
+
+/* 右上角 */
+.resize-corner-top-right {
+  top: 0;
+  right: 0;
+
+  width: var(--resize-corner-size);
+  height: var(--resize-corner-size);
+
+  cursor: nesw-resize !important;
+}
+
+/* 右下角 */
+.resize-corner-bottom-right {
+  right: 0;
+  bottom: 0;
+
+  width: var(--resize-corner-size);
+  height: var(--resize-corner-size);
+
+  cursor: nwse-resize !important;
+}
+
+/* 左下角 */
+.resize-corner-bottom-left {
+  bottom: 0;
+  left: 0;
+
+  width: var(--resize-corner-size);
+  height: var(--resize-corner-size);
+
+  cursor: nesw-resize !important;
 }
 /* =========== newADD end ======== */
 </style>
