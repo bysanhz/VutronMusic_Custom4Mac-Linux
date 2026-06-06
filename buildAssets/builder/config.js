@@ -60,23 +60,15 @@ const baseConfig = {
   },
   linux: {
     executableName: 'vutron',
-    icon: 'buildAssets/icons/icon.icns',
+    icon: 'buildAssets/icons/icon.png',
     category: 'Utility',
     target: [
-      {
-        target: 'snap',
-        arch: 'x64'
-      },
       {
         target: 'AppImage',
         arch: 'x64'
       },
       {
         target: 'deb',
-        arch: 'x64'
-      },
-      {
-        target: 'rpm',
         arch: 'x64'
       }
     ]

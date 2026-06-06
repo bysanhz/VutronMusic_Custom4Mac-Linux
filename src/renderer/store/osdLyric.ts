@@ -20,6 +20,10 @@ export const useOsdLyricStore = defineStore(
     const unplayLrcColor = ref('rgba(210, 210, 210, 1)')
     const textShadow = ref('rgba(0, 0, 0, 0.2)')
     const font = ref('system-ui')
+    // ======== newADD start======
+    // 桌面歌词文本对齐方式：left / center / right。
+    const align = ref<'left' | 'center' | 'right'>('center')
+    // =========== newADD end ========
 
     window.addEventListener('storage', (event) => {
       if (event.key === 'osdLyric') {
@@ -40,6 +44,9 @@ export const useOsdLyricStore = defineStore(
         textShadow.value = newState.textShadow
         translationMode.value = newState.translationMode
         font.value = newState.font
+        // ======== newADD start======
+        align.value = newState.align || 'center'
+        // =========== newADD end ========
       }
     })
 
@@ -58,7 +65,8 @@ export const useOsdLyricStore = defineStore(
       textShadow,
       translationMode,
       showButtonWhenLock,
-      font
+      font,
+      align
     }
   },
   {

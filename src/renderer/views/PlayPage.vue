@@ -145,6 +145,7 @@ const tabs = computed(() => {
   if (currentTrack.value?.matched) {
     result.push('comment')
   }
+
   return result
 })
 
@@ -170,9 +171,9 @@ const getIcon = () => {
   if (tabs.value[tabIdx.value] === 'pickLyric') {
     return 'lyric-half'
   } else if (tabs.value[tabIdx.value] === 'fullLyric') {
-    return 'lyric'
-  } else {
     return 'comment'
+  } else {
+    return 'lyric'
   }
 }
 

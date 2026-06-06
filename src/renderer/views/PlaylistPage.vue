@@ -110,7 +110,7 @@
     </div>
 
     <div v-if="isLikedSongsPage" class="special-playlist">
-      <div v-show="playlistType === 'online'" class="title gradient-green">我喜欢的音乐</div>
+      <div v-show="playlistType === 'online'" class="title gradient-red">我喜欢的音乐</div>
       <div v-show="playlistType === 'streamLiked'" class="title gradient-sky-blue"
         >我收藏的流媒体</div
       >

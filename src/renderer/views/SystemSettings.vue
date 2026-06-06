@@ -101,6 +101,21 @@
               <CustomSelect v-model="selectLanguage" :options="languageOption" />
             </div>
           </div>
+          <!-- ======== newADD start====== -->
+          <div class="item">
+            <div class="left">
+              <div class="title">主界面字体大小</div>
+              <div class="description">调节主窗口整体字号，不影响桌面歌词和菜单栏歌词</div>
+            </div>
+            <div class="right">
+              <div class="app-font-size-setting">
+                <button class="font-size-btn" @click="decreaseAppGlobalFontSize">A-</button>
+                <div class="font-size-value">{{ appGlobalFontSize }}</div>
+                <button class="font-size-btn" @click="increaseAppGlobalFontSize">A+</button>
+              </div>
+            </div>
+          </div>
+          <!-- =========== newADD end ======== -->
           <div v-if="!isMac" class="item">
             <div class="left">
               <div class="title">{{ $t('settings.general.closeAppOption.text') }}</div>
@@ -269,6 +284,16 @@
                 />
               </div>
             </div>
+            <!-- ======== newADD start====== -->
+            <div class="item">
+              <div class="left">
+                <div class="title">{{ $t('settings.osdLyric.textAlign.text') }}</div>
+              </div>
+              <div class="right">
+                <CustomSelect v-model="align" :options="osdLyricAlignOptions" />
+              </div>
+            </div>
+            <!-- =========== newADD end ======== -->
             <div class="item">
               <div class="left">
                 <div class="title">{{ $t('settings.osdLyric.type.text') }}</div>
@@ -1160,6 +1185,7 @@ const {
   isWordByWord,
   translationMode,
   fontSize,
+  align,
   backgroundColor,
   playedLrcColor,
   unplayLrcColor,
@@ -1294,6 +1320,15 @@ const translateOptions = [
   { label: t('settings.osdLyric.translationMode.romalrc'), value: 'rlyric' }
 ]
 
+// ======== newADD start======
+// 桌面歌词对齐方式选项。
+const osdLyricAlignOptions = [
+  { label: t('settings.osdLyric.textAlign.start'), value: 'left' },
+  { label: t('settings.osdLyric.textAlign.center'), value: 'center' },
+  { label: t('settings.osdLyric.textAlign.end'), value: 'right' }
+]
+// =========== newADD end ========
+
 const sizeLimitOptions = [
   { label: t('settings.autoCacheTrack.noLimit'), value: false },
   { label: '500M', value: 512 },
@@ -1349,6 +1384,39 @@ const proxyTypeOption = computed(() => [
 const currentTheme = ref(
   (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') as Theme
 )
+
+// ======== newADD start======
+// 主窗口全局字体大小设置。
+// 只影响主窗口界面，不影响桌面歌词 OSD 和 macOS 菜单栏歌词。
+const APP_FONT_SIZE_KEY = 'appGlobalFontSize'
+
+const readAppGlobalFontSize = () => {
+  const saved = Number(localStorage.getItem(APP_FONT_SIZE_KEY))
+
+  if (Number.isFinite(saved) && saved >= 10 && saved <= 28) {
+    return saved
+  }
+
+  return 16
+}
+
+const appGlobalFontSize = ref(readAppGlobalFontSize())
+
+const saveAppGlobalFontSize = () => {
+  localStorage.setItem(APP_FONT_SIZE_KEY, String(appGlobalFontSize.value))
+  window.dispatchEvent(new Event('app-global-font-size-change'))
+}
+
+const increaseAppGlobalFontSize = () => {
+  appGlobalFontSize.value = Math.min(appGlobalFontSize.value + 1, 28)
+  saveAppGlobalFontSize()
+}
+
+const decreaseAppGlobalFontSize = () => {
+  appGlobalFontSize.value = Math.max(appGlobalFontSize.value - 1, 10)
+  saveAppGlobalFontSize()
+}
+// =========== newADD end ========
 
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
@@ -2205,4 +2273,51 @@ input.text-input {
     color: white;
   }
 }
+/* ======== newADD start====== */
+/* 通用设置页：主界面全局字号调节控件 */
+.app-font-size-setting {
+  min-width: 164px;
+  height: 40px;
+  padding: 0 8px;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border-radius: 8px;
+  background: var(--color-secondary-bg);
+  color: var(--color-text);
+}
+
+.font-size-btn {
+  min-width: 42px;
+  height: 30px;
+  padding: 0 8px;
+
+  border: none;
+  outline: none;
+  border-radius: 6px;
+
+  background: transparent;
+  color: var(--color-text);
+
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.font-size-btn:hover {
+  background: color-mix(in srgb, var(--color-text), transparent 88%);
+}
+
+.font-size-value {
+  min-width: 36px;
+  text-align: center;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+/* =========== newADD end ======== */
 </style>

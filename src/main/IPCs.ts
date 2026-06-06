@@ -262,6 +262,11 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
   ipcMain.on('window-drag', (event, data: any) => {
     lrc.dragOsdWindow(data)
   })
+  // ======== newADD start======
+  ipcMain.on('drag-osd-window-absolute', (event, data) => {
+    lrc.dragOsdWindowAbsolute(data)
+  })
+  // =========== newADD end ========
   ipcMain.on('windowMouseleave', () => {
     lrc.windowMouseleave()
   })

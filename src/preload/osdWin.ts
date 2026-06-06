@@ -1,6 +1,15 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 
-const mainAvailChannels: string[] = ['mouseleave', 'from-osd', 'osd-resize', 'windowMouseleave']
+const mainAvailChannels: string[] = [
+  'mouseleave',
+  'from-osd',
+  'osd-resize',
+  'windowMouseleave',
+
+  // ======== newADD start======
+  'drag-osd-window-absolute'
+  // =========== newADD end ========
+]
 
 const rendererAvailChannels: string[] = [
   'set-isLock',

@@ -110,6 +110,17 @@ export default defineConfig(({ mode }) => {
       __VUE_I18N_LEGACY_API__: false,
       __INTLIFY_PROD_DEVTOOLS__: false
     },
+    // ======== newADD start======
+    // 开发环境启用 CSS Source Map。
+    // 作用：
+    // 1. 让 DevTools 里样式来源尽量从 <style> 映射回 .vue 源文件；
+    // 2. 方便点击 Styles 面板右侧来源，定位到具体组件和行号；
+    // 3. 只建议开发环境开启，避免影响生产构建体积。
+    css: {
+      devSourcemap: isDevEnv
+    },
+    // =========== newADD end ========
+
     resolve: {
       extensions: ['.mjs', '.js', '.ts', '.vue', '.json', '.scss'],
       alias: {

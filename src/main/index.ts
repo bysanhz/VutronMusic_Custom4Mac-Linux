@@ -164,8 +164,8 @@ class BackGround {
       height: (store.get('window.height') as number) || 720,
       x: undefined,
       y: undefined,
-      minWidth: 1080,
-      minHeight: 720,
+      minWidth: 10,
+      minHeight: 10,
       frame: !(
         Constants.IS_WINDOWS ||
         (Constants.IS_LINUX && store.get('settings.useCustomTitlebar'))
@@ -231,17 +231,22 @@ class BackGround {
     const option = {
       title: '桌面歌词',
       show: false,
+      // ======== newADD start======
+      // 允许窗口越过屏幕边界。
+      // macOS 上如果想让无边框歌词窗口拖到菜单栏上方/屏幕外侧，通常需要开启这个选项。
+      enableLargerThanScreen: true,
+      // =========== newADD end ========
       width:
         type === 'small'
           ? ((store.get('osdWin.width') || 700) as number)
           : ((store.get('osdWin.width2') || 500) as number),
       height:
         type === 'small'
-          ? ((store.get('osdWin.height') || 140) as number)
+          ? ((store.get('osdWin.height') || 50) as number)
           : ((store.get('osdWin.height2') || 600) as number),
-      minHeight: type === 'small' ? 140 : 400,
+      minHeight: type === 'small' ? 50 : 400,
       // maxHeight: type === 'small' ? 220 : undefined,
-      minWidth: type === 'small' ? 700 : 400,
+      minWidth: type === 'small' ? 100 : 50,
       maxWidth: type === 'small' ? undefined : undefined,
       useContentSize: true,
       x: undefined,
@@ -252,6 +257,10 @@ class BackGround {
       hiddenInMissionControl: true,
       skipTaskbar: true,
       maximizable: false,
+      // ======== newADD start======
+      movable: true,
+      resizable: true,
+      // =========== newADD end ========
       webPreferences: Constants.DEFAULT_OSD_PREFERENCES
     }
 
@@ -302,36 +311,123 @@ class BackGround {
     this.lyricWin?.setVisibleOnAllWorkspaces(isLock)
   }
 
+  // dragOsdWindow(data: { dx: number; dy: number; startHeight: number; startWidth: number }) {
+  //   const bds = this.lyricWin?.getBounds()
+
+  //   const displays = screen.getAllDisplays()
+  //   let x = bds.x + data.dx
+  //   let y = bds.y + data.dy
+  //   const height = data.startHeight
+  //   const width = data.startWidth
+  //   let isInside = false
+
+  //   for (let i = 0; i < displays.length; i++) {
+  //     const { bounds } = displays[i]
+  //     if (
+  //       x > bounds.x &&
+  //       x + width < bounds.x + bounds.width &&
+  //       y > bounds.y &&
+  //       y + height < bounds.y + bounds.height
+  //     ) {
+  //       isInside = true
+  //       break
+  //     }
+  //   }
+
+  //   if (!isInside) {
+  //     x = bds.x
+  //     y = bds.y
+  //   }
+
+  //   this.lyricWin?.setBounds({ x, y, height, width })
+  // }
   dragOsdWindow(data: { dx: number; dy: number; startHeight: number; startWidth: number }) {
     const bds = this.lyricWin?.getBounds()
+    if (!bds) return
 
-    const displays = screen.getAllDisplays()
+    // ======== newADD start======
+    console.log('[OSD DRAG]', data, bds)
+    // =========== newADD end ========
+
     let x = bds.x + data.dx
     let y = bds.y + data.dy
+
     const height = data.startHeight
     const width = data.startWidth
-    let isInside = false
 
-    for (let i = 0; i < displays.length; i++) {
-      const { bounds } = displays[i]
-      if (
-        x > bounds.x &&
-        x + width < bounds.x + bounds.width &&
-        y > bounds.y &&
-        y + height < bounds.y + bounds.height
-      ) {
-        isInside = true
-        break
-      }
+    // ======== newADD start======
+    // 允许桌面歌词窗口向上越过屏幕顶部。
+    // 但为了防止窗口完全拖丢，至少保留一小部分可见区域。
+    const minVisibleWidth = 80
+    const minVisibleHeight = 20
+
+    const displays = screen.getAllDisplays()
+    let matchedDisplay = screen.getDisplayNearestPoint({
+      x: x + width / 2,
+      y: y + height / 2
+    })
+
+    if (!matchedDisplay && displays.length > 0) {
+      matchedDisplay = displays[0]
     }
 
-    if (!isInside) {
-      x = bds.x
-      y = bds.y
-    }
+    const { bounds } = matchedDisplay
+
+    // 左右方向：允许稍微越界，但至少保留 minVisibleWidth 可见。
+    const minX = bounds.x - width + minVisibleWidth
+    const maxX = bounds.x + bounds.width - minVisibleWidth
+
+    // 上下方向：
+    // 上方允许越界到只剩 minVisibleHeight；
+    // 下方也允许稍微越界，但至少保留 minVisibleHeight。
+    const minY = bounds.y - height + minVisibleHeight
+    const maxY = bounds.y + bounds.height - minVisibleHeight
+
+    x = Math.max(minX, Math.min(x, maxX))
+    y = Math.max(minY, Math.min(y, maxY))
+    // =========== newADD end ========
 
     this.lyricWin?.setBounds({ x, y, height, width })
   }
+
+  // ======== newADD start======
+  dragOsdWindowAbsolute(data: { x: number; y: number; width: number; height: number }) {
+    if (!this.lyricWin) return
+
+    const displays = screen.getAllDisplays()
+    const nearestDisplay = screen.getDisplayNearestPoint({
+      x: data.x + data.width / 2,
+      y: data.y + data.height / 2
+    })
+    const bounds = nearestDisplay?.bounds || displays[0]?.bounds
+
+    if (!bounds) {
+      this.lyricWin.setBounds(data)
+      return
+    }
+
+    // 允许窗口向上越过菜单栏/屏幕顶部。
+    // 但至少保留一部分窗口在屏幕内，避免完全拖丢。
+    const minVisibleWidth = 80
+    const minVisibleHeight = 12
+
+    const minX = bounds.x - data.width + minVisibleWidth
+    const maxX = bounds.x + bounds.width - minVisibleWidth
+
+    const minY = bounds.y - data.height + minVisibleHeight
+    const maxY = bounds.y + bounds.height - minVisibleHeight
+
+    const nextX = Math.max(minX, Math.min(data.x, maxX))
+    const nextY = Math.max(minY, Math.min(data.y, maxY))
+
+    this.lyricWin.setBounds({
+      x: Math.round(nextX),
+      y: Math.round(nextY),
+      width: Math.round(data.width),
+      height: Math.round(data.height)
+    })
+  }
+  // =========== newADD end ========
 
   toggleOSDWindow() {
     const osdLyric = (store.get('osdWin.show') as boolean) || false
@@ -352,6 +448,28 @@ class BackGround {
       height
     })
   }
+  // updateOsdHeight(height: number) {
+  //   const bounds = this.lyricWin?.getBounds()
+  //   if (!bounds) return
+
+  //   // ======== newADD start======
+  //   // 桌面歌词高度保护：
+  //   // Electron 的 minHeight 主要限制用户手动拖拽；
+  //   // 如果代码里 setBounds({ height })，仍然可能绕过 minHeight，
+  //   // 所以这里对传入高度再做一次手动限制。
+  //   const isSmall = this.osdMode === 'small'
+  //   const minHeight = isSmall ? 100 : 260
+  //   const maxHeight = isSmall ? 360 : 1200
+  //   const nextHeight = Math.max(minHeight, Math.min(height, maxHeight))
+  //   // =========== newADD end ========
+
+  //   this.lyricWin?.setBounds({
+  //     x: bounds.x,
+  //     y: bounds.y,
+  //     width: bounds.width,
+  //     height: nextHeight
+  //   })
+  // }
 
   updateOSDPlayingState(playing: boolean) {
     this.lyricWin?.webContents.send('update-osd-playing-status', playing)
@@ -407,7 +525,12 @@ class BackGround {
       this.toggleMouseIgnore()
       setTimeout(() => {
         this.lyricWin.setFocusable(false)
-        this.lyricWin.setAlwaysOnTop(true)
+        // this.lyricWin.setAlwaysOnTop(true)
+        // ======== newADD start======
+        // 提高桌面歌词窗口层级。
+        // screen-saver 是 macOS 上较高的窗口层级，通常用于悬浮窗、录屏遮罩、跨全屏窗口等场景。
+        this.lyricWin.setAlwaysOnTop(true, 'screen-saver')
+        // =========== newADD end ========
       }, 100)
     })
     this.lyricWin.on('will-resize', () => {
@@ -729,6 +852,9 @@ class BackGround {
         updateOSDPlayingState: (state: boolean) => this.updateOSDPlayingState(state),
         updateOsdHeight: (height: number) => this.updateOsdHeight(height),
         dragOsdWindow: (data: any) => this.dragOsdWindow(data),
+        // ======== newADD start======
+        dragOsdWindowAbsolute: (data: any) => this.dragOsdWindowAbsolute(data),
+        // =========== newADD end ========
         windowMouseleave: () => this.checkOsdMouseLeave()
       }
       IPCs.initialize(this.win, this.tray, this.mpris, lrc)

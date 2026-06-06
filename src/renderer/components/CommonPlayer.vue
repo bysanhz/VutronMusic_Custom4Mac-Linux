@@ -17,34 +17,6 @@
         </div>
         <div class="controls">
           <div class="top-part">
-            <div class="track-info">
-              <div
-                :class="['title', { haslist: hasListSource() }]"
-                :title="source"
-                @click="hasListSource() && goToList()"
-              >
-                <span>{{ currentTrack?.name }}</span>
-              </div>
-              <div class="subtitle">
-                <router-link
-                  v-if="artist.matched !== false"
-                  :to="`/artist/${artist.id}`"
-                  @click="showLyrics = !showLyrics"
-                  >{{ artist.name }}
-                </router-link>
-                <span v-else>{{ artist.name }}</span>
-                <span>
-                  -
-                  <router-link
-                    v-if="album.matched !== false"
-                    :to="`/album/${album.id}`"
-                    @click="showLyrics = !showLyrics"
-                    >{{ album.name }}
-                  </router-link>
-                  <span v-else>{{ album.name }}</span>
-                </span>
-              </div>
-            </div>
             <div class="top-right">
               <div class="buttons">
                 <div class="transPro" @click="switchTransitionMode">
@@ -157,6 +129,36 @@
               <button-icon> <svg-icon icon-class="volume" /></button-icon
             ></div>
           </div>
+          <!-- ======== newADD start====== -->
+          <div class="bottom-track-info">
+            <div
+              :class="['title', { haslist: hasListSource() }]"
+              :title="source"
+              @click="hasListSource() && goToList()"
+            >
+              <span>{{ currentTrack?.name }}</span>
+            </div>
+            <div class="subtitle">
+              <router-link
+                v-if="artist.matched !== false"
+                :to="`/artist/${artist.id}`"
+                @click="showLyrics = !showLyrics"
+                >{{ artist.name }}
+              </router-link>
+              <span v-else>{{ artist.name }}</span>
+              <span>
+                -
+                <router-link
+                  v-if="album.matched !== false"
+                  :to="`/album/${album.id}`"
+                  @click="showLyrics = !showLyrics"
+                  >{{ album.name }}
+                </router-link>
+                <span v-else>{{ album.name }}</span>
+              </span>
+            </div>
+          </div>
+          <!-- =========== newADD end ======== -->
         </div>
       </div>
       <div class="right-side" @mouseenter="hover = true" @mouseleave="hover = false">
@@ -393,7 +395,7 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   display: flex;
-  padding: 0 calc((50vw - min(50vh, 33.33vw)) / 2.3);
+  padding: 0 calc((35vw - min(50vh, 33.33vw)) / 2.3);
 
   .left-side {
     flex: 1;
@@ -452,7 +454,14 @@ onBeforeUnmount(() => {
 
       .top-part {
         display: flex;
-        justify-content: space-between;
+
+        // ======== newADD start======
+        // track-info 被移到底部后，top-part 只剩 top-right。
+        // 让 top-right 占满整行，内部按钮才能真正铺开。
+        justify-content: stretch;
+        width: 100%;
+        // =========== newADD end ========
+
         margin-bottom: 18px;
 
         .title {
@@ -466,12 +475,14 @@ onBeforeUnmount(() => {
           line-clamp: 1;
           overflow: hidden;
         }
+
         .haslist {
           cursor: pointer;
           &:hover {
             text-decoration: underline;
           }
         }
+
         .subtitle {
           // margin-top: 4px;
           font-size: 14px;
@@ -486,19 +497,35 @@ onBeforeUnmount(() => {
         .top-right {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+
+          // ======== newADD start======
+          // 关键：让右侧按钮区占满 controls 的整行宽度。
+          width: 100%;
+          // =========== newADD end ========
 
           .buttons {
             height: 34px;
             display: flex;
+
+            // ======== newADD start======
+            // 关键：让“译 / 心 / + / 更多”在整行内铺开。
+            width: 100%;
+            align-items: center;
             justify-content: space-between;
+            // =========== newADD end ========
+
             button {
-              margin: 0 0 0 4px;
+              // ======== newADD start======
+              // 原来 margin-left 会破坏均匀分布，交给 space-between 管。
+              margin: 0;
+              // =========== newADD end ========
             }
+
             .svg-icon {
               height: 18px;
               width: 18px;
             }
+
             .comment {
               height: 22px;
               width: 22px;
@@ -508,8 +535,8 @@ onBeforeUnmount(() => {
           .transPro {
             cursor: pointer;
             line-height: 34px;
-            padding: 0 6px;
-            margin: 0 2px;
+            padding: 0 0px;
+            margin: 0 0px;
             display: flex;
 
             label {
@@ -566,22 +593,73 @@ onBeforeUnmount(() => {
           align-items: center;
 
           button {
-            margin: 0 1.2vw;
+            margin: 0 0.1vw;
           }
 
           button#play .svg-icon {
-            height: 28px;
-            width: 28px;
+            height: 8px; //28
+            width: 8px; //28
             padding: 2px;
           }
 
           .svg-icon {
             opacity: 0.88;
-            height: 22px;
-            width: 22px;
+            height: 8px; // 22
+            width: 8px; // 22
           }
         }
       }
+      // ======== newADD start======
+      // 左侧底部歌名信息框：把歌名 / 歌手专辑信息放到控制区下方。
+      // 对应截图中的红框区域。
+      .bottom-track-info {
+        width: 100%;
+        min-height: 64px;
+        margin-top: 22px;
+        padding: 10px 14px;
+        box-sizing: border-box;
+
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .title {
+          font-size: 20px;
+          font-weight: 600;
+          opacity: 0.88;
+
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+          line-clamp: 1;
+          overflow: hidden;
+        }
+
+        .haslist {
+          cursor: pointer;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+
+        .subtitle {
+          margin-top: 4px;
+          font-size: 14px;
+          opacity: 0.7;
+
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+          line-clamp: 1;
+          overflow: hidden;
+        }
+      }
+      // =========== newADD end ========
     }
   }
 
@@ -598,8 +676,8 @@ onBeforeUnmount(() => {
 .player-button {
   z-index: 300;
   border-radius: 0.75rem;
-  height: 44px;
-  width: 44px;
+  height: 20px;
+  width: 20px;
   display: flex;
   justify-content: center;
   align-items: center;

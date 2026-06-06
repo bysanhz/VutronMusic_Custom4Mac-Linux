@@ -915,10 +915,10 @@ $mid: math.ceil(math.div($count, 2));
   }
 
   .lyric-container-1 {
-    width: 60vw;
+    width: 70vw; // 60
     margin: 0 auto;
     height: 100vh;
-    padding-bottom: 10px;
+    padding-bottom: 2px;
     box-sizing: border-box;
   }
 
@@ -1102,22 +1102,32 @@ $mid: math.ceil(math.div($count, 2));
     .post-mark {
       left: 10%;
       top: 2%;
-      height: 120px;
-      width: 120px;
+      // 120px
+      height: 50px;
+      width: 60px;
     }
+    // .title-name {
+    //   top: 40px !important;
+    //   left: 0px !important;
+    //   bottom: calc(100vh - 230px) !important;
+    //   right: calc(100vw - 230px) !important;
     .title-name {
-      top: 40px !important;
-      left: 0px !important;
-      bottom: calc(100vh - 230px) !important;
-      right: calc(100vw - 230px) !important;
+      // ======== newADD start======
+      // Letter 模式全屏时：把左上角信笺图片移动到水平中间，与歌词区域对齐。
+      top: 0px !important;
+      left: 10% !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: translateX(-50%);
+      // =========== newADD end ========
 
       .title {
         display: none;
       }
       .fan-container {
         margin-bottom: 60px;
-        height: 100px;
-        width: 100px;
+        height: 50px; //100px
+        width: 50px; //100px
         background-image: url(../assets/images/stamp.png);
 
         img {
@@ -1125,6 +1135,7 @@ $mid: math.ceil(math.div($count, 2));
           height: 96%;
           width: 96%;
           border-radius: 0;
+          // 2px
           border: 4px solid white;
           @for $i from 1 through $count {
             &:nth-child(#{$i}) {

@@ -5,7 +5,8 @@ import {
   Menu,
   MenuItemConstructorOptions,
   nativeTheme,
-  app
+  app,
+  screen
 } from 'electron'
 import Constants from './utils/Constants'
 import store from './store'
@@ -241,7 +242,44 @@ class TrayImpl implements YPMTray {
     }
     this._tray.on('click', (event, bounds, position) => {
       if (Constants.IS_MAC) {
+        // ======== newADD start======
+        // macOS 菜单栏图标点击区域判断：
+        // 不直接相信 position 参数，改用当前鼠标屏幕坐标。
+        // Electron 的 Tray click 会给 bounds / position，但 macOS 下 position 在某些场景可能不稳定。
+        const cursor = screen.getCursorScreenPoint()
+
+        const trayX = bounds.x
+        const trayWidth = bounds.width
+        const clickX = cursor.x - trayX
+
+        // 最右边播放器图标命中区域。
+        // 如果最右边图标点不到，调大；如果喜欢图标误触发，调小。
+        const playerIconHitWidth = 32
+        const isClickPlayerIcon = clickX >= trayWidth - playerIconHitWidth && clickX <= trayWidth
+
+        console.log('[TRAY CLICK]', {
+          bounds,
+          position,
+          cursor,
+          clickX,
+          trayWidth,
+          isClickPlayerIcon
+        })
+
+        if (isClickPlayerIcon) {
+          if (this._win.isVisible()) {
+            this._win.hide()
+          } else {
+            this._win.show()
+            this._win.focus()
+          }
+          return
+        }
+
+        // 其他区域继续走项目原来的处理逻辑：
+        // 上一首 / 播放 / 下一首 / 喜欢 等由 renderer 根据 tray 点击位置处理。
         this._win.webContents.send('handleTrayClick', { event, bounds, position })
+        // =========== newADD end ========
       } else {
         this._win.show()
       }

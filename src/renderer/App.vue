@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :class="{ 'user-select-none': userSelectNone }">
+  <div id="app" :class="{ 'user-select-none': userSelectNone }" :style="appFontStyle">
     <ScrollBar v-show="!showLyrics" />
     <SideNav />
     <NavBar ref="navBarRef" />
@@ -121,6 +121,44 @@ const { theme, localMusic, general } = storeToRefs(settingsStore)
 const appearance = ref(theme.value.appearance)
 const { scanning } = toRefs(localMusic.value)
 Utils.changeAppearance(appearance.value)
+
+// ======== newADD start======
+// 主窗口全局字体大小设置。
+// 说明：
+// 1. 只作用于主窗口 renderer 的 #app 内部；
+// 2. 不作用于桌面歌词 OSD，因为 OSD 是独立 BrowserWindow；
+// 3. 不作用于 macOS 菜单栏歌词，因为菜单栏歌词由 tray 独立绘制/更新。
+const APP_FONT_SIZE_KEY = 'appGlobalFontSize'
+
+const readAppGlobalFontSize = () => {
+  const saved = Number(localStorage.getItem(APP_FONT_SIZE_KEY))
+
+  if (Number.isFinite(saved) && saved >= 8 && saved <= 32) {
+    return saved
+  }
+
+  return 16
+}
+
+const appGlobalFontSize = ref(readAppGlobalFontSize())
+
+const appFontStyle = computed(() => {
+  return {
+    // ======== newADD start======
+    // 主界面基准字号，例如 16px、14px、10px。
+    '--app-global-font-size': `${appGlobalFontSize.value}px`,
+
+    // 主界面字号缩放比例。
+    // 以 16px 为默认基准：10px => 0.625，20px => 1.25。
+    '--app-global-font-scale': `${appGlobalFontSize.value / 16}`
+    // =========== newADD end ========
+  }
+})
+
+window.addEventListener('app-global-font-size-change', () => {
+  appGlobalFontSize.value = readAppGlobalFontSize()
+})
+// =========== newADD end ========
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (appearance.value === 'auto') {
@@ -287,6 +325,12 @@ onBeforeUnmount(() => {
   width: 100%;
   color: var(--color-text);
   transition: all 0.4s;
+  // ======== newADD start======
+  // 主窗口全局字号入口。
+  // 默认 font-size 会被大量子元素继承；
+  // 对于写死字号的组件，下面再用 :deep() 做温和覆盖。
+  font-size: var(--app-global-font-size);
+  // =========== newADD end ========
 }
 
 .user-select-none {
@@ -316,4 +360,87 @@ onBeforeUnmount(() => {
 .contextMenu {
   width: 0;
 }
+
+/* ======== newADD start====== */
+/* 主窗口全局字体大小强制覆盖版。
+ * 目标：
+ * 1. 覆盖主窗口中大量写死 px 的 font-size；
+ * 2. 保留基本层级：普通文本、标题、小字分别按比例缩放；
+ * 3. 不影响桌面歌词 OSD 和 macOS 菜单栏歌词，因为它们不在 #app 这棵 DOM 树里。
+ */
+
+/* 默认文本：设置页正文、按钮、列表文字、评论正文等 */
+#app
+  :where(div, span, label, p, a, button, input, select, textarea, li, td, th):not(.svg-icon):not(
+    .iconfont
+  ) {
+  font-size: var(--app-global-font-size) !important;
+}
+
+/* 常见标题：用户名、歌曲名、设置项标题、评论标题等 */
+#app
+  :where(
+    .title,
+    .nickname,
+    .name,
+    .track-name,
+    .song-name,
+    .playlist-name,
+    .album-name,
+    .artist-name
+  ):not(.svg-icon):not(.iconfont) {
+  font-size: calc(1.25 * var(--app-global-font-size)) !important;
+}
+
+/* 辅助说明文字：描述、副标题、歌手名、时间、额外信息等 */
+#app
+  :where(
+    .description,
+    .extra-info,
+    .artist,
+    .artists,
+    .sub-title,
+    .subtext,
+    .time,
+    .date,
+    .text
+  ):not(.svg-icon):not(.iconfont) {
+  font-size: calc(0.875 * var(--app-global-font-size)) !important;
+}
+
+/* 顶部/侧边栏 tab、设置页 tab */
+#app :where(.tab, .item, .left, .right):not(.svg-icon):not(.iconfont) {
+  font-size: var(--app-global-font-size) !important;
+}
+
+/* 表单控件强制继承 */
+#app button,
+#app input,
+#app select,
+#app textarea {
+  font-size: var(--app-global-font-size) !important;
+}
+
+/* 不要把 SVG 图标、图标字体、图片当成文字缩放 */
+#app svg,
+#app svg *,
+#app img,
+#app .svg-icon,
+#app .iconfont {
+  font-size: unset;
+}
+/* =========== newADD end ======== */
+/* ======== newADD start====== */
+/* 主窗口图标随“主界面字体大小”一起缩放。
+ * 说明：
+ * 1. 使用 --app-global-font-scale，与主界面字号共用同一个比例；
+ * 2. 只作用于 #app 内部，所以不影响桌面歌词 OSD 和 macOS 菜单栏歌词；
+ * 3. 只缩放图标本体，不直接改变按钮容器大小，避免布局突然塌陷。
+ */
+#app .svg-icon,
+#app .iconfont {
+  transform: scale(calc(0.7 + 0.25 * var(--app-global-font-scale)));
+  transform-origin: center;
+}
+/* =========== newADD end ======== */
 </style>

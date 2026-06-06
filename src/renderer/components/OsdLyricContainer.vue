@@ -49,6 +49,7 @@ const {
   translationMode,
   type,
   fontSize,
+  align,
   playedLrcColor,
   unplayLrcColor,
   mode,
@@ -71,6 +72,12 @@ const containerStyle = computed(() => {
   result.overflowY = isMini.value ? 'hidden' : 'scroll'
   result.justifyContent = isMini.value ? 'center' : ''
   result.fontFamily = font.value ?? 'system-ui'
+  // ======== newADD start======
+  // 桌面歌词文本对齐方式。
+  // 只加在容器层，不修改 LyricLine 内部结构，避免破坏滚动定位。
+  result.textAlign = align.value
+  // =========== newADD end ========
+
   return result
 })
 
@@ -399,6 +406,30 @@ onBeforeUnmount(() => {
     padding: 2px 0;
     font-weight: 600;
 
+    // // ======== newADD start======
+    // // 桌面歌词对齐方式。
+    // // 注意：text-align 必须作用在有宽度的块级容器上；
+    // // 同时把内部 span 设为 inline-block，避免文字渐变/逐字歌词结构导致对齐不明显。
+    // width: 100%;
+    // box-sizing: border-box;
+    text-align: v-bind(align);
+
+    // .lyric-line,
+    // .translation {
+    //   width: 100%;
+    //   display: block;
+    //   box-sizing: border-box;
+    //   text-align: v-bind(align);
+    // }
+
+    // .lyric-line span,
+    // .translation span {
+    //   display: inline-block;
+    //   max-width: 100%;
+    //   text-align: inherit;
+    // }
+    // // =========== newADD end ==========
+
     .lyric-line span {
       font-size: v-bind('`${fontSize}px`');
       transition:
@@ -458,7 +489,11 @@ onBeforeUnmount(() => {
 }
 
 .container:not(.mini) {
-  text-align: center;
+  // ======== newADD start======
+  // 桌面歌词普通窗口模式：跟随设置项左/中/右对齐。
+  text-align: v-bind(align);
+  // =========== newADD end ========
+  // text-align: center;
   :deep(.lyric:first-of-type) {
     margin-top: 40vh !important;
   }
@@ -477,20 +512,58 @@ onBeforeUnmount(() => {
   }
 
   &.one-line {
-    text-align: center;
+    // ======== newADD start======
+    text-align: v-bind(align);
+    // =========== newADD end ========
+    // text-align: center;
   }
 
   &.two-line :deep(.lyric:not(.hidden-measure)) {
+    // ======== newADD start======
+    // mini 双行歌词行距控制：
+    // margin 控制两行外部间距；
+    // padding 控制每一行内部上下留白；
+    // line-height 控制文字自身行盒高度。
+    margin: -1px 0;
+    padding: 0;
+    line-height: 1;
+    // =========== newADD end ========
+    // &:first-child {
+    //   text-align: center;
+    // }
+    // &:last-child {
+    //   text-align: center;
+    // }
+    // ======== newADD start======
+    // mini 双行模式：两行都跟随设置项对齐。
     &:first-child {
-      text-align: left;
+      text-align: v-bind(align);
     }
     &:last-child {
-      text-align: right;
+      text-align: v-bind(align);
     }
+    // =========== newADD end ========
   }
 
+  // ======== newADD start======
+  // 进一步压缩 LyricLine 内部主歌词和翻译歌词的行高。
+  &.two-line :deep(.lyric-line),
+  &.two-line :deep(.translation) {
+    line-height: 1;
+  }
+
+  &.two-line :deep(.lyric-line span),
+  &.two-line :deep(.translation span) {
+    line-height: 1;
+  }
+  // =========== newADD end ========
+
   &.two-line :deep(.lyric.center) {
-    text-align: center !important;
+    // text-align: center !important;
+    // ======== newADD start======
+    // 原来这里强制 center，会覆盖设置项。
+    text-align: v-bind(align) !important;
+    // =========== newADD end ========
   }
 }
 
