@@ -213,12 +213,12 @@ onBeforeUnmount(() => {
 .compact-cover-controls {
   position: relative;
 
-  width: 52px;
-  height: 52px;
+  width: 45px;
+  height: 35px;
   flex-shrink: 0;
 
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: 5px;
 
   -webkit-app-region: no-drag;
 }
@@ -258,15 +258,15 @@ onBeforeUnmount(() => {
 
   border: none;
   outline: none;
-  border-radius: 4px;
+  border-radius: 2px;
 
   color: white;
   background: transparent;
   cursor: pointer;
 
   .svg-icon {
-    width: 11px;
-    height: 11px;
+    width: 8px;
+    height: 8px;
   }
 
   &:hover {
@@ -279,7 +279,7 @@ onBeforeUnmount(() => {
 }
 
 .compact-play-button {
-  width: 18px;
+  width: 8px;
 
   .svg-icon {
     width: 14px;
@@ -296,8 +296,8 @@ onBeforeUnmount(() => {
  */
 .compact-like-button {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 0px;
+  right: 0px;
 
   z-index: 3;
 
@@ -305,8 +305,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 
-  width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
   padding: 0;
 
   border: none;

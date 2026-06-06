@@ -375,7 +375,8 @@ onBeforeUnmount(() => {
  * 高度：60～76px
  */
 #main.compact-mode {
-  padding: 3px 6px 7px;
+  // 上、右、下、左
+  padding: 0px 3px 0px 0px;
 }
 /* =========== newADD end ======== */
 
@@ -439,8 +440,8 @@ onBeforeUnmount(() => {
  */
 .compact-osd-layout {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1fr);
-  column-gap: 4px;
+  grid-template-columns: 50px minmax(0, 1fr);
+  column-gap: 1px;
   align-items: center;
 
   width: 100%;
