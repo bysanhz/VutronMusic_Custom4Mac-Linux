@@ -11,6 +11,17 @@
       draggable="false"
     />
 
+    <!-- ======== newADD start====== -->
+    <button
+        class="compact-like-button"
+        :class="{ liked: isLiked }"
+        :title="isLiked ? '取消喜欢' : '加入喜欢'"
+        @click.stop="toggleLike"
+        >
+        <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
+    </button>
+    <!-- =========== newADD end ======== -->
+
     <div v-show="isHover" class="compact-control-mask">
       <button
         class="compact-control-button"
@@ -49,6 +60,12 @@ const DEFAULT_COVER =
 const isHover = ref(false)
 const isPlaying = ref(false)
 const coverUrl = ref(DEFAULT_COVER)
+// ======== newADD start======
+// 当前歌曲是否已经加入喜欢。
+// 点击按钮时先在桌面歌词窗口中立即切换视觉状态，
+// 同时通过 IPC 通知主窗口执行真正的收藏或取消收藏。
+const isLiked = ref(false)
+// =========== newADD end ========
 
 /**
  * 从持久化的播放器状态中读取当前封面和播放状态。
@@ -120,6 +137,25 @@ const playNext = () => {
   window.mainApi?.send('from-osd', 'playNext')
 }
 
+// ======== newADD start======
+/**
+ * 请求主播放器切换当前歌曲的喜欢状态。
+ *
+ * 这里不直接修改 isLiked，避免桌面歌词窗口显示的状态
+ * 与主播放器真实收藏状态不一致。主窗口处理完成后，会通过
+ * update-osd-status 消息返回最新的 isLiked。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   mainApi 不存在时不会抛出异常。
+ */
+const toggleLike = () => {
+  window.mainApi?.send('from-osd', 'likeTrack')
+}
+// =========== newADD end ========
+
 /**
  * 监听其他窗口写入 player 本地状态。
  *
@@ -138,11 +174,50 @@ const handleStorage = (event: StorageEvent) => {
   }
 }
 
+// ======== newADD start======
+/**
+ * 接收主播放器发送给桌面歌词窗口的状态更新。
+ *
+ * 当前主要同步：
+ * - isLiked：当前歌曲是否已加入喜欢；
+ * - playing：当前歌曲是否正在播放；
+ * - pic：当前歌曲封面地址。
+ *
+ * Args:
+ *   event: 主窗口通过 MessagePort 转发的消息事件。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   消息字段不存在时直接忽略。
+ */
+const handleOsdStatusMessage = (event: MessageEvent) => {
+  if (event.data?.type !== 'update-osd-status') return
+
+  const data = event.data.data ?? {}
+
+  if (typeof data.isLiked === 'boolean') {
+    isLiked.value = data.isLiked
+  }
+
+  if (typeof data.playing === 'boolean') {
+    isPlaying.value = data.playing
+  }
+
+  if (typeof data.pic === 'string' && data.pic.length > 0) {
+    coverUrl.value = data.pic
+  }
+}
+// =========== newADD end ========
+
 onMounted(() => {
   updatePlayerSnapshot()
 
   window.addEventListener('storage', handleStorage)
-
+  // ======== newADD start======
+  window.addEventListener('message', handleOsdStatusMessage)
+  // =========== newADD end ========
   window.mainApi?.on(
     'update-osd-playing-status',
     (_event: unknown, value: boolean) => {
@@ -153,6 +228,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorage)
+  // ======== newADD start======
+  window.removeEventListener('message', handleOsdStatusMessage)
+  // =========== newADD end ========
 })
 </script>
 
@@ -233,4 +311,72 @@ onBeforeUnmount(() => {
     height: 14px;
   }
 }
+
+/* ======== newADD start====== */
+/*
+ * 封面右上角爱心按钮。
+ *
+ * 采用绝对定位，不参与中间三个播放按钮的 flex 布局，
+ * 因此不会压缩上一首、播放暂停和下一首按钮。
+ */
+.compact-like-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+  padding: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 50%;
+
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.48);
+
+  cursor: pointer;
+  opacity: 0.9;
+
+  -webkit-app-region: no-drag;
+
+  .svg-icon {
+    width: 11px;
+    height: 11px;
+  }
+
+  &:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.08);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  /*
+   * 已喜欢状态使用红色。
+   * 如果希望跟随主题色，可将这里改成：
+   * color: var(--color-primary);
+   */
+  &.liked {
+    color: #ff4d6d;
+  }
+}
+
+/*
+ * 悬停遮罩需要位于封面上方，但低于爱心按钮。
+ */
+.compact-control-mask {
+  z-index: 2;
+}
+/* =========== newADD end ======== */
+
 </style>

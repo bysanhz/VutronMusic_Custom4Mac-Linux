@@ -562,9 +562,38 @@ export const usePlayerStore = defineStore(
       }
     )
 
+    // ======== newADD start======
+    /**
+     * 同步当前歌曲的喜欢状态。
+     *
+     * 详细说明：
+     * 1. updatePlayerState 用于同步托盘菜单等原有界面；
+     * 2. update-osd-status 用于同步紧凑桌面歌词中的爱心按钮；
+     * 3. 当前歌曲切换、收藏或取消收藏后，只要 isLiked 重新计算，
+     *    桌面歌词窗口就会自动收到最新状态。
+     *
+     * Args:
+     *   value: 当前歌曲是否已经加入喜欢。
+     *
+     * Returns:
+     *   无返回值。
+     *
+     * Raises:
+     *   mainApi 不存在时使用可选链静默跳过。
+     */
     watch(isLiked, (value) => {
       window.mainApi?.send('updatePlayerState', { like: value })
+
+      if (osdLyricStore.show) {
+        window.mainApi?.sendMessage({
+          type: 'update-osd-status',
+          data: {
+            isLiked: value
+          }
+        })
+      }
     })
+    // =========== newADD end ========
 
     watch(repeatMode, (value) => {
       window.mainApi?.send('updatePlayerState', { repeatMode: value })
@@ -1399,7 +1428,15 @@ export const usePlayerStore = defineStore(
               line: [currentIndex.value, audioNodes.audio?.currentTime || 0],
               playing: playing.value,
               seek: audioNodes.audio?.currentTime || 0,
-              title: `${(currentTrack.value?.artists || currentTrack.value?.ar)[0]?.name} - ${currentTrack.value?.name}`
+              title: `${(currentTrack.value?.artists || currentTrack.value?.ar)[0]?.name} - ${currentTrack.value?.name}`,
+
+              // ======== newADD start======
+              // 桌面歌词窗口刚连接时，立即同步真实喜欢状态和当前封面。
+              // 这样已经收藏过的歌曲会直接显示实心爱心，
+              // 不需要等待下一次状态变化。
+              isLiked: isLiked.value,
+              pic: pic.value
+              // =========== newADD end ========
             }
           })
         } else if (event.data.type === 'get-seek') {

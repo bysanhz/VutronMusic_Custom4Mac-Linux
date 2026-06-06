@@ -240,6 +240,14 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
     } else if (message === 'playOrPause') {
       win.webContents.send('play')
     }
+
+    // ======== newADD start======
+    // 桌面歌词紧凑播放器点击爱心后，
+    // 将消息转发给主播放器窗口已有的 like 事件处理逻辑。
+    else if (message === 'likeTrack') {
+      win.webContents.send('like')
+    }
+    // =========== newADD end ========
   })
   ipcMain.on('osd-resize', (event, height) => {
     lrc.updateOsdHeight(height)
