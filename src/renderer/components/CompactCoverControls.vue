@@ -1,33 +1,20 @@
 <template>
-  <div
-    class="compact-cover-controls"
-    @mouseenter="isHover = true"
-    @mouseleave="isHover = false"
-  >
-    <img
-      class="compact-cover"
-      :src="coverUrl"
-      alt="当前歌曲封面"
-      draggable="false"
-    />
+  <div class="compact-cover-controls" @mouseenter="isHover = true" @mouseleave="isHover = false">
+    <img class="compact-cover" :src="coverUrl" alt="当前歌曲封面" draggable="false" />
 
     <!-- ======== newADD start====== -->
     <button
-        class="compact-like-button"
-        :class="{ liked: isLiked }"
-        :title="isLiked ? '取消喜欢' : '加入喜欢'"
-        @click.stop="toggleLike"
-        >
-        <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
+      class="compact-like-button"
+      :class="{ liked: isLiked }"
+      :title="isLiked ? '取消喜欢' : '加入喜欢'"
+      @click.stop="toggleLike"
+    >
+      <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
     </button>
     <!-- =========== newADD end ======== -->
 
     <div v-show="isHover" class="compact-control-mask">
-      <button
-        class="compact-control-button"
-        title="上一首"
-        @click.stop="playPrev"
-      >
+      <button class="compact-control-button" title="上一首" @click.stop="playPrev">
         <SvgIcon icon-class="previous" />
       </button>
 
@@ -39,11 +26,7 @@
         <SvgIcon :icon-class="isPlaying ? 'pause' : 'play'" />
       </button>
 
-      <button
-        class="compact-control-button"
-        title="下一首"
-        @click.stop="playNext"
-      >
+      <button class="compact-control-button" title="下一首" @click.stop="playNext">
         <SvgIcon icon-class="next" />
       </button>
     </div>
@@ -54,8 +37,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 
-const DEFAULT_COVER =
-  'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
+const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
 
 const isHover = ref(false)
 const isPlaying = ref(false)
@@ -86,11 +68,7 @@ const updatePlayerSnapshot = () => {
     const track = player.currentTrack
     const album = track?.album ?? track?.al
 
-    coverUrl.value =
-      player.pic ||
-      album?.picUrl ||
-      track?.picUrl ||
-      DEFAULT_COVER
+    coverUrl.value = player.pic || album?.picUrl || track?.picUrl || DEFAULT_COVER
 
     isPlaying.value = Boolean(player.playing)
   } catch (error) {
@@ -218,12 +196,9 @@ onMounted(() => {
   // ======== newADD start======
   window.addEventListener('message', handleOsdStatusMessage)
   // =========== newADD end ========
-  window.mainApi?.on(
-    'update-osd-playing-status',
-    (_event: unknown, value: boolean) => {
-      isPlaying.value = value
-    }
-  )
+  window.mainApi?.on('update-osd-playing-status', (_event: unknown, value: boolean) => {
+    isPlaying.value = value
+  })
 })
 
 onBeforeUnmount(() => {
@@ -238,12 +213,12 @@ onBeforeUnmount(() => {
 .compact-cover-controls {
   position: relative;
 
-  width: 52px;
-  height: 52px;
+  width: 45px;
+  height: 35px;
   flex-shrink: 0;
 
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: 5px;
 
   -webkit-app-region: no-drag;
 }
@@ -283,15 +258,15 @@ onBeforeUnmount(() => {
 
   border: none;
   outline: none;
-  border-radius: 4px;
+  border-radius: 2px;
 
   color: white;
   background: transparent;
   cursor: pointer;
 
   .svg-icon {
-    width: 11px;
-    height: 11px;
+    width: 8px;
+    height: 8px;
   }
 
   &:hover {
@@ -304,7 +279,7 @@ onBeforeUnmount(() => {
 }
 
 .compact-play-button {
-  width: 18px;
+  width: 8px;
 
   .svg-icon {
     width: 14px;
@@ -321,8 +296,8 @@ onBeforeUnmount(() => {
  */
 .compact-like-button {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 0px;
+  right: 0px;
 
   z-index: 3;
 
@@ -330,8 +305,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 
-  width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
   padding: 0;
 
   border: none;
@@ -378,5 +353,4 @@ onBeforeUnmount(() => {
   z-index: 2;
 }
 /* =========== newADD end ======== */
-
 </style>

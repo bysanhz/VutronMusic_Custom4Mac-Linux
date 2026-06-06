@@ -21,11 +21,7 @@
     <div v-show="!isLock && !isCompactMode">
       <Header v-show="hover" :class="{ lock: isLock }" :style="headerStyle" />
 
-      <div
-        v-show="!hover"
-        class="header-title"
-        :class="{ show: bground.alpha }"
-      >
+      <div v-show="!hover" class="header-title" :class="{ show: bground.alpha }">
         {{ title }}
       </div>
     </div>
@@ -36,11 +32,7 @@
       Linux 中项目会自动取消 isLock，因此该按钮主要用于 macOS。
       紧凑模式下也不显示它，避免覆盖只有几十像素高的歌词区域。
     -->
-    <div
-      v-show="isLock && !isCompactMode"
-      class="control-lock"
-      tabindex="-1"
-    >
+    <div v-show="isLock && !isCompactMode" class="control-lock" tabindex="-1">
       <button
         v-if="!isLinux"
         v-show="showButtonWhenLock"
@@ -50,11 +42,7 @@
         tabindex="-1"
         @click="handleLock"
       >
-        <SvgIcon
-          icon-class="lock"
-          style="margin-right: 4px"
-          tabindex="-1"
-        />
+        <SvgIcon icon-class="lock" style="margin-right: 4px" tabindex="-1" />
         解锁
       </button>
     </div>
@@ -121,13 +109,8 @@ const isLinux = window.env?.isLinux
 
 const osdLyricStore = useOsdLyricStore()
 
-const {
-  isLock,
-  type,
-  playedLrcColor,
-  backgroundColor,
-  showButtonWhenLock
-} = storeToRefs(osdLyricStore)
+const { isLock, type, playedLrcColor, backgroundColor, showButtonWhenLock } =
+  storeToRefs(osdLyricStore)
 
 const hover = ref(false)
 const title = ref('听你想听的音乐')
@@ -333,10 +316,7 @@ const handleDocumentMouseLeave = () => {
 const handleOsdStatusMessage = (event: MessageEvent) => {
   if (event.data.type !== 'update-osd-status') return
 
-  for (const [key, value] of Object.entries(event.data.data) as [
-    string,
-    any
-  ][]) {
+  for (const [key, value] of Object.entries(event.data.data) as [string, any][]) {
     if (key === 'title') {
       title.value = value
     }
@@ -346,12 +326,9 @@ const handleOsdStatusMessage = (event: MessageEvent) => {
 document.addEventListener('mouseleave', handleDocumentMouseLeave)
 window.addEventListener('message', handleOsdStatusMessage)
 
-window.mainApi?.on(
-  'mouseInWindow',
-  (_event: unknown, value: boolean) => {
-    hover.value = value
-  }
-)
+window.mainApi?.on('mouseInWindow', (_event: unknown, value: boolean) => {
+  hover.value = value
+})
 
 onMounted(() => {
   if (isLinux) {
@@ -362,15 +339,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopCustomOsdDrag()
 
-  document.removeEventListener(
-    'mouseleave',
-    handleDocumentMouseLeave
-  )
+  document.removeEventListener('mouseleave', handleDocumentMouseLeave)
 
-  window.removeEventListener(
-    'message',
-    handleOsdStatusMessage
-  )
+  window.removeEventListener('message', handleOsdStatusMessage)
 })
 </script>
 
@@ -404,7 +375,8 @@ onBeforeUnmount(() => {
  * 高度：60～76px
  */
 #main.compact-mode {
-  padding: 3px 6px 7px;
+  // 上、右、下、左
+  padding: 0px 3px 0px 0px;
 }
 /* =========== newADD end ======== */
 
@@ -468,8 +440,8 @@ onBeforeUnmount(() => {
  */
 .compact-osd-layout {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1fr);
-  column-gap: 4px;
+  grid-template-columns: 50px minmax(0, 1fr);
+  column-gap: 1px;
   align-items: center;
 
   width: 100%;
