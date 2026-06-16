@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 
   width: 15px;
-  height: 24px;
+  height: 10px;
   padding: 0;
 
   border: none;

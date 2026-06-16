@@ -20,27 +20,15 @@
       3. 允许桌面歌词窗口压缩到较小尺寸。
     -->
     <div v-show="!isLock && !isCompactMode">
-      <Header
-        v-show="hover"
-        :class="{ lock: isLock }"
-        :style="headerStyle"
-      />
+      <Header v-show="hover" :class="{ lock: isLock }" :style="headerStyle" />
 
-      <div
-        v-show="!hover"
-        class="header-title"
-        :class="{ show: bground.alpha }"
-      >
+      <div v-show="!hover" class="header-title" :class="{ show: bground.alpha }">
         {{ title }}
       </div>
     </div>
 
     <!-- 普通模式锁定后的解锁按钮 -->
-    <div
-      v-show="isLock && !isCompactMode"
-      class="control-lock"
-      tabindex="-1"
-    >
+    <div v-show="isLock && !isCompactMode" class="control-lock" tabindex="-1">
       <button
         v-if="!isLinux"
         v-show="showButtonWhenLock"
@@ -50,21 +38,14 @@
         tabindex="-1"
         @click="handleLock"
       >
-        <SvgIcon
-          icon-class="lock"
-          style="margin-right: 4px"
-          tabindex="-1"
-        />
+        <SvgIcon icon-class="lock" style="margin-right: 4px" tabindex="-1" />
         解锁
       </button>
     </div>
 
     <!-- ======== newADD start====== -->
     <!-- 紧凑桌面歌词布局 -->
-    <div
-      v-if="isCompactMode"
-      class="compact-osd-layout"
-    >
+    <div v-if="isCompactMode" class="compact-osd-layout">
       <div class="compact-left-panel">
         <CompactCoverControls />
       </div>
@@ -75,10 +56,7 @@
     </div>
 
     <!-- 普通模式继续使用原始歌词容器 -->
-    <LyricContainer
-      v-else
-      tabindex="-1"
-    />
+    <LyricContainer v-else tabindex="-1" />
     <!-- =========== newADD end ======== -->
 
     <!-- ======== newADD start====== -->
@@ -100,51 +78,22 @@
 
       这些元素不显示任何内容，只负责显示相应的缩放鼠标样式。
     -->
-    <div
-      v-show="!isLock"
-      class="resize-edge resize-edge-top"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-edge resize-edge-right"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-edge resize-edge-bottom"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-edge resize-edge-left"
-    />
+    <div v-show="!isLock" class="resize-edge resize-edge-top" />
+    <div v-show="!isLock" class="resize-edge resize-edge-right" />
+    <div v-show="!isLock" class="resize-edge resize-edge-bottom" />
+    <div v-show="!isLock" class="resize-edge resize-edge-left" />
 
     <!-- 无边框窗口四角透明命中区域 -->
-    <div
-      v-show="!isLock"
-      class="resize-corner resize-corner-top-left"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-corner resize-corner-top-right"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-corner resize-corner-bottom-right"
-    />
-    <div
-      v-show="!isLock"
-      class="resize-corner resize-corner-bottom-left"
-    />
+    <div v-show="!isLock" class="resize-corner resize-corner-top-left" />
+    <div v-show="!isLock" class="resize-corner resize-corner-top-right" />
+    <div v-show="!isLock" class="resize-corner resize-corner-bottom-right" />
+    <div v-show="!isLock" class="resize-corner resize-corner-bottom-left" />
     <!-- =========== newADD end ======== -->
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref
-} from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import Header from '../components/OsdHeader.vue'
@@ -161,13 +110,8 @@ const isLinux = window.env?.isLinux
 
 const osdLyricStore = useOsdLyricStore()
 
-const {
-  isLock,
-  type,
-  playedLrcColor,
-  backgroundColor,
-  showButtonWhenLock
-} = storeToRefs(osdLyricStore)
+const { isLock, type, playedLrcColor, backgroundColor, showButtonWhenLock } =
+  storeToRefs(osdLyricStore)
 
 const hover = ref(false)
 const title = ref('听你想听的音乐')
@@ -190,10 +134,7 @@ const isCompactMode = computed(() => type.value === 'small')
 // =========== newADD end ========
 
 const lockStyle = computed(() => {
-  const textColor =
-    playedLrcColor.value === 'white'
-      ? '#222'
-      : 'white'
+  const textColor = playedLrcColor.value === 'white' ? '#222' : 'white'
 
   return {
     color: textColor,
@@ -202,9 +143,7 @@ const lockStyle = computed(() => {
 })
 
 const bground = computed(() => {
-  const parts = backgroundColor.value
-    .slice(5, -1)
-    .split(',')
+  const parts = backgroundColor.value.slice(5, -1).split(',')
 
   const red = parseInt(parts[0]?.trim() || '0', 10)
   const green = parseInt(parts[1]?.trim() || '0', 10)
@@ -219,10 +158,7 @@ const bground = computed(() => {
   }
 
   return {
-    bg: `rgba(${red}, ${green}, ${blue}, ${Math.min(
-      alpha + 0.2,
-      1
-    )})`,
+    bg: `rgba(${red}, ${green}, ${blue}, ${Math.min(alpha + 0.2, 1)})`,
     alpha
   }
 })
@@ -297,20 +233,11 @@ const startCustomOsdDrag = (event: MouseEvent) => {
     height: window.outerHeight
   }
 
-  window.addEventListener(
-    'mousemove',
-    handleCustomOsdDrag
-  )
+  window.addEventListener('mousemove', handleCustomOsdDrag)
 
-  window.addEventListener(
-    'mouseup',
-    stopCustomOsdDrag
-  )
+  window.addEventListener('mouseup', stopCustomOsdDrag)
 
-  window.addEventListener(
-    'blur',
-    stopCustomOsdDrag
-  )
+  window.addEventListener('blur', stopCustomOsdDrag)
 }
 
 /**
@@ -328,32 +255,19 @@ const startCustomOsdDrag = (event: MouseEvent) => {
 const handleCustomOsdDrag = (event: MouseEvent) => {
   if (!customOsdDragging.value) return
 
-  const dx =
-    event.screenX -
-    customOsdDragStart.value.mouseX
+  const dx = event.screenX - customOsdDragStart.value.mouseX
 
-  const dy =
-    event.screenY -
-    customOsdDragStart.value.mouseY
+  const dy = event.screenY - customOsdDragStart.value.mouseY
 
-  window.mainApi?.send(
-    'drag-osd-window-absolute',
-    {
-      x:
-        customOsdDragStart.value.windowX +
-        dx,
+  window.mainApi?.send('drag-osd-window-absolute', {
+    x: customOsdDragStart.value.windowX + dx,
 
-      y:
-        customOsdDragStart.value.windowY +
-        dy,
+    y: customOsdDragStart.value.windowY + dy,
 
-      width:
-        customOsdDragStart.value.width,
+    width: customOsdDragStart.value.width,
 
-      height:
-        customOsdDragStart.value.height
-    }
-  )
+    height: customOsdDragStart.value.height
+  })
 }
 
 /**
@@ -368,20 +282,11 @@ const handleCustomOsdDrag = (event: MouseEvent) => {
 const stopCustomOsdDrag = () => {
   customOsdDragging.value = false
 
-  window.removeEventListener(
-    'mousemove',
-    handleCustomOsdDrag
-  )
+  window.removeEventListener('mousemove', handleCustomOsdDrag)
 
-  window.removeEventListener(
-    'mouseup',
-    stopCustomOsdDrag
-  )
+  window.removeEventListener('mouseup', stopCustomOsdDrag)
 
-  window.removeEventListener(
-    'blur',
-    stopCustomOsdDrag
-  )
+  window.removeEventListener('blur', stopCustomOsdDrag)
 }
 // =========== newADD end ========
 
@@ -413,9 +318,7 @@ const handleMainMouseLeave = () => {
 const handleDocumentMouseLeave = () => {
   hover.value = false
 
-  window.mainApi?.send(
-    'windowMouseleave'
-  )
+  window.mainApi?.send('windowMouseleave')
 }
 
 /**
@@ -430,21 +333,14 @@ const handleDocumentMouseLeave = () => {
  * Raises:
  *   消息结构不完整时直接忽略。
  */
-const handleOsdStatusMessage = (
-  event: MessageEvent
-) => {
-  if (
-    event.data?.type !==
-    'update-osd-status'
-  ) {
+const handleOsdStatusMessage = (event: MessageEvent) => {
+  if (event.data?.type !== 'update-osd-status') {
     return
   }
 
   const data = event.data.data ?? {}
 
-  if (
-    typeof data.title === 'string'
-  ) {
+  if (typeof data.title === 'string') {
     title.value = data.title
   }
 }
@@ -462,27 +358,15 @@ const handleOsdStatusMessage = (
  * Raises:
  *   不抛出异常。
  */
-const handleMouseInWindow = (
-  _event: unknown,
-  value: boolean
-) => {
+const handleMouseInWindow = (_event: unknown, value: boolean) => {
   hover.value = value
 }
 
-document.addEventListener(
-  'mouseleave',
-  handleDocumentMouseLeave
-)
+document.addEventListener('mouseleave', handleDocumentMouseLeave)
 
-window.addEventListener(
-  'message',
-  handleOsdStatusMessage
-)
+window.addEventListener('message', handleOsdStatusMessage)
 
-window.mainApi?.on(
-  'mouseInWindow',
-  handleMouseInWindow
-)
+window.mainApi?.on('mouseInWindow', handleMouseInWindow)
 
 onMounted(() => {
   if (isLinux) {
@@ -493,30 +377,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopCustomOsdDrag()
 
-  document.removeEventListener(
-    'mouseleave',
-    handleDocumentMouseLeave
-  )
+  document.removeEventListener('mouseleave', handleDocumentMouseLeave)
 
-  window.removeEventListener(
-    'message',
-    handleOsdStatusMessage
-  )
+  window.removeEventListener('message', handleOsdStatusMessage)
 
-  window.removeEventListener(
-    'mousemove',
-    handleCustomOsdDrag
-  )
+  window.removeEventListener('mousemove', handleCustomOsdDrag)
 
-  window.removeEventListener(
-    'mouseup',
-    stopCustomOsdDrag
-  )
+  window.removeEventListener('mouseup', stopCustomOsdDrag)
 
-  window.removeEventListener(
-    'blur',
-    stopCustomOsdDrag
-  )
+  window.removeEventListener('blur', stopCustomOsdDrag)
 })
 </script>
 
@@ -715,12 +584,9 @@ onBeforeUnmount(() => {
 
   border-radius: 999px;
 
-  background:
-    rgba(255, 255, 255, 0);
+  background: rgba(255, 255, 255, 0);
 
-  box-shadow:
-    0 0 6px
-    rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.18);
 
   pointer-events: none;
 
@@ -730,8 +596,7 @@ onBeforeUnmount(() => {
 }
 
 .osd-drag-bar:hover::before {
-  background:
-    rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.52);
 }
 
 .osd-drag-bar:active {
@@ -753,8 +618,7 @@ onBeforeUnmount(() => {
   width: 90px;
 }
 
-#main.normal-mode
-  .osd-drag-bar::before {
+#main.normal-mode .osd-drag-bar::before {
   width: 72px;
 }
 
