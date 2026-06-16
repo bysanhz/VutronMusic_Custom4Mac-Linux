@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
    * resize-corner-size：
    * 四个角的检测尺寸。
    */
-  --resize-edge-size: 8px;
+  --resize-edge-size: 4px;
   --resize-corner-size: 14px;
   /* =========== newADD end ======== */
 
