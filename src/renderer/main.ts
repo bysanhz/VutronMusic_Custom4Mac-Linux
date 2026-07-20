@@ -10,6 +10,8 @@ import './assets/css/global.scss'
 // ======== newADD start======
 // 主窗口在 768px 以下的响应式覆盖，必须晚于 global.scss 加载。
 import './assets/css/responsive-window.scss'
+// 响应式二次修正：消除布局跳变并恢复 v-show 的真实隐藏状态。
+import './assets/css/responsive-window-fixes.scss'
 // =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import DOMPurify from 'dompurify'
