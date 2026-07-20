@@ -9,15 +9,18 @@
  *
  * 详细说明：
  * 1. 以 1080 × 720 为设计基准，此尺寸下缩放比例为 1；
- * 2. 使用宽度比例和高度比例中的较小值，确保界面始终完整放入窗口；
- * 3. resize 事件通过 requestAnimationFrame 合并，避免一次拖动触发大量重复渲染；
- * 4. 根据当前 zoomFactor 还原窗口真实内容尺寸，防止缩放后 innerWidth/innerHeight
+ * 2. 使用窗口面积比例的平方根，使横向、纵向和对角拖动都会连续改变元素尺寸；
+ * 3. 保证缩放后的逻辑视口不小于 768 × 480，避免原始桌面布局被挤压或裁切；
+ * 4. resize 事件通过 requestAnimationFrame 合并，避免一次拖动触发大量重复渲染；
+ * 5. 根据当前 zoomFactor 还原窗口真实内容尺寸，防止缩放后 innerWidth/innerHeight
  *    变化造成反馈振荡；
- * 5. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
+ * 6. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
  */
 
 const DESIGN_WIDTH = 1080
 const DESIGN_HEIGHT = 720
+const MIN_LAYOUT_WIDTH = 768
+const MIN_LAYOUT_HEIGHT = 480
 const MIN_ZOOM_FACTOR = 0.25
 const MAX_ZOOM_FACTOR = 2
 const ZOOM_EPSILON = 0.001
@@ -60,8 +63,17 @@ export const initializeSmoothWindowScale = () => {
 
     const widthScale = contentWidth / DESIGN_WIDTH
     const heightScale = contentHeight / DESIGN_HEIGHT
+
+    // 面积比例的平方根可以让只改变宽度或只改变高度时，全部元素仍然同步缩放。
+    const areaScale = Math.sqrt(widthScale * heightScale)
+
+    // 限制最大可用缩放比例，确保页面缩放后的逻辑视口不会小于原项目可稳定
+    // 显示的桌面布局尺寸。这里是连续约束，不会像媒体查询一样突然换布局。
+    const widthFitScale = contentWidth / MIN_LAYOUT_WIDTH
+    const heightFitScale = contentHeight / MIN_LAYOUT_HEIGHT
+
     const nextZoomFactor = clamp(
-      Math.min(widthScale, heightScale),
+      Math.min(areaScale, widthFitScale, heightFitScale),
       MIN_ZOOM_FACTOR,
       MAX_ZOOM_FACTOR
     )
