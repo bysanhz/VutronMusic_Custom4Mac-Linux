@@ -14,14 +14,11 @@
     </div>
 
     <!-- ======== newADD start====== -->
-    <!--
-      横向辅助滚动条固定在播放器上方。
-      设置页始终显示轨道；存在横向溢出时滑块按比例缩短并支持拖拽、滚轮横移。
-    -->
+    <!-- 只在主内容区确实发生横向溢出时显示，避免出现无法移动的装饰性轨道。 -->
     <div
-      v-show="horizontalAssistVisible"
+      v-show="horizontalScrollable"
       class="scrollbar scrollbar--horizontal"
-      :class="{ active: horizontalActive, scrollable: horizontalScrollable }"
+      :class="{ active: horizontalActive }"
       :style="horizontalTrackStyle"
       @mouseenter="horizontalActive = true"
       @mouseleave="horizontalActive = false"
@@ -29,7 +26,6 @@
     >
       <div
         class="thumbContainer thumbContainer--horizontal"
-        :class="{ draggable: horizontalScrollable }"
         :style="horizontalThumbStyle"
         @mousedown="handleHorizontalDragStart"
       >
@@ -174,16 +170,8 @@ const horizontalScrollable = computed(() => {
   return horizontalScrollWidth.value > horizontalClientWidth.value + 2
 })
 
-const horizontalAssistVisible = computed(() => {
-  return router.currentRoute.value.name === 'settings' || horizontalScrollable.value
-})
-
 const horizontalThumbWidth = computed(() => {
-  if (!horizontalClientWidth.value) return 42
-  if (!horizontalScrollable.value || !horizontalScrollWidth.value) {
-    return horizontalClientWidth.value
-  }
-
+  if (!horizontalScrollWidth.value || !horizontalClientWidth.value) return 42
   return Math.max(
     42,
     (horizontalClientWidth.value / horizontalScrollWidth.value) * horizontalClientWidth.value
@@ -191,18 +179,15 @@ const horizontalThumbWidth = computed(() => {
 })
 
 const horizontalThumbStyle = computed(() => {
-  const width = horizontalThumbWidth.value
-  if (!horizontalClientWidth.value) return { width: `${width}px` }
-
   const scrollableDistance = horizontalScrollWidth.value - horizontalClientWidth.value
-  const movableDistance = Math.max(0, horizontalClientWidth.value - width)
+  const movableDistance = Math.max(0, horizontalClientWidth.value - horizontalThumbWidth.value)
   const left =
     scrollableDistance > 0
       ? (horizontalScrollLeft.value / scrollableDistance) * movableDistance
       : 0
 
   return {
-    width: `${Math.min(width, horizontalClientWidth.value)}px`,
+    width: `${Math.min(horizontalThumbWidth.value, horizontalClientWidth.value)}px`,
     transform: `translateX(${Math.max(0, Math.min(left, movableDistance))}px)`
   }
 })
@@ -310,6 +295,7 @@ const bindMainElement = () => {
 const removeBeforeRouteGuard = router.beforeEach((_to, _from, next) => {
   verticalShow.value = false
   scrollMainTo(0, 'instant')
+  if (mainElement) mainElement.scrollLeft = 0
   next()
 })
 
@@ -324,7 +310,7 @@ onMounted(() => {
     bindMainElement()
   })
   window.addEventListener('resize', scheduleHorizontalMetricsSync, { passive: true })
-  horizontalCheckTimer = window.setInterval(bindMainElement, 500)
+  horizontalCheckTimer = window.setInterval(bindMainElement, 600)
 })
 
 onBeforeUnmount(() => {
@@ -378,16 +364,11 @@ onBeforeUnmount(() => {
   z-index: 1000;
   box-sizing: border-box;
   touch-action: none;
-  opacity: 0.82;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
-  transition:
-    opacity 0.2s ease,
-    background 0.2s ease;
+  opacity: 0.78;
+  transition: opacity 0.2s ease;
 
   &.active {
     opacity: 1;
-    background: rgba(128, 128, 128, 0.12);
   }
 
   .thumbContainer--horizontal {
@@ -396,11 +377,7 @@ onBeforeUnmount(() => {
     bottom: 0;
     height: 16px;
     min-width: 42px;
-    cursor: default;
-
-    &.draggable {
-      cursor: ew-resize;
-    }
+    cursor: ew-resize;
 
     div {
       position: absolute;
@@ -414,9 +391,9 @@ onBeforeUnmount(() => {
     }
   }
 
-  &.scrollable:hover .thumbContainer--horizontal div,
-  &.scrollable.active .thumbContainer--horizontal div {
-    background: rgba(128, 128, 128, 0.62);
+  &:hover .thumbContainer--horizontal div,
+  &.active .thumbContainer--horizontal div {
+    background: rgba(128, 128, 128, 0.58);
   }
 }
 /* =========== newADD end ======== */
