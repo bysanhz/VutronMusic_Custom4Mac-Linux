@@ -13,7 +13,7 @@
  * 3. 默认有效字号限制为 12～22px，并允许在设置页中分别调整；
  * 4. 原有“主界面字体大小”控件会在运行时转换为“缩放字体范围”控件；
  * 5. resize 事件通过 requestAnimationFrame 合并，避免拖动时重复渲染；
- * 6. 根据当前 zoomFactor 还原窗口真实内容尺寸，防止缩放反馈振荡；
+ * 6. 设置控件使用低频检测，不再观察整个 DOM，避免播放器与页面更新触发死循环；
  * 7. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
  */
 
@@ -26,7 +26,8 @@ const ALLOWED_MIN_FONT_SIZE = 10
 const ALLOWED_MAX_FONT_SIZE = 28
 const DEFAULT_MIN_FONT_SIZE = 12
 const DEFAULT_MAX_FONT_SIZE = 22
-const ZOOM_EPSILON = 0.001
+const ZOOM_EPSILON = 0.002
+const SETTINGS_CHECK_INTERVAL_MS = 800
 
 const MIN_FONT_SIZE_KEY = 'appWindowScaleMinFontSize'
 const MAX_FONT_SIZE_KEY = 'appWindowScaleMaxFontSize'
@@ -151,30 +152,37 @@ const updateScaleSettingText = (setting: HTMLElement) => {
   const item = setting.closest<HTMLElement>('.item')
   const title = item?.querySelector<HTMLElement>('.left .title')
   const description = item?.querySelector<HTMLElement>('.left .description')
+  const nextTitle = '主界面缩放字体范围'
+  const nextDescription = '窗口缩放时，所有界面元素的有效字号限制在此范围内'
 
-  if (title) title.textContent = '主界面缩放字体范围'
-  if (description) {
-    description.textContent = '窗口缩放时，所有界面元素的有效字号限制在此范围内'
+  // 只在内容确实不同时写 DOM，避免写入操作反复触发布局与组件更新。
+  if (title && title.textContent !== nextTitle) title.textContent = nextTitle
+  if (description && description.textContent !== nextDescription) {
+    description.textContent = nextDescription
   }
 }
 
 /**
  * 把原设置页中的单一字号控件转换为最小、最大字号范围控件。
  *
- * 该转换仅修改已经渲染出的设置页 DOM，不改变桌面歌词设置。若 Vue 后续重绘了
- * 原控件，MutationObserver 会再次恢复范围控件，避免设置页面状态变化后失效。
+ * Returns:
+ * 找到并完成转换时返回 true；设置页尚未渲染时返回 false。
  */
 const decorateScaleFontRangeSetting = () => {
   const setting = document.querySelector<HTMLElement>(
     '#app .system-settings .app-font-size-setting'
   )
-  if (!setting) return
-
-  updateScaleSettingText(setting)
+  if (!setting) return false
 
   const rangeRows = setting.querySelectorAll('.window-scale-font-row')
-  if (setting.dataset.windowScaleRangeReady === 'true' && rangeRows.length === 2) return
 
+  // 必须先判断完成状态。旧实现先改写标题，改写本身又触发 MutationObserver，
+  // 因而会形成无限回调并卡死渲染进程。
+  if (setting.dataset.windowScaleRangeReady === 'true' && rangeRows.length === 2) {
+    return true
+  }
+
+  updateScaleSettingText(setting)
   setting.dataset.windowScaleRangeReady = 'true'
   setting.classList.add('window-scale-font-range')
   setting.innerHTML = `
@@ -234,29 +242,32 @@ const decorateScaleFontRangeSetting = () => {
   }
 
   render()
+  return true
 }
 
+/**
+ * 初始化设置页字号范围控件。
+ *
+ * 使用低频定时检测替代对整个 documentElement 的 MutationObserver。单次检测只执行
+ * 一个 querySelector，并且已转换的控件会立即返回，因此不会被播放器进度、轮播图、
+ * 歌词更新等高频 DOM 变化放大为持续主线程负载。
+ */
 const initializeScaleFontRangeSetting = () => {
   ensureSettingsStyle()
   decorateScaleFontRangeSetting()
 
-  const observer = new MutationObserver(() => {
+  const settingsCheckTimer = window.setInterval(() => {
     decorateScaleFontRangeSetting()
-  })
+  }, SETTINGS_CHECK_INTERVAL_MS)
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  })
-
-  return () => observer.disconnect()
+  return () => window.clearInterval(settingsCheckTimer)
 }
 
 /**
  * 初始化主窗口连续缩放监听。
  *
  * Returns:
- * 用于移除 resize、设置变化监听和 DOM 观察器的清理函数。
+ * 用于移除 resize、设置变化监听和低频设置检测的清理函数。
  */
 export const initializeSmoothWindowScale = () => {
   const runtimeWindow = window as RuntimeWindow
@@ -276,9 +287,11 @@ export const initializeSmoothWindowScale = () => {
   }
 
   let animationFrameId: number | null = null
+  let isApplyingZoomFactor = false
 
   const updateZoomFactor = () => {
     animationFrameId = null
+    if (isApplyingZoomFactor) return
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
 
@@ -321,15 +334,24 @@ export const initializeSmoothWindowScale = () => {
     )
 
     if (Math.abs(nextZoomFactor - currentZoomFactor) < ZOOM_EPSILON) return
-    window.mainApi?.setZoomFactor(nextZoomFactor)
+
+    isApplyingZoomFactor = true
+    try {
+      window.mainApi?.setZoomFactor(nextZoomFactor)
+    } finally {
+      // setZoomFactor 是同步调用；在下一帧再解除保护，屏蔽它自身引发的 resize 回调。
+      window.requestAnimationFrame(() => {
+        isApplyingZoomFactor = false
+      })
+    }
   }
 
   const scheduleZoomUpdate = () => {
-    if (animationFrameId !== null) return
+    if (animationFrameId !== null || isApplyingZoomFactor) return
     animationFrameId = window.requestAnimationFrame(updateZoomFactor)
   }
 
-  const stopSettingsObserver = initializeScaleFontRangeSetting()
+  const stopSettingsCheck = initializeScaleFontRangeSetting()
 
   // 在 Vue 挂载前先设置一次，尽量避免窗口打开或恢复尺寸时出现首帧跳动。
   updateZoomFactor()
@@ -339,7 +361,7 @@ export const initializeSmoothWindowScale = () => {
   const cleanup = () => {
     window.removeEventListener('resize', scheduleZoomUpdate)
     window.removeEventListener(SCALE_SETTINGS_CHANGE_EVENT, scheduleZoomUpdate)
-    stopSettingsObserver()
+    stopSettingsCheck()
 
     if (animationFrameId !== null) {
       window.cancelAnimationFrame(animationFrameId)
