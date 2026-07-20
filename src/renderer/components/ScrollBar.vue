@@ -271,7 +271,7 @@ const handleHorizontalDragMove = (event: MouseEvent) => {
     Math.min(horizontalDragStartScrollLeft.value + scrollOffset, scrollableDistance)
   )
 
-  mainElement.scrollTo({ left, behavior: 'instant' })
+  mainElement.scrollLeft = left
   horizontalScrollLeft.value = left
 }
 
@@ -297,7 +297,7 @@ const bindMainElement = () => {
 }
 // =========== newADD end ========
 
-const removeBeforeRouteGuard = router.beforeEach((to, from, next) => {
+const removeBeforeRouteGuard = router.beforeEach((_to, _from, next) => {
   verticalShow.value = false
   scrollMainTo(0, 'instant')
   next()
