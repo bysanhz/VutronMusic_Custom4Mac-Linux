@@ -48,7 +48,10 @@ const clamp = (value: number, min: number, max: number) => {
 }
 
 const readStoredFontSize = (key: string, fallback: number) => {
-  const value = Number(localStorage.getItem(key))
+  const storedValue = localStorage.getItem(key)
+  if (storedValue === null || storedValue.trim() === '') return fallback
+
+  const value = Number(storedValue)
   if (!Number.isFinite(value)) return fallback
   return clamp(Math.round(value), ALLOWED_MIN_FONT_SIZE, ALLOWED_MAX_FONT_SIZE)
 }
@@ -141,20 +144,10 @@ const ensureSettingsStyle = () => {
       opacity: 0.3;
     }
   `
-  document.head.appendChild(style)
+  ;(document.head || document.documentElement).appendChild(style)
 }
 
-/**
- * 把原设置页中的单一字号控件转换为最小、最大字号范围控件。
- *
- * 该转换仅修改已经渲染出的设置页 DOM，不改变桌面歌词设置，也不会重复绑定事件。
- */
-const decorateScaleFontRangeSetting = () => {
-  const setting = document.querySelector<HTMLElement>(
-    '#app .system-settings .app-font-size-setting:not([data-window-scale-range-ready])'
-  )
-  if (!setting) return
-
+const updateScaleSettingText = (setting: HTMLElement) => {
   const item = setting.closest<HTMLElement>('.item')
   const title = item?.querySelector<HTMLElement>('.left .title')
   const description = item?.querySelector<HTMLElement>('.left .description')
@@ -163,6 +156,24 @@ const decorateScaleFontRangeSetting = () => {
   if (description) {
     description.textContent = '窗口缩放时，所有界面元素的有效字号限制在此范围内'
   }
+}
+
+/**
+ * 把原设置页中的单一字号控件转换为最小、最大字号范围控件。
+ *
+ * 该转换仅修改已经渲染出的设置页 DOM，不改变桌面歌词设置。若 Vue 后续重绘了
+ * 原控件，MutationObserver 会再次恢复范围控件，避免设置页面状态变化后失效。
+ */
+const decorateScaleFontRangeSetting = () => {
+  const setting = document.querySelector<HTMLElement>(
+    '#app .system-settings .app-font-size-setting'
+  )
+  if (!setting) return
+
+  updateScaleSettingText(setting)
+
+  const rangeRows = setting.querySelectorAll('.window-scale-font-row')
+  if (setting.dataset.windowScaleRangeReady === 'true' && rangeRows.length === 2) return
 
   setting.dataset.windowScaleRangeReady = 'true'
   setting.classList.add('window-scale-font-range')
@@ -206,7 +217,7 @@ const decorateScaleFontRangeSetting = () => {
     if (maxIncrease) maxIncrease.disabled = range.max >= ALLOWED_MAX_FONT_SIZE
   }
 
-  setting.addEventListener('click', (event) => {
+  setting.onclick = (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-scale-action]')
     if (!button || button.disabled) return
 
@@ -220,7 +231,7 @@ const decorateScaleFontRangeSetting = () => {
 
     saveScaleFontRange(range)
     render()
-  })
+  }
 
   render()
 }
