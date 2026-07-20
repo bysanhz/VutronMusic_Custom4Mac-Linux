@@ -1,0 +1,431 @@
+/* ======== newADD start====== */
+/**
+ * 主窗口统一缩放下的自适应布局。
+ *
+ * 原则：
+ * 1. 所有尺寸先由 Electron webFrame 使用同一个 zoomFactor 整体缩放；
+ * 2. CSS 只负责在容器空间不足时换行或压缩，不反向除以 zoomFactor 放大元素；
+ * 3. 多卡片区域使用 auto-fit/minmax 自动形成一排或多排；
+ * 4. 只有确实无法重排的表格和双栏列表允许产生真实横向溢出。
+ */
+
+html {
+  min-width: 0 !important;
+}
+
+body,
+#app {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+#app #main {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+#app #main::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* ==================== 设置页 ==================== */
+#app .system-settings.settings-responsive-layout {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#app .system-settings.settings-responsive-layout .user-info {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#app .system-settings.settings-responsive-layout .user-info > .left {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+#app .system-settings.settings-responsive-layout .user-info > .right {
+  flex: 0 0 auto;
+}
+
+#app .system-settings.settings-responsive-layout .main-container {
+  min-width: 0;
+  padding-right: clamp(14px, 3vw, 30px) !important;
+  padding-left: clamp(112px, 17vw, 180px) !important;
+}
+
+#app .system-settings.settings-responsive-layout .main-container > .container {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding-bottom: 24px;
+}
+
+#app .system-settings.settings-responsive-layout .slideBar {
+  left: clamp(14px, 2.5vw, 30px) !important;
+  width: clamp(78px, 13vw, 120px) !important;
+  max-width: none !important;
+}
+
+#app .system-settings .settings-pair-item {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  align-items: center;
+  column-gap: clamp(12px, 2.5vw, 28px);
+  row-gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#app .system-settings .settings-pair-item > .left {
+  min-width: 0;
+  padding-right: 0 !important;
+}
+
+#app .system-settings .settings-pair-item > .right {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#app .system-settings .item .title,
+#app .system-settings .item .description {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#app .system-settings .item .title {
+  overflow: visible !important;
+  line-height: 1.4;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+}
+
+#app .system-settings .item .description {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+#app .system-settings :is(select, input, button, .custom-select) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#app .system-settings .window-scale-font-range-item {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
+  align-items: center !important;
+  gap: clamp(12px, 2.5vw, 24px) !important;
+  margin: 8px 0 16px !important;
+  padding: clamp(10px, 1.8vw, 14px) !important;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-secondary-bg), transparent 42%);
+}
+
+#app .system-settings .window-scale-font-range-item > .left .title {
+  font-weight: 650;
+  opacity: 0.9;
+}
+
+#app .system-settings .window-scale-font-range-item > .left .description {
+  max-width: 360px;
+  opacity: 0.62;
+}
+
+#app .system-settings .window-scale-font-range-item > .right {
+  width: 100%;
+  justify-self: stretch !important;
+}
+
+#app .app-font-size-setting.window-scale-font-range {
+  width: min(100%, 260px) !important;
+  min-width: 0 !important;
+  max-width: 260px !important;
+  min-height: 72px !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 9px !important;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+  border-radius: 10px !important;
+  background: var(--color-secondary-bg);
+  box-shadow: 0 4px 14px color-mix(in srgb, black, transparent 96%);
+}
+
+#app .window-scale-font-row {
+  display: grid;
+  grid-template-columns: minmax(52px, auto) 28px minmax(44px, 1fr) 28px;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 28px;
+}
+
+#app .window-scale-font-label {
+  white-space: nowrap;
+  text-align: left;
+  font-weight: 650;
+  opacity: 0.68;
+}
+
+#app .window-scale-font-value {
+  min-width: 44px;
+  white-space: nowrap;
+  text-align: center;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+#app .window-scale-font-button {
+  width: 28px;
+  min-width: 28px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-text), transparent 92%);
+  color: var(--color-text);
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+#app .window-scale-font-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text), transparent 83%);
+}
+
+#app .window-scale-font-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+#app .window-scale-font-button:disabled {
+  cursor: default;
+  opacity: 0.28;
+}
+
+/* 外观卡片保持合理上限，避免单列时被拉成超大图片。 */
+#app .system-settings .settings-appearance-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 168px));
+  justify-content: start;
+  align-items: start !important;
+  gap: 12px !important;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
+#app .system-settings .settings-appearance-grid > div:first-child {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+#app .system-settings .settings-appearance-grid > .appearance {
+  width: 100% !important;
+  min-width: 0;
+  max-width: 168px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+#app .system-settings .settings-appearance-grid > .appearance img {
+  width: 100% !important;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+#app .system-settings .settings-colors-grid {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 22px;
+}
+
+#app .system-settings .settings-colors-grid > div:first-child {
+  margin-bottom: 10px;
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+#app .system-settings .settings-colors-grid > .colors {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 78px));
+  justify-content: start !important;
+  align-items: start;
+  gap: 10px;
+}
+
+#app .system-settings .settings-colors-grid .theme-color {
+  min-width: 0;
+  margin: 0 !important;
+  align-items: center;
+}
+
+#app .system-settings .settings-colors-grid .theme-color-item {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+#app .system-settings .settings-multi-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 168px));
+  justify-content: start;
+  align-items: start !important;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+#app .system-settings .settings-multi-card-grid > .stream-item {
+  width: 100% !important;
+  min-width: 0;
+  max-width: 168px;
+  height: auto !important;
+  min-height: 138px;
+}
+
+#app .system-settings #shortcut-table {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* ==================== 首页与封面卡片 ==================== */
+#app .cover-row {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)) !important;
+  gap: clamp(14px, 2vw, 24px) !important;
+  min-width: 0;
+}
+
+#app .cover-row > .item,
+#app .cover-item,
+#app .cover-item .cover,
+#app .cover-row > .item .cover {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#app .for-you-row {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+  gap: clamp(14px, 2vw, 24px) !important;
+}
+
+#app .for-you-row > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#app .fm,
+#app .daily-recommend-card,
+#app .daily-recommend-card > .container {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+#app .banner {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+#app .banner .banner-item {
+  width: min(440px, 72vw) !important;
+  max-width: 100%;
+}
+
+/* ==================== 专辑、歌手与曲目列表 ==================== */
+#app .album-container {
+  grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr) !important;
+  min-width: 0;
+}
+
+#app .album-container > .album-list,
+#app .album-container > .artist-list {
+  width: 100% !important;
+  min-width: 0;
+}
+
+#app .album-container > .track-list {
+  min-width: 0;
+  padding-left: clamp(8px, 2vw, 20px) !important;
+}
+
+#app .trackitem,
+#app .trackitem .track,
+#app .trackitem .title-and-artist,
+#app .trackitem .title-and-artist > .container {
+  min-width: 0;
+}
+
+#app .trackitem .track > img {
+  flex: 0 0 auto;
+}
+
+#app .trackitem .album,
+#app .trackitem .service,
+#app .trackitem .createTime {
+  min-width: 0;
+  padding-right: clamp(6px, 2vw, 30px) !important;
+  padding-left: clamp(6px, 2vw, 30px) !important;
+}
+
+#app .trackitem .actions {
+  width: auto !important;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+/* ==================== 探索页、按钮组与分类面板 ==================== */
+#app .explore-page .buttons,
+#app .explore-page .cats,
+#app .playlist .buttons,
+#app .lyric-tab {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+#app .explore-page .chart-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+#app .explore-page .chart-item {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ==================== 弹窗与浮层 ==================== */
+#app .shade .modal {
+  min-width: 0 !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box;
+}
+
+#app .shade .modal .content,
+#app .contextMenu,
+#app .custom-select {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* =========== newADD end ======== */
