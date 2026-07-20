@@ -1,6 +1,5 @@
 <template>
   <VirtualScroll
-    :key="responsiveColumnNumber"
     :list="items"
     :column-number="responsiveColumnNumber"
     :gap="gap"
@@ -77,17 +76,22 @@ const props = defineProps({
 const { items } = toRefs(props)
 
 // ======== newADD start======
-// 虚拟列表的列数必须和实际布局一致，否则滚动高度、可见区索引会发生偏移。
-// 使用扣除 #main 左右 padding 后的物理内容宽度计算可容纳列数，并以传入列数为上限。
+/**
+ * 根据主内容区实际物理宽度计算虚拟封面列数。
+ *
+ * resize 只启动一个尾随定时器，窗口连续拖动期间不读取布局、不重建虚拟列表；
+ * 停顿后仅在列数真正变化时更新 column-number。
+ */
 const MIN_COVER_PHYSICAL_WIDTH = 126
+const COLUMN_UPDATE_DELAY_MS = 120
 const responsiveColumnNumber = ref(Math.max(1, props.colunmNumber))
-let resizeFrameId: number | null = null
+let columnUpdateTimer: number | null = null
 
 const updateResponsiveColumnNumber = () => {
-  resizeFrameId = null
+  columnUpdateTimer = null
 
   if (props.colunmNumber <= 1) {
-    responsiveColumnNumber.value = 1
+    if (responsiveColumnNumber.value !== 1) responsiveColumnNumber.value = 1
     return
   }
 
@@ -109,18 +113,24 @@ const updateResponsiveColumnNumber = () => {
       (physicalContentWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap)
     )
   )
+  const nextColumnNumber = Math.min(props.colunmNumber, availableColumns)
 
-  responsiveColumnNumber.value = Math.min(props.colunmNumber, availableColumns)
+  if (nextColumnNumber !== responsiveColumnNumber.value) {
+    responsiveColumnNumber.value = nextColumnNumber
+  }
 }
 
 const scheduleResponsiveColumnUpdate = () => {
-  if (resizeFrameId !== null) return
-  resizeFrameId = window.requestAnimationFrame(updateResponsiveColumnNumber)
+  if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
+  columnUpdateTimer = window.setTimeout(updateResponsiveColumnNumber, COLUMN_UPDATE_DELAY_MS)
 }
 
 watch(
   () => [props.colunmNumber, props.gap],
-  scheduleResponsiveColumnUpdate
+  () => {
+    if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
+    updateResponsiveColumnNumber()
+  }
 )
 
 onMounted(() => {
@@ -130,7 +140,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', scheduleResponsiveColumnUpdate)
-  if (resizeFrameId !== null) window.cancelAnimationFrame(resizeFrameId)
+  if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
 })
 // =========== newADD end ========
 
