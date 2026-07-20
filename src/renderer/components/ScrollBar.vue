@@ -164,7 +164,8 @@ const horizontalTrackRight = ref(16)
 const horizontalTrackBottom = ref(64)
 let mainElement: HTMLElement | null = null
 let horizontalSyncFrame: number | null = null
-let horizontalCheckTimer: number | null = null
+let horizontalResizeObserver: ResizeObserver | null = null
+const routeSyncTimers: number[] = []
 
 const horizontalScrollable = computed(() => {
   return horizontalScrollWidth.value > horizontalClientWidth.value + 2
@@ -200,7 +201,6 @@ const horizontalTrackStyle = computed(() => ({
 
 const syncHorizontalMetrics = () => {
   horizontalSyncFrame = null
-  mainElement = document.getElementById('main')
   if (!mainElement) return
 
   const mainRect = mainElement.getBoundingClientRect()
@@ -229,15 +229,13 @@ const scheduleHorizontalMetricsSync = () => {
 const handleMainScroll = () => {
   if (!mainElement) return
   horizontalScrollLeft.value = mainElement.scrollLeft
-  horizontalScrollWidth.value = mainElement.scrollWidth
-  horizontalClientWidth.value = mainElement.clientWidth
 }
 
 const handleHorizontalWheel = (event: WheelEvent) => {
   if (!mainElement || !horizontalScrollable.value) return
   const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
   mainElement.scrollLeft += delta
-  handleMainScroll()
+  horizontalScrollLeft.value = mainElement.scrollLeft
 }
 
 const handleHorizontalDragStart = (event: MouseEvent) => {
@@ -278,17 +276,39 @@ const handleHorizontalDragEnd = () => {
   document.removeEventListener('mouseup', handleHorizontalDragEnd)
 }
 
+const observeHorizontalLayout = () => {
+  horizontalResizeObserver?.disconnect()
+  horizontalResizeObserver = null
+
+  if (!mainElement || typeof ResizeObserver === 'undefined') return
+
+  horizontalResizeObserver = new ResizeObserver(scheduleHorizontalMetricsSync)
+  horizontalResizeObserver.observe(mainElement)
+
+  const contentRoot = mainElement.firstElementChild
+  if (contentRoot instanceof HTMLElement) horizontalResizeObserver.observe(contentRoot)
+
+  const playerElement = document.querySelector<HTMLElement>('.player')
+  if (playerElement) horizontalResizeObserver.observe(playerElement)
+}
+
 const bindMainElement = () => {
   const nextMainElement = document.getElementById('main')
-  if (nextMainElement === mainElement) {
-    scheduleHorizontalMetricsSync()
-    return
+  if (nextMainElement !== mainElement) {
+    mainElement?.removeEventListener('scroll', handleMainScroll)
+    mainElement = nextMainElement
+    mainElement?.addEventListener('scroll', handleMainScroll, { passive: true })
   }
 
-  mainElement?.removeEventListener('scroll', handleMainScroll)
-  mainElement = nextMainElement
-  mainElement?.addEventListener('scroll', handleMainScroll, { passive: true })
+  observeHorizontalLayout()
   scheduleHorizontalMetricsSync()
+}
+
+const scheduleRouteMetricsSync = () => {
+  routeSyncTimers.splice(0).forEach((timer) => window.clearTimeout(timer))
+  nextTick(bindMainElement)
+  routeSyncTimers.push(window.setTimeout(bindMainElement, 100))
+  routeSyncTimers.push(window.setTimeout(bindMainElement, 300))
 }
 // =========== newADD end ========
 
@@ -300,24 +320,21 @@ const removeBeforeRouteGuard = router.beforeEach((_to, _from, next) => {
 })
 
 const removeAfterRouteGuard = router.afterEach(() => {
-  nextTick(() => {
-    bindMainElement()
-  })
+  scheduleRouteMetricsSync()
 })
 
 onMounted(() => {
-  nextTick(() => {
-    bindMainElement()
-  })
+  scheduleRouteMetricsSync()
   window.addEventListener('resize', scheduleHorizontalMetricsSync, { passive: true })
-  horizontalCheckTimer = window.setInterval(bindMainElement, 600)
 })
 
 onBeforeUnmount(() => {
   if (verticalHideTimer.value) clearTimeout(verticalHideTimer.value)
-  if (horizontalCheckTimer !== null) window.clearInterval(horizontalCheckTimer)
   if (horizontalSyncFrame !== null) window.cancelAnimationFrame(horizontalSyncFrame)
+  routeSyncTimers.splice(0).forEach((timer) => window.clearTimeout(timer))
 
+  horizontalResizeObserver?.disconnect()
+  horizontalResizeObserver = null
   mainElement?.removeEventListener('scroll', handleMainScroll)
   window.removeEventListener('resize', scheduleHorizontalMetricsSync)
   document.removeEventListener('mousemove', handleVerticalDragMove)
