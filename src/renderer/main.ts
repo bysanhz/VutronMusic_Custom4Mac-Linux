@@ -8,9 +8,10 @@ import i18n from './plugins/i18n'
 import 'virtual:svg-icons-register'
 import './assets/css/global.scss'
 // ======== newADD start======
-// 所有页面元素先由 Electron 使用同一 zoomFactor 整体缩放；该样式文件只负责
-// 容器不足时的自动换行和压缩，不再使用反向尺寸补偿。
+// 所有页面元素先由 Electron 使用同一 zoomFactor 整体缩放；fluid-window 只负责
+// 容器不足时的换行，resize-performance 负责在拖动期间暂停高成本视觉效果。
 import './assets/css/fluid-window.scss'
+import './assets/css/resize-performance.scss'
 // =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import DOMPurify from 'dompurify'
