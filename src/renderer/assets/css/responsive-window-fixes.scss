@@ -1,0 +1,168 @@
+/* ======== newADD start====== */
+/*
+ * 主窗口响应式二次修正。
+ *
+ * 目标：
+ * 1. 取消 520px 处从 Grid 突然切换为 Flex 的布局跳变；
+ * 2. 保留 PlayerBar.vue 中 v-show 的真实显示状态，避免普通播放模式下额外显示
+ *    Personal FM 的“不喜欢”按钮，以及重复/音量图标同时出现；
+ * 3. 设置页在中等窄窗口继续使用纵向二级导航，仅在极窄窗口切为横向导航，
+ *    减少拖动窗口宽度时的突兀切换。
+ */
+
+/* ==================== 底部播放器 ==================== */
+/*
+ * PlayerBar.vue 中多个按钮和 SVG 使用 v-show。
+ * Vue 会通过内联 display:none 隐藏它们；之前的 display:flex !important 会覆盖该状态。
+ */
+#app .player .controls .middle .container > .button-icon[style*='display: none'],
+#app .player .controls .middle .container > .button-icon[style*='display:none'],
+#app .player .controls .right > .button-icon[style*='display: none'],
+#app .player .controls .right > .button-icon[style*='display:none'],
+#app .player .controls .right .volume [style*='display: none'],
+#app .player .controls .right .volume [style*='display:none'] {
+  display: none !important;
+}
+
+/*
+ * 700px 以下仍沿用三列 Grid，不改变布局模型。
+ * 左侧歌曲信息和右侧功能区分别占据剩余空间，中间播放控制保持居中。
+ */
+@media (max-width: 700px) {
+  #app .player .controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    align-items: center;
+  }
+
+  #app .player .middle .blank {
+    display: block !important;
+    flex: 0 0 0;
+    width: 0;
+    min-width: 0;
+  }
+}
+
+/*
+ * 520px 以下只连续缩小尺寸，不再切换为 Flex。
+ * 这样跨过 520px 时不会出现控制区突然跳位。
+ */
+@media (max-width: 520px) {
+  #app .player .controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    column-gap: clamp(1px, 0.45vw, 3px);
+    width: 100%;
+  }
+
+  #app .player .controls > .left {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    overflow: hidden;
+  }
+
+  #app .player .controls > .middle,
+  #app .player .controls > .right {
+    min-width: 0;
+  }
+
+  #app .player .middle .container {
+    display: flex !important;
+    flex: 0 0 auto;
+    gap: 0;
+    padding: 0 !important;
+  }
+
+  #app .player .right {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: visible;
+  }
+}
+
+/* ==================== 设置页 ==================== */
+/*
+ * 461～700px：保持原来的纵向二级导航，只连续压缩导航宽度和内容留白。
+ * 之前在 700px 直接切成横向标签，拖动窗口时视觉跳变较明显。
+ */
+@media (min-width: 461px) and (max-width: 700px) {
+  #app .system-settings .user-info {
+    margin-left: clamp(78px, 14vw, 98px) !important;
+  }
+
+  #app .system-settings .slide-container {
+    height: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  #app .system-settings .slideBar {
+    position: absolute !important;
+    left: clamp(78px, 14vw, 98px) !important;
+    top: 20px !important;
+    display: block !important;
+    width: clamp(78px, 18vw, 108px) !important;
+    max-width: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  #app .system-settings .slideBar .slide {
+    position: absolute !important;
+    display: flex !important;
+    width: 4px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border-radius: 1px !important;
+    background: transparent !important;
+  }
+
+  #app .system-settings .slideBar .tab {
+    display: flex !important;
+    align-items: center;
+    width: 100% !important;
+    height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    line-height: normal !important;
+    white-space: nowrap;
+    font-size: clamp(12px, 1.9vw, 14px) !important;
+  }
+
+  #app .system-settings .slideBar .tab.active {
+    margin-left: 8px !important;
+    color: var(--color-primary) !important;
+    background: transparent !important;
+  }
+
+  #app .system-settings .main-container {
+    padding-left: clamp(166px, 35vw, 190px) !important;
+  }
+}
+
+/*
+ * 极窄窗口才切换为横向标签，并让普通设置项采用单列，避免标题被压窄。
+ */
+@media (max-width: 460px) {
+  #app .system-settings .item:not(:has(> .appearance)):not(:has(> .colors)) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px;
+  }
+
+  #app .system-settings .item > .right {
+    justify-content: stretch;
+  }
+
+  #app .system-settings :is(.custom-select, select, input.text-input, button.clear-cache),
+  #app .system-settings .app-font-size-setting {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+/* =========== newADD end ======== */
