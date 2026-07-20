@@ -1,7 +1,7 @@
 <template>
   <VirtualScroll
     :list="items"
-    :column-number="colunmNumber"
+    :column-number="responsiveColumnNumber"
     :gap="gap"
     :item-size="itemHeight"
     :padding-bottom="paddingBottom"
@@ -11,6 +11,7 @@
     :enable-virtual-scroll="enableVirtualScroll"
     :show-footer="showFooter"
     :show-position="showPosition"
+    class="virtual-cover-row"
   >
     <template #default="{ item }">
       <div class="cover-item" :class="{ artist: type === 'artist' }">
@@ -46,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, toRefs } from 'vue'
+import { PropType, toRefs, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import VirtualScroll from './VirtualScrollNoHeight.vue'
 import Cover from './CoverBox.vue'
 import SvgIcon from './SvgIcon.vue'
@@ -74,6 +75,57 @@ const props = defineProps({
 
 const { items } = toRefs(props)
 
+// ======== newADD start======
+// 虚拟列表的列数必须和实际布局一致，否则滚动高度、可见区索引会发生偏移。
+// 这里依据主内容区的物理宽度计算能容纳的列数，并以传入列数作为最大值。
+const MIN_COVER_PHYSICAL_WIDTH = 126
+const responsiveColumnNumber = ref(Math.max(1, props.colunmNumber))
+let resizeFrameId: number | null = null
+
+const updateResponsiveColumnNumber = () => {
+  resizeFrameId = null
+
+  if (props.colunmNumber <= 1) {
+    responsiveColumnNumber.value = 1
+    return
+  }
+
+  const zoomFactor = window.mainApi?.getZoomFactor?.() || 1
+  const mainElement = document.getElementById('main')
+  const logicalWidth = mainElement?.clientWidth || window.innerWidth
+  const physicalWidth = logicalWidth * zoomFactor
+  const physicalGap = props.gap * zoomFactor
+  const availableColumns = Math.max(
+    1,
+    Math.floor(
+      (physicalWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap)
+    )
+  )
+
+  responsiveColumnNumber.value = Math.min(props.colunmNumber, availableColumns)
+}
+
+const scheduleResponsiveColumnUpdate = () => {
+  if (resizeFrameId !== null) return
+  resizeFrameId = window.requestAnimationFrame(updateResponsiveColumnNumber)
+}
+
+watch(
+  () => [props.colunmNumber, props.gap],
+  scheduleResponsiveColumnUpdate
+)
+
+onMounted(() => {
+  updateResponsiveColumnNumber()
+  window.addEventListener('resize', scheduleResponsiveColumnUpdate, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', scheduleResponsiveColumnUpdate)
+  if (resizeFrameId !== null) window.cancelAnimationFrame(resizeFrameId)
+})
+// =========== newADD end ========
+
 const getImageUrl = (item: any) => {
   if (item.img1v1Url) {
     let img1v1ID = item.img1v1Url.split('/')
@@ -93,6 +145,7 @@ const isExplicit = (item: any) => {
 const isPrivacy = (item: any) => {
   return props.type === 'playlist' && item.privacy === 10
 }
+
 const getSubText = (item: any) => {
   let subText = ''
   if (props.subText === 'artist') {
@@ -127,6 +180,7 @@ const getSubText = (item: any) => {
 .cover-item {
   color: var(--color-text);
   padding-bottom: 20px;
+  min-width: 0;
 }
 .text {
   margin-top: 8px;
