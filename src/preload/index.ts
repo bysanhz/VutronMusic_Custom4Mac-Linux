@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron'
 
 // Whitelist of valid channels used for IPC communication (Send message from Renderer to Main)
 const mainAvailChannels: string[] = [
@@ -164,7 +164,17 @@ contextBridge.exposeInMainWorld('mainApi', {
       messagePort.close()
       messagePort = null
     }
-  }
+  },
+  // ======== newADD start======
+  // 使用 Electron 页面缩放统一缩放主窗口全部 DOM 元素。
+  setZoomFactor: (factor: number): void => {
+    if (!Number.isFinite(factor) || factor <= 0) {
+      throw new Error(`Invalid zoom factor: ${factor}`)
+    }
+    webFrame.setZoomFactor(factor)
+  },
+  getZoomFactor: (): number => webFrame.getZoomFactor()
+  // =========== newADD end ========
 })
 
 contextBridge.exposeInMainWorld('env', {
