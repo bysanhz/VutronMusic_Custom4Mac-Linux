@@ -12,9 +12,10 @@
  * 2. 使用窗口面积比例的平方根，使横向、纵向和对角拖动都会连续改变元素尺寸；
  * 3. 默认有效字号限制为 12～22px，并允许在设置页中分别调整；
  * 4. 原有“主界面字体大小”控件会在运行时转换为“缩放字体范围”控件；
- * 5. resize 事件通过 requestAnimationFrame 合并，避免拖动时重复渲染；
- * 6. 设置控件使用低频检测，不再观察整个 DOM，避免播放器与页面更新触发死循环；
- * 7. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
+ * 5. 设置页使用连续 Grid 布局，避免标题、外观卡片和强调色在窄窗口中相互挤压；
+ * 6. resize 事件通过 requestAnimationFrame 合并，避免拖动时重复渲染；
+ * 7. 设置控件使用低频检测，不再观察整个 DOM，避免播放器与页面更新触发死循环；
+ * 8. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
  */
 
 const DESIGN_WIDTH = 1080
@@ -79,70 +80,219 @@ const saveScaleFontRange = (range: ScaleFontRange) => {
   window.dispatchEvent(new Event(SCALE_SETTINGS_CHANGE_EVENT))
 }
 
+/**
+ * 注入设置页布局与字号范围控件样式。
+ *
+ * 所有尺寸均使用 Grid、minmax 和 clamp 连续计算，不设置会突然切换布局模型的
+ * 媒体查询临界点。
+ */
 const ensureSettingsStyle = () => {
   if (document.getElementById(SETTINGS_STYLE_ID)) return
 
   const style = document.createElement('style')
   style.id = SETTINGS_STYLE_ID
   style.textContent = `
+    /* 设置页整体：适度收窄二级导航占用，为正文和控件留出稳定宽度。 */
+    #app .system-settings .main-container {
+      padding-right: clamp(18px, 3vw, 30px) !important;
+      padding-left: clamp(150px, 18vw, 180px) !important;
+    }
+
+    #app .system-settings .slideBar {
+      left: clamp(18px, 3vw, 30px) !important;
+      width: clamp(108px, 14vw, 120px) !important;
+      max-width: none !important;
+    }
+
+    /* 标准设置项统一为连续两列布局，避免说明区被右侧控件挤成逐字换行。 */
+    #app .system-settings .item:has(> .left):has(> .right):not(.no-flex) {
+      display: grid !important;
+      grid-template-columns: minmax(210px, 1fr) minmax(164px, auto);
+      align-items: center;
+      column-gap: clamp(18px, 3vw, 36px);
+      row-gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #app .system-settings .item:has(> .left):has(> .right) > .left {
+      min-width: 0;
+      padding-right: 0 !important;
+    }
+
+    #app .system-settings .item:has(> .left):has(> .right) > .right {
+      min-width: 164px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      justify-self: end;
+    }
+
+    #app .system-settings .item .title {
+      overflow: visible !important;
+      white-space: normal;
+      line-height: 1.4;
+      -webkit-line-clamp: unset !important;
+      line-clamp: unset !important;
+    }
+
+    #app .system-settings .item .description {
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+
+    /* 字号范围项使用完整卡片，而不是把双行控件塞进原来的单行小控件槽。 */
+    #app .system-settings .window-scale-font-range-item {
+      grid-template-columns: minmax(250px, 1fr) 270px !important;
+      align-items: center !important;
+      gap: clamp(18px, 3vw, 34px) !important;
+      margin: 8px 0 18px !important;
+      padding: 14px 16px !important;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--color-secondary-bg), transparent 42%);
+    }
+
+    #app .system-settings .window-scale-font-range-item > .left .title {
+      white-space: nowrap;
+      font-weight: 650;
+      opacity: 0.9;
+    }
+
+    #app .system-settings .window-scale-font-range-item > .left .description {
+      max-width: 390px;
+      opacity: 0.62;
+    }
+
     #app .app-font-size-setting.window-scale-font-range {
-      width: 236px;
-      min-width: 236px;
+      width: 270px;
+      min-width: 270px;
       height: auto;
-      min-height: 74px;
+      min-height: 82px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: stretch;
       justify-content: center;
-      gap: 6px;
-      padding: 7px 9px;
+      gap: 7px;
+      padding: 9px 11px;
+      border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+      border-radius: 11px;
+      box-shadow: 0 5px 18px color-mix(in srgb, black, transparent 95%);
     }
 
     #app .window-scale-font-row {
       display: grid;
-      grid-template-columns: 42px 30px 58px 30px;
+      grid-template-columns: 48px 32px minmax(64px, 1fr) 32px;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      gap: 7px;
       width: 100%;
+      min-height: 31px;
     }
 
     #app .window-scale-font-label {
       white-space: nowrap;
       text-align: left;
-      font-weight: 600;
-      opacity: 0.72;
+      font-weight: 650;
+      opacity: 0.68;
     }
 
     #app .window-scale-font-value {
-      min-width: 58px;
+      min-width: 64px;
       white-space: nowrap;
       text-align: center;
-      font-weight: 700;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
     }
 
     #app .window-scale-font-button {
-      width: 30px;
-      min-width: 30px;
+      width: 32px;
+      min-width: 32px;
       height: 28px;
       padding: 0;
       border: none;
-      border-radius: 6px;
+      border-radius: 7px;
       background: color-mix(in srgb, var(--color-text), transparent 92%);
       color: var(--color-text);
-      font-weight: 700;
+      font-weight: 750;
       cursor: pointer;
-      transition: background 0.15s ease, opacity 0.15s ease;
+      transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
     }
 
     #app .window-scale-font-button:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--color-text), transparent 84%);
+      background: color-mix(in srgb, var(--color-text), transparent 83%);
+    }
+
+    #app .window-scale-font-button:active:not(:disabled) {
+      transform: scale(0.92);
     }
 
     #app .window-scale-font-button:disabled {
       cursor: default;
-      opacity: 0.3;
+      opacity: 0.28;
+    }
+
+    /* 外观预览固定为一行三列，标题独占整行，卡片按可用宽度连续伸缩。 */
+    #app .system-settings .item:has(> .appearance) {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(118px, 1fr));
+      align-items: start !important;
+      gap: 14px !important;
+      width: 100%;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+
+    #app .system-settings .item:has(> .appearance) > div:first-child {
+      grid-column: 1 / -1;
+      font-weight: 600;
+      opacity: 0.78;
+    }
+
+    #app .system-settings .item:has(> .appearance) > .appearance {
+      width: 100% !important;
+      min-width: 0;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+
+    #app .system-settings .item:has(> .appearance) > .appearance img {
+      width: 100% !important;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      box-sizing: border-box;
+    }
+
+    /* 强调色使用自适应网格，避免最后一个颜色被裁出窗口。 */
+    #app .system-settings .item:has(> .colors) {
+      display: block !important;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    #app .system-settings .item:has(> .colors) > div:first-child {
+      margin-bottom: 10px;
+      font-weight: 600;
+      opacity: 0.78;
+    }
+
+    #app .system-settings .item > .colors {
+      width: 100% !important;
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+      align-items: start;
+      justify-content: initial !important;
+      gap: 12px;
+    }
+
+    #app .system-settings .item > .colors .theme-color {
+      min-width: 0;
+      margin: 0 !important;
+      align-items: center;
+    }
+
+    #app .system-settings .item > .colors .theme-color-item {
+      width: clamp(46px, 5vw, 58px) !important;
+      height: clamp(46px, 5vw, 58px) !important;
     }
   `
   ;(document.head || document.documentElement).appendChild(style)
@@ -153,7 +303,9 @@ const updateScaleSettingText = (setting: HTMLElement) => {
   const title = item?.querySelector<HTMLElement>('.left .title')
   const description = item?.querySelector<HTMLElement>('.left .description')
   const nextTitle = '主界面缩放字体范围'
-  const nextDescription = '窗口缩放时，所有界面元素的有效字号限制在此范围内'
+  const nextDescription = '窗口缩放时，字体、图标、按钮和间距统一限制在此字号范围内'
+
+  item?.classList.add('window-scale-font-range-item')
 
   // 只在内容确实不同时写 DOM，避免写入操作反复触发布局与组件更新。
   if (title && title.textContent !== nextTitle) title.textContent = nextTitle
@@ -174,29 +326,28 @@ const decorateScaleFontRangeSetting = () => {
   )
   if (!setting) return false
 
+  updateScaleSettingText(setting)
+
   const rangeRows = setting.querySelectorAll('.window-scale-font-row')
 
-  // 必须先判断完成状态。旧实现先改写标题，改写本身又触发 MutationObserver，
-  // 因而会形成无限回调并卡死渲染进程。
   if (setting.dataset.windowScaleRangeReady === 'true' && rangeRows.length === 2) {
     return true
   }
 
-  updateScaleSettingText(setting)
   setting.dataset.windowScaleRangeReady = 'true'
   setting.classList.add('window-scale-font-range')
   setting.innerHTML = `
     <div class="window-scale-font-row">
-      <span class="window-scale-font-label">最小</span>
-      <button class="window-scale-font-button" data-scale-action="min-decrease" type="button">−</button>
+      <span class="window-scale-font-label">最小字号</span>
+      <button class="window-scale-font-button" data-scale-action="min-decrease" type="button" aria-label="减小最小字号">−</button>
       <span class="window-scale-font-value" data-scale-value="min"></span>
-      <button class="window-scale-font-button" data-scale-action="min-increase" type="button">+</button>
+      <button class="window-scale-font-button" data-scale-action="min-increase" type="button" aria-label="增大最小字号">+</button>
     </div>
     <div class="window-scale-font-row">
-      <span class="window-scale-font-label">最大</span>
-      <button class="window-scale-font-button" data-scale-action="max-decrease" type="button">−</button>
+      <span class="window-scale-font-label">最大字号</span>
+      <button class="window-scale-font-button" data-scale-action="max-decrease" type="button" aria-label="减小最大字号">−</button>
       <span class="window-scale-font-value" data-scale-value="max"></span>
-      <button class="window-scale-font-button" data-scale-action="max-increase" type="button">+</button>
+      <button class="window-scale-font-button" data-scale-action="max-increase" type="button" aria-label="增大最大字号">+</button>
     </div>
   `
 
