@@ -292,3 +292,174 @@ a {
   }
 }
 /* =========== newADD end ======== */
+
+/* ======== newADD start====== */
+/*
+ * 主窗口固定导航与播放控制的响应式尺寸。
+ *
+ * 作用范围：
+ * - 左侧 SideNav 容器、按钮、图标与提示框；
+ * - 顶部 NavBar 返回/前进、搜索、头像和标签；
+ * - 底部 PlayerBar 封面、功能按钮和播放图标。
+ *
+ * 仅作用于主窗口 #app，不会影响独立的桌面歌词 BrowserWindow。
+ */
+#app {
+  --responsive-control-icon: clamp(12px, min(1.6vw, 2.1vh), 16px);
+  --responsive-control-padding: clamp(5px, min(0.8vw, 1.05vh), 8px);
+  --responsive-control-margin: clamp(2px, min(0.4vw, 0.55vh), 4px);
+  --responsive-play-icon: clamp(18px, min(2.4vw, 3.15vh), 24px);
+  --responsive-player-height: clamp(52px, min(7.4vw, 8.4vh), 64px);
+  --responsive-player-cover: clamp(34px, min(4.7vw, 6vh), 46px);
+}
+
+/* 左侧导航栏 */
+#app .side-nav {
+  --responsive-side-padding: clamp(8px, min(1.5vw, 1.95vh), 15px);
+  --responsive-side-button-width: clamp(44px, min(6vw, 7.8vh), 60px);
+  --responsive-side-button-height: clamp(32px, min(4.4vw, 5.25vh), 40px);
+  --responsive-side-button-margin: clamp(7px, min(1.5vw, 1.95vh), 15px);
+  --responsive-side-icon: clamp(19px, min(2.65vw, 3.4vh), 26px);
+  --responsive-side-tip-height: clamp(32px, min(4.4vw, 5.25vh), 40px);
+
+  left: clamp(8px, 2vw, 20px) !important;
+  padding: var(--responsive-side-padding) !important;
+  border-radius: clamp(8px, 1.2vw, 12px) !important;
+
+  button {
+    width: var(--responsive-side-button-width) !important;
+    height: var(--responsive-side-button-height) !important;
+    margin: var(--responsive-side-button-margin) 0 !important;
+    border-radius: clamp(6px, 0.8vw, 8px) !important;
+
+    .icon {
+      width: var(--responsive-side-icon) !important;
+      height: var(--responsive-side-icon) !important;
+    }
+  }
+
+  button::before {
+    border-width: clamp(5px, 0.8vw, 8px) !important;
+    transform: translate(var(--responsive-side-button-width), -50%) !important;
+  }
+
+  button::after {
+    height: var(--responsive-side-tip-height) !important;
+    line-height: var(--responsive-side-tip-height) !important;
+    padding: 0 clamp(10px, 1.6vw, 16px) !important;
+    font-size: clamp(12px, min(1.55vw, 2.1vh), 16px) !important;
+    transform: translate(
+      calc(var(--responsive-side-button-width) + clamp(11px, 1.6vw, 16px)),
+      -50%
+    ) !important;
+  }
+}
+
+/* 顶部导航栏 */
+#app nav {
+  padding-right: clamp(12px, 3vw, 30px) !important;
+
+  .navigation-buttons {
+    .button-icon {
+      padding: var(--responsive-control-padding) !important;
+      margin: var(--responsive-control-margin) !important;
+    }
+
+    .svg-icon {
+      width: clamp(18px, min(2.4vw, 3.15vh), 24px) !important;
+      height: clamp(18px, min(2.4vw, 3.15vh), 24px) !important;
+    }
+  }
+
+  .search-tabs .item {
+    padding: clamp(5px, min(0.8vw, 1.05vh), 8px)
+      clamp(9px, min(1.4vw, 1.85vh), 14px) !important;
+    margin: 0 clamp(4px, 1vw, 10px) !important;
+    border-radius: clamp(6px, 0.8vw, 8px) !important;
+    font-size: clamp(13px, min(1.8vw, 2.35vh), 18px) !important;
+  }
+
+  .right-part .avatar {
+    height: clamp(24px, min(3.2vw, 4vh), 30px) !important;
+    width: clamp(24px, min(3.2vw, 4vh), 30px) !important;
+    margin-left: clamp(7px, 1.2vw, 12px) !important;
+  }
+
+  .right-part .search-container {
+    height: clamp(28px, min(3.4vw, 4.2vh), 32px) !important;
+  }
+
+  .right-part .search-icon {
+    width: clamp(28px, min(3.4vw, 4.2vh), 32px) !important;
+    height: clamp(28px, min(3.4vw, 4.2vh), 32px) !important;
+  }
+
+  .right-part .search-icon .svg-icon {
+    width: clamp(12px, min(1.4vw, 1.85vh), 14px) !important;
+    height: clamp(12px, min(1.4vw, 1.85vh), 14px) !important;
+  }
+}
+
+/* 底部播放器 */
+#app .player {
+  height: var(--responsive-player-height) !important;
+
+  .controls {
+    padding: 0 clamp(12px, 4vw, 44px) !important;
+  }
+
+  .controls .left img {
+    width: var(--responsive-player-cover) !important;
+    height: var(--responsive-player-cover) !important;
+    border-radius: clamp(4px, 0.55vw, 5px) !important;
+  }
+
+  .controls .left .track-info {
+    margin-left: clamp(9px, 1.6vw, 16px) !important;
+  }
+
+  .button-icon {
+    padding: var(--responsive-control-padding) !important;
+    margin: var(--responsive-control-margin) !important;
+  }
+
+  .button-icon .svg-icon {
+    width: var(--responsive-control-icon) !important;
+    height: var(--responsive-control-icon) !important;
+  }
+
+  .middle .container {
+    padding: 0 clamp(3px, 0.8vw, 8px) !important;
+  }
+
+  .middle .container .play .svg-icon {
+    width: var(--responsive-play-icon) !important;
+    height: var(--responsive-play-icon) !important;
+  }
+
+  .lyrics-button {
+    margin-left: clamp(5px, 1.2vw, 12px) !important;
+  }
+
+  .volume-slider {
+    bottom: clamp(32px, min(4.8vw, 6vh), 40px) !important;
+  }
+}
+
+/* 进一步压缩窄窗口中底部播放器两侧占用，给中部播放控制留出空间。 */
+@media (max-width: 860px) {
+  #app .player .controls {
+    grid-template-columns: minmax(0, 1.05fr) auto minmax(0, 1fr) !important;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+  }
+
+  #app .player .controls .left .track-info {
+    min-width: 0;
+  }
+
+  #app .player .controls .right {
+    min-width: 0;
+  }
+}
+/* =========== newADD end ======== */
