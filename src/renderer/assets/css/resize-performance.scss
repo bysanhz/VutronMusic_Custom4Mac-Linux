@@ -1,0 +1,39 @@
+/* ======== newADD start====== */
+/**
+ * 窗口连续缩放性能保护。
+ *
+ * Electron webFrame 改变 zoomFactor 时会重新栅格化整个页面。窗口拖动期间暂停轮播、
+ * 图片动画和大面积模糊效果，停止拖动后由 smoothWindowScale.ts 自动恢复。
+ */
+
+/* App.vue 原来使用 transition: all，会把不需要动画的属性也纳入过渡。 */
+#app {
+  transition-property: color, background-color !important;
+  transition-duration: 0.2s !important;
+  transition-timing-function: ease !important;
+}
+
+html.vutron-window-resizing #app .banner-item,
+html.vutron-window-resizing #app .daily-recommend-card img,
+html.vutron-window-resizing #app .window-scale-font-button,
+html.vutron-window-resizing #app .button-icon,
+html.vutron-window-resizing #app .cover,
+html.vutron-window-resizing #app .modal,
+html.vutron-window-resizing #app .contextMenu {
+  transition: none !important;
+}
+
+html.vutron-window-resizing #app .daily-recommend-card img,
+html.vutron-window-resizing #app [class*='lottie'],
+html.vutron-window-resizing #app canvas {
+  animation-play-state: paused !important;
+}
+
+/* 固定在窗口底部的大面积 backdrop-filter 在 resize 时会触发连续全层重绘。 */
+html.vutron-window-resizing #app .player,
+html.vutron-window-resizing #app nav,
+html.vutron-window-resizing #app .modal {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* =========== newADD end ======== */
