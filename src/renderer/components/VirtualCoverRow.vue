@@ -1,5 +1,6 @@
 <template>
   <VirtualScroll
+    :key="responsiveColumnNumber"
     :list="items"
     :column-number="responsiveColumnNumber"
     :gap="gap"
@@ -79,8 +80,8 @@ const { items } = toRefs(props)
 /**
  * 根据主内容区实际物理宽度计算虚拟封面列数。
  *
- * resize 只启动一个尾随定时器，窗口连续拖动期间不读取布局、不重建虚拟列表；
- * 停顿后仅在列数真正变化时更新 column-number。
+ * resize 只启动一个尾随定时器，窗口连续拖动期间不读取布局；停顿后仅在列数
+ * 真正变化时更新 key，使虚拟列表的位置缓存只重建一次。
  */
 const MIN_COVER_PHYSICAL_WIDTH = 126
 const COLUMN_UPDATE_DELAY_MS = 120
