@@ -16,6 +16,12 @@ declare global {
       invoke: (channel: string, ...data: any[]) => Promise<any>
       sendMessage: (message: Record<string, any>) => void
       closeMessagePort: () => void
+      // ======== newADD start======
+      // 与主窗口入口保持一致，避免 Window.mainApi 的全局接口重复声明类型冲突。
+      // OSD preload 不提供这两个方法，但全局接口声明必须保持完全一致。
+      setZoomFactor: (factor: number) => void
+      getZoomFactor: () => number
+      // =========== newADD end ========
     }
     env?: {
       isElectron: boolean
