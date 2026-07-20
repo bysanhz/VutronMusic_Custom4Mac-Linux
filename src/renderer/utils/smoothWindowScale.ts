@@ -3,17 +3,18 @@
  * 主窗口全界面连续缩放。
  *
  * 概述：
- * 使用 Electron webFrame 的页面缩放能力，让主窗口中的字体、SVG 图标、图片、
- * 按钮、边距、圆角和所有路由页面使用同一个连续缩放比例。设置页中的最小字号
- * 与最大字号只决定用户希望的缩放边界，不再受到 10～28px 一类固定范围限制。
+ * 使用 Electron webFrame 统一缩放字体、SVG、图片、按钮、间距与全部路由页面。
+ * 设置页布局使用显式 class 和基于物理尺寸换算的 Grid 参数，避免依赖 :has()
+ * 选择器后在部分 Electron/Chromium 环境中不生效。
  *
  * 详细说明：
  * 1. 以 1080 × 720、16px 为设计基准；
- * 2. 使用窗口面积比例的平方根，使横向、纵向和对角拖动都会连续改变元素尺寸；
- * 3. 最小字号只保留必须大于 0 的运行安全约束，最大字号不设置固定上限；
- * 4. 设置页使用 auto-fit、minmax 和 Grid 自动换行，不设置突然切换的媒体查询断点；
- * 5. resize 事件通过 requestAnimationFrame 合并，并屏蔽 setZoomFactor 自身回调；
- * 6. 该逻辑只运行在主窗口 renderer，不影响独立的桌面歌词 BrowserWindow。
+ * 2. 窗口面积比例的平方根作为连续缩放目标；
+ * 3. 最小字号只要求大于 0，最大字号没有固定上限；
+ * 4. 设置页在窄窗口中自动把字号卡片、外观、颜色和服务卡片排成多行；
+ * 5. 设置页保留 620px 的物理最小内容宽度，剩余内容可通过底部辅助条横向移动；
+ * 6. resize 使用 requestAnimationFrame 合并，并屏蔽 setZoomFactor 自身回调；
+ * 7. 该逻辑只运行在主窗口，不影响独立桌面歌词窗口。
  */
 
 const DESIGN_WIDTH = 1080
@@ -22,8 +23,14 @@ const BASE_FONT_SIZE = 16
 const DEFAULT_MIN_FONT_SIZE = 12
 const DEFAULT_MAX_FONT_SIZE = 22
 const MIN_POSITIVE_FONT_SIZE = 1
+const SETTINGS_MIN_PHYSICAL_WIDTH = 620
+const SETTINGS_PAIR_MIN_PHYSICAL_WIDTH = 220
+const SETTINGS_RANGE_MIN_PHYSICAL_WIDTH = 270
+const SETTINGS_APPEARANCE_MIN_PHYSICAL_WIDTH = 185
+const SETTINGS_COLOR_MIN_PHYSICAL_WIDTH = 108
+const SETTINGS_CARD_MIN_PHYSICAL_WIDTH = 180
 const ZOOM_EPSILON = 0.002
-const SETTINGS_CHECK_INTERVAL_MS = 800
+const SETTINGS_CHECK_INTERVAL_MS = 500
 
 const MIN_FONT_SIZE_KEY = 'appWindowScaleMinFontSize'
 const MAX_FONT_SIZE_KEY = 'appWindowScaleMaxFontSize'
@@ -50,15 +57,14 @@ const readStoredFontSize = (key: string, fallback: number) => {
 }
 
 /**
- * 读取连续缩放使用的有效字号范围。
+ * 读取连续缩放使用的字号范围。
  *
  * Returns:
- * 已校正且满足 0 < min <= max 的最小、最大字号。
+ * 满足 0 < min <= max 的最小、最大字号。
  */
 const readScaleFontRange = (): ScaleFontRange => {
   const min = readStoredFontSize(MIN_FONT_SIZE_KEY, DEFAULT_MIN_FONT_SIZE)
   const max = readStoredFontSize(MAX_FONT_SIZE_KEY, DEFAULT_MAX_FONT_SIZE)
-
   return min <= max ? { min, max } : { min: max, max: min }
 }
 
@@ -72,10 +78,41 @@ const saveScaleFontRange = (range: ScaleFontRange) => {
 }
 
 /**
- * 注入设置页自适应布局与字号范围控件样式。
+ * 给设置页现有 DOM 添加稳定的显式布局 class。
  *
- * 设置页布局完全依赖可用宽度连续计算：空间足够时元素并排，空间不足时自动形成
- * 两排或多排，不使用固定窗口宽度临界点。
+ * 这里只读取直接子元素并按实际结构添加 class；已经存在的 class 不会重复写入，
+ * 因此不会形成 MutationObserver 式的更新循环。
+ */
+const decorateSettingsLayoutClasses = () => {
+  const settings = document.querySelector<HTMLElement>('#app .system-settings')
+  if (!settings) return false
+
+  settings.classList.add('settings-responsive-layout')
+
+  settings.querySelectorAll<HTMLElement>('.item').forEach((item) => {
+    const children = Array.from(item.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement
+    )
+    const hasDirectClass = (className: string) =>
+      children.some((child) => child.classList.contains(className))
+
+    const hasPair = hasDirectClass('left') && hasDirectClass('right')
+    const hasAppearance = hasDirectClass('appearance')
+    const hasColors = hasDirectClass('colors')
+    const hasStreamCard = hasDirectClass('stream-item')
+    const hasDirectColorCard = hasDirectClass('color') && !hasColors
+
+    item.classList.toggle('settings-pair-item', hasPair && !item.classList.contains('no-flex'))
+    item.classList.toggle('settings-appearance-grid', hasAppearance)
+    item.classList.toggle('settings-colors-grid', hasColors)
+    item.classList.toggle('settings-multi-card-grid', hasStreamCard || hasDirectColorCard)
+  })
+
+  return true
+}
+
+/**
+ * 注入设置页布局和字号范围控件样式。
  */
 const ensureSettingsStyle = () => {
   if (document.getElementById(SETTINGS_STYLE_ID)) return
@@ -84,36 +121,45 @@ const ensureSettingsStyle = () => {
   style.id = SETTINGS_STYLE_ID
   style.textContent = `
     #app #main {
-      overflow-x: auto;
+      overflow-x: auto !important;
       overscroll-behavior: contain;
     }
 
-    #app .system-settings {
-      min-width: 0;
+    #app #main::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
     }
 
-    #app .system-settings .main-container {
+    #app .system-settings.settings-responsive-layout {
+      width: 100%;
+      min-width: var(--settings-page-min-logical-width, 900px);
+      box-sizing: border-box;
+    }
+
+    #app .system-settings.settings-responsive-layout .main-container {
       min-width: 0;
       padding-right: clamp(14px, 3vw, 30px) !important;
       padding-left: clamp(104px, 16vw, 160px) !important;
     }
 
-    #app .system-settings .main-container > .container {
+    #app .system-settings.settings-responsive-layout .main-container > .container {
       min-width: 0;
       overflow: visible;
-      padding-bottom: 20px;
+      padding-bottom: 24px;
     }
 
-    #app .system-settings .slideBar {
+    #app .system-settings.settings-responsive-layout .slideBar {
       left: clamp(12px, 2.5vw, 28px) !important;
       width: clamp(82px, 13vw, 120px) !important;
       max-width: none !important;
     }
 
-    /* 普通设置项：由两列连续收缩为一列，不产生突变临界点。 */
-    #app .system-settings .item:has(> .left):has(> .right):not(.no-flex) {
+    #app .system-settings .settings-pair-item {
       display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--settings-pair-column-min, 220px), 1fr)
+      );
       align-items: center;
       column-gap: clamp(14px, 3vw, 34px);
       row-gap: 10px;
@@ -122,18 +168,18 @@ const ensureSettingsStyle = () => {
       box-sizing: border-box;
     }
 
-    #app .system-settings .item:has(> .left):has(> .right) > .left {
+    #app .system-settings .settings-pair-item > .left {
       min-width: 0;
       padding-right: 0 !important;
     }
 
-    #app .system-settings .item:has(> .left):has(> .right) > .right {
+    #app .system-settings .settings-pair-item > .right {
       min-width: 0;
       max-width: 100%;
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      justify-self: end;
+      justify-self: stretch;
       flex-wrap: wrap;
       gap: 8px;
     }
@@ -158,9 +204,11 @@ const ensureSettingsStyle = () => {
       box-sizing: border-box;
     }
 
-    /* 字号范围项：说明与控件可并排，也可在窄窗口中自然上下排列。 */
     #app .system-settings .window-scale-font-range-item {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)) !important;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--settings-range-column-min, 270px), 1fr)
+      ) !important;
       align-items: center !important;
       gap: clamp(14px, 3vw, 30px) !important;
       margin: 8px 0 18px !important;
@@ -187,7 +235,7 @@ const ensureSettingsStyle = () => {
     #app .app-font-size-setting.window-scale-font-range {
       width: 100%;
       min-width: 0;
-      max-width: 340px;
+      max-width: 360px;
       min-height: 82px;
       box-sizing: border-box;
       display: flex;
@@ -253,10 +301,12 @@ const ensureSettingsStyle = () => {
       opacity: 0.28;
     }
 
-    /* 外观预览：宽时一排，窄时自动形成任意数量的行。 */
-    #app .system-settings .item:has(> .appearance) {
+    #app .system-settings .settings-appearance-grid {
       display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr));
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--settings-appearance-card-min, 185px), 1fr)
+      );
       align-items: start !important;
       gap: 14px !important;
       width: 100%;
@@ -265,76 +315,75 @@ const ensureSettingsStyle = () => {
       margin-bottom: 20px;
     }
 
-    #app .system-settings .item:has(> .appearance) > div:first-child {
+    #app .system-settings .settings-appearance-grid > div:first-child {
       grid-column: 1 / -1;
       font-weight: 600;
       opacity: 0.78;
     }
 
-    #app .system-settings .item:has(> .appearance) > .appearance {
+    #app .system-settings .settings-appearance-grid > .appearance {
       width: 100% !important;
       min-width: 0;
       box-sizing: border-box;
       cursor: pointer;
     }
 
-    #app .system-settings .item:has(> .appearance) > .appearance img {
+    #app .system-settings .settings-appearance-grid > .appearance img {
       width: 100% !important;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       box-sizing: border-box;
     }
 
-    /* 强调色与颜色选择器：按可用宽度自动换成 n 排。 */
-    #app .system-settings .item:has(> .colors) {
+    #app .system-settings .settings-colors-grid {
       display: block !important;
       width: 100%;
       min-width: 0;
       margin-bottom: 24px;
     }
 
-    #app .system-settings .item:has(> .colors) > div:first-child {
+    #app .system-settings .settings-colors-grid > div:first-child {
       margin-bottom: 10px;
       font-weight: 600;
       opacity: 0.78;
     }
 
-    #app .system-settings .item > .colors {
+    #app .system-settings .settings-colors-grid > .colors {
       width: 100% !important;
       display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 68px), 1fr));
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--settings-color-card-min, 108px), 1fr)
+      );
       align-items: start;
       justify-content: initial !important;
       gap: 12px;
     }
 
-    #app .system-settings .item > .colors .theme-color {
+    #app .system-settings .settings-colors-grid .theme-color {
       min-width: 0;
       margin: 0 !important;
       align-items: center;
     }
 
-    #app .system-settings .item > .colors .theme-color-item {
+    #app .system-settings .settings-colors-grid .theme-color-item {
       width: clamp(42px, 5vw, 58px) !important;
       height: clamp(42px, 5vw, 58px) !important;
     }
 
-    /* 其它直接由多个卡片组成的设置块同样自动换行。 */
-    #app .system-settings .item:has(> .stream-item),
-    #app .system-settings .item:has(> .color):not(:has(> .colors)) {
+    #app .system-settings .settings-multi-card-grid {
       display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--settings-multi-card-min, 180px), 1fr)
+      );
       align-items: start !important;
       gap: 14px;
       width: 100%;
       min-width: 0;
     }
 
-    #app .system-settings .item:has(> .stream-item) > div:first-child {
-      grid-column: 1 / -1;
-    }
-
-    #app .system-settings .stream-item {
+    #app .system-settings .settings-multi-card-grid > .stream-item {
       width: 100% !important;
       min-width: 0;
       height: auto !important;
@@ -357,7 +406,7 @@ const updateScaleSettingText = (setting: HTMLElement) => {
   const nextTitle = '主界面缩放字体范围'
   const nextDescription = '窗口缩放时，字体、图标、按钮和间距统一限制在此字号范围内'
 
-  item?.classList.add('window-scale-font-range-item')
+  item?.classList.add('window-scale-font-range-item', 'settings-pair-item')
 
   if (title && title.textContent !== nextTitle) title.textContent = nextTitle
   if (description && description.textContent !== nextDescription) {
@@ -366,12 +415,14 @@ const updateScaleSettingText = (setting: HTMLElement) => {
 }
 
 /**
- * 把原设置页中的单一字号控件转换为最小、最大字号范围控件。
+ * 把旧的单一字号控件转换为最小、最大字号范围控件。
  *
  * Returns:
  * 找到并完成转换时返回 true；设置页尚未渲染时返回 false。
  */
 const decorateScaleFontRangeSetting = () => {
+  decorateSettingsLayoutClasses()
+
   const setting = document.querySelector<HTMLElement>(
     '#app .system-settings .app-font-size-setting'
   )
@@ -429,13 +480,10 @@ const decorateScaleFontRangeSetting = () => {
       if (range.min > range.max) range.max = range.min
     }
     if (action === 'max-decrease') {
-      range.max -= 1
-      if (range.max < MIN_POSITIVE_FONT_SIZE) range.max = MIN_POSITIVE_FONT_SIZE
+      range.max = Math.max(MIN_POSITIVE_FONT_SIZE, range.max - 1)
       if (range.max < range.min) range.min = range.max
     }
-    if (action === 'max-increase') {
-      range.max += 1
-    }
+    if (action === 'max-increase') range.max += 1
 
     saveScaleFontRange(range)
     render()
@@ -457,6 +505,39 @@ const initializeScaleFontRangeSetting = () => {
 }
 
 /**
+ * 根据页面缩放比例，把期望的物理布局尺寸换算成 CSS 逻辑尺寸。
+ */
+const updateSettingsLayoutVariables = (zoomFactor: number) => {
+  const safeZoomFactor = Math.max(0.01, zoomFactor)
+  const rootStyle = document.documentElement.style
+
+  rootStyle.setProperty(
+    '--settings-page-min-logical-width',
+    `${(SETTINGS_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+  rootStyle.setProperty(
+    '--settings-pair-column-min',
+    `${(SETTINGS_PAIR_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+  rootStyle.setProperty(
+    '--settings-range-column-min',
+    `${(SETTINGS_RANGE_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+  rootStyle.setProperty(
+    '--settings-appearance-card-min',
+    `${(SETTINGS_APPEARANCE_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+  rootStyle.setProperty(
+    '--settings-color-card-min',
+    `${(SETTINGS_COLOR_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+  rootStyle.setProperty(
+    '--settings-multi-card-min',
+    `${(SETTINGS_CARD_MIN_PHYSICAL_WIDTH / safeZoomFactor).toFixed(2)}px`
+  )
+}
+
+/**
  * 初始化主窗口连续缩放监听。
  *
  * Returns:
@@ -464,14 +545,12 @@ const initializeScaleFontRangeSetting = () => {
  */
 export const initializeSmoothWindowScale = () => {
   const runtimeWindow = window as RuntimeWindow
-
   runtimeWindow.__vutronSmoothWindowScaleCleanup__?.()
 
   if (!window.mainApi?.setZoomFactor || !window.mainApi?.getZoomFactor) {
     return () => undefined
   }
 
-  // 旧版单一字号会与页面级缩放叠加，因此固定回 16px 基准。
   if (Number(localStorage.getItem(LEGACY_FONT_SIZE_KEY)) !== BASE_FONT_SIZE) {
     localStorage.setItem(LEGACY_FONT_SIZE_KEY, String(BASE_FONT_SIZE))
     window.dispatchEvent(new Event('app-global-font-size-change'))
@@ -485,15 +564,11 @@ export const initializeSmoothWindowScale = () => {
     if (isApplyingZoomFactor) return
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
-
-    // 页面缩放会改变 innerWidth/innerHeight。乘回当前比例后得到 BrowserWindow
-    // 实际内容区尺寸，从而避免缩放比例在 resize 过程中来回振荡。
     const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
-
-    const widthScale = contentWidth / DESIGN_WIDTH
-    const heightScale = contentHeight / DESIGN_HEIGHT
-    const areaScale = Math.sqrt(widthScale * heightScale)
+    const areaScale = Math.sqrt(
+      (contentWidth / DESIGN_WIDTH) * (contentHeight / DESIGN_HEIGHT)
+    )
 
     const fontRange = readScaleFontRange()
     const minZoomFactor = fontRange.min / BASE_FONT_SIZE
@@ -517,6 +592,8 @@ export const initializeSmoothWindowScale = () => {
       '--main-window-max-font-size',
       `${fontRange.max}px`
     )
+    updateSettingsLayoutVariables(nextZoomFactor)
+    decorateSettingsLayoutClasses()
 
     if (Math.abs(nextZoomFactor - currentZoomFactor) < ZOOM_EPSILON) return
 
@@ -526,6 +603,7 @@ export const initializeSmoothWindowScale = () => {
     } finally {
       window.requestAnimationFrame(() => {
         isApplyingZoomFactor = false
+        decorateSettingsLayoutClasses()
       })
     }
   }
