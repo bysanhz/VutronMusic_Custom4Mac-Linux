@@ -78,7 +78,7 @@ const { items } = toRefs(props)
 
 // ======== newADD start======
 // 虚拟列表的列数必须和实际布局一致，否则滚动高度、可见区索引会发生偏移。
-// 这里依据主内容区的物理宽度计算能容纳的列数，并以传入列数作为最大值。
+// 使用扣除 #main 左右 padding 后的物理内容宽度计算可容纳列数，并以传入列数为上限。
 const MIN_COVER_PHYSICAL_WIDTH = 126
 const responsiveColumnNumber = ref(Math.max(1, props.colunmNumber))
 let resizeFrameId: number | null = null
@@ -93,12 +93,21 @@ const updateResponsiveColumnNumber = () => {
 
   const zoomFactor = window.mainApi?.getZoomFactor?.() || 1
   const mainElement = document.getElementById('main')
-  const logicalWidth = mainElement?.clientWidth || window.innerWidth
-  const physicalWidth = logicalWidth * zoomFactor
+  const logicalViewportWidth = mainElement?.clientWidth || window.innerWidth
+  const mainStyle = mainElement ? window.getComputedStyle(mainElement) : null
+  const logicalPaddingLeft = Number.parseFloat(mainStyle?.paddingLeft || '0') || 0
+  const logicalPaddingRight = Number.parseFloat(mainStyle?.paddingRight || '0') || 0
+  const logicalContentWidth = Math.max(
+    1,
+    logicalViewportWidth - logicalPaddingLeft - logicalPaddingRight
+  )
+  const physicalContentWidth = logicalContentWidth * zoomFactor
   const physicalGap = props.gap * zoomFactor
   const availableColumns = Math.max(
     1,
-    Math.floor((physicalWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap))
+    Math.floor(
+      (physicalContentWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap)
+    )
   )
 
   responsiveColumnNumber.value = Math.min(props.colunmNumber, availableColumns)
