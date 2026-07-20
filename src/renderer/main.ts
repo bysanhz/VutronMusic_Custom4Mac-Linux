@@ -7,16 +7,16 @@ import router from './router'
 import i18n from './plugins/i18n'
 import 'virtual:svg-icons-register'
 import './assets/css/global.scss'
-// ======== newADD start======
-// 主窗口在 768px 以下的响应式覆盖，必须晚于 global.scss 加载。
-import './assets/css/responsive-window.scss'
-// 响应式二次修正：消除布局跳变并恢复 v-show 的真实隐藏状态。
-import './assets/css/responsive-window-fixes.scss'
-// =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import DOMPurify from 'dompurify'
 import { dailyTask } from './utils'
 import vue3lottie from 'vue3-lottie'
+// ======== newADD start======
+// 使用 Electron 页面级连续缩放代替多个 CSS 临界点切换。
+// responsive-window.scss 与 responsive-window-fixes.scss 保留在仓库中用于历史对照，
+// 但不再加载，避免 700/520/460/390px 等断点造成布局模型突然变化。
+import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
+// =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
 declare global {
@@ -30,6 +30,10 @@ declare global {
       invoke: (channel: string, ...data: any[]) => Promise<any>
       sendMessage: (message: Record<string, any>) => void
       closeMessagePort: () => void
+      // ======== newADD start======
+      setZoomFactor: (factor: number) => void
+      getZoomFactor: () => number
+      // =========== newADD end ========
     }
     env?: {
       isElectron: boolean
@@ -51,6 +55,11 @@ declare global {
     LottieAnimation: (typeof import('vue3-lottie'))['Vue3Lottie']
   }
 }
+
+// ======== newADD start======
+// 在 Vue 挂载前设置首帧缩放，减少窗口打开或恢复尺寸时的视觉跳动。
+initializeSmoothWindowScale()
+// =========== newADD end ========
 
 const app = createApp(App)
 
