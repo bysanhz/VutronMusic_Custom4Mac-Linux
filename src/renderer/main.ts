@@ -7,6 +7,10 @@ import router from './router'
 import i18n from './plugins/i18n'
 import 'virtual:svg-icons-register'
 import './assets/css/global.scss'
+// ======== newADD start======
+// 主窗口在 768px 以下的响应式覆盖，必须晚于 global.scss 加载。
+import './assets/css/responsive-window.scss'
+// =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import DOMPurify from 'dompurify'
 import { dailyTask } from './utils'
