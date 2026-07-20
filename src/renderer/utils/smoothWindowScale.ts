@@ -3,17 +3,18 @@
  * 主窗口全界面连续缩放。
  *
  * 概述：
- * 使用 Electron webFrame 对主窗口中的字体、SVG、图片、按钮、间距、卡片和路由页面
- * 应用同一个连续缩放比例。CSS 只负责容器不足时的自动换行，不再根据 zoomFactor
- * 反向放大任何元素。
+ * 使用 Electron webFrame 对字体、SVG、图片、按钮、间距、卡片与路由页面应用同一个
+ * 连续缩放比例。缩放更新限制在约 30 FPS，并在拖动结束后补一次最终更新，避免
+ * setZoomFactor 在高频 resize 过程中持续占用渲染线程。
  *
  * 详细说明：
  * 1. 以 1080 × 720、16px 为设计基准；
- * 2. 通过窗口面积比例的平方根计算连续缩放目标；
- * 3. 设置页的最小、最大字号没有固定业务上限，仅要求字号为正数；
- * 4. 设置页现有 DOM 只添加稳定的布局 class，不使用 MutationObserver；
- * 5. resize 通过 requestAnimationFrame 合并，并屏蔽 setZoomFactor 自身触发的回调；
- * 6. 独立桌面歌词 BrowserWindow 不受此逻辑影响。
+ * 2. 窗口面积比例的平方根作为连续缩放目标；
+ * 3. 最小、最大字号没有固定业务上限，仅要求字号为正数；
+ * 4. 设置页结构仅在进入设置页时初始化，不再定时扫描 DOM；
+ * 5. resize 更新采用 requestAnimationFrame、最小时间间隔和尾随更新三层合并；
+ * 6. 拖动窗口期间临时关闭高成本视觉动画，停止拖动后自动恢复；
+ * 7. 独立桌面歌词 BrowserWindow 不受此逻辑影响。
  */
 
 const DESIGN_WIDTH = 1080
@@ -22,13 +23,17 @@ const BASE_FONT_SIZE = 16
 const DEFAULT_MIN_FONT_SIZE = 12
 const DEFAULT_MAX_FONT_SIZE = 22
 const MIN_POSITIVE_FONT_SIZE = 1
-const ZOOM_EPSILON = 0.002
-const SETTINGS_CHECK_INTERVAL_MS = 500
+const ZOOM_EPSILON = 0.004
+const ZOOM_UPDATE_INTERVAL_MS = 32
+const RESIZE_IDLE_DELAY_MS = 140
+const SETTINGS_DECORATION_RETRY_MS = 80
+const SETTINGS_DECORATION_MAX_RETRIES = 20
 
 const MIN_FONT_SIZE_KEY = 'appWindowScaleMinFontSize'
 const MAX_FONT_SIZE_KEY = 'appWindowScaleMaxFontSize'
 const LEGACY_FONT_SIZE_KEY = 'appGlobalFontSize'
 const SCALE_SETTINGS_CHANGE_EVENT = 'app-window-scale-font-range-change'
+const WINDOW_RESIZING_CLASS = 'vutron-window-resizing'
 
 type RuntimeWindow = Window & {
   __vutronSmoothWindowScaleCleanup__?: () => void
@@ -72,8 +77,7 @@ const saveScaleFontRange = (range: ScaleFontRange) => {
 /**
  * 给设置页现有结构添加明确的布局 class。
  *
- * 这里只检查直接子元素，并且 classList.toggle 在状态不变时不会写 DOM，因此不会形成
- * 之前 MutationObserver 式的更新循环。
+ * 该函数只在设置页进入或初始化时执行，不再通过 setInterval 周期扫描。
  */
 const decorateSettingsLayoutClasses = () => {
   const settings = document.querySelector<HTMLElement>('#app .system-settings')
@@ -125,7 +129,7 @@ const updateScaleSettingText = (setting: HTMLElement) => {
  * 设置页存在并已完成初始化时返回 true，否则返回 false。
  */
 const decorateScaleFontRangeSetting = () => {
-  decorateSettingsLayoutClasses()
+  if (!decorateSettingsLayoutClasses()) return false
 
   const setting = document.querySelector<HTMLElement>(
     '#app .system-settings .app-font-size-setting'
@@ -199,21 +203,65 @@ const decorateScaleFontRangeSetting = () => {
   return true
 }
 
+/**
+ * 在 Vue 路由内容完成挂载后有限次数尝试初始化设置页。
+ *
+ * 不使用持续定时器；非设置页最多进行有限次轻量查询，进入设置页时由 hashchange
+ * 重新触发一轮尝试。
+ */
 const initializeSettingsDecoration = () => {
-  decorateScaleFontRangeSetting()
+  let retryTimer: number | null = null
+  let decorationFrame: number | null = null
+  let generation = 0
 
-  const settingsCheckTimer = window.setInterval(() => {
-    decorateScaleFontRangeSetting()
-  }, SETTINGS_CHECK_INTERVAL_MS)
+  const cancelPendingDecoration = () => {
+    generation += 1
+    if (retryTimer !== null) {
+      window.clearTimeout(retryTimer)
+      retryTimer = null
+    }
+    if (decorationFrame !== null) {
+      window.cancelAnimationFrame(decorationFrame)
+      decorationFrame = null
+    }
+  }
 
-  return () => window.clearInterval(settingsCheckTimer)
+  const scheduleDecoration = (attempt = 0, currentGeneration = generation) => {
+    if (currentGeneration !== generation) return
+
+    decorationFrame = window.requestAnimationFrame(() => {
+      decorationFrame = null
+      if (currentGeneration !== generation) return
+      if (decorateScaleFontRangeSetting()) return
+      if (attempt >= SETTINGS_DECORATION_MAX_RETRIES) return
+
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null
+        scheduleDecoration(attempt + 1, currentGeneration)
+      }, SETTINGS_DECORATION_RETRY_MS)
+    })
+  }
+
+  const restartDecoration = () => {
+    cancelPendingDecoration()
+    const currentGeneration = generation
+    scheduleDecoration(0, currentGeneration)
+  }
+
+  restartDecoration()
+  window.addEventListener('hashchange', restartDecoration)
+
+  return () => {
+    cancelPendingDecoration()
+    window.removeEventListener('hashchange', restartDecoration)
+  }
 }
 
 /**
  * 初始化主窗口连续缩放监听。
  *
  * Returns:
- * 用于移除 resize、设置变化监听和设置页低频检测的清理函数。
+ * 用于移除 resize、设置变化监听与设置页初始化任务的清理函数。
  */
 export const initializeSmoothWindowScale = () => {
   const runtimeWindow = window as RuntimeWindow
@@ -230,11 +278,17 @@ export const initializeSmoothWindowScale = () => {
   }
 
   let animationFrameId: number | null = null
+  let delayedUpdateTimer: number | null = null
+  let resizeIdleTimer: number | null = null
+  let lastZoomUpdateAt = 0
   let isApplyingZoomFactor = false
+  let pendingZoomUpdate = false
 
   const updateZoomFactor = () => {
-    animationFrameId = null
-    if (isApplyingZoomFactor) return
+    if (isApplyingZoomFactor) {
+      pendingZoomUpdate = true
+      return
+    }
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
 
@@ -269,42 +323,82 @@ export const initializeSmoothWindowScale = () => {
       `${fontRange.max}px`
     )
 
-    decorateSettingsLayoutClasses()
-
     if (Math.abs(nextZoomFactor - currentZoomFactor) < ZOOM_EPSILON) return
 
     isApplyingZoomFactor = true
-    try {
-      window.mainApi?.setZoomFactor(nextZoomFactor)
-    } finally {
-      window.requestAnimationFrame(() => {
-        isApplyingZoomFactor = false
-        decorateSettingsLayoutClasses()
-      })
-    }
+    pendingZoomUpdate = false
+    window.mainApi?.setZoomFactor(nextZoomFactor)
+    lastZoomUpdateAt = performance.now()
+
+    window.requestAnimationFrame(() => {
+      isApplyingZoomFactor = false
+      if (pendingZoomUpdate) scheduleZoomUpdate()
+    })
   }
 
-  const scheduleZoomUpdate = () => {
-    if (animationFrameId !== null || isApplyingZoomFactor) return
-    animationFrameId = window.requestAnimationFrame(updateZoomFactor)
+  const runScheduledZoomUpdate = () => {
+    animationFrameId = null
+
+    const elapsed = performance.now() - lastZoomUpdateAt
+    const remaining = ZOOM_UPDATE_INTERVAL_MS - elapsed
+    if (remaining > 0) {
+      if (delayedUpdateTimer === null) {
+        delayedUpdateTimer = window.setTimeout(() => {
+          delayedUpdateTimer = null
+          animationFrameId = window.requestAnimationFrame(runScheduledZoomUpdate)
+        }, remaining)
+      }
+      return
+    }
+
+    updateZoomFactor()
+  }
+
+  function scheduleZoomUpdate() {
+    if (animationFrameId !== null || delayedUpdateTimer !== null) return
+    animationFrameId = window.requestAnimationFrame(runScheduledZoomUpdate)
+  }
+
+  const handleResize = () => {
+    document.documentElement.classList.add(WINDOW_RESIZING_CLASS)
+    scheduleZoomUpdate()
+
+    if (resizeIdleTimer !== null) window.clearTimeout(resizeIdleTimer)
+    resizeIdleTimer = window.setTimeout(() => {
+      resizeIdleTimer = null
+      // 末尾补一次更新，确保限频过程中跳过的最后尺寸被应用。
+      pendingZoomUpdate = true
+      scheduleZoomUpdate()
+      window.requestAnimationFrame(() => {
+        document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
+      })
+    }, RESIZE_IDLE_DELAY_MS)
+  }
+
+  const handleScaleSettingsChange = () => {
+    pendingZoomUpdate = true
+    scheduleZoomUpdate()
   }
 
   const stopSettingsDecoration = initializeSettingsDecoration()
 
   updateZoomFactor()
-  window.addEventListener('resize', scheduleZoomUpdate, { passive: true })
-  window.addEventListener(SCALE_SETTINGS_CHANGE_EVENT, scheduleZoomUpdate)
+  window.addEventListener('resize', handleResize, { passive: true })
+  window.addEventListener(SCALE_SETTINGS_CHANGE_EVENT, handleScaleSettingsChange)
 
   const cleanup = () => {
-    window.removeEventListener('resize', scheduleZoomUpdate)
-    window.removeEventListener(SCALE_SETTINGS_CHANGE_EVENT, scheduleZoomUpdate)
+    window.removeEventListener('resize', handleResize)
+    window.removeEventListener(SCALE_SETTINGS_CHANGE_EVENT, handleScaleSettingsChange)
     stopSettingsDecoration()
+    document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
 
-    if (animationFrameId !== null) {
-      window.cancelAnimationFrame(animationFrameId)
-      animationFrameId = null
-    }
+    if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
+    if (delayedUpdateTimer !== null) window.clearTimeout(delayedUpdateTimer)
+    if (resizeIdleTimer !== null) window.clearTimeout(resizeIdleTimer)
 
+    animationFrameId = null
+    delayedUpdateTimer = null
+    resizeIdleTimer = null
     delete runtimeWindow.__vutronSmoothWindowScaleCleanup__
   }
 
