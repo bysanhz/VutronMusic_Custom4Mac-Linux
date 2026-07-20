@@ -3,3 +3,32 @@ body {
   padding: 0;
   margin: 0;
 }
+
+/* ======== newADD start====== */
+/*
+ * 紧凑桌面歌词锁定状态。
+ *
+ * 主进程在 isLock=true 时已经启用 BrowserWindow 鼠标穿透；
+ * 这里同步隐藏封面、喜欢、主窗口显隐、上一首、播放暂停、下一首等控件，
+ * 并把歌词区域扩展为完整窗口宽度，避免保留无法点击的空白控制区。
+ */
+#main.compact-mode.is-lock {
+  .compact-osd-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    column-gap: 0 !important;
+  }
+
+  .compact-left-panel,
+  .compact-cover-controls {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .compact-lyric-panel {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+/* =========== newADD end ======== */
