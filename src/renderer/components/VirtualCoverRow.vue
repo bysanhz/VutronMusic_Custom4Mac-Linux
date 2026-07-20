@@ -1,5 +1,6 @@
 <template>
   <VirtualScroll
+    :key="responsiveColumnNumber"
     :list="items"
     :column-number="responsiveColumnNumber"
     :gap="gap"
@@ -97,9 +98,7 @@ const updateResponsiveColumnNumber = () => {
   const physicalGap = props.gap * zoomFactor
   const availableColumns = Math.max(
     1,
-    Math.floor(
-      (physicalWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap)
-    )
+    Math.floor((physicalWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap))
   )
 
   responsiveColumnNumber.value = Math.min(props.colunmNumber, availableColumns)
