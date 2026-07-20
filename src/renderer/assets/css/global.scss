@@ -118,3 +118,177 @@ a {
 .user-select-none {
   user-select: none;
 }
+
+/* ======== newADD start====== */
+/*
+ * “我喜欢的音乐 / 我收藏的流媒体”页面响应式布局。
+ *
+ * 说明：
+ * 1. 使用 :has() 只选中喜欢歌曲页面，不影响普通歌单及每日推荐歌单；
+ * 2. 尺寸同时参考 vw 与 vh，并通过 clamp() 限制最小值和原始最大值；
+ * 3. 不对虚拟列表整体使用 transform/zoom，避免点击坐标和滚动高度错位；
+ * 4. 覆盖 App.vue 中针对 .title 和按钮的全局 !important 字号规则。
+ */
+#app .playlist:has(> .special-playlist > .title:is(.gradient-red, .gradient-sky-blue)) {
+  --liked-title-size: clamp(52px, min(7vw, 9.5vh), 84px);
+  --liked-hero-padding-top: clamp(58px, 9vh, 108px);
+  --liked-hero-padding-bottom: clamp(36px, 6vh, 72px);
+  --liked-control-gap: clamp(6px, min(1vw, 1.5vh), 12px);
+  --liked-button-height: clamp(32px, min(3.8vw, 5.2vh), 40px);
+  --liked-button-font-size: clamp(12px, min(1.55vw, 2.15vh), 16px);
+  --liked-button-padding-x: clamp(10px, 1.5vw, 16px);
+  --liked-button-radius: clamp(6px, 0.8vw, 8px);
+  --liked-button-icon-size: clamp(12px, min(1.55vw, 2.1vh), 16px);
+  --liked-search-width: clamp(100px, 16vw, 140px);
+  --liked-track-cover-size: clamp(34px, min(4.6vw, 6vh), 46px);
+  --liked-track-cover-gap: clamp(10px, 2vw, 20px);
+  --liked-track-padding-y: clamp(5px, min(0.8vw, 1.1vh), 8px);
+  --liked-track-padding-x: clamp(6px, 1vw, 10px);
+  --liked-track-radius: clamp(8px, 1.2vw, 12px);
+  --liked-track-title-size: clamp(13px, min(1.8vw, 2.5vh), 18px);
+  --liked-track-artist-size: clamp(10px, min(1.3vw, 1.8vh), 13px);
+  --liked-track-meta-size: clamp(11px, min(1.5vw, 2.1vh), 16px);
+  --liked-track-meta-padding: clamp(12px, 3vw, 30px);
+  --liked-track-action-size: clamp(12px, min(1.55vw, 2.1vh), 16px);
+  --liked-track-action-padding: clamp(5px, 0.8vw, 8px);
+  --liked-track-time-width: clamp(38px, 5vw, 50px);
+
+  > .special-playlist {
+    padding: var(--liked-hero-padding-top) 0 var(--liked-hero-padding-bottom);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  > .special-playlist > .title:is(.gradient-red, .gradient-sky-blue) {
+    font-size: var(--liked-title-size) !important;
+    line-height: 1.04;
+    letter-spacing: clamp(1px, 0.35vw, 4px);
+    white-space: nowrap;
+  }
+
+  > .special-playlist .buttons {
+    margin-top: clamp(14px, min(2.4vw, 3.4vh), 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--liked-control-gap);
+
+    button {
+      height: var(--liked-button-height) !important;
+      min-width: var(--liked-button-height) !important;
+      padding: 0 var(--liked-button-padding-x) !important;
+      margin-right: 0 !important;
+      border-radius: var(--liked-button-radius) !important;
+      font-size: var(--liked-button-font-size) !important;
+      line-height: 1;
+    }
+
+    .svg-icon {
+      width: var(--liked-button-icon-size) !important;
+      height: var(--liked-button-icon-size) !important;
+      transform: none !important;
+    }
+
+    .search-container {
+      height: var(--liked-button-height);
+      border-radius: var(--liked-button-radius);
+    }
+
+    .search-icon {
+      width: var(--liked-button-height);
+      height: var(--liked-button-height);
+    }
+
+    .search-icon:not(.active) + .search-input {
+      width: 0 !important;
+      padding: 0 !important;
+    }
+
+    .search-icon.active + .search-input {
+      width: var(--liked-search-width) !important;
+      padding: 4px !important;
+    }
+
+    .search-input {
+      height: var(--liked-button-height);
+      box-sizing: border-box;
+      font-size: var(--liked-button-font-size) !important;
+    }
+  }
+
+  .trackitem {
+    padding: var(--liked-track-padding-y) var(--liked-track-padding-x);
+    border-radius: var(--liked-track-radius);
+  }
+
+  .track {
+    border-radius: var(--liked-track-radius);
+
+    > img {
+      width: var(--liked-track-cover-size);
+      height: var(--liked-track-cover-size);
+      margin-right: var(--liked-track-cover-gap);
+      border-radius: var(--liked-button-radius);
+    }
+
+    .title-and-artist .title {
+      font-size: var(--liked-track-title-size) !important;
+    }
+
+    .title-and-artist .artist {
+      font-size: var(--liked-track-artist-size) !important;
+    }
+
+    .album,
+    .service,
+    .createTime,
+    .time,
+    .count {
+      font-size: var(--liked-track-meta-size) !important;
+    }
+
+    .album {
+      padding: 0 var(--liked-track-meta-padding);
+    }
+
+    .time,
+    .count {
+      width: var(--liked-track-time-width);
+    }
+
+    .actions button {
+      padding: var(--liked-track-action-padding);
+
+      .svg-icon {
+        width: var(--liked-track-action-size) !important;
+        height: var(--liked-track-action-size) !important;
+        transform: none !important;
+      }
+    }
+  }
+}
+
+/* 窄窗口优先保证歌曲名、歌手、收藏状态和时长的可读性。 */
+@media (max-width: 900px) {
+  #app .playlist:has(> .special-playlist > .title:is(.gradient-red, .gradient-sky-blue)) {
+    .track .album {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 800px) {
+  #app .playlist:has(> .special-playlist > .title:is(.gradient-red, .gradient-sky-blue)) {
+    > .special-playlist {
+      padding-top: clamp(48px, 7vh, 64px);
+    }
+
+    .track .createTime {
+      display: none;
+    }
+  }
+}
+/* =========== newADD end ======== */
