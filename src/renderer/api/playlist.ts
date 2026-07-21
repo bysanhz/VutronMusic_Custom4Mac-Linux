@@ -61,7 +61,7 @@ export function dailyRecommendTracks() {
  * 获取精品歌单
  * 说明 : 调用此接口 , 可获取精品歌单
  * - cat: tag, 比如 " 华语 "、" 古风 " 、" 欧美 "、" 流行 ", 默认为 "全部", 可从精品歌单标签列表接口获取(/playlist/highquality/tags)
- * - limit: 取出歌单数量 , 默认为 20
+ * - limit: 取出数量 , 默认为 20
  * - before: 分页参数,取上一页最后一个歌单的 updateTime 获取下一页数据
  * @param {Object} params
  * @param {string} params.cat
@@ -115,7 +115,7 @@ export function createPlaylist(params) {
  * 说明 : 调用此接口 , 可获取网友精选碟歌单
  * - order: 可选值为 'new' 和 'hot', 分别对应最新和最热 , 默认为 'hot'
  * - cat: tag, 比如 " 华语 "、" 古风 " 、" 欧美 "、" 流行 ", 默认为 "全部",可从歌单分类接口获取(/playlist/catlist)
- * - limit: 取出歌单数量 , 默认为 50
+ * - limit: 取出数量 , 默认为 50
  * @param {Object} params
  * @param {string} params.order
  * @param {string} params.cat
@@ -188,26 +188,39 @@ export function addOrRemoveTrackFromPlaylist(params) {
   })
 }
 
+// ======== newADD start======
 /**
- * 心动模式/智能播放
- * 说明 : 登录后调用此接口 , 可获取心动模式/智能播放列表 必选参数 : id : 歌曲 id
- * - id : 歌曲 id
- * - pid : 歌单 id
- * - sid : 要开始播放的歌曲的 id (可选参数)
- * @param {Object} params
- * @param {number=} params.id
- * @param {number=} params.pid
+ * 获取网易云心动模式/智能播放列表。
+ *
+ * 详细说明：
+ * 该接口以当前歌曲作为种子，并结合网易云歌单上下文生成智能推荐顺序；它与
+ * 私人 FM `/personal/fm`、每日推荐 `/recommend/songs` 是三个独立功能。
+ *
+ * Args:
+ *   params.id: 当前种子歌曲 ID。
+ *   params.pid: 算法使用的网易云歌单上下文 ID。
+ *   params.sid: 可选的起始歌曲 ID。
+ *   params.count: 可选的推荐数量。
+ *
+ * Returns:
+ *   `/playmode/intelligence/list` 响应，推荐歌曲位于 `data` 数组中。
  */
 export function intelligencePlaylist(params: {
-  id?: number | undefined
-  pid?: number | undefined
+  id: number
+  pid: number
+  sid?: number
+  count?: number
 }) {
   return request({
     url: '/playmode/intelligence/list',
     method: 'get',
-    params
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
   })
 }
+// =========== newADD end ========
 
 export function updatePlaylist(params: { id: number; name: string; desc: string; tags: string }) {
   return request({
