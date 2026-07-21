@@ -1,0 +1,284 @@
+/* ======== newADD start====== */
+/**
+ * 设置页原生结构的连续自适应布局。
+ *
+ * 说明：
+ * 1. 本文件直接作用于 SystemSettings.vue 的原始 .item/.left/.right 结构，不依赖
+ *    smoothWindowScale.ts 动态添加布局 class；
+ * 2. Electron webFrame 仍负责字体、图标、图片、按钮和间距的统一缩放；
+ * 3. Grid 仅在可用空间不足时自动换行，不设置 700/520/460px 一类人工临界点；
+ * 4. 外观、强调色、流媒体服务等卡片区域可以自动形成两排或 n 排。
+ */
+
+#app .system-settings {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#app .system-settings .main-container {
+  min-width: 0;
+  padding-right: clamp(12px, 3vw, 30px) !important;
+  padding-left: clamp(118px, 23vw, 180px) !important;
+  transition:
+    padding 0.18s ease,
+    margin 0.18s ease !important;
+}
+
+#app .system-settings .main-container > .container,
+#app .system-settings .main-container > .container > div {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/*
+ * 普通设置项。
+ * 240px 是逻辑列宽：窗口整体缩小时该值会跟随 webFrame 一起缩小，但在截图所示
+ * 窄窗口中，两列已无法同时容纳，因此会自然变成“说明在上、控件在下”。
+ */
+#app .system-settings .item:not(.no-flex) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  align-items: center;
+  justify-content: initial !important;
+  column-gap: clamp(12px, 2.5vw, 28px);
+  row-gap: 9px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#app .system-settings .item:not(.no-flex) > .left {
+  min-width: 0;
+  max-width: 100%;
+  padding-right: 0 !important;
+}
+
+#app .system-settings .item:not(.no-flex) > .right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 没有 left/right 包装的分组标题独占一整行。 */
+#app .system-settings .item:not(.no-flex) > :first-child:not(.left):not(.right) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+#app .system-settings .item .title,
+#app .system-settings .item .description {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+}
+
+#app .system-settings .item .title {
+  line-height: 1.38;
+}
+
+#app .system-settings .item .description {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+#app .system-settings :is(select, input, button, .custom-select) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#app .system-settings .item-row {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 10px 14px !important;
+}
+
+/* ==================== 主界面缩放字号范围 ==================== */
+#app .system-settings .window-scale-font-range-item {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
+  align-items: center !important;
+  gap: clamp(12px, 2.5vw, 24px) !important;
+  margin: 8px 0 16px !important;
+  padding: clamp(10px, 1.8vw, 14px) !important;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-secondary-bg), transparent 42%);
+}
+
+#app .system-settings .window-scale-font-range-item > .left .title {
+  font-weight: 650;
+  opacity: 0.9;
+}
+
+#app .system-settings .window-scale-font-range-item > .left .description {
+  max-width: 420px;
+  opacity: 0.66;
+}
+
+#app .system-settings .window-scale-font-range-item > .right {
+  width: 100%;
+}
+
+#app .system-settings .app-font-size-setting.window-scale-font-range {
+  width: min(100%, 300px) !important;
+  min-width: 0 !important;
+  max-width: 300px !important;
+  min-height: 78px !important;
+  height: auto !important;
+  padding: 8px 10px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+  border-radius: 10px !important;
+  background: var(--color-secondary-bg);
+  box-shadow: 0 4px 14px color-mix(in srgb, black, transparent 96%);
+}
+
+#app .system-settings .window-scale-font-row {
+  display: grid;
+  grid-template-columns: minmax(62px, auto) 30px minmax(48px, 1fr) 30px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 29px;
+}
+
+#app .system-settings .window-scale-font-label {
+  white-space: nowrap;
+  font-weight: 650;
+  opacity: 0.72;
+}
+
+#app .system-settings .window-scale-font-value {
+  min-width: 48px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+#app .system-settings .window-scale-font-button {
+  width: 30px;
+  min-width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-text), transparent 92%);
+  color: var(--color-text);
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+#app .system-settings .window-scale-font-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text), transparent 83%);
+}
+
+#app .system-settings .window-scale-font-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+#app .system-settings .window-scale-font-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ==================== 外观预览 ==================== */
+#app .system-settings .item:has(> .appearance) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  align-items: start !important;
+  gap: 12px !important;
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
+#app .system-settings .item:has(> .appearance) > .appearance {
+  width: 100% !important;
+  min-width: 0;
+  max-width: 180px;
+  box-sizing: border-box;
+}
+
+#app .system-settings .item:has(> .appearance) > .appearance img {
+  width: 100% !important;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+/* ==================== 强调色 ==================== */
+#app .system-settings .item:has(> .colors) {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 20px;
+}
+
+#app .system-settings .item:has(> .colors) > :first-child {
+  margin-bottom: 10px;
+}
+
+#app .system-settings .item > .colors {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(68px, 88px));
+  justify-content: start !important;
+  align-items: start;
+  gap: 10px;
+}
+
+#app .system-settings .item > .colors .theme-color {
+  min-width: 0;
+  margin: 0 !important;
+  align-items: center;
+}
+
+#app .system-settings .item > .colors .theme-color-item {
+  width: 54px !important;
+  height: 54px !important;
+}
+
+/* ==================== 流媒体服务与其他卡片 ==================== */
+#app .system-settings .item:has(> .stream-item) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)) !important;
+  align-items: start !important;
+  gap: 12px !important;
+}
+
+#app .system-settings .item:has(> .stream-item) > .stream-item {
+  width: 100% !important;
+  min-width: 0;
+  max-width: 170px;
+  height: auto !important;
+  min-height: 150px;
+  box-sizing: border-box;
+}
+
+#app .system-settings #shortcut-table {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* 拖动窗口时不对 Grid 的布局属性执行动画，避免重排过程产生额外合成开销。 */
+html.vutron-window-resizing #app .system-settings .item,
+html.vutron-window-resizing #app .system-settings .main-container {
+  transition: none !important;
+}
+/* =========== newADD end ======== */
