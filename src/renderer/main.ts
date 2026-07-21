@@ -102,12 +102,28 @@ initializeOsdWindowScaleSettings(router)
  * 接收独立桌面歌词窗口通过 MessagePort 发送的紧凑播放器控制消息。
  *
  * 心动模式始终切换到下一首个性推荐歌曲，不再复用 playPersonalFM() 中“当前歌曲
- * 已是推荐歌曲时切换播放/暂停”的分支。
+ * 已是推荐歌曲时切换播放/暂停”的分支。若应用刚启动、推荐缓存尚未加载完成，
+ * 最多等待约 3 秒，缓存就绪后再进入推荐播放。
  */
 const playerStore = usePlayerStore(pinia)
+const startHeartMode = () => {
+  let attempts = 0
+  const tryStart = () => {
+    if (playerStore.personalFMNextTrack?.id) {
+      playerStore.playNextFMTrack()
+      return
+    }
+
+    attempts += 1
+    if (attempts < 12) window.setTimeout(tryStart, 250)
+  }
+
+  tryStart()
+}
+
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type !== 'osd-heart-mode') return
-  playerStore.playNextFMTrack()
+  startHeartMode()
 })
 // =========== newADD end ========
 
