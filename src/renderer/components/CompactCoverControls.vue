@@ -50,7 +50,7 @@
 
       <button
         class="compact-control-button control-heart-mode hover-control"
-        title="进入心动模式"
+        title="根据我喜欢的音乐开启心动模式"
         @click.stop="startHeartMode"
       >
         <SvgIcon icon-class="heart-mode" />
@@ -74,11 +74,13 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 
 const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
+const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 
 const isHover = ref(false)
 const isPlaying = ref(false)
 const isLiked = ref(false)
 const coverUrl = ref(DEFAULT_COVER)
+let heartModeChannel: BroadcastChannel | null = null
 
 /**
  * 从共享播放器快照读取封面与播放状态。
@@ -120,17 +122,21 @@ const toggleMainWindow = () => {
 
 // ======== newADD start======
 /**
- * 进入真正的网易云心动模式。
+ * 根据“我喜欢的音乐”开始一次新的网易云心动模式播放。
  *
- * 该动作只发送智能播放请求，不复用播放/暂停或私人 FM 逻辑。主窗口收到请求后
- * 调用 `/playmode/intelligence/list`，以当前歌曲为种子替换后续播放队列。
+ * 使用 BroadcastChannel 直接通知主播放器 renderer，避免桌面歌词 MessagePort 尚未
+ * 初始化或窗口重建后失效。主窗口会从喜欢歌单随机选择种子歌曲、请求真正的
+ * `/playmode/intelligence/list`，随后立即替换播放队列并开始播放。
  */
 const startHeartMode = () => {
-  try {
-    window.mainApi?.sendMessage({ type: 'osd-heart-mode' })
-  } catch (error) {
-    console.warn('[CompactCoverControls] 心动模式消息发送失败：', error)
+  if (!heartModeChannel) {
+    heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
   }
+
+  heartModeChannel.postMessage({
+    type: 'start-heart-mode-from-likes',
+    timestamp: Date.now()
+  })
 }
 // =========== newADD end ========
 
@@ -154,12 +160,15 @@ const handlePlayingStatus = (_event: unknown, value: boolean) => {
 
 onMounted(() => {
   updatePlayerSnapshot()
+  heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
   window.addEventListener('storage', handleStorage)
   window.addEventListener('message', handleOsdStatusMessage)
   window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
 })
 
 onBeforeUnmount(() => {
+  heartModeChannel?.close()
+  heartModeChannel = null
   window.removeEventListener('storage', handleStorage)
   window.removeEventListener('message', handleOsdStatusMessage)
   window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
