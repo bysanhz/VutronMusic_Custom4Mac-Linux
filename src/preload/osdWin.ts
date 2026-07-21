@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron'
 
 const mainAvailChannels: string[] = [
   'mouseleave',
@@ -87,7 +87,15 @@ contextBridge.exposeInMainWorld('mainApi', {
       messagePort.close()
       messagePort = null
     }
-  }
+  },
+  // ======== newADD start======
+  // 桌面歌词使用独立的页面缩放范围，与主窗口设置相互隔离。
+  setZoomFactor: (factor: number) => {
+    if (!Number.isFinite(factor) || factor <= 0) return
+    webFrame.setZoomFactor(factor)
+  },
+  getZoomFactor: () => webFrame.getZoomFactor()
+  // =========== newADD end ========
 })
 
 contextBridge.exposeInMainWorld('env', {
@@ -175,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(timeoutId)
 
     const osdLyric = JSON.parse(localStorage.getItem('osdLyric'))
-    if (osdLyric?.staticTime === 0) return // || !osdLyric.showButtonWhenLock
+    if (osdLyric?.staticTime === 0) return
 
     lastMoveTime = Date.now()
     timeoutId = setTimeout(() => {
