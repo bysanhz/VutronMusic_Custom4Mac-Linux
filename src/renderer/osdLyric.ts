@@ -4,6 +4,9 @@ import 'virtual:svg-icons-register'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './assets/css/osdlyric.scss'
+// ======== newADD start======
+import { initializeSmoothOsdWindowScale } from './utils/smoothOsdWindowScale'
+// =========== newADD end ========
 
 declare global {
   // eslint-disable-next-line no-unused-vars
@@ -17,8 +20,6 @@ declare global {
       sendMessage: (message: Record<string, any>) => void
       closeMessagePort: () => void
       // ======== newADD start======
-      // 与主窗口入口保持一致，避免 Window.mainApi 的全局接口重复声明类型冲突。
-      // OSD preload 不提供这两个方法，但全局接口声明必须保持完全一致。
       setZoomFactor: (factor: number) => void
       getZoomFactor: () => number
       // =========== newADD end ========
@@ -33,6 +34,11 @@ declare global {
     }
   }
 }
+
+// ======== newADD start======
+// 在 Vue 挂载前应用首帧缩放，避免桌面歌词窗口出现后再突然改变大小。
+initializeSmoothOsdWindowScale()
+// =========== newADD end ========
 
 const app = createApp(OSDLyric)
 const pinia = createPinia()
