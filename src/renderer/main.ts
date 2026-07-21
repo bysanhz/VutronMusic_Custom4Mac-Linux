@@ -24,6 +24,7 @@ import vue3lottie from 'vue3-lottie'
 // responsive-window.scss 与 responsive-window-fixes.scss 保留在仓库中用于历史对照，
 // 但不再加载，避免 700/520/460/390px 等断点造成布局模型突然变化。
 import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
+import { usePlayerStore } from './store/player'
 // =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
@@ -91,5 +92,19 @@ app
   .use(pinia)
 
 app.mount('#app')
+
+// ======== newADD start======
+/**
+ * 接收独立桌面歌词窗口通过 MessagePort 发送的紧凑播放器控制消息。
+ *
+ * 目前“心动模式”复用项目现有的个性推荐/私人 FM 播放链路，避免在桌面歌词
+ * renderer 中重复创建播放器状态。主窗口即使隐藏，播放器 store 仍然可以正常响应。
+ */
+const playerStore = usePlayerStore(pinia)
+window.addEventListener('message', (event: MessageEvent) => {
+  if (event.data?.type !== 'osd-heart-mode') return
+  playerStore.playPersonalFM()
+})
+// =========== newADD end ========
 
 dailyTask()
