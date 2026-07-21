@@ -31,4 +31,30 @@ body {
     min-width: 0 !important;
   }
 }
+
+/*
+ * 紧凑桌面歌词左侧控制区鼠标优先级。
+ *
+ * 原来的左侧边缘为 4px，四角为 14px。封面控制区距离窗口左边缘很近时，
+ * 左上角和左下角的拉伸层会覆盖“上一首”和“主窗口”按钮，鼠标因此容易显示
+ * 拉伸光标。紧凑模式下缩小边角热区，并让封面按钮在其实际矩形范围内优先
+ * 接收鼠标事件；控制区以外的左边缘仍然可以正常拉伸窗口。
+ */
+#main.compact-mode:not(.is-lock) {
+  --resize-edge-size: 2px;
+  --resize-corner-size: 7px;
+
+  .compact-left-panel {
+    position: relative;
+    z-index: 10003;
+    pointer-events: none;
+  }
+
+  .compact-cover-controls {
+    position: relative;
+    z-index: 10004;
+    pointer-events: auto;
+    transform: translateX(4px);
+  }
+}
 /* =========== newADD end ======== */
