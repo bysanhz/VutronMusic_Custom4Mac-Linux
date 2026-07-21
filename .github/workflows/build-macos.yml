@@ -29,7 +29,8 @@ jobs:
           npx electron-builder \
             --config=buildAssets/builder/config.js \
             --mac dmg \
-            --arm64
+            --arm64 \
+            --publish never
 
       - name: Show generated files
         run: find release -maxdepth 3 -type f -print
@@ -67,7 +68,8 @@ jobs:
           npx electron-builder \
             --config=buildAssets/builder/config.js \
             --mac dmg \
-            --x64
+            --x64 \
+            --publish never
 
       - name: Show generated files
         run: find release -maxdepth 3 -type f -print
