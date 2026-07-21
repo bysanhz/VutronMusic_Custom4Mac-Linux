@@ -44,6 +44,16 @@ body {
   --resize-edge-size: 2px;
   --resize-corner-size: 7px;
 
+  /*
+   * 封面与歌词之间保留独立间距。
+   *
+   * 使用布局间距而不是移动歌词或封面，因此该距离会与桌面歌词窗口的统一
+   * zoomFactor 一起连续缩放，且不会影响左侧六个按钮的鼠标命中区域。
+   */
+  .compact-osd-layout {
+    column-gap: 8px !important;
+  }
+
   .compact-left-panel {
     position: relative;
     z-index: 10003;
