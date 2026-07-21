@@ -1,18 +1,20 @@
 /* ======== newADD start====== */
+import router from '../router'
+
 /**
  * 主窗口全界面连续缩放。
  *
  * 概述：
- * 使用 Electron webFrame 对字体、SVG、图片、按钮、间距、卡片与路由页面应用同一个
- * 连续缩放比例。缩放更新限制在约 30 FPS，并在拖动结束后补一次最终更新，避免
- * setZoomFactor 在高频 resize 过程中持续占用渲染线程。
+ * 使用 Electron webFrame 对字体、SVG、图片、按钮、间距、卡片和全部路由页面应用
+ * 同一个连续缩放比例。设置页的最小/最大字号控件由 Vue Router 路由事件驱动安装，
+ * 不再依赖 hashchange、持续轮询或全页面 MutationObserver。
  *
  * 详细说明：
  * 1. 以 1080 × 720、16px 为设计基准；
- * 2. 窗口面积比例的平方根作为连续缩放目标；
- * 3. 最小、最大字号没有固定业务上限，仅要求字号为正数；
- * 4. 设置页结构仅在进入设置页时初始化，不再定时扫描 DOM；
- * 5. resize 更新采用 requestAnimationFrame、最小时间间隔和尾随更新三层合并；
+ * 2. 使用窗口面积比例的平方根计算连续缩放目标；
+ * 3. 最小、最大字号不设置固定业务范围，仅要求数值为正；
+ * 4. 进入设置页面后有限次数等待 Vue 完成挂载，成功后立即停止重试；
+ * 5. resize 更新限制在约 30 FPS，并在拖动结束后补一次最终更新；
  * 6. 拖动窗口期间临时关闭高成本视觉动画，停止拖动后自动恢复；
  * 7. 独立桌面歌词 BrowserWindow 不受此逻辑影响。
  */
@@ -27,7 +29,7 @@ const ZOOM_EPSILON = 0.004
 const ZOOM_UPDATE_INTERVAL_MS = 32
 const RESIZE_IDLE_DELAY_MS = 140
 const SETTINGS_DECORATION_RETRY_MS = 80
-const SETTINGS_DECORATION_MAX_RETRIES = 20
+const SETTINGS_DECORATION_MAX_RETRIES = 24
 
 const MIN_FONT_SIZE_KEY = 'appWindowScaleMinFontSize'
 const MAX_FONT_SIZE_KEY = 'appWindowScaleMaxFontSize'
@@ -74,63 +76,37 @@ const saveScaleFontRange = (range: ScaleFontRange) => {
   window.dispatchEvent(new Event(SCALE_SETTINGS_CHANGE_EVENT))
 }
 
-/**
- * 给设置页现有结构添加明确的布局 class。
- *
- * 该函数只在设置页进入或初始化时执行，不再通过 setInterval 周期扫描。
- */
-const decorateSettingsLayoutClasses = () => {
-  const settings = document.querySelector<HTMLElement>('#app .system-settings')
-  if (!settings) return false
-
-  settings.classList.add('settings-responsive-layout')
-
-  settings.querySelectorAll<HTMLElement>('.item').forEach((item) => {
-    const children = Array.from(item.children).filter(
-      (child): child is HTMLElement => child instanceof HTMLElement
-    )
-    const hasDirectClass = (className: string) =>
-      children.some((child) => child.classList.contains(className))
-
-    const hasPair = hasDirectClass('left') && hasDirectClass('right')
-    const hasAppearance = hasDirectClass('appearance')
-    const hasColors = hasDirectClass('colors')
-    const hasStreamCard = hasDirectClass('stream-item')
-    const hasDirectColorCard = hasDirectClass('color') && !hasColors
-
-    item.classList.toggle('settings-pair-item', hasPair && !item.classList.contains('no-flex'))
-    item.classList.toggle('settings-appearance-grid', hasAppearance)
-    item.classList.toggle('settings-colors-grid', hasColors)
-    item.classList.toggle('settings-multi-card-grid', hasStreamCard || hasDirectColorCard)
-  })
-
-  return true
-}
-
 const updateScaleSettingText = (setting: HTMLElement) => {
   const item = setting.closest<HTMLElement>('.item')
   const title = item?.querySelector<HTMLElement>('.left .title')
   const description = item?.querySelector<HTMLElement>('.left .description')
-  const nextTitle = '主界面缩放字体范围'
-  const nextDescription = '窗口缩放时，字体、图标、图片、按钮和间距统一限制在此字号范围内'
 
-  item?.classList.add('window-scale-font-range-item', 'settings-pair-item')
+  item?.classList.add('window-scale-font-range-item')
 
-  if (title && title.textContent !== nextTitle) title.textContent = nextTitle
+  if (title && title.textContent !== '主界面缩放字体范围') {
+    title.textContent = '主界面缩放字体范围'
+  }
+
+  const nextDescription =
+    '窗口缩放时，字体、图标、图片、按钮和间距会统一缩放，并限制在此字号范围内'
   if (description && description.textContent !== nextDescription) {
     description.textContent = nextDescription
   }
 }
 
 /**
- * 把设置页原来的单一字号控件转换为最小、最大字号范围控件。
+ * 将设置页原来的单值字号控件转换为最小/最大字号范围控件。
+ *
+ * 数值规则：
+ * - 不设置固定最大值；
+ * - 最小值只保留大于 0 的运行安全约束；
+ * - 当最小值超过最大值时同步抬高最大值；
+ * - 当最大值低于最小值时同步降低最小值。
  *
  * Returns:
- * 设置页存在并已完成初始化时返回 true，否则返回 false。
+ * 设置页控件存在且已完成初始化时返回 true，否则返回 false。
  */
-const decorateScaleFontRangeSetting = () => {
-  if (!decorateSettingsLayoutClasses()) return false
-
+const mountScaleFontRangeSetting = () => {
   const setting = document.querySelector<HTMLElement>(
     '#app .system-settings .app-font-size-setting'
   )
@@ -138,8 +114,10 @@ const decorateScaleFontRangeSetting = () => {
 
   updateScaleSettingText(setting)
 
-  const rangeRows = setting.querySelectorAll('.window-scale-font-row')
-  if (setting.dataset.windowScaleRangeReady === 'true' && rangeRows.length === 2) {
+  if (
+    setting.dataset.windowScaleRangeReady === 'true' &&
+    setting.querySelectorAll('.window-scale-font-row').length === 2
+  ) {
     return true
   }
 
@@ -173,7 +151,7 @@ const decorateScaleFontRangeSetting = () => {
     if (minDecrease) minDecrease.disabled = range.min <= MIN_POSITIVE_FONT_SIZE
   }
 
-  setting.onclick = (event) => {
+  setting.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-scale-action]')
     if (!button || button.disabled) return
 
@@ -182,78 +160,83 @@ const decorateScaleFontRangeSetting = () => {
 
     if (action === 'min-decrease') {
       range.min = Math.max(MIN_POSITIVE_FONT_SIZE, range.min - 1)
-    }
-    if (action === 'min-increase') {
+    } else if (action === 'min-increase') {
       range.min += 1
       if (range.min > range.max) range.max = range.min
-    }
-    if (action === 'max-decrease') {
+    } else if (action === 'max-decrease') {
       range.max = Math.max(MIN_POSITIVE_FONT_SIZE, range.max - 1)
       if (range.max < range.min) range.min = range.max
-    }
-    if (action === 'max-increase') {
+    } else if (action === 'max-increase') {
       range.max += 1
+    } else {
+      return
     }
 
     saveScaleFontRange(range)
     render()
-  }
+  })
 
   render()
   return true
 }
 
 /**
- * 在 Vue 路由内容完成挂载后有限次数尝试初始化设置页。
+ * 使用 Vue Router 生命周期驱动设置页控件初始化。
  *
- * 不使用持续定时器；非设置页最多进行有限次轻量查询，进入设置页时由 hashchange
- * 重新触发一轮尝试。
+ * 路由完成后组件 DOM 可能尚未挂载，因此只进行有限次数短延迟重试；成功后不会保留
+ * 任何定时器或 DOM 观察器。
  */
-const initializeSettingsDecoration = () => {
+const initializeScaleSettingMount = () => {
   let retryTimer: number | null = null
-  let decorationFrame: number | null = null
+  let retryFrame: number | null = null
   let generation = 0
 
-  const cancelPendingDecoration = () => {
+  const cancelPendingMount = () => {
     generation += 1
+
     if (retryTimer !== null) {
       window.clearTimeout(retryTimer)
       retryTimer = null
     }
-    if (decorationFrame !== null) {
-      window.cancelAnimationFrame(decorationFrame)
-      decorationFrame = null
+
+    if (retryFrame !== null) {
+      window.cancelAnimationFrame(retryFrame)
+      retryFrame = null
     }
   }
 
-  const scheduleDecoration = (attempt = 0, currentGeneration = generation) => {
+  const scheduleMount = (attempt: number, currentGeneration: number) => {
     if (currentGeneration !== generation) return
 
-    decorationFrame = window.requestAnimationFrame(() => {
-      decorationFrame = null
+    retryFrame = window.requestAnimationFrame(() => {
+      retryFrame = null
       if (currentGeneration !== generation) return
-      if (decorateScaleFontRangeSetting()) return
+      if (mountScaleFontRangeSetting()) return
       if (attempt >= SETTINGS_DECORATION_MAX_RETRIES) return
 
       retryTimer = window.setTimeout(() => {
         retryTimer = null
-        scheduleDecoration(attempt + 1, currentGeneration)
+        scheduleMount(attempt + 1, currentGeneration)
       }, SETTINGS_DECORATION_RETRY_MS)
     })
   }
 
-  const restartDecoration = () => {
-    cancelPendingDecoration()
+  const restartMount = () => {
+    cancelPendingMount()
     const currentGeneration = generation
-    scheduleDecoration(0, currentGeneration)
+    scheduleMount(0, currentGeneration)
   }
 
-  restartDecoration()
-  window.addEventListener('hashchange', restartDecoration)
+  const removeAfterEach = router.afterEach(() => {
+    restartMount()
+  })
+
+  // 支持应用启动时直接恢复到设置页。
+  restartMount()
 
   return () => {
-    cancelPendingDecoration()
-    window.removeEventListener('hashchange', restartDecoration)
+    cancelPendingMount()
+    removeAfterEach()
   }
 }
 
@@ -261,17 +244,26 @@ const initializeSettingsDecoration = () => {
  * 初始化主窗口连续缩放监听。
  *
  * Returns:
- * 用于移除 resize、设置变化监听与设置页初始化任务的清理函数。
+ * 用于移除 resize、设置变化监听和设置页初始化任务的清理函数。
  */
 export const initializeSmoothWindowScale = () => {
   const runtimeWindow = window as RuntimeWindow
   runtimeWindow.__vutronSmoothWindowScaleCleanup__?.()
 
+  // 设置页控件与 Electron preload 无关，必须优先初始化。
+  const stopScaleSettingMount = initializeScaleSettingMount()
+
   if (!window.mainApi?.setZoomFactor || !window.mainApi?.getZoomFactor) {
-    return () => undefined
+    const cleanupWithoutElectron = () => {
+      stopScaleSettingMount()
+      delete runtimeWindow.__vutronSmoothWindowScaleCleanup__
+    }
+
+    runtimeWindow.__vutronSmoothWindowScaleCleanup__ = cleanupWithoutElectron
+    return cleanupWithoutElectron
   }
 
-  // 旧版单独字号会与 webFrame 缩放叠加，因此统一恢复为 16px 设计基准。
+  // 旧版单值字号会与 webFrame 缩放叠加，因此统一恢复为 16px 设计基准。
   if (Number(localStorage.getItem(LEGACY_FONT_SIZE_KEY)) !== BASE_FONT_SIZE) {
     localStorage.setItem(LEGACY_FONT_SIZE_KEY, String(BASE_FONT_SIZE))
     window.dispatchEvent(new Event('app-global-font-size-change'))
@@ -292,7 +284,7 @@ export const initializeSmoothWindowScale = () => {
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
 
-    // webFrame 缩放会改变 innerWidth/innerHeight。乘回当前比例得到 BrowserWindow
+    // webFrame 缩放会改变 innerWidth/innerHeight；乘回当前比例得到 BrowserWindow
     // 实际内容区尺寸，避免缩放后再次计算产生反馈振荡。
     const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
@@ -341,6 +333,7 @@ export const initializeSmoothWindowScale = () => {
 
     const elapsed = performance.now() - lastZoomUpdateAt
     const remaining = ZOOM_UPDATE_INTERVAL_MS - elapsed
+
     if (remaining > 0) {
       if (delayedUpdateTimer === null) {
         delayedUpdateTimer = window.setTimeout(() => {
@@ -366,9 +359,9 @@ export const initializeSmoothWindowScale = () => {
     if (resizeIdleTimer !== null) window.clearTimeout(resizeIdleTimer)
     resizeIdleTimer = window.setTimeout(() => {
       resizeIdleTimer = null
-      // 末尾补一次更新，确保限频过程中跳过的最后尺寸被应用。
       pendingZoomUpdate = true
       scheduleZoomUpdate()
+
       window.requestAnimationFrame(() => {
         document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
       })
@@ -380,8 +373,6 @@ export const initializeSmoothWindowScale = () => {
     scheduleZoomUpdate()
   }
 
-  const stopSettingsDecoration = initializeSettingsDecoration()
-
   updateZoomFactor()
   window.addEventListener('resize', handleResize, { passive: true })
   window.addEventListener(SCALE_SETTINGS_CHANGE_EVENT, handleScaleSettingsChange)
@@ -389,7 +380,7 @@ export const initializeSmoothWindowScale = () => {
   const cleanup = () => {
     window.removeEventListener('resize', handleResize)
     window.removeEventListener(SCALE_SETTINGS_CHANGE_EVENT, handleScaleSettingsChange)
-    stopSettingsDecoration()
+    stopScaleSettingMount()
     document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
 
     if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
