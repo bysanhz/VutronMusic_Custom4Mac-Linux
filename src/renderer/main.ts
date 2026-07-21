@@ -26,6 +26,9 @@ import vue3lottie from 'vue3-lottie'
 import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
 import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings'
 import { usePlayerStore } from './store/player'
+import { useDataStore } from './store/data'
+import { useNormalStateStore } from './store/state'
+import { intelligencePlaylist } from './api/other'
 // =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
@@ -99,26 +102,94 @@ app.mount('#app')
 initializeOsdWindowScaleSettings(router)
 
 /**
- * 接收独立桌面歌词窗口通过 MessagePort 发送的紧凑播放器控制消息。
+ * 接收独立桌面歌词窗口发送的真正心动模式请求。
  *
- * 心动模式始终切换到下一首个性推荐歌曲，不再复用 playPersonalFM() 中“当前歌曲
- * 已是推荐歌曲时切换播放/暂停”的分支。若应用刚启动、推荐缓存尚未加载完成，
- * 最多等待约 3 秒，缓存就绪后再进入推荐播放。
+ * 详细说明：
+ * 1. 调用网易云 `/playmode/intelligence/list`，不再调用私人 FM `/personal/fm`；
+ * 2. 当前播放来源是网易云歌单时，使用该歌单作为算法上下文；
+ * 3. 其他来源使用用户“我喜欢的音乐”歌单作为算法上下文；
+ * 4. 保持当前歌曲和播放进度不变，仅替换后续播放队列；
+ * 5. 关闭随机播放、单曲循环和私人 FM 状态，保证按智能算法返回顺序播放。
  */
 const playerStore = usePlayerStore(pinia)
-const startHeartMode = () => {
-  let attempts = 0
-  const tryStart = () => {
-    if (playerStore.personalFMNextTrack?.id) {
-      playerStore.playNextFMTrack()
+const dataStore = useDataStore(pinia)
+const stateStore = useNormalStateStore(pinia)
+let heartModeLoading = false
+
+const resolveHeartModePlaylistID = () => {
+  const sourceType = String(playerStore.playlistSource?.type || '').toLowerCase()
+  const sourceID = Number(playerStore.playlistSource?.id)
+  const isNeteasePlaylist =
+    sourceID > 0 &&
+    (sourceType === 'intelligence' ||
+      (sourceType.includes('playlist') && !sourceType.includes('local')))
+
+  if (isNeteasePlaylist) return sourceID
+  return Number(dataStore.likedSongPlaylistID) || 0
+}
+
+const startHeartMode = async () => {
+  if (heartModeLoading) return
+
+  const seedTrackID = Number(playerStore.currentTrack?.id)
+  if (!Number.isFinite(seedTrackID) || seedTrackID <= 0) {
+    stateStore.showToast('当前歌曲无法作为心动模式种子')
+    return
+  }
+
+  if (!dataStore.user?.userId) {
+    stateStore.showToast('心动模式需要先登录网易云音乐')
+    return
+  }
+
+  const playlistID = resolveHeartModePlaylistID()
+  if (!playlistID) {
+    stateStore.showToast('未找到可用于心动模式的网易云歌单')
+    return
+  }
+
+  heartModeLoading = true
+  try {
+    const result = await intelligencePlaylist({
+      id: seedTrackID,
+      pid: playlistID,
+      sid: seedTrackID
+    })
+
+    const recommendedTrackIDs = Array.from(
+      new Set(
+        (Array.isArray(result?.data) ? result.data : [])
+          .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
+          .filter(
+            (id: number) => Number.isFinite(id) && id > 0 && id !== seedTrackID
+          )
+      )
+    )
+
+    if (!recommendedTrackIDs.length) {
+      stateStore.showToast('未获取到心动模式推荐歌曲')
       return
     }
 
-    attempts += 1
-    if (attempts < 12) window.setTimeout(tryStart, 250)
-  }
+    // 保持当前歌曲继续播放，只替换它后面的播放顺序。
+    playerStore.clearPlayNextList()
+    playerStore.shuffle = false
+    playerStore.repeatMode = 'off'
+    playerStore.isPersonalFM = false
+    playerStore.list = [seedTrackID, ...recommendedTrackIDs]
+    playerStore.currentTrackIndex = 0
+    playerStore.playlistSource = {
+      type: 'intelligence',
+      id: playlistID
+    }
 
-  tryStart()
+    stateStore.showToast(`已进入心动模式，加载 ${recommendedTrackIDs.length} 首智能推荐`)
+  } catch (error) {
+    console.error('[HeartMode] 获取智能播放列表失败：', error)
+    stateStore.showToast('心动模式加载失败，请稍后重试')
+  } finally {
+    heartModeLoading = false
+  }
 }
 
 window.addEventListener('message', (event: MessageEvent) => {
