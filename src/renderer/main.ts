@@ -103,7 +103,12 @@ app.mount('#app')
 const playerStore = usePlayerStore(pinia)
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type !== 'osd-heart-mode') return
-  playerStore.playPersonalFM()
+
+  if (playerStore.personalFMTrack?.id) {
+    playerStore.playPersonalFM()
+  } else {
+    playerStore.playNextFMTrack()
+  }
 })
 // =========== newADD end ========
 
