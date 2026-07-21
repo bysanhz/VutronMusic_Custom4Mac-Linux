@@ -28,7 +28,7 @@ import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
-import { intelligencePlaylist } from './api/other'
+import { intelligencePlaylist } from './api/playlist'
 // =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
@@ -105,35 +105,52 @@ initializeOsdWindowScaleSettings(router)
  * 接收独立桌面歌词窗口发送的真正心动模式请求。
  *
  * 详细说明：
- * 1. 调用网易云 `/playmode/intelligence/list`，不再调用私人 FM `/personal/fm`；
- * 2. 当前播放来源是网易云歌单时，使用该歌单作为算法上下文；
- * 3. 其他来源使用用户“我喜欢的音乐”歌单作为算法上下文；
- * 4. 保持当前歌曲和播放进度不变，仅替换后续播放队列；
- * 5. 关闭随机播放、单曲循环和私人 FM 状态，保证按智能算法返回顺序播放。
+ * 1. 调用网易云 `/playmode/intelligence/list`，不调用私人 FM `/personal/fm`，
+ *    也不调用每日推荐 `/recommend/songs`；
+ * 2. 当前来源是网易云歌单时，使用当前歌单作为算法上下文；
+ * 3. 专辑、搜索、本地匹配歌曲等其他来源，使用用户“我喜欢的音乐”歌单作为上下文；
+ * 4. 当前歌曲作为 seed song，保持当前播放位置不变，仅替换后续播放顺序；
+ * 5. 关闭随机播放、单曲循环和私人 FM 状态，严格按照智能接口返回顺序播放。
  */
 const playerStore = usePlayerStore(pinia)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
 
+/**
+ * 解析心动模式使用的网易云歌单上下文。
+ *
+ * Returns:
+ * 当前播放列表是网易云歌单时返回其 ID；否则返回“我喜欢的音乐”歌单 ID。
+ */
 const resolveHeartModePlaylistID = () => {
   const sourceType = String(playerStore.playlistSource?.type || '').toLowerCase()
   const sourceID = Number(playerStore.playlistSource?.id)
   const isNeteasePlaylist =
-    sourceID > 0 &&
-    (sourceType === 'intelligence' ||
-      (sourceType.includes('playlist') && !sourceType.includes('local')))
+    sourceID > 0 && (sourceType === 'playlist' || sourceType === 'intelligence')
 
   if (isNeteasePlaylist) return sourceID
   return Number(dataStore.likedSongPlaylistID) || 0
 }
 
+/**
+ * 请求并启用真正的网易云心动模式。
+ */
 const startHeartMode = async () => {
   if (heartModeLoading) return
 
-  const seedTrackID = Number(playerStore.currentTrack?.id)
-  if (!Number.isFinite(seedTrackID) || seedTrackID <= 0) {
-    stateStore.showToast('当前歌曲无法作为心动模式种子')
+  const seedTrack = playerStore.currentTrack
+  const seedTrackID = Number(seedTrack?.id)
+  const isUnsupportedStreamTrack = seedTrack?.type === 'stream'
+  const isUnmatchedLocalTrack = seedTrack?.type === 'local' && seedTrack?.matched === false
+
+  if (
+    !Number.isFinite(seedTrackID) ||
+    seedTrackID <= 0 ||
+    isUnsupportedStreamTrack ||
+    isUnmatchedLocalTrack
+  ) {
+    stateStore.showToast('当前歌曲不是可用于心动模式的网易云歌曲')
     return
   }
 
@@ -152,13 +169,13 @@ const startHeartMode = async () => {
   try {
     const result = await intelligencePlaylist({
       id: seedTrackID,
-      pid: playlistID,
-      sid: seedTrackID
+      pid: playlistID
     })
 
+    const responseItems = Array.isArray(result?.data) ? result.data : []
     const recommendedTrackIDs = Array.from(
-      new Set(
-        (Array.isArray(result?.data) ? result.data : [])
+      new Set<number>(
+        responseItems
           .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
           .filter(
             (id: number) => Number.isFinite(id) && id > 0 && id !== seedTrackID
@@ -171,7 +188,7 @@ const startHeartMode = async () => {
       return
     }
 
-    // 保持当前歌曲继续播放，只替换它后面的播放顺序。
+    // 保持当前歌曲与进度不变，只把智能推荐序列放到当前歌曲之后。
     playerStore.clearPlayNextList()
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'
