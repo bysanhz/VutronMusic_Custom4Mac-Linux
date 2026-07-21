@@ -76,6 +76,40 @@ export function personalFM() {
   })
 }
 
+// ======== newADD start======
+/**
+ * 获取网易云心动模式/智能播放列表。
+ *
+ * 详细说明：
+ * 该接口与私人 FM、每日推荐歌曲相互独立。它以当前歌曲作为种子，并结合指定
+ * 网易云歌单上下文生成智能播放序列。
+ *
+ * Args:
+ *   params.id: 当前种子歌曲 ID。
+ *   params.pid: 用作上下文的网易云歌单 ID。
+ *   params.sid: 可选的起始歌曲 ID。
+ *   params.count: 可选的返回数量。
+ *
+ * Returns:
+ *   网易云 `/playmode/intelligence/list` 的响应，其中 `data` 为智能推荐序列。
+ */
+export function intelligencePlaylist(params: {
+  id: number
+  pid: number
+  sid?: number
+  count?: number
+}) {
+  return request({
+    url: '/playmode/intelligence/list',
+    method: 'get',
+    params: {
+      ...params,
+      timestamp: new Date().getTime()
+    }
+  })
+}
+// =========== newADD end ========
+
 export function fmTrash(id: number) {
   return request({
     url: '/fm_trash',
