@@ -1,43 +1,71 @@
 <template>
-  <div class="compact-cover-controls" @mouseenter="isHover = true" @mouseleave="isHover = false">
+  <div
+    class="compact-cover-controls"
+    :class="{ 'controls-visible': isHover }"
+    @mouseenter="isHover = true"
+    @mouseleave="isHover = false"
+  >
     <img class="compact-cover" :src="coverUrl" alt="当前歌曲封面" draggable="false" />
 
     <!-- ======== newADD start====== -->
-    <button
-      class="compact-like-button"
-      :class="{ liked: isLiked }"
-      :title="isLiked ? '取消喜欢' : '加入喜欢'"
-      @click.stop="toggleLike"
-    >
-      <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
-    </button>
+    <!--
+      六个按钮固定为 2 × 3 网格：
+      第一排：上一首、播放/暂停、下一首；
+      第二排：主窗口、心动模式、喜欢。
 
-    <button
-      class="compact-main-window-button"
-      title="显示或隐藏主窗口"
-      @click.stop="toggleMainWindow"
-    >
-      <SvgIcon icon-class="logo" />
-    </button>
-    <!-- =========== newADD end ======== -->
-
-    <div v-show="isHover" class="compact-control-mask">
-      <button class="compact-control-button" title="上一首" @click.stop="playPrev">
+      爱心按钮始终显示，其余五个按钮只在鼠标进入封面控制区后显示。
+    -->
+    <div class="compact-control-grid">
+      <button
+        class="compact-control-button control-prev hover-control"
+        title="上一首"
+        @click.stop="playPrev"
+      >
         <SvgIcon icon-class="previous" />
       </button>
 
       <button
-        class="compact-control-button compact-play-button"
+        class="compact-control-button control-play hover-control"
         :title="isPlaying ? '暂停' : '播放'"
         @click.stop="playOrPause"
       >
         <SvgIcon :icon-class="isPlaying ? 'pause' : 'play'" />
       </button>
 
-      <button class="compact-control-button" title="下一首" @click.stop="playNext">
+      <button
+        class="compact-control-button control-next hover-control"
+        title="下一首"
+        @click.stop="playNext"
+      >
         <SvgIcon icon-class="next" />
       </button>
+
+      <button
+        class="compact-control-button control-main-window hover-control"
+        title="显示或隐藏主窗口"
+        @click.stop="toggleMainWindow"
+      >
+        <SvgIcon icon-class="logo" />
+      </button>
+
+      <button
+        class="compact-control-button control-heart-mode hover-control"
+        title="心动模式"
+        @click.stop="startHeartMode"
+      >
+        <SvgIcon icon-class="fm" />
+      </button>
+
+      <button
+        class="compact-control-button control-like"
+        :class="{ liked: isLiked }"
+        :title="isLiked ? '取消喜欢' : '加入喜欢'"
+        @click.stop="toggleLike"
+      >
+        <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
+      </button>
     </div>
+    <!-- =========== newADD end ======== -->
   </div>
 </template>
 
@@ -49,247 +77,164 @@ const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508
 
 const isHover = ref(false)
 const isPlaying = ref(false)
-const coverUrl = ref(DEFAULT_COVER)
-// ======== newADD start======
-// 当前歌曲是否已经加入喜欢。
-// 点击按钮时先在桌面歌词窗口中立即切换视觉状态，
-// 同时通过 IPC 通知主窗口执行真正的收藏或取消收藏。
 const isLiked = ref(false)
-// =========== newADD end ========
+const coverUrl = ref(DEFAULT_COVER)
 
 /**
- * 从持久化的播放器状态中读取当前封面和播放状态。
+ * 从共享播放器快照读取封面与播放状态。
  *
- * 桌面歌词窗口是独立 renderer，无法直接复用主窗口中的 player store 实例，
- * 因此第一版从共享 localStorage 的 player 状态读取。
- *
- * Returns:
- *   无返回值，直接更新 coverUrl 和 isPlaying。
- *
- * Raises:
- *   JSON 内容损坏时会被 catch，不影响桌面歌词窗口继续运行。
+ * 桌面歌词运行在独立 renderer 中，因此不能直接复用主窗口 Pinia store。
  */
 const updatePlayerSnapshot = () => {
   try {
     const player = JSON.parse(localStorage.getItem('player') || '{}')
-
     const track = player.currentTrack
     const album = track?.album ?? track?.al
 
     coverUrl.value = player.pic || album?.picUrl || track?.picUrl || DEFAULT_COVER
-
     isPlaying.value = Boolean(player.playing)
   } catch (error) {
     console.warn('[CompactCoverControls] 读取播放器状态失败：', error)
   }
 }
 
-/**
- * 请求主窗口播放上一首歌曲。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   mainApi 不存在时不会抛出异常。
- */
 const playPrev = () => {
   window.mainApi?.send('from-osd', 'playPrev')
 }
 
-/**
- * 请求主窗口切换播放或暂停状态。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   mainApi 不存在时不会抛出异常。
- */
 const playOrPause = () => {
   window.mainApi?.send('from-osd', 'playOrPause')
 }
 
-/**
- * 请求主窗口播放下一首歌曲。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   mainApi 不存在时不会抛出异常。
- */
 const playNext = () => {
   window.mainApi?.send('from-osd', 'playNext')
 }
 
-// ======== newADD start======
-/**
- * 请求主播放器切换当前歌曲的喜欢状态。
- *
- * 这里不直接修改 isLiked，避免桌面歌词窗口显示的状态
- * 与主播放器真实收藏状态不一致。主窗口处理完成后，会通过
- * update-osd-status 消息返回最新的 isLiked。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   mainApi 不存在时不会抛出异常。
- */
 const toggleLike = () => {
   window.mainApi?.send('from-osd', 'likeTrack')
 }
-// =========== newADD end ========
 
-// ======== newADD start======
-/**
- * 切换主窗口的显示与隐藏状态。
- *
- * 详细说明：
- * 桌面歌词窗口只发送 toggleMainWin 请求；
- * 主进程根据主窗口当前是否可见，决定执行 hide() 或 show()。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   mainApi 不存在时使用可选链静默跳过。
- */
 const toggleMainWindow = () => {
   window.mainApi?.send('from-osd', 'toggleMainWin')
 }
-// =========== newADD end ========
-
-/**
- * 监听其他窗口写入 player 本地状态。
- *
- * Args:
- *   event: 浏览器 storage 事件。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   不主动抛出异常。
- */
-const handleStorage = (event: StorageEvent) => {
-  if (event.key === 'player') {
-    updatePlayerSnapshot()
-  }
-}
 
 // ======== newADD start======
 /**
- * 接收主播放器发送给桌面歌词窗口的状态更新。
+ * 启动心动模式。
  *
- * 当前主要同步：
- * - isLiked：当前歌曲是否已加入喜欢；
- * - playing：当前歌曲是否正在播放；
- * - pic：当前歌曲封面地址。
- *
- * Args:
- *   event: 主窗口通过 MessagePort 转发的消息事件。
- *
- * Returns:
- *   无返回值。
- *
- * Raises:
- *   消息字段不存在时直接忽略。
+ * 通过桌面歌词与主窗口之间已有的 MessagePort 发送控制消息，由主窗口播放器
+ * 调用现有个性推荐/私人 FM 播放链路。这样不会在两个 renderer 中产生两份播放状态。
  */
+const startHeartMode = () => {
+  try {
+    window.mainApi?.sendMessage({ type: 'osd-heart-mode' })
+  } catch (error) {
+    console.warn('[CompactCoverControls] 心动模式消息发送失败：', error)
+  }
+}
+// =========== newADD end ========
+
+const handleStorage = (event: StorageEvent) => {
+  if (event.key === 'player') updatePlayerSnapshot()
+}
+
 const handleOsdStatusMessage = (event: MessageEvent) => {
   if (event.data?.type !== 'update-osd-status') return
 
   const data = event.data.data ?? {}
 
-  if (typeof data.isLiked === 'boolean') {
-    isLiked.value = data.isLiked
-  }
-
-  if (typeof data.playing === 'boolean') {
-    isPlaying.value = data.playing
-  }
-
-  if (typeof data.pic === 'string' && data.pic.length > 0) {
-    coverUrl.value = data.pic
-  }
+  if (typeof data.isLiked === 'boolean') isLiked.value = data.isLiked
+  if (typeof data.playing === 'boolean') isPlaying.value = data.playing
+  if (typeof data.pic === 'string' && data.pic.length > 0) coverUrl.value = data.pic
 }
-// =========== newADD end ========
+
+const handlePlayingStatus = (_event: unknown, value: boolean) => {
+  isPlaying.value = value
+}
 
 onMounted(() => {
   updatePlayerSnapshot()
-
   window.addEventListener('storage', handleStorage)
-  // ======== newADD start======
   window.addEventListener('message', handleOsdStatusMessage)
-  // =========== newADD end ========
-  window.mainApi?.on('update-osd-playing-status', (_event: unknown, value: boolean) => {
-    isPlaying.value = value
-  })
+  window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorage)
-  // ======== newADD start======
   window.removeEventListener('message', handleOsdStatusMessage)
-  // =========== newADD end ========
+  window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
 })
 </script>
 
 <style scoped lang="scss">
 .compact-cover-controls {
   position: relative;
-
   width: 45px;
   height: 35px;
   flex-shrink: 0;
-
   overflow: hidden;
   border-radius: 5px;
-
   -webkit-app-region: no-drag;
 }
 
 .compact-cover {
   display: block;
-
   width: 100%;
   height: 100%;
-
   object-fit: cover;
   user-select: none;
   pointer-events: none;
 }
 
-.compact-control-mask {
+/* ======== newADD start====== */
+.compact-control-grid {
   position: absolute;
   inset: 0;
+  z-index: 2;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  align-items: stretch;
+  justify-items: stretch;
 
-  background: rgba(0, 0, 0, 0.52);
+  background: transparent;
+  transition:
+    background 0.16s ease,
+    backdrop-filter 0.16s ease;
+}
+
+.controls-visible .compact-control-grid {
+  background: rgba(0, 0, 0, 0.56);
   backdrop-filter: blur(2px);
 }
 
 .compact-control-button {
+  position: relative;
+  z-index: 1;
+
   display: flex;
   align-items: center;
   justify-content: center;
 
-  width: 15px;
-  height: 10px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
 
   border: none;
   outline: none;
   border-radius: 2px;
 
-  color: white;
+  color: rgba(255, 255, 255, 0.96);
   background: transparent;
   cursor: pointer;
+
+  -webkit-app-region: no-drag;
+
+  transition:
+    opacity 0.16s ease,
+    background 0.16s ease,
+    transform 0.12s ease;
 
   .svg-icon {
     width: 8px;
@@ -297,137 +242,84 @@ onBeforeUnmount(() => {
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.22);
   }
 
   &:active {
-    transform: scale(0.9);
+    transform: scale(0.88);
   }
 }
 
-.compact-play-button {
-  width: 8px;
-
-  .svg-icon {
-    width: 14px;
-    height: 14px;
-  }
+.control-play .svg-icon {
+  width: 11px;
+  height: 11px;
 }
 
-/* ======== newADD start====== */
-/*
- * 封面右上角爱心按钮。
- *
- * 采用绝对定位，不参与中间三个播放按钮的 flex 布局，
- * 因此不会压缩上一首、播放暂停和下一首按钮。
- */
-.compact-like-button {
-  position: absolute;
-  top: 0px;
-  right: 0px;
+.control-main-window .svg-icon,
+.control-heart-mode .svg-icon {
+  width: 9px;
+  height: 9px;
+}
 
-  z-index: 3;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
+.control-like .svg-icon {
   width: 10px;
   height: 10px;
-  padding: 0;
+}
 
-  border: none;
-  outline: none;
+/* 其余五个按钮默认隐藏，但继续占据固定网格位置，避免悬停时发生重排。 */
+.hover-control {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controls-visible .hover-control {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 爱心位于右下角并始终可见。 */
+.control-like {
+  grid-column: 3;
+  grid-row: 2;
+  opacity: 1;
+  pointer-events: auto;
+
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.52);
 
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(0, 0, 0, 0.48);
-
-  cursor: pointer;
-  opacity: 0.9;
-
-  -webkit-app-region: no-drag;
-
-  .svg-icon {
-    width: 11px;
-    height: 11px;
-  }
-
-  &:hover {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.7);
-    transform: scale(1.08);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
-
-  /*
-   * 已喜欢状态使用红色。
-   * 如果希望跟随主题色，可将这里改成：
-   * color: var(--color-primary);
-   */
   &.liked {
     color: #ff4d6d;
   }
 }
 
-/* ======== newADD start====== */
-/*
- * 主窗口显隐按钮。
- *
- * 位于爱心按钮左侧，不参与封面悬停播放按钮的布局。
- */
-.compact-main-window-button {
-  position: absolute;
-  top: 0;
-  right: 12px;
-
-  z-index: 3;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 10px;
-  height: 10px;
-  padding: 0;
-
-  border: none;
-  outline: none;
-  border-radius: 50%;
-
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(0, 0, 0, 0.48);
-
-  cursor: pointer;
-  opacity: 0.9;
-
-  -webkit-app-region: no-drag;
-
-  .svg-icon {
-    width: 8px;
-    height: 8px;
-  }
-
-  &:hover {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.7);
-    transform: scale(1.08);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
+.controls-visible .control-like {
+  border-radius: 2px;
+  background: transparent;
 }
-/* =========== newADD end ======== */
 
-/*
- * 悬停遮罩需要位于封面上方，但低于爱心按钮。
- */
-.compact-control-mask {
-  z-index: 2;
+.control-prev {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.control-play {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.control-next {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.control-main-window {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.control-heart-mode {
+  grid-column: 2;
+  grid-row: 2;
 }
 /* =========== newADD end ======== */
 </style>
