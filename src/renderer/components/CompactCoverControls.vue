@@ -50,10 +50,10 @@
 
       <button
         class="compact-control-button control-heart-mode hover-control"
-        title="心动模式"
+        title="进入心动模式"
         @click.stop="startHeartMode"
       >
-        <SvgIcon icon-class="fm" />
+        <SvgIcon icon-class="heart-mode" />
       </button>
 
       <button
@@ -120,10 +120,10 @@ const toggleMainWindow = () => {
 
 // ======== newADD start======
 /**
- * 启动心动模式。
+ * 进入心动模式。
  *
- * 通过桌面歌词与主窗口之间已有的 MessagePort 发送控制消息，由主窗口播放器
- * 调用现有个性推荐/私人 FM 播放链路。这样不会在两个 renderer 中产生两份播放状态。
+ * 该动作只负责发送“进入推荐播放”请求，不复用播放/暂停切换逻辑。
+ * 主窗口收到请求后会直接切换到下一首个性推荐歌曲。
  */
 const startHeartMode = () => {
   try {
@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
 }
 
 .controls-visible .compact-control-grid {
-  background: rgba(0, 0, 0, 0.56);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
 }
 
@@ -255,15 +255,20 @@ onBeforeUnmount(() => {
   height: 11px;
 }
 
-.control-main-window .svg-icon,
-.control-heart-mode .svg-icon {
+.control-main-window .svg-icon {
   width: 9px;
   height: 9px;
+}
+
+.control-heart-mode .svg-icon {
+  width: 11px;
+  height: 11px;
 }
 
 .control-like .svg-icon {
   width: 10px;
   height: 10px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.72));
 }
 
 /* 其余五个按钮默认隐藏，但继续占据固定网格位置，避免悬停时发生重排。 */
@@ -277,15 +282,19 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 
-/* 爱心位于右下角并始终可见。 */
+/* 爱心位于右下角并始终可见，不再绘制深色圆形底。 */
 .control-like {
   grid-column: 3;
   grid-row: 2;
   opacity: 1;
   pointer-events: auto;
+  border-radius: 2px;
+  background: transparent;
 
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.52);
+  &:hover {
+    background: transparent;
+    transform: scale(1.08);
+  }
 
   &.liked {
     color: #ff4d6d;
@@ -293,7 +302,6 @@ onBeforeUnmount(() => {
 }
 
 .controls-visible .control-like {
-  border-radius: 2px;
   background: transparent;
 }
 
