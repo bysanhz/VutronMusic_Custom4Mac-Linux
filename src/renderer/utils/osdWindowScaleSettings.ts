@@ -91,7 +91,7 @@ const injectStyle = () => {
 }
 
 const saveRange = (minValue: number, maxValue: number) => {
-  let min = Number.isFinite(minValue) && minValue > 0 ? minValue : MIN_POSITIVE_FONT_SIZE
+  const min = Number.isFinite(minValue) && minValue > 0 ? minValue : MIN_POSITIVE_FONT_SIZE
   let max = Number.isFinite(maxValue) && maxValue > 0 ? maxValue : MIN_POSITIVE_FONT_SIZE
 
   if (min > max) max = min
