@@ -28,7 +28,7 @@ import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
-import { intelligencePlaylist } from './api/playlist'
+import { getPlaylistDetail, intelligencePlaylist } from './api/playlist'
 // =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
@@ -101,117 +101,149 @@ app.mount('#app')
 // 在桌面歌词设置面板中安装独立的最小/最大缩放参考字号控件。
 initializeOsdWindowScaleSettings(router)
 
-/**
- * 接收独立桌面歌词窗口发送的真正心动模式请求。
- *
- * 详细说明：
- * 1. 调用网易云 `/playmode/intelligence/list`，不调用私人 FM `/personal/fm`，
- *    也不调用每日推荐 `/recommend/songs`；
- * 2. 当前来源是网易云歌单时，使用当前歌单作为算法上下文；
- * 3. 专辑、搜索、本地匹配歌曲等其他来源，使用用户“我喜欢的音乐”歌单作为上下文；
- * 4. 当前歌曲作为 seed song，保持当前播放位置不变，仅替换后续播放顺序；
- * 5. 关闭随机播放、单曲循环和私人 FM 状态，严格按照智能接口返回顺序播放。
- */
+const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const playerStore = usePlayerStore(pinia)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
 
 /**
- * 解析心动模式使用的网易云歌单上下文。
+ * 获取“我喜欢的音乐”歌单 ID。
  *
  * Returns:
- * 当前播放列表是网易云歌单时返回其 ID；否则返回“我喜欢的音乐”歌单 ID。
+ * 已登录账号的喜欢歌单 ID；无法获取时返回 0。
  */
-const resolveHeartModePlaylistID = () => {
-  const sourceType = String(playerStore.playlistSource?.type || '').toLowerCase()
-  const sourceID = Number(playerStore.playlistSource?.id)
-  const isNeteasePlaylist =
-    sourceID > 0 && (sourceType === 'playlist' || sourceType === 'intelligence')
+const resolveLikedPlaylistID = async () => {
+  let playlistID = Number(dataStore.likedSongPlaylistID) || 0
+  if (playlistID > 0) return playlistID
 
-  if (isNeteasePlaylist) return sourceID
-  return Number(dataStore.likedSongPlaylistID) || 0
+  await dataStore.fetchLikedPlaylist()
+  playlistID = Number(dataStore.likedSongPlaylistID) || 0
+  return playlistID
 }
 
 /**
- * 请求并启用真正的网易云心动模式。
+ * 从“我喜欢的音乐”中选择本次心动模式的种子歌曲。
+ *
+ * Args:
+ *   playlistID: 用户“我喜欢的音乐”歌单 ID。
+ *
+ * Returns:
+ *   种子歌曲 ID 以及完整的喜欢歌曲 ID 列表。
+ *
+ * Raises:
+ *   当歌单详情不可用或歌单为空时抛出错误。
  */
-const startHeartMode = async () => {
-  if (heartModeLoading) return
+const selectHeartModeSeedFromLikes = async (playlistID: number) => {
+  const detail = await getPlaylistDetail(playlistID, true)
+  const likedTrackIDs = (detail?.playlist?.trackIds || [])
+    .map((item: any) => Number(item?.id ?? item))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
 
-  const seedTrack = playerStore.currentTrack
-  const seedTrackID = Number(seedTrack?.id)
-  const isUnsupportedStreamTrack = seedTrack?.type === 'stream'
-  const isUnmatchedLocalTrack = seedTrack?.type === 'local' && seedTrack?.matched === false
-
-  if (
-    !Number.isFinite(seedTrackID) ||
-    seedTrackID <= 0 ||
-    isUnsupportedStreamTrack ||
-    isUnmatchedLocalTrack
-  ) {
-    stateStore.showToast('当前歌曲不是可用于心动模式的网易云歌曲')
-    return
+  if (!likedTrackIDs.length) {
+    throw new Error('LIKED_PLAYLIST_EMPTY')
   }
+
+  const seedIndex = Math.floor(Math.random() * likedTrackIDs.length)
+  return {
+    seedTrackID: likedTrackIDs[seedIndex],
+    likedTrackIDs
+  }
+}
+
+/**
+ * 根据“我喜欢的音乐”开始一次新的网易云心动模式播放。
+ *
+ * 详细说明：
+ * 1. 不依赖当前正在播放的歌曲；
+ * 2. 从喜欢歌单中随机选择一首歌曲作为 seed song；
+ * 3. 调用 `/playmode/intelligence/list`，不调用私人 FM 或每日推荐；
+ * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
+ * 5. 后续歌曲严格采用智能播放接口返回的推荐顺序。
+ */
+const startHeartModeFromLikes = async () => {
+  if (heartModeLoading) return
 
   if (!dataStore.user?.userId) {
     stateStore.showToast('心动模式需要先登录网易云音乐')
     return
   }
 
-  const playlistID = resolveHeartModePlaylistID()
-  if (!playlistID) {
-    stateStore.showToast('未找到可用于心动模式的网易云歌单')
-    return
-  }
-
   heartModeLoading = true
+  stateStore.showToast('正在根据我喜欢的音乐生成心动模式…')
+
   try {
+    const playlistID = await resolveLikedPlaylistID()
+    if (!playlistID) {
+      stateStore.showToast('未找到“我喜欢的音乐”歌单')
+      return
+    }
+
+    const { seedTrackID } = await selectHeartModeSeedFromLikes(playlistID)
     const result = await intelligencePlaylist({
       id: seedTrackID,
-      pid: playlistID
+      pid: playlistID,
+      sid: seedTrackID
     })
 
     const responseItems = Array.isArray(result?.data) ? result.data : []
-    const recommendedTrackIDs = Array.from(
-      new Set<number>(
-        responseItems
-          .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
-          .filter(
-            (id: number) => Number.isFinite(id) && id > 0 && id !== seedTrackID
-          )
-      )
+    const recommendedTrackIDs = responseItems
+      .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
+      .filter((id: number) => Number.isFinite(id) && id > 0)
+
+    const heartModeTrackIDs = Array.from(
+      new Set<number>([seedTrackID, ...recommendedTrackIDs])
     )
 
-    if (!recommendedTrackIDs.length) {
+    if (heartModeTrackIDs.length <= 1) {
       stateStore.showToast('未获取到心动模式推荐歌曲')
       return
     }
 
-    // 保持当前歌曲与进度不变，只把智能推荐序列放到当前歌曲之后。
     playerStore.clearPlayNextList()
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'
-    playerStore.isPersonalFM = false
-    playerStore.list = [seedTrackID, ...recommendedTrackIDs]
-    playerStore.currentTrackIndex = 0
-    playerStore.playlistSource = {
-      type: 'intelligence',
-      id: playlistID
-    }
 
-    stateStore.showToast(`已进入心动模式，加载 ${recommendedTrackIDs.length} 首智能推荐`)
-  } catch (error) {
-    console.error('[HeartMode] 获取智能播放列表失败：', error)
-    stateStore.showToast('心动模式加载失败，请稍后重试')
+    await playerStore.replacePlaylist(
+      'intelligence',
+      playlistID,
+      heartModeTrackIDs,
+      0
+    )
+
+    stateStore.showToast(`已开启心动模式，共 ${heartModeTrackIDs.length} 首`)
+  } catch (error: any) {
+    console.error('[HeartMode] 根据喜欢歌单启动失败：', error)
+    stateStore.showToast(
+      error?.message === 'LIKED_PLAYLIST_EMPTY'
+        ? '“我喜欢的音乐”歌单为空'
+        : '心动模式加载失败，请稍后重试'
+    )
   } finally {
     heartModeLoading = false
   }
 }
 
+/**
+ * 使用 BroadcastChannel 接收桌面歌词窗口的心动模式请求。
+ *
+ * 该通道不依赖桌面歌词 MessagePort 的初始化时序，因此窗口重建、热更新或主窗口
+ * 隐藏时仍能稳定触发。
+ */
+const heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+heartModeChannel.onmessage = (event: MessageEvent) => {
+  if (event.data?.type !== 'start-heart-mode-from-likes') return
+  startHeartModeFromLikes()
+}
+
+// 保留旧 MessagePort 消息兼容，避免旧桌面歌词窗口尚未重建时完全失效。
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type !== 'osd-heart-mode') return
-  startHeartMode()
+  startHeartModeFromLikes()
+})
+
+window.addEventListener('beforeunload', () => {
+  heartModeChannel.close()
 })
 // =========== newADD end ========
 
