@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
@@ -25,6 +25,7 @@ import vue3lottie from 'vue3-lottie'
 // 但不再加载，避免 700/520/460/390px 等断点造成布局模型突然变化。
 import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
 import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings'
+import { globalLyricOffset } from './utils/globalLyricOffset'
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
@@ -106,6 +107,23 @@ const playerStore = usePlayerStore(pinia)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
+
+/**
+ * 将持久化的全局歌词偏移同步到每一首当前歌曲。
+ *
+ * 详细说明：
+ * 1. 应用启动后立即同步一次；
+ * 2. 每次切歌时覆盖歌曲自身的 offset，使同一个偏移作用于全部歌曲；
+ * 3. 用户调整全局偏移后，当前歌曲立即更新，播放器和桌面歌词共用该值。
+ */
+watch(
+  () => [playerStore.currentTrack, globalLyricOffset.value] as const,
+  ([track, offset]) => {
+    if (!track || track.offset === offset) return
+    track.offset = offset
+  },
+  { immediate: true }
+)
 
 /**
  * 获取“我喜欢的音乐”歌单 ID。
