@@ -6,7 +6,7 @@
   <p>面向 macOS 与 Linux 持续适配的第三方网易云音乐桌面播放器</p>
 
   [![Code Quality](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/ci.yml/badge.svg)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/ci.yml)
-  [![Release Packages](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/release.yml/badge.svg)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/release.yml)
+  [![Release](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/build.yml/badge.svg)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/build.yml)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 </div>
 
@@ -20,7 +20,8 @@
 VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐、流媒体、歌词与音频处理能力，并针对以下场景持续维护：
 
 - macOS Apple Silicon 与 Intel 桌面环境；
-- Linux x86_64 桌面环境；
+- Linux x86_64 与 ARM64 桌面环境；
+- Windows x64 与 ARM64；
 - 不同分辨率、DPI 和窗口宽高比；
 - 桌面歌词的拖动、缩放、锁定、穿透与紧凑控制；
 - 主窗口、桌面歌词、托盘歌词和副歌标记之间的状态同步。
@@ -34,10 +35,12 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 
 | 平台 | 架构 | 安装包 | 更新方式 |
 | --- | --- | --- | --- |
-| Linux | x86_64 | AppImage | 支持应用内原生更新 |
-| Linux | x86_64 | Deb | 应用内检查版本，跳转 Release 手动下载 |
+| Linux | x86_64 | AppImage / Deb / RPM / Snap | AppImage 支持应用内更新；其他格式跳转 Release |
+| Linux | ARM64 | AppImage / Deb / RPM | 应用内检查版本，跳转 Release 手动下载 |
 | macOS | Apple Silicon | DMG arm64 | 应用内检查版本，跳转 Release 手动下载 |
 | macOS | Intel | DMG x64 | 应用内检查版本，跳转 Release 手动下载 |
+| Windows | x64 | 安装版 / Portable | 支持应用内更新 |
+| Windows | ARM64 | 安装版 | 支持应用内更新 |
 
 macOS 安装包当前未进行 Apple Developer ID 签名和公证。首次运行时可能需要在系统设置的“隐私与安全性”中手动允许。
 
@@ -135,10 +138,12 @@ yarn vite build
 本地打包：
 
 ```bash
-# Linux AppImage + Deb
+# Linux
+
 yarn run build:linux
 
-# 当前 macOS 架构 DMG
+# 当前 macOS 架构
+
 yarn run build:mac
 ```
 
@@ -156,28 +161,31 @@ yarn run format:fix
 
 ## 自动发布流程
 
-`.github/workflows/release.yml` 会在推送 `v*.*.*` 标签时执行：
+`.github/workflows/build.yml` 是唯一的版本标签发布工作流。推送 `v*.*.*` 标签时会：
 
 1. 校验标签版本与 `package.json` 一致；
-2. 执行 Prettier、ESLint、Vue TypeScript 和 Vite 检查；
-3. 构建 Linux AppImage、Linux Deb、macOS ARM64 DMG 和 macOS x64 DMG；
-4. 自动创建 GitHub Release；
-5. 上传全部安装包并生成 Release Notes。
+2. 使用冻结的 `yarn.lock` 安装依赖；
+3. 执行 Prettier、ESLint、Vue TypeScript 和 Vite 检查；
+4. 构建 Linux x64/ARM64、macOS ARM64/x64、Windows x64/ARM64；
+5. 汇总安装包和更新元数据；
+6. 自动发布 GitHub Release 并生成 Release Notes。
 
-发布新版本时先更新 `package.json`，完成本地验证后执行：
+发布新版本时先更新 `package.json` 与 `yarn.lock`，完成本地验证后执行：
 
 ```bash
 VERSION=3.2.4
 
-git add package.json
+git add package.json yarn.lock
 git commit -m "发布 VutronMusic ${VERSION}"
 git push origin main
 
-git tag "v${VERSION}"
+git tag -a "v${VERSION}" -m "VutronMusic ${VERSION}"
 git push origin "v${VERSION}"
 ```
 
 标签版本必须和 `package.json` 的版本完全一致，否则发布工作流会立即停止。
+
+手动运行 `build.yml` 时会创建带时间戳的 Draft Release，不会覆盖正式版本标签。
 
 ## 使用与排查
 
