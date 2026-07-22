@@ -33,7 +33,7 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-row {
       display: grid;
-      grid-template-columns: minmax(64px, auto) 32px minmax(58px, 1fr) 32px;
+      grid-template-columns: minmax(80px, auto) 32px minmax(58px, 1fr) 32px;
       align-items: center;
       gap: 7px;
     }
@@ -109,19 +109,19 @@ const createControl = () => {
   item.className = 'item'
   item.innerHTML = `
     <div class="left">
-      <div class="title">桌面歌词窗口缩放字体范围</div>
-      <div class="description">窗口缩放时，歌词、封面、图标、按钮和间距统一使用该范围；与主界面设置相互独立</div>
+      <div class="title">桌面歌词整体缩放范围</div>
+      <div class="description">紧凑模式以窗口宽度变化为主，普通模式综合宽高；歌词、封面、图标、按钮、间距和圆角会同步缩放</div>
     </div>
     <div class="right">
       <div class="osd-window-scale-card">
         <div class="osd-window-scale-row">
-          <span class="osd-window-scale-label">最小字号</span>
+          <span class="osd-window-scale-label">最小等效字号</span>
           <button type="button" class="osd-window-scale-button" data-action="min-minus">−</button>
           <input type="number" step="1" class="osd-window-scale-input" data-value="min" />
           <button type="button" class="osd-window-scale-button" data-action="min-plus">+</button>
         </div>
         <div class="osd-window-scale-row">
-          <span class="osd-window-scale-label">最大字号</span>
+          <span class="osd-window-scale-label">最大等效字号</span>
           <button type="button" class="osd-window-scale-button" data-action="max-minus">−</button>
           <input type="number" step="1" class="osd-window-scale-input" data-value="max" />
           <button type="button" class="osd-window-scale-button" data-action="max-plus">+</button>
