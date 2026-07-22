@@ -22,8 +22,8 @@ jobs:
           node-version: '22'
           cache: yarn
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
       - name: Reuse reviewed patch script
         run: |
