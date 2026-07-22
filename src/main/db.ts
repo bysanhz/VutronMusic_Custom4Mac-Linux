@@ -4,7 +4,6 @@ import fs from 'fs'
 import path from 'path'
 import log from './log'
 import { app } from 'electron'
-import { createFileIfNotExist } from './utils'
 import Constants from './utils/Constants'
 import { compare, validate } from 'compare-versions'
 
@@ -94,15 +93,43 @@ class DB {
   dbFilePath: string = path.resolve(app.getPath('userData'), './api_cache/db.sqlite')
 
   constructor() {
+    // ======== newADD start======
+    /*
+     * db.ts 不能从聚合模块 ./utils 导入文件创建函数。
+     * utils/index.ts 会反向导入 db 与 cache，形成 db -> utils -> cache -> db 的
+     * 启动循环依赖，并可能留下 sqlite 尚未赋值的半初始化 DB 单例。
+     */
     try {
-      createFileIfNotExist(this.dbFilePath)
+      fs.mkdirSync(path.dirname(this.dbFilePath), { recursive: true })
       this.sqlite = new SQLite3(this.dbFilePath)
       this.sqlite.pragma('auto_vacuum = FULL')
       this.initTables()
       this.migrate()
-    } catch (e) {
-      log.error(e)
+    } catch (error) {
+      log.error(`[DB] 持久化数据库初始化失败：${this.dbFilePath}`, error)
+
+      try {
+        ;(this.sqlite as SQLite3.Database | undefined)?.close()
+      } catch (closeError) {
+        log.warn('[DB] 关闭初始化失败的数据库连接时发生异常', closeError)
+      }
+
+      /*
+       * 缓存数据库故障不应导致 Electron 主进程退出。
+       * 使用仅限本次进程的内存数据库继续运行；本地缓存为空，但在线播放、设置页
+       * 和桌面歌词仍可正常启动。原始初始化异常已经记录到日志中，便于继续排查。
+       */
+      try {
+        this.sqlite = new SQLite3(':memory:')
+        this.sqlite.pragma('auto_vacuum = FULL')
+        this.initTables()
+        log.warn('[DB] 已切换到临时内存数据库，本次运行不会持久化缓存数据')
+      } catch (fallbackError) {
+        log.error('[DB] 临时内存数据库初始化失败', fallbackError)
+        throw fallbackError
+      }
     }
+    // =========== newADD end ========
   }
 
   initTables() {
