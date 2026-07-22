@@ -1,0 +1,213 @@
+name: Release Packages
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "package.json version: ${PACKAGE_VERSION}"
+          echo "tag version: ${TAG_VERSION}"
+          test "${PACKAGE_VERSION}" = "${TAG_VERSION}"
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Build renderer and main process
+        run: yarn vite build
+
+  build-linux:
+    name: Build Linux x64
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Build AppImage and Deb
+        run: |
+          yarn run build:pre
+          npx electron-builder \
+            --config=buildAssets/builder/config.js \
+            --linux AppImage deb \
+            --x64 \
+            --publish never
+
+      - name: Show generated files
+        run: find release -maxdepth 3 -type f -print
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-linux-x64
+          path: |
+            release/**/*.AppImage
+            release/**/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  build-macos-arm64:
+    name: Build macOS ARM64
+    needs: verify
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Build ARM64 DMG
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          yarn run build:pre
+          npx electron-builder \
+            --config=buildAssets/builder/config.js \
+            --mac dmg \
+            --arm64 \
+            --publish never
+
+      - name: Show generated files
+        run: find release -maxdepth 3 -type f -print
+
+      - name: Upload ARM64 package
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-macos-arm64
+          path: release/**/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  build-macos-x64:
+    name: Build macOS Intel x64
+    needs: verify
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Build Intel DMG
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          yarn run build:pre
+          npx electron-builder \
+            --config=buildAssets/builder/config.js \
+            --mac dmg \
+            --x64 \
+            --publish never
+
+      - name: Show generated files
+        run: find release -maxdepth 3 -type f -print
+
+      - name: Upload Intel package
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-macos-x64
+          path: release/**/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs:
+      - build-linux
+      - build-macos-arm64
+      - build-macos-x64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all release packages
+        uses: actions/download-artifact@v6
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          find artifacts -maxdepth 2 -type f -print
+          test "$(find artifacts -maxdepth 2 -type f | wc -l)" -ge 4
+
+      - name: Create release and upload packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' ASSETS < <(find artifacts -maxdepth 2 -type f -print0)
+
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "${ASSETS[@]}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" \
+              --title "VutronMusic ${GITHUB_REF_NAME}" \
+              --generate-notes \
+              --verify-tag
+          fi
