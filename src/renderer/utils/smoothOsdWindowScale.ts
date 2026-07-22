@@ -15,6 +15,7 @@ const BASE_REFERENCE_FONT_SIZE = 16
 const DEFAULT_MIN_FONT_SIZE = 12
 const DEFAULT_MAX_FONT_SIZE = 24
 const MIN_POSITIVE_FONT_SIZE = 1
+const MAX_SHORT_AXIS_SCALE_MULTIPLIER = 1.25
 const ZOOM_EPSILON = 0.004
 const ZOOM_UPDATE_INTERVAL_MS = 34
 const RESIZE_IDLE_DELAY_MS = 120
@@ -89,14 +90,16 @@ export const initializeSmoothOsdWindowScale = () => {
     const type = readOsdType()
     const designWidth = type === 'small' ? SMALL_DESIGN_WIDTH : NORMAL_DESIGN_WIDTH
     const designHeight = type === 'small' ? SMALL_DESIGN_HEIGHT : NORMAL_DESIGN_HEIGHT
-    const areaScale = Math.sqrt(
-      (contentWidth / designWidth) * (contentHeight / designHeight)
-    )
+    const widthScale = contentWidth / designWidth
+    const heightScale = contentHeight / designHeight
+    const areaScale = Math.sqrt(widthScale * heightScale)
+    const shortAxisGuard = Math.min(widthScale, heightScale) * MAX_SHORT_AXIS_SCALE_MULTIPLIER
+    const geometryScale = Math.min(areaScale, shortAxisGuard)
 
     const range = readOsdScaleRange()
     const minZoomFactor = range.min / BASE_REFERENCE_FONT_SIZE
     const maxZoomFactor = range.max / BASE_REFERENCE_FONT_SIZE
-    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, areaScale))
+    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, geometryScale))
 
     document.documentElement.style.setProperty(
       '--osd-window-zoom-factor',
