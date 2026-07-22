@@ -38,7 +38,11 @@
           </button-icon>
           <button-icon
             class="player-button lyric-button-1"
-            :title="$t('contextMenu.showLyric')"
+            :title="
+              tabs[(tabIdx + 1) % tabs.length] === 'comment'
+                ? '查看评论'
+                : $t('contextMenu.showLyric')
+            "
             @click="switchCurrentTab"
           >
             <SvgIcon :icon-class="getIcon()" />
