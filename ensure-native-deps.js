@@ -57,3 +57,4 @@ if (finalCheck.status !== 0) {
 }
 
 console.log('[native-deps] better-sqlite3 自动重建并验证成功')
+
