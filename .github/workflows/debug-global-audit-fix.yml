@@ -65,3 +65,5 @@ jobs:
       - name: Fail after capture
         if: steps.apply.outcome == 'failure'
         run: exit 1
+
+# 第二次提交用于触发已存在于默认分支的调试工作流。
