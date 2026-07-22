@@ -26,27 +26,32 @@ export const useOsdLyricStore = defineStore(
     // =========== newADD end ========
 
     window.addEventListener('storage', (event) => {
-      if (event.key === 'osdLyric') {
+      if (event.key !== 'osdLyric') return
+
+      try {
         const newState = JSON.parse(event.newValue || '{}')
-        if (Object.keys(newState).length === 0 && newState.constructor === Object) return
-        show.value = newState.show
-        type.value = newState.type
-        mode.value = newState.mode
-        isLock.value = newState.isLock
-        alwaysOnTop.value = newState.alwaysOnTop
-        fontSize.value = newState.fontSize
-        staticTime.value = newState.staticTime
-        showButtonWhenLock.value = newState.showButtonWhenLock
-        isWordByWord.value = newState.isWordByWord
-        backgroundColor.value = newState.backgroundColor
-        playedLrcColor.value = newState.playedLrcColor
-        unplayLrcColor.value = newState.unplayLrcColor
-        textShadow.value = newState.textShadow
-        translationMode.value = newState.translationMode
-        font.value = newState.font
-        // ======== newADD start======
-        align.value = newState.align || 'center'
-        // =========== newADD end ========
+        if (!newState || typeof newState !== 'object' || !Object.keys(newState).length) return
+
+        show.value = newState.show ?? show.value
+        type.value = newState.type ?? type.value
+        mode.value = newState.mode ?? mode.value
+        isLock.value = newState.isLock ?? isLock.value
+        alwaysOnTop.value = newState.alwaysOnTop ?? alwaysOnTop.value
+        fontSize.value = newState.fontSize ?? fontSize.value
+        staticTime.value = newState.staticTime ?? staticTime.value
+        showButtonWhenLock.value = newState.showButtonWhenLock ?? showButtonWhenLock.value
+        isWordByWord.value = newState.isWordByWord ?? isWordByWord.value
+        backgroundColor.value = newState.backgroundColor ?? backgroundColor.value
+        playedLrcColor.value = newState.playedLrcColor ?? playedLrcColor.value
+        unplayLrcColor.value = newState.unplayLrcColor ?? unplayLrcColor.value
+        textShadow.value = newState.textShadow ?? textShadow.value
+        translationMode.value = newState.translationMode ?? translationMode.value
+        font.value = newState.font ?? font.value
+        align.value = ['left', 'center', 'right'].includes(newState.align)
+          ? newState.align
+          : align.value
+      } catch (error) {
+        console.warn('[OsdLyricStore] 同步桌面歌词设置失败：', error)
       }
     })
 
