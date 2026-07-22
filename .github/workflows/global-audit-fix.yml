@@ -1,7 +1,7 @@
 name: Apply global audit fixes
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: write
