@@ -267,6 +267,20 @@ const startHeartModeFromLikes = async (requestId = '') => {
   }
 }
 
+// ======== newADD start======
+/**
+ * 启动心动模式并兜底处理异步异常。
+ *
+ * Args:
+ *   requestId: 桌面歌词请求标识；旧 MessagePort 调用可留空。
+ */
+const runHeartModeFromLikes = (requestId = '') => {
+  startHeartModeFromLikes(requestId).catch((error) => {
+    console.error('[HeartMode] 未处理的启动异常：', error)
+  })
+}
+// =========== newADD end ========
+
 /**
  * 使用 BroadcastChannel 接收桌面歌词窗口的心动模式请求。
  *
@@ -292,7 +306,7 @@ const publishPlayerSnapshot = () => {
 
 heartModeChannel.onmessage = (event: MessageEvent) => {
   if (event.data?.type === 'start-heart-mode-from-likes') {
-    void startHeartModeFromLikes(String(event.data?.requestId ?? ''))
+    runHeartModeFromLikes(String(event.data?.requestId ?? ''))
     return
   }
 
@@ -318,7 +332,7 @@ watch(
 // 保留旧 MessagePort 消息兼容，避免旧桌面歌词窗口尚未重建时完全失效。
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type !== 'osd-heart-mode') return
-  void startHeartModeFromLikes()
+  runHeartModeFromLikes()
 })
 
 window.addEventListener('beforeunload', () => {
