@@ -11,6 +11,14 @@ type ScrollState = {
   listHeight: number
 }
 
+// ======== newADD start======
+export type ExtendedUpdateCheckResult = UpdateCheckResult & {
+  manualDownload?: boolean
+  releaseUrl?: string
+  installFormat?: string
+}
+// =========== newADD end ========
+
 export const useNormalStateStore = defineStore('state', () => {
   const enableScrolling = ref(true)
   const virtualScrolling = ref(false)
@@ -68,7 +76,10 @@ export const useNormalStateStore = defineStore('state', () => {
 
   const updateStatus = ref(false)
   const isDownloading = ref(false)
-  const latestVersion = ref<UpdateCheckResult | null>(null)
+  const latestVersion = ref<ExtendedUpdateCheckResult | null>(null)
+  // ======== newADD start======
+  const updateError = ref('')
+  // =========== newADD end ========
 
   const amuseServerRunning = ref(false)
   const amuseServerErrorMsg = ref<string | null>(null)
@@ -123,13 +134,33 @@ export const useNormalStateStore = defineStore('state', () => {
     }, 3200)
   }
 
-  const checkUpdate = () => {
+  // ======== newADD start======
+  const checkUpdate = async () => {
+    if (updateStatus.value) return
+
     updateStatus.value = true
-    window.mainApi?.invoke('check-update').then((result: UpdateCheckResult | null) => {
-      if (result) latestVersion.value = result
+    updateError.value = ''
+
+    try {
+      const result = (await window.mainApi?.invoke('check-update')) as
+        | ExtendedUpdateCheckResult
+        | null
+        | undefined
+
+      if (result) {
+        latestVersion.value = result
+      } else {
+        throw new Error('更新服务未返回版本信息')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      updateError.value = message
+      showToast(`检查更新失败：${message}`)
+    } finally {
       updateStatus.value = false
-    })
+    }
   }
+  // =========== newADD end ========
 
   watch(
     enableScrolling,
@@ -176,6 +207,7 @@ export const useNormalStateStore = defineStore('state', () => {
     updateStatus,
     latestVersion,
     isDownloading,
+    updateError,
     amuseServerRunning,
     amuseServerErrorMsg,
     showToast,
