@@ -161,7 +161,12 @@ const openLogFile = () => {
 
 const openReleasePage = () => {
   if (!releaseUrl.value) return
-  window.mainApi?.send('msgOpenExternalLink', releaseUrl.value)
+
+  if (window.mainApi) {
+    window.mainApi.send('msgOpenExternalLink', releaseUrl.value)
+  } else {
+    window.open(releaseUrl.value, '_blank', 'noopener,noreferrer')
+  }
 }
 
 onMounted(async () => {
@@ -201,6 +206,7 @@ onMounted(async () => {
 // ======== newADD start======
 .diagnostic-panel {
   width: 100%;
+  box-sizing: border-box;
   margin-top: 14px;
   padding: 16px;
   border-radius: 12px;
@@ -222,7 +228,7 @@ onMounted(async () => {
 .diagnostic-panel__description,
 .diagnostic-panel__message {
   margin-top: 5px;
-  color: var(--color-text-secondary);
+  color: var(--color-secondary);
   font-size: 0.88em;
 }
 
@@ -230,8 +236,8 @@ onMounted(async () => {
   flex: 0 0 auto;
   padding: 4px 9px;
   border-radius: 999px;
-  background-color: var(--color-primary-bg);
-  color: var(--color-primary);
+  background-color: var(--color-primary-bg-for-transparent);
+  color: var(--color-text);
   font-size: 0.82em;
   font-weight: 600;
 }
