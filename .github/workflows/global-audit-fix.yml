@@ -1,0 +1,658 @@
+name: Apply global audit fixes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Apply reviewed global fixes
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding='utf-8')
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one exact match, found {count}: {old[:100]!r}')
+              write(path, text.replace(old, new, 1))
+
+          def regex_once(path: str, pattern: str, replacement: str) -> None:
+              text = read(path)
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one regex match, found {count}: {pattern[:120]!r}')
+              write(path, updated)
+
+          # ======== newADD start======
+          # 版本升级：本轮修复会使 3.2.1 安装包失效，因此发布版本提升到 3.2.2。
+          replace_once('package.json', '  "version": "3.2.1",', '  "version": "3.2.2",')
+
+          # 全局歌词偏移的内部数学语义：正值使歌词时间轴前移，负值使歌词时间轴后移。
+          offset_util = 'src/renderer/utils/globalLyricOffset.ts'
+          replace_once(
+              offset_util,
+              ' * 1. 正值沿用播放器原有语义，表示歌词延后；\n * 2. 负值表示歌词提前；',
+              ' * 1. 正值沿用播放器实际计时语义，表示歌词提前；\n * 2. 负值表示歌词延后；'
+          )
+
+          lyric_page = 'src/renderer/components/LyricPage.vue'
+          replace_once(
+              lyric_page,
+              'title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"\n          @click="setOffset(-0.5, $event)"',
+              'title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"\n          @click="setOffset(+0.5, $event)"'
+          )
+          replace_once(
+              lyric_page,
+              'title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"\n          @click="setOffset(+0.5, $event)"',
+              'title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"\n          @click="setOffset(-0.5, $event)"'
+          )
+          replace_once(
+              lyric_page,
+              "  } else if (lrcOffset > 0) {\n    return `所有歌曲：延后${lrcOffset}s`\n  } else {\n    return `所有歌曲：提前${Math.abs(lrcOffset)}s`\n  }",
+              "  } else if (lrcOffset > 0) {\n    return `所有歌曲：提前${lrcOffset}s`\n  } else {\n    return `所有歌曲：延后${Math.abs(lrcOffset)}s`\n  }"
+          )
+          replace_once(
+              lyric_page,
+              "`所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`",
+              "`所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '提前' : '延后'}${Math.abs(nextOffset)}s`"
+          )
+
+          # 播放页：主题按钮只在歌词页显示；歌词/评论切换按钮仅在确有多个页面时显示。
+          play_page = 'src/renderer/views/PlayPage.vue'
+          replace_once(
+              play_page,
+              '            v-show="tabs.length > 1"\n            class="player-button theme-button"',
+              '            v-show="tabs[tabIdx] !== \'comment\'"\n            class="player-button theme-button"'
+          )
+          replace_once(
+              play_page,
+              '          <button-icon\n            class="player-button lyric-button-1"',
+              '          <button-icon\n            v-show="tabs.length > 1"\n            class="player-button lyric-button-1"'
+          )
+
+          # 心动模式：首个带 sid 的请求抛错或返回空数据时，都继续执行兼容重试。
+          main_path = 'src/renderer/main.ts'
+          replace_once(
+              main_path,
+              """    let result = await intelligencePlaylist({
+      id: seedTrackID,
+      pid: playlistID,
+      sid: seedTrackID
+    })
+
+    let responseItems = Array.isArray(result?.data) ? result.data : []
+    if (!responseItems.length) {
+      console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+        code: result?.code,
+        message: result?.message
+      })
+      result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+      responseItems = Array.isArray(result?.data) ? result.data : []
+    }
+""",
+              """    let result: any = null
+    try {
+      result = await intelligencePlaylist({
+        id: seedTrackID,
+        pid: playlistID,
+        sid: seedTrackID
+      })
+    } catch (error) {
+      console.warn('[HeartMode] 带 sid 的请求失败，准备使用兼容参数重试：', error)
+    }
+
+    let responseItems = Array.isArray(result?.data) ? result.data : []
+    if (!responseItems.length) {
+      console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+        code: result?.code,
+        message: result?.message
+      })
+      try {
+        result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+      } catch (error) {
+        console.error('[HeartMode] 兼容参数请求仍然失败：', error)
+        throw error
+      }
+      responseItems = Array.isArray(result?.data) ? result.data : []
+    }
+"""
+          )
+
+          player_path = 'src/renderer/store/player.ts'
+          replace_once(
+              player_path,
+              "    const chorus = ref(0)\n",
+              "    const chorus = ref(0)\n    // ======== newADD start======\n    // 保存接口返回的原始副歌时间，实际显示位置由有效歌词偏移实时计算。\n    const chorusStartTime = ref(0)\n    // =========== newADD end ========\n"
+          )
+
+          old_show_chorus_watch = """    watch(
+      () => settingsStore.general.showChorus,
+      (value) => {
+        if (!value) {
+          chorus.value = 0
+        } else if (currentTrack.value?.matched) {
+          songChorus(currentTrack.value.id).then((res) => {
+            if (res.chorus.length) {
+              chorus.value = res.chorus[0].startTime / 1000 - lyricOffset.value
+            }
+          })
+        }
+      }
+    )
+
+"""
+          replace_once(player_path, old_show_chorus_watch, '')
+
+          lyric_offset_block = """    const lyricOffset = computed(() => {
+      const trackOffset = Number(currentTrack.value?.offset) || 0
+      return Math.round((trackOffset + globalLyricOffset.value) * 10) / 10
+    })
+
+"""
+          lyric_offset_replacement = lyric_offset_block + """    // ======== newADD start======
+    const updateChorusPosition = () => {
+      chorus.value = chorusStartTime.value > 0 ? chorusStartTime.value - lyricOffset.value : 0
+    }
+
+    /**
+     * 获取当前歌曲的副歌起始时间，并与有效歌词偏移保持同步。
+     *
+     * 旧实现分别在切歌和开关设置时计算副歌位置，导致全局歌词偏移变化后标记滞留。
+     */
+    const loadCurrentTrackChorus = async () => {
+      chorusStartTime.value = 0
+      chorus.value = 0
+
+      const track = currentTrack.value
+      if (!settingsStore.general.showChorus || !track?.matched) return
+
+      const requestedTrackID = track.id
+      try {
+        const result = await songChorus(requestedTrackID)
+        if (
+          currentTrack.value?.id !== requestedTrackID ||
+          !settingsStore.general.showChorus
+        ) {
+          return
+        }
+
+        const startTime = Number(result?.chorus?.[0]?.startTime)
+        if (!Number.isFinite(startTime) || startTime < 0) return
+
+        chorusStartTime.value = startTime / 1000
+        updateChorusPosition()
+      } catch (error) {
+        console.warn('[Player] 获取副歌时间失败：', error)
+      }
+    }
+
+    watch(
+      () => settingsStore.general.showChorus,
+      () => {
+        void loadCurrentTrackChorus()
+      }
+    )
+    // =========== newADD end ========
+
+"""
+          replace_once(player_path, lyric_offset_block, lyric_offset_replacement)
+
+          replace_once(
+              player_path,
+              """    watch(lyricOffset, (value) => {
+      clearTimeout(timer)
+      updateIndex()
+      if (window.env?.isLinux) {
+        updateMediaSessionMetaData(currentTrack.value!)
+      }
+""",
+              """    watch(lyricOffset, (value) => {
+      clearTimeout(timer)
+      updateIndex()
+      updateChorusPosition()
+      if (window.env?.isLinux && currentTrack.value) {
+        updateMediaSessionMetaData(currentTrack.value)
+      }
+"""
+          )
+
+          regex_once(
+              player_path,
+              r"    const getCurrentTrackInfo = async \(track: Track\) => \{\n      if \(!track\) return\n      chorus\.value = 0\n      // let data: any\n      if \(track\.matched && settingsStore\.general\.showChorus\) \{\n        songChorus\(track\.id\)\.then\(\(res\) => \{\n          if \(res\.chorus\.length\) \{\n            chorus\.value = res\.chorus\[0\]\.startTime / 1000 - \(currentTrack\.value\?\.offset \|\| 0\)\n          \}\n        \}\)\n      \}\n      await getLyric\(track\)",
+              """    const getCurrentTrackInfo = async (track: Track) => {
+      if (!track) return
+      void loadCurrentTrackChorus()
+      await getLyric(track)"""
+          )
+
+          replace_once(
+              player_path,
+              "      isPersonalFM.value = false\n      lyrics.value = []\n",
+              "      isPersonalFM.value = false\n      lyrics.value = []\n      chorusStartTime.value = 0\n      chorus.value = 0\n"
+          )
+
+          replace_once(
+              player_path,
+              """        if (track.type === 'online' && !track.url) {
+          resolve('')
+        }
+""",
+              """        if (track.type === 'online' && !track.url) {
+          return resolve('')
+        }
+"""
+          )
+
+          regex_once(
+              player_path,
+              r"        if \(event\.data\.type === 'init-from-osd'\) \{.*?        \} else if \(event\.data\.type === 'get-seek'\) \{",
+              """        if (event.data.type === 'init-from-osd') {
+          const track = currentTrack.value
+          const artists = track?.artists ?? track?.ar ?? []
+          const currentTime = audioNodes.audio?.currentTime || 0
+          const osdLyrics = _.cloneDeep(lyrics.value)
+
+          if (!osdLyrics.length) {
+            osdLyrics[0] = {
+              start: 0,
+              end: 0,
+              lyric: {
+                text: track
+                  ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+                  : '听你想听的音乐'
+              }
+            }
+          }
+
+          window.mainApi?.sendMessage({
+            type: 'update-osd-status',
+            data: {
+              lyrics: toRaw(osdLyrics),
+              line: [currentIndex.value, currentTime],
+              playing: playing.value,
+              seek: currentTime,
+              rate: playbackRate.value,
+              lyricOffset: [lyricOffset.value, currentTime],
+              title: track
+                ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+                : '听你想听的音乐',
+              isLiked: isLiked.value,
+              pic: pic.value
+            }
+          })
+        } else if (event.data.type === 'get-seek') {"""
+          )
+
+          replace_once(
+              player_path,
+              "                text: `${(currentTrack.value?.artists || currentTrack.value?.ar)[0].name} - ${currentTrack.value?.name}`",
+              "                text: `${(currentTrack.value?.artists || currentTrack.value?.ar || [])[0]?.name || '未知歌手'} - ${currentTrack.value?.name || '听你想听的音乐'}`"
+          )
+
+          replace_once(
+              player_path,
+              "        get volume() {\n          return audioNodes.audio?.volume || 0\n        },",
+              "        get volume() {\n          return volume.value\n        },"
+          )
+
+          # 桌面歌词首帧：保留第 0 行，读取“单曲 + 全局”有效偏移，并始终安装可见性监听。
+          osd_container = 'src/renderer/components/OsdLyricContainer.vue'
+          regex_once(
+              osd_container,
+              r"onMounted\(async \(\) => \{.*?\n\}\)\n\nonBeforeUnmount",
+              """onMounted(async () => {
+  document.addEventListener('visibilitychange', handleVisebilitiyChange)
+
+  let player: Record<string, any> = {}
+  try {
+    player = JSON.parse(localStorage.getItem('player') || '{}')
+  } catch (error) {
+    console.warn('[OsdLyricContainer] 读取播放器持久化状态失败：', error)
+  }
+
+  playing.value = Boolean(player.playing)
+
+  const persistedIndex = Number(player.currentIndex)
+  currentIndex.value = Number.isInteger(persistedIndex) ? persistedIndex : -1
+
+  const trackOffset = Number(player.currentTrack?.offset) || 0
+  const storedGlobalOffset = Number(localStorage.getItem('globalLyricOffset'))
+  const globalOffset = Number.isFinite(storedGlobalOffset) ? storedGlobalOffset : 0
+  lyricOffset.value = Math.round((trackOffset + globalOffset) * 10) / 10
+
+  if (Array.isArray(player.lyrics)) {
+    lyrics.value = player.lyrics
+  }
+
+  if (!lyrics.value.length && player.currentTrack) {
+    const artists = player.currentTrack.artists ?? player.currentTrack.ar ?? []
+    lyrics.value[0] = {
+      start: 0,
+      end: 0,
+      lyric: {
+        text: `${artists[0]?.name || '未知歌手'} - ${player.currentTrack.name || '听你想听的音乐'}`
+      }
+    }
+  }
+
+  scheduleAnimation()
+
+  if (isMini.value) return
+  await nextTick()
+  const idx = Math.max(0, highlight.value)
+  const el = document.getElementById(`lyric${idx}`)
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
+
+onBeforeUnmount"""
+          )
+
+          # OSD 根组件释放 Electron IPC 监听，避免窗口重建或 HMR 后重复触发。
+          osd_view = 'src/renderer/views/OSDLyric.vue'
+          replace_once(
+              osd_view,
+              "  window.removeEventListener('blur', stopCustomOsdDrag)\n})",
+              "  window.removeEventListener('blur', stopCustomOsdDrag)\n\n  window.mainApi?.off('mouseInWindow', handleMouseInWindow)\n})"
+          )
+
+          # OSD store 对损坏/旧版本 localStorage 做兼容，不再把缺失字段写成 undefined。
+          osd_store = 'src/renderer/store/osdLyric.ts'
+          regex_once(
+              osd_store,
+              r"    window\.addEventListener\('storage', \(event\) => \{.*?\n    \}\)\n",
+              """    window.addEventListener('storage', (event) => {
+      if (event.key !== 'osdLyric') return
+
+      try {
+        const newState = JSON.parse(event.newValue || '{}')
+        if (!newState || typeof newState !== 'object' || !Object.keys(newState).length) return
+
+        show.value = newState.show ?? show.value
+        type.value = newState.type ?? type.value
+        mode.value = newState.mode ?? mode.value
+        isLock.value = newState.isLock ?? isLock.value
+        alwaysOnTop.value = newState.alwaysOnTop ?? alwaysOnTop.value
+        fontSize.value = newState.fontSize ?? fontSize.value
+        staticTime.value = newState.staticTime ?? staticTime.value
+        showButtonWhenLock.value = newState.showButtonWhenLock ?? showButtonWhenLock.value
+        isWordByWord.value = newState.isWordByWord ?? isWordByWord.value
+        backgroundColor.value = newState.backgroundColor ?? backgroundColor.value
+        playedLrcColor.value = newState.playedLrcColor ?? playedLrcColor.value
+        unplayLrcColor.value = newState.unplayLrcColor ?? unplayLrcColor.value
+        textShadow.value = newState.textShadow ?? textShadow.value
+        translationMode.value = newState.translationMode ?? translationMode.value
+        font.value = newState.font ?? font.value
+        align.value = ['left', 'center', 'right'].includes(newState.align)
+          ? newState.align
+          : align.value
+      } catch (error) {
+        console.warn('[OsdLyricStore] 同步桌面歌词设置失败：', error)
+      }
+    })
+"""
+          )
+
+          # 极端宽高比保护：以面积缩放为主，同时限制相对较短轴的最大超出比例。
+          main_scale = 'src/renderer/utils/smoothWindowScale.ts'
+          replace_once(
+              main_scale,
+              'const MIN_POSITIVE_FONT_SIZE = 1\nconst ZOOM_EPSILON = 0.004',
+              'const MIN_POSITIVE_FONT_SIZE = 1\nconst MAX_SHORT_AXIS_SCALE_MULTIPLIER = 1.25\nconst ZOOM_EPSILON = 0.004'
+          )
+          replace_once(
+              main_scale,
+              """    const areaScale = Math.sqrt(
+      (contentWidth / DESIGN_WIDTH) * (contentHeight / DESIGN_HEIGHT)
+    )
+
+    const fontRange = readScaleFontRange()
+""",
+              """    const widthScale = contentWidth / DESIGN_WIDTH
+    const heightScale = contentHeight / DESIGN_HEIGHT
+    const areaScale = Math.sqrt(widthScale * heightScale)
+    const shortAxisGuard = Math.min(widthScale, heightScale) * MAX_SHORT_AXIS_SCALE_MULTIPLIER
+    const geometryScale = Math.min(areaScale, shortAxisGuard)
+
+    const fontRange = readScaleFontRange()
+"""
+          )
+          replace_once(
+              main_scale,
+              '    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, areaScale))',
+              '    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, geometryScale))'
+          )
+
+          osd_scale = 'src/renderer/utils/smoothOsdWindowScale.ts'
+          replace_once(
+              osd_scale,
+              'const MIN_POSITIVE_FONT_SIZE = 1\nconst ZOOM_EPSILON = 0.004',
+              'const MIN_POSITIVE_FONT_SIZE = 1\nconst MAX_SHORT_AXIS_SCALE_MULTIPLIER = 1.25\nconst ZOOM_EPSILON = 0.004'
+          )
+          replace_once(
+              osd_scale,
+              """    const areaScale = Math.sqrt(
+      (contentWidth / designWidth) * (contentHeight / designHeight)
+    )
+
+    const range = readOsdScaleRange()
+""",
+              """    const widthScale = contentWidth / designWidth
+    const heightScale = contentHeight / designHeight
+    const areaScale = Math.sqrt(widthScale * heightScale)
+    const shortAxisGuard = Math.min(widthScale, heightScale) * MAX_SHORT_AXIS_SCALE_MULTIPLIER
+    const geometryScale = Math.min(areaScale, shortAxisGuard)
+
+    const range = readOsdScaleRange()
+"""
+          )
+          replace_once(
+              osd_scale,
+              '    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, areaScale))',
+              '    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, geometryScale))'
+          )
+
+          # 修复已有静态检查警告与定制仓库入口。
+          replace_once(
+              'src/renderer/views/LocalMusic.vue',
+              "window.mainApi?.on('scanLocalMusicDone', (_: any) => {",
+              "window.mainApi?.on('scanLocalMusicDone', () => {"
+          )
+          replace_once(
+              'src/renderer/components/ScrollBar.vue',
+              "const scrollMainTo = inject('scrollMainTo', (to: number, behavior: 'smooth' | 'instant') => {})",
+              "const scrollMainTo = inject<(to: number, behavior: 'smooth' | 'instant') => void>(\n  'scrollMainTo',\n  () => undefined\n)"
+          )
+          nav_bar = 'src/renderer/components/NavBar.vue'
+          replace_once(
+              nav_bar,
+              "const isLooseLoggedIn = computed(() => data.user.value.userId !== null)",
+              "const isLooseLoggedIn = computed(() => Boolean(data.user.value?.userId))"
+          )
+          replace_once(
+              nav_bar,
+              "  openExternal('https://github.com/stark81/VutronMusic')",
+              "  openExternal('https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux')"
+          )
+          replace_once(
+              nav_bar,
+              "const doSearch = (keyword: string, tab: string | null = null) => {",
+              "const doSearch = (keyword: string) => {"
+          )
+          app_path = 'src/renderer/App.vue'
+          replace_once(
+              app_path,
+              "  window.mainApi?.on('scanLocalMusicDone', (_: any) => {",
+              "  window.mainApi?.on('scanLocalMusicDone', () => {"
+          )
+          replace_once(
+              app_path,
+              "  window.mainApi?.on('update-error', (_: any) => {",
+              "  window.mainApi?.on('update-error', () => {"
+          )
+
+          # macOS Actions 使用 Node 24 运行时的当前主要版本，消除旧 Action 弃用提示。
+          mac_workflow = '.github/workflows/build-macos.yml'
+          text = read(mac_workflow)
+          text = text.replace('actions/setup-node@v4', 'actions/setup-node@v6')
+          text = text.replace('actions/upload-artifact@v4', 'actions/upload-artifact@v6')
+          write(mac_workflow, text)
+
+          # README 与新的非破坏性构建流程、全局歌词偏移行为保持一致。
+          readme = 'README.md'
+          replace_once(
+              readme,
+              '### 真正的网易云心动模式\n',
+              """### 全局歌词时间校正
+
+- 主播放页右侧的提前、重置和延后按钮作用于全部歌曲；
+- 普通点击每次调整 `0.5s`，按住 `Shift` 点击每次精调 `0.1s`；
+- 全局偏移会在切歌和重启后继续生效；
+- 单曲原有 `offset` 数据不会被覆盖，播放器使用“单曲偏移 + 全局偏移”；
+- 正值表示歌词提前，负值表示歌词延后。
+
+### 真正的网易云心动模式
+"""
+          )
+          replace_once(
+              readme,
+              """构建过程会执行：
+
+```text
+Prettier 格式化 → vue-tsc 类型检查 → Vite 构建 → electron-builder 打包
+```
+
+`build:pre` 会运行 `prettier . --write`，因此构建后建议检查：
+
+```bash
+git status --short
+```
+""",
+              """构建过程会执行：
+
+```text
+vue-tsc 类型检查 → Vite 构建 → electron-builder 打包
+```
+
+构建过程不会自动改写源码。需要统一格式时单独执行：
+
+```bash
+yarn run format:fix
+```
+
+提交或打包前可使用只读检查：
+
+```bash
+yarn run format:check
+git status --short
+```
+"""
+          )
+          # =========== newADD end ========
+          PY
+
+      - name: Format changed files
+        run: |
+          yarn prettier --write \
+            package.json \
+            README.md \
+            .github/workflows/build-macos.yml \
+            src/renderer/main.ts \
+            src/renderer/store/player.ts \
+            src/renderer/store/osdLyric.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/components/OsdLyricContainer.vue \
+            src/renderer/components/ScrollBar.vue \
+            src/renderer/components/NavBar.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/views/OSDLyric.vue \
+            src/renderer/views/LocalMusic.vue \
+            src/renderer/App.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            src/renderer/utils/smoothWindowScale.ts \
+            src/renderer/utils/smoothOsdWindowScale.ts
+
+      - name: Audit targeted legacy patterns
+        run: |
+          echo 'Direct track offset references (only effective-offset composition and OSD bootstrap are expected):'
+          rg -n "currentTrack.*offset|currentTrack\.value.*offset" src/renderer || true
+
+          echo 'Deprecated workflow action majors:'
+          if rg -n "actions/setup-node@v4|actions/upload-artifact@v4" .github/workflows; then
+            echo 'Deprecated action major remains.' >&2
+            exit 1
+          fi
+
+          echo 'Stale destructive build documentation:'
+          if rg -n "build:pre.*prettier|Prettier 格式化" README.md; then
+            echo 'README still documents destructive build formatting.' >&2
+            exit 1
+          fi
+
+          grep -F '@click="setOffset(+0.5, $event)"' src/renderer/components/LyricPage.vue
+          grep -F '@click="setOffset(-0.5, $event)"' src/renderer/components/LyricPage.vue
+          grep -F "return resolve('')" src/renderer/store/player.ts
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Type check
+        run: yarn vue-tsc --noEmit
+
+      - name: Build renderer and main process
+        run: yarn vite build
+
+      - name: Commit reviewed fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm .github/workflows/global-audit-fix.yml
+          git add \
+            package.json \
+            README.md \
+            .github/workflows/build-macos.yml \
+            src/renderer/main.ts \
+            src/renderer/store/player.ts \
+            src/renderer/store/osdLyric.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/components/OsdLyricContainer.vue \
+            src/renderer/components/ScrollBar.vue \
+            src/renderer/components/NavBar.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/views/OSDLyric.vue \
+            src/renderer/views/LocalMusic.vue \
+            src/renderer/App.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            src/renderer/utils/smoothWindowScale.ts \
+            src/renderer/utils/smoothOsdWindowScale.ts
+
+          git commit -m "修复全局审查发现的播放器与跨窗口遗留问题"
+          git push origin HEAD:main
