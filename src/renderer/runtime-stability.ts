@@ -72,6 +72,7 @@ const installSafeIntersectionObserver = () => {
 
   prototype.unobserve = function unobserve(target: Element) {
     if (!(target instanceof Element)) {
+      this.disconnect()
       return
     }
 
