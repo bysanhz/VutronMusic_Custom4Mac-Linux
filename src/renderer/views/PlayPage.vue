@@ -13,7 +13,7 @@
           :class="{ opacity: activeTheme.theme.activeLayout === 'Creative', hover }"
         >
           <button-icon
-            v-show="tabs.length > 1"
+            v-show="tabs[tabIdx] !== 'comment'"
             class="player-button theme-button"
             @click="setThemeModal = !setThemeModal"
           >
@@ -37,6 +37,7 @@
             <SvgIcon icon-class="sense" />
           </button-icon>
           <button-icon
+            v-show="tabs.length > 1"
             class="player-button lyric-button-1"
             :title="nextTabTitle"
             @click="switchCurrentTab"
@@ -208,6 +209,8 @@ watch(
   width: 100%;
   height: 100%;
   z-index: 20;
+  overflow: hidden;
+  color: var(--color-text);
   background-color: var(--bg-color);
 }
 
