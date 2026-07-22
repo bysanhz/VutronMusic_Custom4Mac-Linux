@@ -4,7 +4,7 @@
       <div v-show="hover" class="offset">
         <button-icon
           title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
-          @click="setOffset(-0.5, $event)"
+          @click="setOffset(+0.5, $event)"
         >
           <svg-icon icon-class="back5s" />
         </button-icon>
@@ -13,7 +13,7 @@
         </button-icon>
         <button-icon
           title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
-          @click="setOffset(+0.5, $event)"
+          @click="setOffset(-0.5, $event)"
         >
           <svg-icon icon-class="forward5s" />
         </button-icon>
@@ -111,9 +111,9 @@ const offset = computed(() => {
   if (lrcOffset === 0) {
     return '所有歌曲：未调整'
   } else if (lrcOffset > 0) {
-    return `所有歌曲：延后${lrcOffset}s`
+    return `所有歌曲：提前${lrcOffset}s`
   } else {
-    return `所有歌曲：提前${Math.abs(lrcOffset)}s`
+    return `所有歌曲：延后${Math.abs(lrcOffset)}s`
   }
 })
 // =========== newADD end ========
@@ -144,7 +144,7 @@ const setOffset = (offset: number, event?: MouseEvent) => {
   }
 
   showToast(
-    `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`
+    `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '提前' : '延后'}${Math.abs(nextOffset)}s`
   )
 }
 // =========== newADD end ========
