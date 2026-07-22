@@ -112,6 +112,7 @@ import { openExternal } from '../utils'
 const { searchTab, exploreTab } = storeToRefs(useNormalStateStore())
 const { general } = storeToRefs(useSettingsStore())
 const { useCustomTitlebar } = toRefs(general.value)
+const data = storeToRefs(useDataStore())
 
 const router = useRouter()
 const route = useRoute()
@@ -120,7 +121,7 @@ const searchBoxRef = ref()
 const keywords = ref('')
 const useCustomBar = ref(false)
 
-const isLooseLoggedIn = computed(() => data.user.value.userId !== null)
+const isLooseLoggedIn = computed(() => Boolean(data.user.value?.userId))
 const isLinux = computed(() => window.env?.isLinux || false)
 const isWin = computed(() => window.env?.isWindows)
 const navStyle = computed(() => {
@@ -129,6 +130,12 @@ const navStyle = computed(() => {
   }
 })
 
+const avatarUrl = computed(() => {
+  return `${data.user.value.avatarUrl}`
+})
+
+const userProfileMenu = ref<InstanceType<typeof ContextMenu>>()
+
 defineExpose({ searchBoxRef })
 
 const toLogin = (): void => {
@@ -136,7 +143,7 @@ const toLogin = (): void => {
 }
 
 const toGitHub = (): void => {
-  openExternal('https://github.com/stark81/VutronMusic')
+  openExternal('https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux')
 }
 
 const openLogFile = () => {
@@ -152,10 +159,10 @@ const categoryMap = {
   artist: '歌手'
 }
 
-const toExplore = (Category: string) => {
-  exploreTab.value = Category
-  const cat = ['chart', 'artist'].includes(Category) ? categoryMap[Category] : '全部'
-  router.push({ name: 'explore', query: { category: cat, tab: Category } })
+const toExplore = (category: string) => {
+  exploreTab.value = category
+  const cat = ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'
+  router.push({ name: 'explore', query: { category: cat, tab: category } })
 }
 
 const logout = () => {
@@ -164,19 +171,11 @@ const logout = () => {
   router.push({ name: 'HomePage' })
 }
 
-const data = storeToRefs(useDataStore())
-
-const avatarUrl = computed(() => {
-  return `${data.user.value.avatarUrl}`
-})
-
-const userProfileMenu = ref<InstanceType<typeof ContextMenu>>()
-
-const showUserProfileMenu = (e: MouseEvent): void => {
-  userProfileMenu.value?.openMenu(e)
+const showUserProfileMenu = (event: MouseEvent): void => {
+  userProfileMenu.value?.openMenu(event)
 }
 
-const doSearch = (keyword: string, tab: string | null = null) => {
+const doSearch = (keyword: string) => {
   keywords.value = keyword
   if (!keyword) return
   router.push({
