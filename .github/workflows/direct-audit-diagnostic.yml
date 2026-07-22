@@ -8,7 +8,7 @@ on:
       - '.github/workflows/global-audit-fix.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   diagnose:
@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Extract reviewed fix script
         run: |
@@ -47,5 +49,19 @@ jobs:
           print(f'Extracted {len(script_lines)} lines')
           PY
 
-      - name: Apply reviewed global fixes
-        run: python3 /tmp/apply_global_audit_fixes.py
+      - name: Capture exact apply error
+        run: |
+          set +e
+          python3 /tmp/apply_global_audit_fixes.py > .github/audit-error.log 2>&1
+          status=$?
+          printf '\nexit_code=%s\n' "$status" >> .github/audit-error.log
+          cat .github/audit-error.log
+          exit 0
+
+      - name: Commit diagnostic output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/audit-error.log
+          git commit -m "记录全局审查修复失败位置" || exit 0
+          git push origin HEAD:main
