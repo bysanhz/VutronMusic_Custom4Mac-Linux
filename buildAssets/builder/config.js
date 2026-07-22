@@ -3,7 +3,10 @@ const dotenv = require('dotenv')
 
 const baseConfig = {
   productName: 'VutronMusic',
-  appId: '',
+  // ======== newADD start======
+  // 固定应用身份，避免不同构建回退到 electron-builder 默认标识。
+  appId: 'com.bysanhz.vutronmusic',
+  // =========== newADD end ========
   asar: true,
   asarUnpack: [
     '**/node_modules/sharp/**/*',
@@ -17,7 +20,7 @@ const baseConfig = {
     output: './release/${version}'
   },
   mac: {
-    bundleVersion: '1.0',
+    // 未显式设置 buildVersion 时，electron-builder 自动使用 package.json 的 version。
     hardenedRuntime: true,
     gatekeeperAssess: false,
     notarize: false,
