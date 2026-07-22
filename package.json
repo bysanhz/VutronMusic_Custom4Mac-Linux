@@ -1,7 +1,7 @@
 {
   "name": "VutronMusic",
   "packageManager": "yarn@1.22.22",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "homepage": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux",
   "author": "stark81 <qq2995734001@gmail.com>",
   "license": "MIT",
@@ -72,7 +72,7 @@
     "https-proxy-agent": "^7.0.6",
     "iconv-lite": "^0.6.3",
     "js-cookie": "^3.0.5",
-    "jschardet": "^3.1.4",
+    "jschardet": "^1.4.0",
     "mime-types": "^2.1.35",
     "mitt": "^3.0.1",
     "music-metadata": "^10.5.0",
