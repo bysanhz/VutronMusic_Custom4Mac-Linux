@@ -1,7 +1,7 @@
 name: Build macOS Packages
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   build-macos-arm64:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: yarn
@@ -36,7 +36,7 @@ jobs:
         run: find release -maxdepth 3 -type f -print
 
       - name: Upload ARM64 package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: VutronMusic-macOS-arm64
           path: release/**/*.dmg
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: yarn
@@ -75,7 +75,7 @@ jobs:
         run: find release -maxdepth 3 -type f -print
 
       - name: Upload Intel package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: VutronMusic-macOS-x64
           path: release/**/*.dmg
