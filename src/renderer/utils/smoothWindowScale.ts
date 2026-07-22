@@ -12,11 +12,12 @@ import router from '../router'
  * 详细说明：
  * 1. 以 1080 × 720、16px 为设计基准；
  * 2. 使用窗口面积比例的平方根计算连续缩放目标；
- * 3. 最小、最大字号不设置固定业务范围，仅要求数值为正；
- * 4. 进入设置页面后有限次数等待 Vue 完成挂载，成功后立即停止重试；
- * 5. resize 更新限制在约 30 FPS，并在拖动结束后补一次最终更新；
- * 6. 拖动窗口期间临时关闭高成本视觉动画，停止拖动后自动恢复；
- * 7. 独立桌面歌词 BrowserWindow 不受此逻辑影响。
+ * 3. 使用较短轴保护限制极端宽高比，避免窗口很窄但很高时控件仍然过大；
+ * 4. 最小、最大字号不设置固定业务范围，仅要求数值为正；
+ * 5. 进入设置页面后有限次数等待 Vue 完成挂载，成功后立即停止重试；
+ * 6. resize 更新限制在约 30 FPS，并在拖动结束后补一次最终更新；
+ * 7. 拖动窗口期间临时关闭高成本视觉动画，停止拖动后自动恢复；
+ * 8. 独立桌面歌词 BrowserWindow 不受此逻辑影响。
  */
 
 const DESIGN_WIDTH = 1080
@@ -25,6 +26,7 @@ const BASE_FONT_SIZE = 16
 const DEFAULT_MIN_FONT_SIZE = 12
 const DEFAULT_MAX_FONT_SIZE = 22
 const MIN_POSITIVE_FONT_SIZE = 1
+const MAX_SHORT_AXIS_SCALE_MULTIPLIER = 1.25
 const ZOOM_EPSILON = 0.004
 const ZOOM_UPDATE_INTERVAL_MS = 32
 const RESIZE_IDLE_DELAY_MS = 140
@@ -288,16 +290,17 @@ export const initializeSmoothWindowScale = () => {
     // 实际内容区尺寸，避免缩放后再次计算产生反馈振荡。
     const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
-    const areaScale = Math.sqrt(
-      (contentWidth / DESIGN_WIDTH) * (contentHeight / DESIGN_HEIGHT)
-    )
+    const widthScale = contentWidth / DESIGN_WIDTH
+    const heightScale = contentHeight / DESIGN_HEIGHT
+    const areaScale = Math.sqrt(widthScale * heightScale)
+    const shortAxisGuard = Math.min(widthScale, heightScale) * MAX_SHORT_AXIS_SCALE_MULTIPLIER
+    const geometryScale = Math.min(areaScale, shortAxisGuard)
 
     const fontRange = readScaleFontRange()
     const minZoomFactor = fontRange.min / BASE_FONT_SIZE
     const maxZoomFactor = fontRange.max / BASE_FONT_SIZE
-    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, areaScale))
+    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, geometryScale))
     const effectiveFontSize = BASE_FONT_SIZE * nextZoomFactor
-
     document.documentElement.style.setProperty(
       '--main-window-zoom-factor',
       nextZoomFactor.toFixed(4)
