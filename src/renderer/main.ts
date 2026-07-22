@@ -203,11 +203,17 @@ const startHeartModeFromLikes = async (requestId = '') => {
     }
 
     const { seedTrackID } = await selectHeartModeSeedFromLikes(playlistID)
-    let result = await intelligencePlaylist({
-      id: seedTrackID,
-      pid: playlistID,
-      sid: seedTrackID
-    })
+    let result: any = null
+
+    try {
+      result = await intelligencePlaylist({
+        id: seedTrackID,
+        pid: playlistID,
+        sid: seedTrackID
+      })
+    } catch (error) {
+      console.warn('[HeartMode] 带 sid 的请求失败，准备使用兼容参数重试：', error)
+    }
 
     let responseItems = Array.isArray(result?.data) ? result.data : []
     if (!responseItems.length) {
@@ -215,7 +221,14 @@ const startHeartModeFromLikes = async (requestId = '') => {
         code: result?.code,
         message: result?.message
       })
-      result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+
+      try {
+        result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+      } catch (error) {
+        console.error('[HeartMode] 兼容参数请求仍然失败：', error)
+        throw error
+      }
+
       responseItems = Array.isArray(result?.data) ? result.data : []
     }
 
@@ -279,7 +292,7 @@ const publishPlayerSnapshot = () => {
 
 heartModeChannel.onmessage = (event: MessageEvent) => {
   if (event.data?.type === 'start-heart-mode-from-likes') {
-    startHeartModeFromLikes(String(event.data?.requestId ?? ''))
+    void startHeartModeFromLikes(String(event.data?.requestId ?? ''))
     return
   }
 
@@ -305,7 +318,7 @@ watch(
 // 保留旧 MessagePort 消息兼容，避免旧桌面歌词窗口尚未重建时完全失效。
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type !== 'osd-heart-mode') return
-  startHeartModeFromLikes()
+  void startHeartModeFromLikes()
 })
 
 window.addEventListener('beforeunload', () => {
