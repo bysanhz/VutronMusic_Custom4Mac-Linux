@@ -1,0 +1,97 @@
+name: Run reviewed refactor
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Reuse reviewed patch script
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          workflow_path = Path('.github/workflows/apply-reviewed-refactor.yml')
+          lines = workflow_path.read_text(encoding='utf-8').splitlines()
+          start_marker = "          python3 <<'PY'"
+          end_marker = '          PY'
+
+          try:
+              start = lines.index(start_marker) + 1
+              end = lines.index(end_marker, start)
+          except ValueError as error:
+              raise RuntimeError('无法从一次性工作流中提取重构脚本') from error
+
+          script_lines = []
+          for line in lines[start:end]:
+              if line.startswith('          '):
+                  script_lines.append(line[10:])
+              else:
+                  script_lines.append(line)
+
+          script = '\n'.join(script_lines) + '\n'
+          exec(compile(script, '<reviewed-refactor>', 'exec'), {})
+          PY
+
+      - name: Format changed files
+        run: |
+          yarn prettier --write \
+            src/renderer/store/player.ts \
+            src/renderer/main.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/components/CompactCoverControls.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            package.json \
+            buildAssets/builder/config.js
+
+      - name: Type check
+        run: yarn vue-tsc --noEmit
+
+      - name: Build renderer and main process
+        run: yarn vite build
+
+      - name: Review targeted offset usages
+        run: |
+          echo 'Remaining direct currentTrack offset references:'
+          grep -n "currentTrack.value.*offset" src/renderer/store/player.ts || true
+          echo 'Effective lyric offset definition:'
+          grep -n -A8 -B3 "const lyricOffset = computed" src/renderer/store/player.ts
+
+      - name: Commit reviewed refactor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm \
+            .github/workflows/apply-reviewed-refactor.yml \
+            .github/workflows/run-reviewed-refactor.yml
+          git add \
+            src/renderer/store/player.ts \
+            src/renderer/main.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/components/CompactCoverControls.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            package.json \
+            buildAssets/builder/config.js
+          git commit -m "完善全局歌词偏移与播放器交互"
+          git push origin HEAD:main
