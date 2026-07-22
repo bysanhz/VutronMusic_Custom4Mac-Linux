@@ -1,7 +1,7 @@
 {
   "name": "VutronMusic",
   "packageManager": "yarn@1.22.22",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "homepage": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux",
   "author": "stark81 <qq2995734001@gmail.com>",
   "license": "MIT",
