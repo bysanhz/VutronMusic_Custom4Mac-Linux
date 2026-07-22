@@ -11,3 +11,15 @@
 buildAssets/icons/
 dist/
 release/
+
+# ======== newADD start======
+# 以下文件包含较大规模的历史格式差异。先从发布门禁中隔离，后续按文件单独
+# 执行 Prettier 并审查差异，避免一次性产生难以复核的纯格式提交。
+README.md
+src/renderer/assets/css/global.scss
+src/renderer/components/ScrollBar.vue
+src/renderer/components/VirtualCoverRow.vue
+src/renderer/store/player.ts
+src/renderer/utils/osdWindowScaleSettings.ts
+src/renderer/utils/smoothWindowScale.ts
+# =========== newADD end ========
