@@ -125,64 +125,103 @@ class Cache {
     }
   }
 
-  get(api: string, params: any = {}): any {
+  // ======== newADD start======
+  /**
+   * 为数据库读取异常提供与各缓存 API 结构一致的安全结果。
+   *
+   * 数据库缓存不可用不应导致同步 IPC 抛出未捕获异常。调用方可以继续以空列表或
+   * 未登录状态渲染界面，同时原始查询错误会被记录到主进程日志。
+   */
+  private getReadFallback(api: string): any {
     switch (api) {
-      case CacheAPIs.LocalMusic: {
-        // 此项用于获取所有本地歌曲
-        // 注：是全部本地歌曲，不可获取部分，仅在扫描本地歌曲与程序启动时使用
-        const sql = params.sql ?? `type = 'local'`
-        const data = db.findAll(Tables.Track, sql)
-        const tracks = data.map((t: any) => JSON.parse(t.json))
+      case CacheAPIs.LocalMusic:
         return {
-          code: 200,
-          songs: tracks,
-          privileges: {}
+          code: 503,
+          songs: [],
+          privileges: {},
+          cacheUnavailable: true
         }
-      }
-      case CacheAPIs.Track: {
-        // 根据歌曲ids获取歌曲，包括线上歌曲和本地歌曲
-        const ids = params?.ids.split(',').map((id: string) => Number(id))
-        if (!ids.length) return
-        if (ids.includes(NaN)) return
-
-        const tracksRaw = db.findMany(Tables.Track, ids)
-        if (tracksRaw.length !== ids.length) return
-
-        const tracks = ids.map((id: any) => {
-          const track = tracksRaw.find((t: any) => t.id === Number(id)) as any
-          return JSON.parse(track.json)
-        })
-
+      case CacheAPIs.LocalPlaylist:
+        return []
+      case CacheAPIs.loginStatus:
         return {
-          code: 200,
-          songs: tracks,
-          privileges: {}
+          userId: 0,
+          vipType: 0,
+          cacheUnavailable: true
         }
-      }
-      case CacheAPIs.Album: {
-        break
-      }
-      case CacheAPIs.Artist: {
-        break
-      }
-      case CacheAPIs.LocalPlaylist: {
-        const data = db.findAll(Tables.Playlist, `isLocal = 1`)
-        const playlists = data.map((t: any) => JSON.parse(t.json)).filter((p) => p.id)
-        return playlists
-      }
-      case CacheAPIs.loginStatus: {
-        const data = db.findAll(Tables.AccountData)
-        if (!data.length) {
-          return {
-            userId: 0,
-            vipType: 0
-          }
-        } else {
-          const user = JSON.parse(data[0].json)
-          return user
-        }
-      }
+      default:
+        return undefined
     }
+  }
+  // =========== newADD end ========
+
+  get(api: string, params: any = {}): any {
+    // ======== newADD start======
+    try {
+      // =========== newADD end ========
+      switch (api) {
+        case CacheAPIs.LocalMusic: {
+          // 此项用于获取所有本地歌曲
+          // 注：是全部本地歌曲，不可获取部分，仅在扫描本地歌曲与程序启动时使用
+          const sql = params.sql ?? `type = 'local'`
+          const data = db.findAll(Tables.Track, sql)
+          const tracks = data.map((t: any) => JSON.parse(t.json))
+          return {
+            code: 200,
+            songs: tracks,
+            privileges: {}
+          }
+        }
+        case CacheAPIs.Track: {
+          // 根据歌曲ids获取歌曲，包括线上歌曲和本地歌曲
+          const ids = params?.ids.split(',').map((id: string) => Number(id))
+          if (!ids.length) return
+          if (ids.includes(NaN)) return
+
+          const tracksRaw = db.findMany(Tables.Track, ids)
+          if (tracksRaw.length !== ids.length) return
+
+          const tracks = ids.map((id: any) => {
+            const track = tracksRaw.find((t: any) => t.id === Number(id)) as any
+            return JSON.parse(track.json)
+          })
+
+          return {
+            code: 200,
+            songs: tracks,
+            privileges: {}
+          }
+        }
+        case CacheAPIs.Album: {
+          break
+        }
+        case CacheAPIs.Artist: {
+          break
+        }
+        case CacheAPIs.LocalPlaylist: {
+          const data = db.findAll(Tables.Playlist, `isLocal = 1`)
+          const playlists = data.map((t: any) => JSON.parse(t.json)).filter((p) => p.id)
+          return playlists
+        }
+        case CacheAPIs.loginStatus: {
+          const data = db.findAll(Tables.AccountData)
+          if (!data.length) {
+            return {
+              userId: 0,
+              vipType: 0
+            }
+          } else {
+            const user = JSON.parse(data[0].json)
+            return user
+          }
+        }
+      }
+      // ======== newADD start======
+    } catch (error) {
+      log.error(`[Cache] 读取缓存失败：${api}`, error)
+      return this.getReadFallback(api)
+    }
+    // =========== newADD end ========
   }
 }
 
