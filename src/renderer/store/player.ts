@@ -70,6 +70,10 @@ export const usePlayerStore = defineStore(
     const pitch = ref(1.0)
     const isLocalList = ref(false)
     const chorus = ref(0)
+    // ======== newADD start======
+    // 保存接口返回的原始副歌时间，最终位置统一叠加有效歌词偏移。
+    const chorusStartTime = ref(0)
+    // =========== newADD end ========
     const pic = ref<string>(
       currentTrack.value?.album?.picUrl ||
         'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
@@ -113,6 +117,55 @@ export const usePlayerStore = defineStore(
     const { showToast } = stateStore
 
     const osdLyricStore = useOsdLyricStore()
+
+    /**
+     * 播放器最终使用的歌词偏移。
+     *
+     * 单曲 offset 保留歌曲自身的校正值；globalLyricOffset 是用户针对全部歌曲设置的
+     * 统一偏移。二者相加后供主歌词、逐字歌词、桌面歌词和托盘歌词共同使用。
+     */
+    const lyricOffset = computed(() => {
+      const trackOffset = Number(currentTrack.value?.offset) || 0
+      return Math.round((trackOffset + globalLyricOffset.value) * 10) / 10
+    })
+
+    // ======== newADD start======
+    const updateChorusPosition = () => {
+      chorus.value = chorusStartTime.value > 0 ? chorusStartTime.value - lyricOffset.value : 0
+    }
+
+    /**
+     * 获取歌曲副歌起始时间，并保证异步结果不会覆盖已经切换的新歌曲。
+     *
+     * Args:
+     *   track: 需要查询副歌位置的歌曲，默认使用当前歌曲。
+     */
+    const loadCurrentTrackChorus = async (track: Track | null = currentTrack.value) => {
+      chorusStartTime.value = 0
+      chorus.value = 0
+
+      if (!settingsStore.general.showChorus || !track?.matched) return
+
+      const requestedTrackID = track.id
+      try {
+        const result = await songChorus(requestedTrackID)
+        if (
+          currentTrack.value?.id !== requestedTrackID ||
+          !settingsStore.general.showChorus
+        ) {
+          return
+        }
+
+        const startTime = Number(result?.chorus?.[0]?.startTime)
+        if (!Number.isFinite(startTime) || startTime < 0) return
+
+        chorusStartTime.value = startTime / 1000
+        updateChorusPosition()
+      } catch (error) {
+        console.warn('[Player] 获取副歌时间失败：', error)
+      }
+    }
+    // =========== newADD end ========
 
     const _shuffleList = ref<number[]>([])
     const _list = ref<number[]>([])
@@ -505,16 +558,8 @@ export const usePlayerStore = defineStore(
 
     watch(
       () => settingsStore.general.showChorus,
-      (value) => {
-        if (!value) {
-          chorus.value = 0
-        } else if (currentTrack.value?.matched) {
-          songChorus(currentTrack.value.id).then((res) => {
-            if (res.chorus.length) {
-              chorus.value = res.chorus[0].startTime / 1000 - lyricOffset.value
-            }
-          })
-        }
+      () => {
+        void loadCurrentTrackChorus()
       }
     )
 
@@ -616,22 +661,12 @@ export const usePlayerStore = defineStore(
       }
     })
 
-    /**
-     * 播放器最终使用的歌词偏移。
-     *
-     * 单曲 offset 保留歌曲自身的校正值；globalLyricOffset 是用户针对全部歌曲设置的
-     * 统一偏移。二者相加后供主歌词、逐字歌词、桌面歌词和托盘歌词共同使用。
-     */
-    const lyricOffset = computed(() => {
-      const trackOffset = Number(currentTrack.value?.offset) || 0
-      return Math.round((trackOffset + globalLyricOffset.value) * 10) / 10
-    })
-
     watch(lyricOffset, (value) => {
       clearTimeout(timer)
       updateIndex()
-      if (window.env?.isLinux) {
-        updateMediaSessionMetaData(currentTrack.value!)
+      updateChorusPosition()
+      if (window.env?.isLinux && currentTrack.value) {
+        void updateMediaSessionMetaData(currentTrack.value)
       }
       if (osdLyricStore.show) {
         window.mainApi?.sendMessage({
@@ -737,15 +772,7 @@ export const usePlayerStore = defineStore(
 
     const getCurrentTrackInfo = async (track: Track) => {
       if (!track) return
-      chorus.value = 0
-      // let data: any
-      if (track.matched && settingsStore.general.showChorus) {
-        songChorus(track.id).then((res) => {
-          if (res.chorus.length) {
-            chorus.value = res.chorus[0].startTime / 1000 - (currentTrack.value?.offset || 0)
-          }
-        })
-      }
+      void loadCurrentTrackChorus(track)
       await getLyric(track)
       seek.value = playing.value ? 0 : progress.value
       currentIndex.value = getLyricIndex(lyrics.value, 0, 1)
@@ -967,7 +994,7 @@ export const usePlayerStore = defineStore(
     const getTrackSource = (track: Track) => {
       return new Promise<string>((resolve) => {
         if (track.type === 'online' && !track.url) {
-          resolve('')
+          return resolve('')
         }
         if (track.type === 'local' || track.cache) {
           resolve(
@@ -1412,6 +1439,8 @@ export const usePlayerStore = defineStore(
       _list.value = []
       isPersonalFM.value = false
       lyrics.value = []
+      chorusStartTime.value = 0
+      chorus.value = 0
       if (pic.value.startsWith('blob:')) {
         URL.revokeObjectURL(pic.value)
         pic.value = new URL(`../assets/images/default.jpg`, import.meta.url).href
@@ -1430,21 +1459,37 @@ export const usePlayerStore = defineStore(
     const handleIpcRenderer = () => {
       window.addEventListener('message', (event) => {
         if (event.data.type === 'init-from-osd') {
+          const track = currentTrack.value
+          const artists = track?.artists ?? track?.ar ?? []
+          const currentTime = audioNodes.audio?.currentTime || 0
+          const osdLyrics = _.cloneDeep(lyrics.value)
+
+          if (!osdLyrics.length) {
+            osdLyrics[0] = {
+              start: 0,
+              end: 0,
+              lyric: {
+                text: track
+                  ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+                  : '听你想听的音乐'
+              }
+            }
+          }
+
           window.mainApi?.sendMessage({
             type: 'update-osd-status',
             data: {
-              line: [currentIndex.value, audioNodes.audio?.currentTime || 0],
+              lyrics: toRaw(osdLyrics),
+              line: [currentIndex.value, currentTime],
               playing: playing.value,
-              seek: audioNodes.audio?.currentTime || 0,
-              title: `${(currentTrack.value?.artists || currentTrack.value?.ar)[0]?.name} - ${currentTrack.value?.name}`,
-
-              // ======== newADD start======
-              // 桌面歌词窗口刚连接时，立即同步真实喜欢状态和当前封面。
-              // 这样已经收藏过的歌曲会直接显示实心爱心，
-              // 不需要等待下一次状态变化。
+              seek: currentTime,
+              rate: playbackRate.value,
+              lyricOffset: [lyricOffset.value, currentTime],
+              title: track
+                ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+                : '听你想听的音乐',
               isLiked: isLiked.value,
               pic: pic.value
-              // =========== newADD end ========
             }
           })
         } else if (event.data.type === 'get-seek') {
@@ -1482,7 +1527,7 @@ export const usePlayerStore = defineStore(
               start: 0,
               end: 0,
               lyric: {
-                text: `${(currentTrack.value?.artists || currentTrack.value?.ar)[0].name} - ${currentTrack.value?.name}`
+                text: `${(currentTrack.value?.artists || currentTrack.value?.ar || [])[0]?.name || '未知歌手'} - ${currentTrack.value?.name || '听你想听的音乐'}`
               }
             }
           }
@@ -1717,7 +1762,7 @@ export const usePlayerStore = defineStore(
           return playing.value
         },
         get volume() {
-          return audioNodes.audio?.volume || 0
+          return volume.value
         },
         get currentTrack() {
           return toRaw(currentTrack.value || {})
