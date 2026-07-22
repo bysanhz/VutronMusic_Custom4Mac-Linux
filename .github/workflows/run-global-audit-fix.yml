@@ -48,15 +48,11 @@ jobs:
 
           raw_lines = source[start:end].splitlines()
           script_lines = []
-          for line_number, line in enumerate(raw_lines, start=1):
-              if not line.strip():
-                  script_lines.append('')
-                  continue
-              if not line.startswith(yaml_indent):
-                  raise SystemExit(
-                      f'修复脚本第 {line_number} 行缺少 YAML 基础缩进：{line!r}'
-                  )
-              script_lines.append(line[len(yaml_indent):])
+          for line in raw_lines:
+              if line.startswith(yaml_indent):
+                  script_lines.append(line[len(yaml_indent):])
+              else:
+                  script_lines.append(line)
 
           script = '\n'.join(script_lines) + '\n'
           target = Path('/tmp/apply_global_audit_fixes.py')
