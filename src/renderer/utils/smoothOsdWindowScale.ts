@@ -47,9 +47,17 @@ const readPositiveNumber = (key: string, fallback: number) => {
 }
 
 export const readOsdScaleRange = (): OsdScaleRange => {
-  const first = readPositiveNumber(OSD_SCALE_MIN_FONT_SIZE_KEY, DEFAULT_MIN_FONT_SIZE)
-  const second = readPositiveNumber(OSD_SCALE_MAX_FONT_SIZE_KEY, DEFAULT_MAX_FONT_SIZE)
-  return first <= second ? { min: first, max: second } : { min: second, max: first }
+  const first = readPositiveNumber(
+    OSD_SCALE_MIN_FONT_SIZE_KEY,
+    DEFAULT_MIN_FONT_SIZE
+  )
+  const second = readPositiveNumber(
+    OSD_SCALE_MAX_FONT_SIZE_KEY,
+    DEFAULT_MAX_FONT_SIZE
+  )
+  return first <= second
+    ? { min: first, max: second }
+    : { min: second, max: first }
 }
 
 const readOsdType = () => {
@@ -85,13 +93,15 @@ const calculateGeometryScale = (
     const responsiveScale =
       weightedScale * (1 - COMPACT_DOMINANT_AXIS_WEIGHT) +
       dominantAxisScale * COMPACT_DOMINANT_AXIS_WEIGHT
-    const shortAxisGuard = shortAxisScale * COMPACT_SHORT_AXIS_SCALE_MULTIPLIER
+    const shortAxisGuard =
+      shortAxisScale * COMPACT_SHORT_AXIS_SCALE_MULTIPLIER
 
     return Math.min(responsiveScale, shortAxisGuard)
   }
 
   const areaScale = Math.sqrt(widthScale * heightScale)
-  const shortAxisGuard = shortAxisScale * NORMAL_SHORT_AXIS_SCALE_MULTIPLIER
+  const shortAxisGuard =
+    shortAxisScale * NORMAL_SHORT_AXIS_SCALE_MULTIPLIER
   return Math.min(areaScale, shortAxisGuard)
 }
 
@@ -123,19 +133,34 @@ export const initializeSmoothOsdWindowScale = () => {
     }
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
-    const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
-    const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
+    const contentWidth = Math.max(
+      1,
+      window.innerWidth * currentZoomFactor
+    )
+    const contentHeight = Math.max(
+      1,
+      window.innerHeight * currentZoomFactor
+    )
     const type = readOsdType()
-    const designWidth = type === 'small' ? SMALL_DESIGN_WIDTH : NORMAL_DESIGN_WIDTH
-    const designHeight = type === 'small' ? SMALL_DESIGN_HEIGHT : NORMAL_DESIGN_HEIGHT
+    const designWidth =
+      type === 'small' ? SMALL_DESIGN_WIDTH : NORMAL_DESIGN_WIDTH
+    const designHeight =
+      type === 'small' ? SMALL_DESIGN_HEIGHT : NORMAL_DESIGN_HEIGHT
     const widthScale = contentWidth / designWidth
     const heightScale = contentHeight / designHeight
-    const geometryScale = calculateGeometryScale(type, widthScale, heightScale)
+    const geometryScale = calculateGeometryScale(
+      type,
+      widthScale,
+      heightScale
+    )
 
     const range = readOsdScaleRange()
     const minZoomFactor = range.min / BASE_REFERENCE_FONT_SIZE
     const maxZoomFactor = range.max / BASE_REFERENCE_FONT_SIZE
-    const nextZoomFactor = Math.min(maxZoomFactor, Math.max(minZoomFactor, geometryScale))
+    const nextZoomFactor = Math.min(
+      maxZoomFactor,
+      Math.max(minZoomFactor, geometryScale)
+    )
 
     document.documentElement.style.setProperty(
       '--osd-window-zoom-factor',
@@ -163,7 +188,8 @@ export const initializeSmoothOsdWindowScale = () => {
 
   const runScheduledUpdate = () => {
     animationFrameId = null
-    const remaining = ZOOM_UPDATE_INTERVAL_MS - (performance.now() - lastZoomUpdateAt)
+    const remaining =
+      ZOOM_UPDATE_INTERVAL_MS - (performance.now() - lastZoomUpdateAt)
 
     if (remaining > 0) {
       if (delayedUpdateTimer === null) {
@@ -207,12 +233,18 @@ export const initializeSmoothOsdWindowScale = () => {
   updateZoomFactor()
   window.addEventListener('resize', handleResize, { passive: true })
   window.addEventListener('storage', handleStorage)
-  window.addEventListener(OSD_SCALE_SETTINGS_CHANGE_EVENT, scheduleUpdate)
+  window.addEventListener(
+    OSD_SCALE_SETTINGS_CHANGE_EVENT,
+    scheduleUpdate
+  )
 
   const cleanup = () => {
     window.removeEventListener('resize', handleResize)
     window.removeEventListener('storage', handleStorage)
-    window.removeEventListener(OSD_SCALE_SETTINGS_CHANGE_EVENT, scheduleUpdate)
+    window.removeEventListener(
+      OSD_SCALE_SETTINGS_CHANGE_EVENT,
+      scheduleUpdate
+    )
 
     if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
     if (delayedUpdateTimer !== null) window.clearTimeout(delayedUpdateTimer)
