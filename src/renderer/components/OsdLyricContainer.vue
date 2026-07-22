@@ -358,25 +358,41 @@ const handleVisebilitiyChange = () => {
 }
 
 onMounted(async () => {
-  const player = JSON.parse(localStorage.getItem('player') || '{}')
-  playing.value = player?.playing || false
-  if (!player.lyrics) return
-  lyrics.value = player.lyrics
-  currentIndex.value = player.currentIndex || -1
-  if (!lyrics.value.length) {
+  document.addEventListener('visibilitychange', handleVisebilitiyChange)
+
+  let player: Record<string, any> = {}
+  try {
+    player = JSON.parse(localStorage.getItem('player') || '{}')
+  } catch (error) {
+    console.warn('[OsdLyricContainer] 读取播放器持久化状态失败：', error)
+  }
+
+  playing.value = Boolean(player.playing)
+
+  const persistedIndex = Number(player.currentIndex)
+  currentIndex.value = Number.isInteger(persistedIndex) ? persistedIndex : -1
+
+  const trackOffset = Number(player.currentTrack?.offset) || 0
+  const storedGlobalOffset = Number(localStorage.getItem('globalLyricOffset'))
+  const globalOffset = Number.isFinite(storedGlobalOffset) ? storedGlobalOffset : 0
+  lyricOffset.value = Math.round((trackOffset + globalOffset) * 10) / 10
+
+  if (Array.isArray(player.lyrics)) {
+    lyrics.value = player.lyrics
+  }
+
+  if (!lyrics.value.length && player.currentTrack) {
+    const artists = player.currentTrack.artists ?? player.currentTrack.ar ?? []
     lyrics.value[0] = {
       start: 0,
       end: 0,
       lyric: {
-        text: `${(player.currentTrack?.artists || player.currentTrack?.ar)[0]?.name} - ${player.currentTrack?.name}`
+        text: `${artists[0]?.name || '未知歌手'} - ${player.currentTrack.name || '听你想听的音乐'}`
       }
     }
   }
-  lyricOffset.value = player.currentTrack.offset || 0
 
   scheduleAnimation()
-
-  document.addEventListener('visibilitychange', handleVisebilitiyChange)
 
   if (isMini.value) return
   await nextTick()
