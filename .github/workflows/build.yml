@@ -3,34 +3,76 @@ name: Release
 on:
   push:
     tags:
-      - v*
-  workflow_dispatch:
+      - 'v*.*.*'
+  workflow_dispatch: {}
 
-permissions: write-all
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify release source
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Verify tag matches package version
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "package.json version: ${PACKAGE_VERSION}"
+          echo "tag version: ${TAG_VERSION}"
+          test "${PACKAGE_VERSION}" = "${TAG_VERSION}"
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Build renderer and main process
+        run: yarn vite build
+
   Release:
+    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
         include:
-          # macOS
           - os: macos-15-intel
             arch: x64
             platform: darwin
           - os: macos-14
             arch: arm64
             platform: darwin
-
-          # Windows
           - os: windows-2022
             arch: x64
             platform: win32
           - os: windows-11-arm
             arch: arm64
             platform: win32
-
-          # Linux
           - os: ubuntu-22.04
             arch: x64
             platform: linux
@@ -47,240 +89,216 @@ jobs:
         run: |
           echo "Runner OS: ${{ matrix.os }}"
           echo "Target architecture: ${{ matrix.arch }}"
-          echo "✅ 架构验证通过"
+          echo "Architecture validation passed"
 
-      - name: Check out Git repository
-        uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v6
         with:
-          submodules: 'recursive'
+          submodules: recursive
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: 'yarn'
+          node-version: '22'
+          cache: yarn
 
-      - name: Install build essentials (macOS)
+      - name: Install build essentials on macOS
         if: matrix.platform == 'darwin'
         run: brew install rpm
 
-      - name: Install build essentials (Linux x64)
+      - name: Install build essentials on Linux x64
         if: matrix.platform == 'linux' && matrix.arch == 'x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm fakeroot snapd
+          sudo apt-get install -y rpm fakeroot snapd libnss3-dev libgtk-3-dev libxss-dev libgconf-2-4 libasound2
           sudo snap install snapcraft --classic
-          sudo apt-get install -y libnss3-dev libgtk-3-dev libxss-dev libgconf-2-4 libasound2
 
-      - name: Install system fpm for ARM64
+      - name: Install build essentials on Linux ARM64
         if: matrix.platform == 'linux' && matrix.arch == 'arm64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot libnss3 libgtk-3-0 libxss1 libgconf-2-4 libasound2
           sudo gem install fpm
-          sudo apt-get install -y rpm fakeroot
-          sudo apt-get install -y libnss3 libgtk-3-0 libxss1 libgconf-2-4 libasound2
           rm -rf ~/.cache/electron-builder/fpm || true
           fpm --version
 
-      - name: Install deps
+      - name: Install dependencies
         env:
           SKIP_REBUILD: true
-        run: ${{ env.XVFB_PFX }}yarn
+        run: ${{ env.XVFB_PFX }}yarn install --frozen-lockfile --network-timeout 600000
 
       - name: Fix taglib-wasm
         run: ${{ env.XVFB_PFX }}npm run fix-taglib
 
-      - name: Fix app-builder permissions (Linux ARM64)
+      - name: Fix app-builder permissions on Linux ARM64
         if: matrix.platform == 'linux' && matrix.arch == 'arm64'
-        run: |
-          chmod +x node_modules/app-builder-bin/linux/arm64/app-builder || true
+        run: chmod +x node_modules/app-builder-bin/linux/arm64/app-builder || true
 
-      - name: Rebuild native dependencies for current architecture
+      - name: Rebuild native dependencies
         run: |
           ${{ env.XVFB_PFX }}npm rebuild
           ${{ env.XVFB_PFX }}./node_modules/.bin/electron-rebuild
 
-      - name: Build Electron app (Linux ARM64)
+      - name: Build Linux ARM64 packages
         if: matrix.platform == 'linux' && matrix.arch == 'arm64'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ github.token }}
           ARCH: ${{ matrix.arch }}
           USE_SYSTEM_FPM: 'true'
-        run: |
-          yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage
+        run: yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage
 
-      - name: Build Electron app (Linux x64)
+      - name: Build Linux x64 packages
         if: matrix.platform == 'linux' && matrix.arch == 'x64'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ github.token }}
           ARCH: ${{ matrix.arch }}
-        run: |
-          yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage --linux snap
+        run: yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage --linux snap
 
-      - name: Build Electron app (其他平台)
+      - name: Build macOS or Windows packages
         if: matrix.platform != 'linux'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ github.token }}
           ARCH: ${{ matrix.arch }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: yarn build --${{ matrix.arch }} -p never
 
-      # Windows artifacts
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'win32'
         with:
           name: VutronMusic-win-${{ matrix.arch }}-installer
           path: release/*/VutronMusic*_${{ matrix.arch }}.exe
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows portable package
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'win32'
         with:
           name: VutronMusic-win-${{ matrix.arch }}-portable
           path: release/*/VutronMusic*_${{ matrix.arch }}-Portable.exe
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows metadata
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'win32'
         with:
-          name: VutronMusic-win-${{ matrix.arch }}-blockmap
-          path: release/*/VutronMusic*.blockmap
+          name: VutronMusic-win-${{ matrix.arch }}-metadata
+          path: |
+            release/*/VutronMusic*.blockmap
+            release/*/latest*.yml
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
-        if: matrix.platform == 'win32'
-        with:
-          name: VutronMusic-win-${{ matrix.arch }}-latest
-          path: release/*/latest*.yml
-          if-no-files-found: ignore
-
-      # macOS artifacts
-      - uses: actions/upload-artifact@v4
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'darwin'
         with:
           name: VutronMusic-mac-${{ matrix.arch }}-dmg
           path: release/*/VutronMusic*_${{ matrix.arch }}.dmg
-          if-no-files-found: ignore
+          if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload macOS metadata
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'darwin'
         with:
-          name: VutronMusic-mac-${{ matrix.arch }}-blockmap
-          path: release/*/VutronMusic*.blockmap
+          name: VutronMusic-mac-${{ matrix.arch }}-metadata
+          path: |
+            release/*/VutronMusic*.blockmap
+            release/*/latest*.yml
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
-        if: matrix.platform == 'darwin'
-        with:
-          name: VutronMusic-mac-${{ matrix.arch }}-latest
-          path: release/*/latest*.yml
-          if-no-files-found: ignore
-
-      # Linux artifacts
-      - uses: actions/upload-artifact@v4
-        if: matrix.platform == 'linux' && matrix.arch == 'x64'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-snap
-          path: release/*/VutronMusic*.snap
-          if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'linux'
         with:
           name: VutronMusic-linux-${{ matrix.arch }}-AppImage
           path: release/*/VutronMusic*.AppImage
-          if-no-files-found: ignore
+          if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux Deb
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'linux'
         with:
           name: VutronMusic-linux-${{ matrix.arch }}-deb
           path: release/*/VutronMusic*.deb
-          if-no-files-found: ignore
+          if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux RPM
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'linux'
         with:
           name: VutronMusic-linux-${{ matrix.arch }}-rpm
           path: release/*/VutronMusic*.rpm
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
-        if: matrix.platform == 'linux'
+      - name: Upload Linux Snap
+        uses: actions/upload-artifact@v6
+        if: matrix.platform == 'linux' && matrix.arch == 'x64'
         with:
-          name: VutronMusic-linux-${{ matrix.arch }}-blockmap
-          path: release/*/VutronMusic*.blockmap
+          name: VutronMusic-linux-${{ matrix.arch }}-snap
+          path: release/*/VutronMusic*.snap
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Linux metadata
+        uses: actions/upload-artifact@v6
         if: matrix.platform == 'linux'
         with:
-          name: VutronMusic-linux-${{ matrix.arch }}-latest
-          path: release/*/latest*.yml
+          name: VutronMusic-linux-${{ matrix.arch }}-metadata
+          path: |
+            release/*/VutronMusic*.blockmap
+            release/*/latest*.yml
           if-no-files-found: ignore
 
   publish-release:
-    needs: [Release]
+    name: Publish GitHub Release
+    needs: Release
     runs-on: ubuntu-22.04
-    name: Upload to GitHub Release
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: all-artifacts
 
-      - name: Display structure of downloaded files
-        run: ls -R all-artifacts
-
-      - name: Flatten all artifacts into upload folder (keep larger latest.yml if duplicate)
+      - name: Flatten release assets
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p upload
-          for f in $(find all-artifacts -type f); do
-            base=$(basename "$f")
+          while IFS= read -r -d '' file; do
+            base="$(basename "$file")"
             dest="upload/$base"
-            if [[ "$base" == latest*.yml ]]; then
-              # 如果已经存在同名文件，就比大小
-              if [[ -f "$dest" ]]; then
-                old_size=$(stat -c%s "$dest")
-                new_size=$(stat -c%s "$f")
-                if (( new_size > old_size )); then
-                  echo "⚡ Replacing $base with bigger file ($new_size > $old_size)"
-                  cp "$f" "$dest"
-                else
-                  echo "⚡ Keeping existing $base ($old_size >= $new_size)"
-                fi
-              else
-                cp "$f" "$dest"
+            if [[ "$base" == latest*.yml && -f "$dest" ]]; then
+              old_size="$(stat -c%s "$dest")"
+              new_size="$(stat -c%s "$file")"
+              if (( new_size > old_size )); then
+                cp "$file" "$dest"
               fi
             else
-              cp "$f" "$dest"
+              cp "$file" "$dest"
             fi
-          done
+          done < <(find all-artifacts -type f -print0)
+          find upload -maxdepth 1 -type f -print
 
-      - name: Create release tag if triggered by workflow_dispatch
-        if: github.event_name == 'workflow_dispatch'
+      - name: Resolve release tag
+        shell: bash
         run: |
-          DATE_TAG=$(date +'%Y%m%d%H%M')
-          echo "RELEASE_TAG=v-draft-${DATE_TAG}" >> $GITHUB_ENV
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "RELEASE_TAG=v-draft-$(date +'%Y%m%d%H%M')" >> "$GITHUB_ENV"
+            echo "RELEASE_IS_DRAFT=true" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+            echo "RELEASE_IS_DRAFT=false" >> "$GITHUB_ENV"
+          fi
 
-      - name: Set tag from git tag if available
-        if: github.event_name == 'push'
-        run: |
-          echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Upload all files to GitHub Release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+      - name: Upload and publish release
+        uses: softprops/action-gh-release@v3
         with:
           files: upload/*
-          draft: true
+          draft: ${{ env.RELEASE_IS_DRAFT }}
           prerelease: false
+          generate_release_notes: true
           tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
