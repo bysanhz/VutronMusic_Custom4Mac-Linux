@@ -1,0 +1,617 @@
+name: Apply reviewed refactor
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-reviewed-refactor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Apply reviewed changes
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding='utf-8')
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one exact match, found {count}: {old[:80]!r}')
+              write(path, text.replace(old, new, 1))
+
+          def regex_once(path: str, pattern: str, replacement: str) -> None:
+              text = read(path)
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one regex match, found {count}: {pattern[:100]!r}')
+              write(path, updated)
+
+          # ======== newADD start======
+          # 全局歌词偏移改为“单曲偏移 + 全局偏移”，不再写回 currentTrack.offset。
+          player_path = 'src/renderer/store/player.ts'
+          replace_once(
+              player_path,
+              "import { extractExpirationFromUrl } from '../utils'\n",
+              "import { extractExpirationFromUrl } from '../utils'\nimport { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'\n"
+          )
+          replace_once(
+              player_path,
+              "    const lyricOffset = computed(() => {\n      return currentTrack.value?.offset ?? 0\n    })",
+              "    /**\n     * 播放器最终使用的歌词偏移。\n     *\n     * 单曲 offset 保留歌曲自身的校正值；globalLyricOffset 是用户针对全部歌曲设置的\n     * 统一偏移。二者相加后供主歌词、逐字歌词、桌面歌词和托盘歌词共同使用。\n     */\n    const lyricOffset = computed(() => {\n      const trackOffset = Number(currentTrack.value?.offset) || 0\n      return Math.round((trackOffset + globalLyricOffset.value) * 10) / 10\n    })"
+          )
+          replace_once(
+              player_path,
+              "              chorus.value = res.chorus[0].startTime / 1000 - (currentTrack.value?.offset || 0)",
+              "              chorus.value = res.chorus[0].startTime / 1000 - lyricOffset.value"
+          )
+          replace_once(
+              player_path,
+              "      lyricOffset,\n      volume,",
+              "      lyricOffset,\n      globalLyricOffset,\n      volume,"
+          )
+          replace_once(
+              player_path,
+              "      setConvolver,\n      replacePlaylist,",
+              "      setConvolver,\n      setGlobalLyricOffset,\n      replacePlaylist,"
+          )
+          replace_once(
+              player_path,
+              "      omit: ['pic', 'title', 'outputDevice']",
+              "      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset']"
+          )
+
+          main_path = 'src/renderer/main.ts'
+          replace_once(main_path, "import { globalLyricOffset } from './utils/globalLyricOffset'\n", '')
+          replace_once(
+              main_path,
+              """/**
+ * 将持久化的全局歌词偏移同步到每一首当前歌曲。
+ *
+ * 详细说明：
+ * 1. 应用启动后立即同步一次；
+ * 2. 每次切歌时覆盖歌曲自身的 offset，使同一个偏移作用于全部歌曲；
+ * 3. 用户调整全局偏移后，当前歌曲立即更新，播放器和桌面歌词共用该值。
+ */
+watch(
+  () => [playerStore.currentTrack, globalLyricOffset.value] as const,
+  ([track, offset]) => {
+    if (!track || track.offset === offset) return
+    track.offset = offset
+  },
+  { immediate: true }
+)
+
+""",
+              ''
+          )
+
+          lyric_path = 'src/renderer/components/LyricPage.vue'
+          replace_once(
+              lyric_path,
+              '<button-icon title="提前0.5s（应用于所有歌曲）" @click="setOffset(-0.5)">',
+              '<button-icon title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）" @click="setOffset(-0.5, $event)">'
+          )
+          replace_once(
+              lyric_path,
+              '<button-icon title="延后0.5s（应用于所有歌曲）" @click="setOffset(+0.5)">',
+              '<button-icon title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）" @click="setOffset(+0.5, $event)">'
+          )
+          replace_once(
+              lyric_path,
+              "// ======== newADD start======\nimport { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'\n// =========== newADD end ========\n",
+              ''
+          )
+          replace_once(
+              lyric_path,
+              "  currentTrack,\n  lyrics,",
+              "  lyrics,"
+          )
+          replace_once(
+              lyric_path,
+              "  lyricOffset,\n  progress",
+              "  lyricOffset,\n  globalLyricOffset,\n  progress"
+          )
+          replace_once(
+              lyric_path,
+              "const playerStore = usePlayerStore()\nconst {",
+              "const playerStore = usePlayerStore()\nconst { setGlobalLyricOffset } = playerStore\nconst {"
+          )
+          regex_once(
+              lyric_path,
+              r"// ======== newADD start======\n/\*\*\n \* 调整全部歌曲共用的歌词偏移。.*?// =========== newADD end ========\n\nconst scheduleAnimation",
+              """// ======== newADD start======
+/**
+ * 调整全部歌曲共用的歌词偏移。
+ *
+ * Args:
+ *   offset: 普通点击的增量秒数；传入 0 时重置全局偏移。
+ *   event: 鼠标事件；按住 Shift 时将步长从 0.5s 改为 0.1s。
+ *
+ * Returns:
+ *   无返回值。
+ */
+const setOffset = (offset: number, event?: MouseEvent) => {
+  const step = event?.shiftKey && offset !== 0 ? Math.sign(offset) * 0.1 : offset
+  const nextOffset = setGlobalLyricOffset(
+    step === 0 ? 0 : globalLyricOffset.value + step
+  )
+
+  if (nextOffset === 0) {
+    showToast('已重置所有歌曲的全局歌词偏移')
+    return
+  }
+
+  showToast(
+    `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`
+  )
+}
+// =========== newADD end ========
+
+const scheduleAnimation"""
+          )
+
+          # 评论按钮按目标页面显示正确图标和提示，并允许从评论页返回歌词。
+          play_page = 'src/renderer/views/PlayPage.vue'
+          replace_once(play_page, '            v-show="tabs[tabIdx] !== \'comment\'"\n', '            v-show="tabs.length > 1"\n')
+          regex_once(
+              play_page,
+              r"            :title=\"\n              tabs\[\(tabIdx \+ 1\) % tabs\.length\] === 'comment'\n                \? '查看评论'\n                : \$t\('contextMenu\.showLyric'\)\n            \"",
+              '            :title="nextTabTitle"'
+          )
+          replace_once(
+              play_page,
+              """const switchCurrentTab = () => {
+  tabIdx.value = (tabIdx.value + 1) % tabs.value.length
+}
+
+const getIcon = () => {
+  if (tabs.value[tabIdx.value] === 'pickLyric') {
+    return 'lyric-half'
+  } else if (tabs.value[tabIdx.value] === 'fullLyric') {
+    return 'comment'
+  } else {
+    return 'lyric'
+  }
+}
+""",
+              """const nextTab = computed(() => {
+  if (!tabs.value.length) return 'fullLyric'
+  return tabs.value[(tabIdx.value + 1) % tabs.value.length]
+})
+
+const nextTabTitle = computed(() => {
+  if (nextTab.value === 'comment') return '查看评论'
+  if (tabs.value[tabIdx.value] === 'comment') return '返回歌词'
+  return nextTab.value === 'pickLyric' ? '显示精选歌词' : '显示完整歌词'
+})
+
+const switchCurrentTab = () => {
+  if (tabs.value.length <= 1) return
+  tabIdx.value = (tabIdx.value + 1) % tabs.value.length
+}
+
+const getIcon = () => {
+  if (nextTab.value === 'comment') return 'comment'
+  return nextTab.value === 'pickLyric' ? 'lyric-half' : 'lyric'
+}
+
+watch(tabs, (value) => {
+  if (!value.length || tabIdx.value >= value.length) tabIdx.value = 0
+})
+"""
+          )
+
+          # 心动模式：增加兼容重试、桌面歌词反馈和完整初始快照。
+          regex_once(
+              main_path,
+              r"const startHeartModeFromLikes = async \(\) => \{.*?\n\}\n\n/\*\*\n \* 使用 BroadcastChannel",
+              """const publishHeartModeResult = (
+  requestId: string,
+  status: 'loading' | 'success' | 'error',
+  message: string
+) => {
+  heartModeChannel.postMessage({
+    type: 'heart-mode-result',
+    requestId,
+    status,
+    message,
+    timestamp: Date.now()
+  })
+}
+
+const startHeartModeFromLikes = async (requestId = '') => {
+  if (heartModeLoading) {
+    publishHeartModeResult(requestId, 'error', '心动模式正在加载，请稍候')
+    return
+  }
+
+  if (!dataStore.user?.userId) {
+    const message = '心动模式需要先登录网易云音乐'
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'error', message)
+    return
+  }
+
+  heartModeLoading = true
+  stateStore.showToast('正在根据我喜欢的音乐生成心动模式…')
+  publishHeartModeResult(requestId, 'loading', '正在生成心动模式…')
+
+  try {
+    const playlistID = await resolveLikedPlaylistID()
+    if (!playlistID) {
+      const message = '未找到“我喜欢的音乐”歌单'
+      stateStore.showToast(message)
+      publishHeartModeResult(requestId, 'error', message)
+      return
+    }
+
+    const { seedTrackID } = await selectHeartModeSeedFromLikes(playlistID)
+    let result = await intelligencePlaylist({
+      id: seedTrackID,
+      pid: playlistID,
+      sid: seedTrackID
+    })
+
+    let responseItems = Array.isArray(result?.data) ? result.data : []
+    if (!responseItems.length) {
+      console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+        code: result?.code,
+        message: result?.message
+      })
+      result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+      responseItems = Array.isArray(result?.data) ? result.data : []
+    }
+
+    const recommendedTrackIDs = responseItems
+      .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
+      .filter((id: number) => Number.isFinite(id) && id > 0)
+
+    const heartModeTrackIDs = Array.from(
+      new Set<number>([seedTrackID, ...recommendedTrackIDs])
+    )
+
+    if (heartModeTrackIDs.length <= 1) {
+      const message = '未获取到心动模式推荐歌曲'
+      stateStore.showToast(message)
+      publishHeartModeResult(requestId, 'error', message)
+      return
+    }
+
+    playerStore.clearPlayNextList()
+    playerStore.shuffle = false
+    playerStore.repeatMode = 'off'
+
+    await playerStore.replacePlaylist(
+      'intelligence',
+      playlistID,
+      heartModeTrackIDs,
+      0
+    )
+
+    const message = `已开启心动模式，共 ${heartModeTrackIDs.length} 首`
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'success', message)
+  } catch (error: any) {
+    console.error('[HeartMode] 根据喜欢歌单启动失败：', error)
+    const message =
+      error?.message === 'LIKED_PLAYLIST_EMPTY'
+        ? '“我喜欢的音乐”歌单为空'
+        : '心动模式加载失败，请稍后重试'
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'error', message)
+  } finally {
+    heartModeLoading = false
+  }
+}
+
+/**
+ * 使用 BroadcastChannel"""
+          )
+          replace_once(
+              main_path,
+              "let heartModeLoading = false\n",
+              "let heartModeLoading = false\nconst heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)\n"
+          )
+          replace_once(
+              main_path,
+              """const heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+heartModeChannel.onmessage = (event: MessageEvent) => {
+  if (event.data?.type !== 'start-heart-mode-from-likes') return
+  startHeartModeFromLikes()
+}
+""",
+              """const publishPlayerSnapshot = () => {
+  heartModeChannel.postMessage({
+    type: 'player-snapshot',
+    data: {
+      trackID: playerStore.currentTrack?.id ?? 0,
+      trackName: playerStore.currentTrack?.name ?? '',
+      playing: playerStore.playing,
+      isLiked: playerStore.isLiked,
+      pic: playerStore.pic,
+      repeatMode: playerStore.repeatMode,
+      shuffle: playerStore.shuffle,
+      lyricOffset: playerStore.lyricOffset
+    },
+    timestamp: Date.now()
+  })
+}
+
+heartModeChannel.onmessage = (event: MessageEvent) => {
+  if (event.data?.type === 'start-heart-mode-from-likes') {
+    startHeartModeFromLikes(String(event.data?.requestId ?? ''))
+    return
+  }
+
+  if (event.data?.type === 'request-player-snapshot') {
+    publishPlayerSnapshot()
+  }
+}
+
+watch(
+  () => [
+    playerStore.currentTrack?.id,
+    playerStore.playing,
+    playerStore.isLiked,
+    playerStore.pic,
+    playerStore.repeatMode,
+    playerStore.shuffle,
+    playerStore.lyricOffset
+  ],
+  publishPlayerSnapshot,
+  { immediate: true }
+)
+"""
+          )
+
+          compact_path = 'src/renderer/components/CompactCoverControls.vue'
+          replace_once(
+              compact_path,
+              """      <button
+        class="compact-control-button control-heart-mode hover-control"
+        title="根据我喜欢的音乐开启心动模式"
+        @click.stop="startHeartMode"
+      >
+        <SvgIcon icon-class="heart-mode" />
+      </button>""",
+              """      <button
+        class="compact-control-button control-heart-mode hover-control"
+        :class="{ loading: heartModeLoading }"
+        :title="heartModeTitle"
+        :disabled="heartModeLoading"
+        @click.stop="startHeartMode"
+      >
+        <SvgIcon icon-class="heart-mode" />
+      </button>"""
+          )
+          replace_once(
+              compact_path,
+              "const coverUrl = ref(DEFAULT_COVER)\nlet heartModeChannel: BroadcastChannel | null = null\n",
+              """const coverUrl = ref(DEFAULT_COVER)
+const heartModeLoading = ref(false)
+const heartModeTitle = ref('根据我喜欢的音乐开启心动模式')
+let heartModeChannel: BroadcastChannel | null = null
+let heartModeRequestId = ''
+let heartModeTimeout: number | null = null
+"""
+          )
+          regex_once(
+              compact_path,
+              r"const startHeartMode = \(\) => \{.*?\n\}\n// =========== newADD end ========",
+              """const startHeartMode = () => {
+  if (heartModeLoading.value) return
+  if (!heartModeChannel) {
+    heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+    heartModeChannel.onmessage = handleControlMessage
+  }
+
+  heartModeRequestId =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`
+  heartModeLoading.value = true
+  heartModeTitle.value = '正在生成心动模式…'
+
+  heartModeChannel.postMessage({
+    type: 'start-heart-mode-from-likes',
+    requestId: heartModeRequestId,
+    timestamp: Date.now()
+  })
+
+  if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
+  heartModeTimeout = window.setTimeout(() => {
+    heartModeLoading.value = false
+    heartModeTitle.value = '心动模式响应超时，请重试'
+    heartModeTimeout = null
+  }, 15000)
+}
+// =========== newADD end ========"""
+          )
+          replace_once(
+              compact_path,
+              "const handleStorage = (event: StorageEvent) => {\n",
+              """const handleControlMessage = (event: MessageEvent) => {
+  if (event.data?.type === 'player-snapshot') {
+    const data = event.data.data ?? {}
+    if (typeof data.playing === 'boolean') isPlaying.value = data.playing
+    if (typeof data.isLiked === 'boolean') isLiked.value = data.isLiked
+    if (typeof data.pic === 'string' && data.pic.length > 0) coverUrl.value = data.pic
+    return
+  }
+
+  if (
+    event.data?.type !== 'heart-mode-result' ||
+    event.data?.requestId !== heartModeRequestId
+  ) {
+    return
+  }
+
+  heartModeTitle.value = String(event.data?.message || '心动模式状态已更新')
+  if (event.data?.status === 'loading') return
+
+  heartModeLoading.value = false
+  if (heartModeTimeout !== null) {
+    window.clearTimeout(heartModeTimeout)
+    heartModeTimeout = null
+  }
+}
+
+const handleStorage = (event: StorageEvent) => {
+"""
+          )
+          replace_once(
+              compact_path,
+              """  updatePlayerSnapshot()
+  heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+  window.addEventListener('storage', handleStorage)""",
+              """  updatePlayerSnapshot()
+  heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+  heartModeChannel.onmessage = handleControlMessage
+  heartModeChannel.postMessage({ type: 'request-player-snapshot', timestamp: Date.now() })
+  window.addEventListener('storage', handleStorage)"""
+          )
+          replace_once(
+              compact_path,
+              """onBeforeUnmount(() => {
+  heartModeChannel?.close()
+  heartModeChannel = null""",
+              """onBeforeUnmount(() => {
+  if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
+  heartModeTimeout = null
+  heartModeChannel?.close()
+  heartModeChannel = null"""
+          )
+          replace_once(
+              compact_path,
+              ".control-heart-mode .svg-icon {\n  width: 11px;\n  height: 11px;\n}\n",
+              """.control-heart-mode .svg-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.control-heart-mode.loading {
+  opacity: 0.72;
+  cursor: wait;
+
+  .svg-icon {
+    animation: heart-mode-loading-pulse 0.8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes heart-mode-loading-pulse {
+  from {
+    transform: scale(0.82);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+"""
+          )
+
+          # 构建流程、版本、仓库元数据。
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['version'] = '3.2.1'
+          package['homepage'] = 'https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux'
+          package['repository'] = {
+              'type': 'git',
+              'url': 'https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux.git'
+          }
+          package['bugs'] = {
+              'url': 'https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/issues'
+          }
+          package['scripts']['build:pre'] = 'npm run vue:type-check && vite build'
+          package['scripts']['vue:type-check'] = 'vue-tsc --noEmit'
+          package['scripts']['format:check'] = 'prettier . --check'
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          builder_path = 'buildAssets/builder/config.js'
+          builder = read(builder_path)
+          if not re.search(r'(^|\n)\s*appId\s*:', builder):
+              markers = ['module.exports = {\n', 'const config = {\n', 'export default {\n']
+              for marker in markers:
+                  if marker in builder:
+                      builder = builder.replace(marker, marker + "  appId: 'com.bysanhz.vutronmusic.custom',\n", 1)
+                      break
+              else:
+                  raise RuntimeError('Unable to locate builder config object for appId insertion')
+              write(builder_path, builder)
+
+          # 一次性工作流在最终提交中删除，避免仓库长期保留维护脚本。
+          # =========== newADD end ========
+          PY
+
+      - name: Format changed files
+        run: |
+          yarn prettier --write \
+            src/renderer/store/player.ts \
+            src/renderer/main.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/components/CompactCoverControls.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            package.json \
+            buildAssets/builder/config.js
+
+      - name: Type check
+        run: yarn vue-tsc --noEmit
+
+      - name: Build renderer and main process
+        run: yarn vite build
+
+      - name: Review targeted offset usages
+        run: |
+          echo 'Remaining direct currentTrack offset references:'
+          grep -n "currentTrack.value.*offset" src/renderer/store/player.ts || true
+          echo 'Effective lyric offset definition:'
+          grep -n -A8 -B3 "const lyricOffset = computed" src/renderer/store/player.ts
+
+      - name: Commit reviewed refactor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-reviewed-refactor.yml
+          git add \
+            src/renderer/store/player.ts \
+            src/renderer/main.ts \
+            src/renderer/components/LyricPage.vue \
+            src/renderer/views/PlayPage.vue \
+            src/renderer/components/CompactCoverControls.vue \
+            src/renderer/utils/globalLyricOffset.ts \
+            package.json \
+            buildAssets/builder/config.js
+          git commit -m "完善全局歌词偏移与播放器交互"
+          git push origin HEAD:main
