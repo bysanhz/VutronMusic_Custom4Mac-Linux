@@ -21,7 +21,7 @@ if (!log) {
 }
 
 // ======== newADD start======
-type RuntimeProcess = NodeJS.Process & {
+type RuntimeProcess = typeof process & {
   __vutronUnhandledRejectionHandlerInstalled__?: boolean
 }
 
