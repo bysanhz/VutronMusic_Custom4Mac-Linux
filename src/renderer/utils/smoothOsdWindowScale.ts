@@ -71,7 +71,11 @@ const readOsdType = () => {
  *
  * 普通模式仍使用面积比例，保持原有整体布局稳定性。
  */
-const calculateGeometryScale = (type: 'small' | 'normal', widthScale: number, heightScale: number) => {
+const calculateGeometryScale = (
+  type: 'small' | 'normal',
+  widthScale: number,
+  heightScale: number
+) => {
   const shortAxisScale = Math.min(widthScale, heightScale)
 
   if (type === 'small') {
