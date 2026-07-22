@@ -1,25 +1,25 @@
 {
   "name": "VutronMusic",
   "packageManager": "yarn@1.22.22",
-  "version": "3.2.0",
-  "homepage": "https://github.com/stark81",
+  "version": "3.2.1",
+  "homepage": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux",
   "author": "stark81 <qq2995734001@gmail.com>",
   "license": "MIT",
   "main": "dist/main/index.js",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/stark81/VutronMusic.git"
+    "url": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux.git"
   },
   "bugs": {
-    "url": "https://github.com/stark81/VutronMusic/issues"
+    "url": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/issues"
   },
   "scripts": {
     "dev": "vite",
     "dev:debug": "vite -d",
     "dev:debug:force": "vite -d --force",
     "build": "npm run build:pre && electron-builder --config=buildAssets/builder/config.js",
-    "build:pre": "npm run format:fix && vue-tsc --noEmit && vite build",
+    "build:pre": "npm run vue:type-check && vite build",
     "build:all": "npm run build:pre && electron-builder --config=buildAssets/builder/config.js -wml",
     "build:dir": "npm run build:pre && electron-builder --config=buildAssets/builder/config.js --dir",
     "build:mac": "npm run build:pre && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config=buildAssets/builder/config.js --mac",
@@ -33,7 +33,9 @@
     "format": "prettier .",
     "format:fix": "prettier . --write",
     "test": "npm run build:pre && playwright test",
-    "test:linux": "npm run build:pre && xvfb-run --auto-servernum --server-args='-screen 0, 1280x960x24' -- playwright test"
+    "test:linux": "npm run build:pre && xvfb-run --auto-servernum --server-args='-screen 0, 1280x960x24' -- playwright test",
+    "vue:type-check": "vue-tsc --noEmit",
+    "format:check": "prettier . --check"
   },
   "engines": {
     "node": ">=22.6.0"

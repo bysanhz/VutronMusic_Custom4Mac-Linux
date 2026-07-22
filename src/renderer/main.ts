@@ -25,7 +25,6 @@ import vue3lottie from 'vue3-lottie'
 // 但不再加载，避免 700/520/460/390px 等断点造成布局模型突然变化。
 import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
 import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings'
-import { globalLyricOffset } from './utils/globalLyricOffset'
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
@@ -107,23 +106,7 @@ const playerStore = usePlayerStore(pinia)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
-
-/**
- * 将持久化的全局歌词偏移同步到每一首当前歌曲。
- *
- * 详细说明：
- * 1. 应用启动后立即同步一次；
- * 2. 每次切歌时覆盖歌曲自身的 offset，使同一个偏移作用于全部歌曲；
- * 3. 用户调整全局偏移后，当前歌曲立即更新，播放器和桌面歌词共用该值。
- */
-watch(
-  () => [playerStore.currentTrack, globalLyricOffset.value] as const,
-  ([track, offset]) => {
-    if (!track || track.offset === offset) return
-    track.offset = offset
-  },
-  { immediate: true }
-)
+const heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
 
 /**
  * 获取“我喜欢的音乐”歌单 ID。
@@ -179,42 +162,73 @@ const selectHeartModeSeedFromLikes = async (playlistID: number) => {
  * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
  * 5. 后续歌曲严格采用智能播放接口返回的推荐顺序。
  */
-const startHeartModeFromLikes = async () => {
-  if (heartModeLoading) return
+const publishHeartModeResult = (
+  requestId: string,
+  status: 'loading' | 'success' | 'error',
+  message: string
+) => {
+  heartModeChannel.postMessage({
+    type: 'heart-mode-result',
+    requestId,
+    status,
+    message,
+    timestamp: Date.now()
+  })
+}
+
+const startHeartModeFromLikes = async (requestId = '') => {
+  if (heartModeLoading) {
+    publishHeartModeResult(requestId, 'error', '心动模式正在加载，请稍候')
+    return
+  }
 
   if (!dataStore.user?.userId) {
-    stateStore.showToast('心动模式需要先登录网易云音乐')
+    const message = '心动模式需要先登录网易云音乐'
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'error', message)
     return
   }
 
   heartModeLoading = true
   stateStore.showToast('正在根据我喜欢的音乐生成心动模式…')
+  publishHeartModeResult(requestId, 'loading', '正在生成心动模式…')
 
   try {
     const playlistID = await resolveLikedPlaylistID()
     if (!playlistID) {
-      stateStore.showToast('未找到“我喜欢的音乐”歌单')
+      const message = '未找到“我喜欢的音乐”歌单'
+      stateStore.showToast(message)
+      publishHeartModeResult(requestId, 'error', message)
       return
     }
 
     const { seedTrackID } = await selectHeartModeSeedFromLikes(playlistID)
-    const result = await intelligencePlaylist({
+    let result = await intelligencePlaylist({
       id: seedTrackID,
       pid: playlistID,
       sid: seedTrackID
     })
 
-    const responseItems = Array.isArray(result?.data) ? result.data : []
+    let responseItems = Array.isArray(result?.data) ? result.data : []
+    if (!responseItems.length) {
+      console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+        code: result?.code,
+        message: result?.message
+      })
+      result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+      responseItems = Array.isArray(result?.data) ? result.data : []
+    }
+
     const recommendedTrackIDs = responseItems
       .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
       .filter((id: number) => Number.isFinite(id) && id > 0)
 
-    const heartModeTrackIDs = Array.from(
-      new Set<number>([seedTrackID, ...recommendedTrackIDs])
-    )
+    const heartModeTrackIDs = Array.from(new Set<number>([seedTrackID, ...recommendedTrackIDs]))
 
     if (heartModeTrackIDs.length <= 1) {
-      stateStore.showToast('未获取到心动模式推荐歌曲')
+      const message = '未获取到心动模式推荐歌曲'
+      stateStore.showToast(message)
+      publishHeartModeResult(requestId, 'error', message)
       return
     }
 
@@ -222,21 +236,19 @@ const startHeartModeFromLikes = async () => {
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'
 
-    await playerStore.replacePlaylist(
-      'intelligence',
-      playlistID,
-      heartModeTrackIDs,
-      0
-    )
+    await playerStore.replacePlaylist('intelligence', playlistID, heartModeTrackIDs, 0)
 
-    stateStore.showToast(`已开启心动模式，共 ${heartModeTrackIDs.length} 首`)
+    const message = `已开启心动模式，共 ${heartModeTrackIDs.length} 首`
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'success', message)
   } catch (error: any) {
     console.error('[HeartMode] 根据喜欢歌单启动失败：', error)
-    stateStore.showToast(
+    const message =
       error?.message === 'LIKED_PLAYLIST_EMPTY'
         ? '“我喜欢的音乐”歌单为空'
         : '心动模式加载失败，请稍后重试'
-    )
+    stateStore.showToast(message)
+    publishHeartModeResult(requestId, 'error', message)
   } finally {
     heartModeLoading = false
   }
@@ -248,11 +260,47 @@ const startHeartModeFromLikes = async () => {
  * 该通道不依赖桌面歌词 MessagePort 的初始化时序，因此窗口重建、热更新或主窗口
  * 隐藏时仍能稳定触发。
  */
-const heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
-heartModeChannel.onmessage = (event: MessageEvent) => {
-  if (event.data?.type !== 'start-heart-mode-from-likes') return
-  startHeartModeFromLikes()
+const publishPlayerSnapshot = () => {
+  heartModeChannel.postMessage({
+    type: 'player-snapshot',
+    data: {
+      trackID: playerStore.currentTrack?.id ?? 0,
+      trackName: playerStore.currentTrack?.name ?? '',
+      playing: playerStore.playing,
+      isLiked: playerStore.isLiked,
+      pic: playerStore.pic,
+      repeatMode: playerStore.repeatMode,
+      shuffle: playerStore.shuffle,
+      lyricOffset: playerStore.lyricOffset
+    },
+    timestamp: Date.now()
+  })
 }
+
+heartModeChannel.onmessage = (event: MessageEvent) => {
+  if (event.data?.type === 'start-heart-mode-from-likes') {
+    startHeartModeFromLikes(String(event.data?.requestId ?? ''))
+    return
+  }
+
+  if (event.data?.type === 'request-player-snapshot') {
+    publishPlayerSnapshot()
+  }
+}
+
+watch(
+  () => [
+    playerStore.currentTrack?.id,
+    playerStore.playing,
+    playerStore.isLiked,
+    playerStore.pic,
+    playerStore.repeatMode,
+    playerStore.shuffle,
+    playerStore.lyricOffset
+  ],
+  publishPlayerSnapshot,
+  { immediate: true }
+)
 
 // 保留旧 MessagePort 消息兼容，避免旧桌面歌词窗口尚未重建时完全失效。
 window.addEventListener('message', (event: MessageEvent) => {

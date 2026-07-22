@@ -23,6 +23,7 @@ import { getLyric as getApiLyric, getTrackDetail } from '../api/track'
 import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { extractExpirationFromUrl } from '../utils'
+import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -510,7 +511,7 @@ export const usePlayerStore = defineStore(
         } else if (currentTrack.value?.matched) {
           songChorus(currentTrack.value.id).then((res) => {
             if (res.chorus.length) {
-              chorus.value = res.chorus[0].startTime / 1000 - (currentTrack.value?.offset || 0)
+              chorus.value = res.chorus[0].startTime / 1000 - lyricOffset.value
             }
           })
         }
@@ -615,8 +616,15 @@ export const usePlayerStore = defineStore(
       }
     })
 
+    /**
+     * 播放器最终使用的歌词偏移。
+     *
+     * 单曲 offset 保留歌曲自身的校正值；globalLyricOffset 是用户针对全部歌曲设置的
+     * 统一偏移。二者相加后供主歌词、逐字歌词、桌面歌词和托盘歌词共同使用。
+     */
     const lyricOffset = computed(() => {
-      return currentTrack.value?.offset ?? 0
+      const trackOffset = Number(currentTrack.value?.offset) || 0
+      return Math.round((trackOffset + globalLyricOffset.value) * 10) / 10
     })
 
     watch(lyricOffset, (value) => {
@@ -1810,6 +1818,7 @@ export const usePlayerStore = defineStore(
       title,
       shuffle,
       lyricOffset,
+      globalLyricOffset,
       volume,
       volumeBeforeMuted,
       _list,
@@ -1837,6 +1846,7 @@ export const usePlayerStore = defineStore(
       playlistSource,
       fadeDuration,
       setConvolver,
+      setGlobalLyricOffset,
       replacePlaylist,
       playPrev,
       _playNextTrack,
@@ -1854,7 +1864,7 @@ export const usePlayerStore = defineStore(
   },
   {
     persist: {
-      omit: ['pic', 'title', 'outputDevice']
+      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset']
     }
   }
 )

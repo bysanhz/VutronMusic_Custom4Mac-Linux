@@ -2,13 +2,19 @@
   <transition name="slide-fade">
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
-        <button-icon title="提前0.5s（应用于所有歌曲）" @click="setOffset(-0.5)">
+        <button-icon
+          title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          @click="setOffset(-0.5, $event)"
+        >
           <svg-icon icon-class="back5s" />
         </button-icon>
         <button-icon class="recovery" :title="offset" @click="setOffset(0)">
           <svg-icon icon-class="recovery" />
         </button-icon>
-        <button-icon title="延后0.5s（应用于所有歌曲）" @click="setOffset(+0.5)">
+        <button-icon
+          title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          @click="setOffset(+0.5, $event)"
+        >
           <svg-icon icon-class="forward5s" />
         </button-icon>
       </div>
@@ -47,9 +53,6 @@ import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerThemeStore } from '../store/playerTheme'
-// ======== newADD start======
-import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
-// =========== newADD end ========
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricLine from './LyricLine.vue'
@@ -65,15 +68,16 @@ const props = defineProps({
 })
 
 const playerStore = usePlayerStore()
+const { setGlobalLyricOffset } = playerStore
 const {
   noLyric,
-  currentTrack,
   lyrics,
   playing,
   currentIndex,
   playbackRate,
   seek,
   lyricOffset,
+  globalLyricOffset,
   progress
 } = storeToRefs(playerStore)
 
@@ -124,28 +128,23 @@ let scrollingTimer: any = null
  * 调整全部歌曲共用的歌词偏移。
  *
  * Args:
- *   offset: 本次增量秒数；传入 0 时重置全局偏移。
+ *   offset: 普通点击的增量秒数；传入 0 时重置全局偏移。
+ *   event: 鼠标事件；按住 Shift 时将步长从 0.5s 改为 0.1s。
  *
  * Returns:
  *   无返回值。
  */
-const setOffset = (offset: number) => {
-  const nextOffset = setGlobalLyricOffset(
-    offset === 0 ? 0 : globalLyricOffset.value + offset
-  )
-
-  // 立即写入当前歌曲，确保播放器内部 lyricOffset 及桌面歌词同步更新。
-  if (currentTrack.value) {
-    currentTrack.value.offset = nextOffset
-  }
+const setOffset = (offset: number, event?: MouseEvent) => {
+  const step = event?.shiftKey && offset !== 0 ? Math.sign(offset) * 0.1 : offset
+  const nextOffset = setGlobalLyricOffset(step === 0 ? 0 : globalLyricOffset.value + step)
 
   if (nextOffset === 0) {
-    showToast('已重置所有歌曲的歌词偏移')
+    showToast('已重置所有歌曲的全局歌词偏移')
     return
   }
 
   showToast(
-    `所有歌曲的歌词已${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`
+    `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`
   )
 }
 // =========== newADD end ========

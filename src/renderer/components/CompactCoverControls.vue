@@ -50,7 +50,9 @@
 
       <button
         class="compact-control-button control-heart-mode hover-control"
-        title="根据我喜欢的音乐开启心动模式"
+        :class="{ loading: heartModeLoading }"
+        :title="heartModeTitle"
+        :disabled="heartModeLoading"
         @click.stop="startHeartMode"
       >
         <SvgIcon icon-class="heart-mode" />
@@ -80,7 +82,11 @@ const isHover = ref(false)
 const isPlaying = ref(false)
 const isLiked = ref(false)
 const coverUrl = ref(DEFAULT_COVER)
+const heartModeLoading = ref(false)
+const heartModeTitle = ref('根据我喜欢的音乐开启心动模式')
 let heartModeChannel: BroadcastChannel | null = null
+let heartModeRequestId = ''
+let heartModeTimeout: number | null = null
 
 /**
  * 从共享播放器快照读取封面与播放状态。
@@ -129,16 +135,54 @@ const toggleMainWindow = () => {
  * `/playmode/intelligence/list`，随后立即替换播放队列并开始播放。
  */
 const startHeartMode = () => {
+  if (heartModeLoading.value) return
   if (!heartModeChannel) {
     heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+    heartModeChannel.onmessage = handleControlMessage
   }
+
+  heartModeRequestId =
+    typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
+  heartModeLoading.value = true
+  heartModeTitle.value = '正在生成心动模式…'
 
   heartModeChannel.postMessage({
     type: 'start-heart-mode-from-likes',
+    requestId: heartModeRequestId,
     timestamp: Date.now()
   })
+
+  if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
+  heartModeTimeout = window.setTimeout(() => {
+    heartModeLoading.value = false
+    heartModeTitle.value = '心动模式响应超时，请重试'
+    heartModeTimeout = null
+  }, 15000)
 }
 // =========== newADD end ========
+
+const handleControlMessage = (event: MessageEvent) => {
+  if (event.data?.type === 'player-snapshot') {
+    const data = event.data.data ?? {}
+    if (typeof data.playing === 'boolean') isPlaying.value = data.playing
+    if (typeof data.isLiked === 'boolean') isLiked.value = data.isLiked
+    if (typeof data.pic === 'string' && data.pic.length > 0) coverUrl.value = data.pic
+    return
+  }
+
+  if (event.data?.type !== 'heart-mode-result' || event.data?.requestId !== heartModeRequestId) {
+    return
+  }
+
+  heartModeTitle.value = String(event.data?.message || '心动模式状态已更新')
+  if (event.data?.status === 'loading') return
+
+  heartModeLoading.value = false
+  if (heartModeTimeout !== null) {
+    window.clearTimeout(heartModeTimeout)
+    heartModeTimeout = null
+  }
+}
 
 const handleStorage = (event: StorageEvent) => {
   if (event.key === 'player') updatePlayerSnapshot()
@@ -161,12 +205,16 @@ const handlePlayingStatus = (_event: unknown, value: boolean) => {
 onMounted(() => {
   updatePlayerSnapshot()
   heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
+  heartModeChannel.onmessage = handleControlMessage
+  heartModeChannel.postMessage({ type: 'request-player-snapshot', timestamp: Date.now() })
   window.addEventListener('storage', handleStorage)
   window.addEventListener('message', handleOsdStatusMessage)
   window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
 })
 
 onBeforeUnmount(() => {
+  if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
+  heartModeTimeout = null
   heartModeChannel?.close()
   heartModeChannel = null
   window.removeEventListener('storage', handleStorage)
@@ -272,6 +320,26 @@ onBeforeUnmount(() => {
 .control-heart-mode .svg-icon {
   width: 11px;
   height: 11px;
+}
+
+.control-heart-mode.loading {
+  opacity: 0.72;
+  cursor: wait;
+
+  .svg-icon {
+    animation: heart-mode-loading-pulse 0.8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes heart-mode-loading-pulse {
+  from {
+    transform: scale(0.82);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 1;
+  }
 }
 
 .control-like .svg-icon {

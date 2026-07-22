@@ -13,7 +13,7 @@
           :class="{ opacity: activeTheme.theme.activeLayout === 'Creative', hover }"
         >
           <button-icon
-            v-show="tabs[tabIdx] !== 'comment'"
+            v-show="tabs.length > 1"
             class="player-button theme-button"
             @click="setThemeModal = !setThemeModal"
           >
@@ -38,11 +38,7 @@
           </button-icon>
           <button-icon
             class="player-button lyric-button-1"
-            :title="
-              tabs[(tabIdx + 1) % tabs.length] === 'comment'
-                ? '查看评论'
-                : $t('contextMenu.showLyric')
-            "
+            :title="nextTabTitle"
             @click="switchCurrentTab"
           >
             <SvgIcon :icon-class="getIcon()" />
@@ -167,19 +163,30 @@ const addTrackToPlaylist = () => {
 
 provide('playPageContextMenu', playPageContextMenu)
 
+const nextTab = computed(() => {
+  if (!tabs.value.length) return 'fullLyric'
+  return tabs.value[(tabIdx.value + 1) % tabs.value.length]
+})
+
+const nextTabTitle = computed(() => {
+  if (nextTab.value === 'comment') return '查看评论'
+  if (tabs.value[tabIdx.value] === 'comment') return '返回歌词'
+  return nextTab.value === 'pickLyric' ? '显示精选歌词' : '显示完整歌词'
+})
+
 const switchCurrentTab = () => {
+  if (tabs.value.length <= 1) return
   tabIdx.value = (tabIdx.value + 1) % tabs.value.length
 }
 
 const getIcon = () => {
-  if (tabs.value[tabIdx.value] === 'pickLyric') {
-    return 'lyric-half'
-  } else if (tabs.value[tabIdx.value] === 'fullLyric') {
-    return 'comment'
-  } else {
-    return 'lyric'
-  }
+  if (nextTab.value === 'comment') return 'comment'
+  return nextTab.value === 'pickLyric' ? 'lyric-half' : 'lyric'
 }
+
+watch(tabs, (value) => {
+  if (!value.length || tabIdx.value >= value.length) tabIdx.value = 0
+})
 
 watch(showSenseSelector, () => {
   titleIdx.value = 0
