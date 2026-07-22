@@ -2,13 +2,13 @@
   <transition name="slide-fade">
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
-        <button-icon title="提前0.5s" @click="setOffset(-0.5)">
+        <button-icon title="提前0.5s（应用于所有歌曲）" @click="setOffset(-0.5)">
           <svg-icon icon-class="back5s" />
         </button-icon>
         <button-icon class="recovery" :title="offset" @click="setOffset(0)">
           <svg-icon icon-class="recovery" />
         </button-icon>
-        <button-icon title="后退0.5s" @click="setOffset(+0.5)">
+        <button-icon title="延后0.5s（应用于所有歌曲）" @click="setOffset(+0.5)">
           <svg-icon icon-class="forward5s" />
         </button-icon>
       </div>
@@ -47,6 +47,9 @@ import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerThemeStore } from '../store/playerTheme'
+// ======== newADD start======
+import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
+// =========== newADD end ========
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricLine from './LyricLine.vue'
@@ -98,44 +101,54 @@ const lineMode = computed(() => {
 
 const highlight = computed(() => Math.min(currentIndex.value, lyrics.value.length - 1))
 
+// ======== newADD start======
 const offset = computed(() => {
-  const lrcOffset = currentTrack.value!.offset || 0
+  const lrcOffset = globalLyricOffset.value
   if (lrcOffset === 0) {
-    return '未调整'
+    return '所有歌曲：未调整'
   } else if (lrcOffset > 0) {
-    return `延后${lrcOffset}s`
+    return `所有歌曲：延后${lrcOffset}s`
   } else {
-    return `提前${Math.abs(lrcOffset)}s`
+    return `所有歌曲：提前${Math.abs(lrcOffset)}s`
   }
 })
+// =========== newADD end ========
 
 const transformOrigin = computed(() => `center ${props.textAlign}`)
 const lyricRefs = ref<InstanceType<typeof LyricLine>[]>([])
 const isWheeling = ref(false)
 let scrollingTimer: any = null
 
+// ======== newADD start======
+/**
+ * 调整全部歌曲共用的歌词偏移。
+ *
+ * Args:
+ *   offset: 本次增量秒数；传入 0 时重置全局偏移。
+ *
+ * Returns:
+ *   无返回值。
+ */
 const setOffset = (offset: number) => {
-  if (!currentTrack.value!.offset) {
-    currentTrack.value!.offset = 0
+  const nextOffset = setGlobalLyricOffset(
+    offset === 0 ? 0 : globalLyricOffset.value + offset
+  )
+
+  // 立即写入当前歌曲，确保播放器内部 lyricOffset 及桌面歌词同步更新。
+  if (currentTrack.value) {
+    currentTrack.value.offset = nextOffset
   }
-  if (currentTrack.value!.type === 'local') {
-    window.mainApi
-      ?.invoke('updateLocalTrackInfo', currentTrack.value!.id, {
-        offset: currentTrack.value!.offset + offset
-      })
-      .then((isSussess: boolean) => {
-        if (!isSussess) showToast('歌词延迟信息未保存至数据库，下次启动程序后需要重置歌词延迟')
-      })
+
+  if (nextOffset === 0) {
+    showToast('已重置所有歌曲的歌词偏移')
+    return
   }
-  if (offset === 0) {
-    currentTrack.value!.offset = 0
-  } else {
-    currentTrack.value!.offset += offset
-  }
+
   showToast(
-    `当前歌曲的歌词延迟为: ${currentTrack.value!.offset > 0 ? '延迟' : '提前'}${Math.abs(currentTrack.value!.offset)}s`
+    `所有歌曲的歌词已${nextOffset > 0 ? '延后' : '提前'}${Math.abs(nextOffset)}s`
   )
 }
+// =========== newADD end ========
 
 const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
   if (!lyricRefs.value?.length) return
