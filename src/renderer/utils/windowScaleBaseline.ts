@@ -75,42 +75,16 @@ export const DEFAULT_WINDOW_SCALE_BASELINES: Record<
   }
 }
 
-const TARGET_LIMITS: Record<
-  WindowScaleTarget,
-  {
-    minWidth: number
-    minHeight: number
-  }
-> = {
-  main: {
-    minWidth: 480,
-    minHeight: 320
-  },
-  'osd-small': {
-    minWidth: 240,
-    minHeight: 36
-  },
-  'osd-normal': {
-    minWidth: 280,
-    minHeight: 320
-  }
+const normalizeDimension = (value: unknown, fallback: number) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.max(1, Math.round(parsed))
 }
 
-const MAX_MIN_WIDTH = 3840
-const MAX_MIN_HEIGHT = 2160
-const MIN_BASE_FONT_SIZE = 8
-const MAX_BASE_FONT_SIZE = 48
-const MAX_WINDOW_ZOOM_FACTOR = 5
-
-const clampNumber = (
-  value: unknown,
-  fallback: number,
-  minimum: number,
-  maximum: number
-) => {
+const normalizeFontSize = (value: unknown, fallback: number) => {
   const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.min(maximum, Math.max(minimum, Math.round(parsed)))
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.round(parsed * 100) / 100
 }
 
 export const getDefaultWindowScaleBaseline = (
@@ -119,30 +93,18 @@ export const getDefaultWindowScaleBaseline = (
   return { ...DEFAULT_WINDOW_SCALE_BASELINES[target] }
 }
 
+/**
+ * 旧设置控件创建阶段仍需要一个临时 range 定义。
+ * 实际交互由相对增量滑块接管，最终基准值没有固定上下限。
+ */
 export const getWindowScaleFieldRange = (
-  target: WindowScaleTarget,
+  _target: WindowScaleTarget,
   field: WindowScaleBaselineField
 ): WindowScaleFieldRange => {
-  if (field === 'minWidth') {
-    return {
-      min: TARGET_LIMITS[target].minWidth,
-      max: MAX_MIN_WIDTH,
-      step: 20
-    }
-  }
-
-  if (field === 'minHeight') {
-    return {
-      min: TARGET_LIMITS[target].minHeight,
-      max: MAX_MIN_HEIGHT,
-      step: target === 'osd-small' ? 2 : 20
-    }
-  }
-
   return {
-    min: MIN_BASE_FONT_SIZE,
-    max: MAX_BASE_FONT_SIZE,
-    step: 1
+    min: -100,
+    max: 100,
+    step: field === 'baseFontSize' ? 0.1 : 1
   }
 }
 
@@ -151,26 +113,13 @@ export const sanitizeWindowScaleBaseline = (
   value: Partial<WindowScaleBaseline> | null | undefined
 ): WindowScaleBaseline => {
   const fallback = DEFAULT_WINDOW_SCALE_BASELINES[target]
-  const limits = TARGET_LIMITS[target]
 
   return {
-    minWidth: clampNumber(
-      value?.minWidth,
-      fallback.minWidth,
-      limits.minWidth,
-      MAX_MIN_WIDTH
-    ),
-    minHeight: clampNumber(
-      value?.minHeight,
-      fallback.minHeight,
-      limits.minHeight,
-      MAX_MIN_HEIGHT
-    ),
-    baseFontSize: clampNumber(
+    minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
+    minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
+    baseFontSize: normalizeFontSize(
       value?.baseFontSize,
-      fallback.baseFontSize,
-      MIN_BASE_FONT_SIZE,
-      MAX_BASE_FONT_SIZE
+      fallback.baseFontSize
     )
   }
 }
@@ -198,6 +147,6 @@ export const calculateWindowZoomFactor = (
   const baselineZoom =
     baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
 
-  return Math.min(MAX_WINDOW_ZOOM_FACTOR, baselineZoom * geometryScale)
+  return baselineZoom * geometryScale
 }
 /* =========== newADD end ======== */
