@@ -171,6 +171,10 @@ export const clearWindowScaleCalibrationPreviews = () => {
 
   for (const target of targets) {
     localStorage.removeItem(getPreviewKey(target))
+    window.mainApi?.send('finish-window-scale-calibration', {
+      target,
+      action: 'cancel'
+    })
   }
 }
 
