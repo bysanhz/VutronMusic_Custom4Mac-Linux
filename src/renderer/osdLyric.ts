@@ -1,11 +1,13 @@
 import { createApp } from 'vue'
 import OSDLyric from './views/OSDLyric.vue'
 import 'virtual:svg-icons-register'
-import { createPinia } from 'pinia'
+import { createPinia, storeToRefs } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './assets/css/osdlyric.scss'
 // ======== newADD start======
 import { initializeSmoothOsdWindowScale } from './utils/smoothOsdWindowScale'
+import { initializeOsdFontRendering } from './utils/osdFontRendering'
+import { useOsdLyricStore } from './store/osdLyric'
 // =========== newADD end ========
 
 declare global {
@@ -44,4 +46,12 @@ const app = createApp(OSDLyric)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
+
+// ======== newADD start======
+// 将持久化的 PostScript 字体标识解析为 Chromium 可稳定匹配的系统字体族。
+const osdLyricStore = useOsdLyricStore(pinia)
+const { font } = storeToRefs(osdLyricStore)
+initializeOsdFontRendering(font)
+// =========== newADD end ========
+
 app.mount('#lyric')
