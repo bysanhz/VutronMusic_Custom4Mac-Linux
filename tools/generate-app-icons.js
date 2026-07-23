@@ -49,20 +49,22 @@ const validateSourceIcon = (metadata) => {
  *   offset: 当前像素在缓冲区中的字节偏移。
  *
  * Returns:
- *   像素接近中性白色时返回 true。
+ *   像素与纯白色的 RGB 距离足够小时返回 true。
  *
  * Raises:
  *   不抛出异常。
  */
 const isNearWhitePixel = (data, offset) => {
-  const red = data[offset]
-  const green = data[offset + 1]
-  const blue = data[offset + 2]
+  const redDistance = 255 - data[offset]
+  const greenDistance = 255 - data[offset + 1]
+  const blueDistance = 255 - data[offset + 2]
   const alpha = data[offset + 3]
-  const minimumChannel = Math.min(red, green, blue)
-  const maximumChannel = Math.max(red, green, blue)
+  const distanceToWhiteSquared =
+    redDistance * redDistance +
+    greenDistance * greenDistance +
+    blueDistance * blueDistance
 
-  return alpha > 0 && minimumChannel >= 235 && maximumChannel - minimumChannel <= 18
+  return alpha > 0 && distanceToWhiteSquared <= 110 * 110
 }
 
 /**
@@ -71,7 +73,7 @@ const isNearWhitePixel = (data, offset) => {
  * 详细说明：
  * 图标主体内部可能包含白色文字或高光，因此不能按颜色全局删除白色。
  * 这里从四条画布边界执行四邻域洪泛，只把与外部背景连通的近白色像素
- * 设为透明，从而保留图标主体内部的白色细节和圆角抗锯齿边缘。
+ * 设为透明，从而保留图标主体内部的白色细节，并清除圆角边缘的白色抗锯齿光晕。
  *
  * Args:
  *   data: RGBA 原始像素缓冲区。
