@@ -19,6 +19,8 @@ const mainAvailChannels: string[] = [
   'showWindow',
   'updatePlayerState',
   'setStoreSettings',
+  'preview-window-scale-baseline',
+  'finish-window-scale-calibration',
   'deleteLocalMusicDB',
   'upsertLocalPlaylist',
   'deleteLocalPlaylist',
