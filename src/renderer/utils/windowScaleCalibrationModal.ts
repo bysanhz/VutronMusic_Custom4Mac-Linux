@@ -2,16 +2,21 @@
 import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
-import type { WindowScaleTarget } from './windowScaleBaseline'
+import {
+  WINDOW_SCALE_BASELINE_CHANGE_EVENT,
+  type WindowScaleTarget
+} from './windowScaleBaseline'
 
 const MODAL_ID = 'window-scale-calibration-modal'
 const STYLE_ID = 'window-scale-calibration-modal-style'
 const MAIN_SETTING_SELECTOR =
   '#app .system-settings .app-font-size-setting.window-scale-font-range'
 const OSD_CONTROL_SELECTOR = '#osd-window-scale-baseline-setting'
+const SHOW_DELAY_MS = 800
 
 let observer: MutationObserver | null = null
 let renderFrame: number | null = null
+let showTimer: number | null = null
 let renderedKey = ''
 
 const translate = (key: string) => String(i18n.global.t(key))
@@ -28,56 +33,55 @@ const injectStyle = () => {
 
     #${MODAL_ID} {
       position: fixed;
-      inset: 0;
+      right: 20px;
+      bottom: 78px;
       z-index: 2147483646;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+      width: min(360px, calc(100vw - 40px));
       box-sizing: border-box;
-      background: rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(3px);
-      -webkit-app-region: no-drag;
-    }
-
-    #${MODAL_ID} .window-scale-calibration-dialog {
-      width: min(420px, calc(100vw - 48px));
-      padding: 20px;
-      box-sizing: border-box;
-      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
+      border-radius: 12px;
       color: var(--color-text);
-      background: var(--color-body-bg, var(--color-bg, #fff));
-      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+      background: color-mix(
+        in srgb,
+        var(--color-body-bg, var(--color-bg, #fff)),
+        transparent 4%
+      );
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px);
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
     }
 
     #${MODAL_ID} .window-scale-calibration-modal-title {
-      margin-bottom: 9px;
-      font-size: 1.08em;
+      margin-bottom: 5px;
+      font-size: 1em;
       font-weight: 800;
     }
 
     #${MODAL_ID} .window-scale-calibration-modal-description {
-      margin-bottom: 18px;
-      line-height: 1.55;
-      opacity: 0.72;
+      margin-bottom: 12px;
+      line-height: 1.4;
+      opacity: 0.68;
+      font-size: 0.88em;
     }
 
     #${MODAL_ID} .window-scale-calibration-modal-buttons {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 8px;
     }
 
     #${MODAL_ID} .window-scale-calibration-modal-button {
-      min-width: 76px;
-      height: 34px;
-      padding: 0 16px;
+      min-width: 68px;
+      height: 31px;
+      padding: 0 13px;
       border: none;
-      border-radius: 8px;
+      border-radius: 7px;
       color: var(--color-text);
       background: color-mix(in srgb, var(--color-text), transparent 90%);
       cursor: pointer;
-      font-weight: 750;
+      font-weight: 700;
     }
 
     #${MODAL_ID}
@@ -126,6 +130,12 @@ const getTitleKey = (target: WindowScaleTarget) => {
   return 'settings.windowScale.normalDesktop'
 }
 
+const clearShowTimer = () => {
+  if (showTimer === null) return
+  window.clearTimeout(showTimer)
+  showTimer = null
+}
+
 const removeModal = () => {
   document.getElementById(MODAL_ID)?.remove()
   renderedKey = ''
@@ -151,41 +161,67 @@ const renderModal = () => {
   modal.id = MODAL_ID
   modal.dataset.calibrationTarget = target
   modal.setAttribute('role', 'dialog')
-  modal.setAttribute('aria-modal', 'true')
+  modal.setAttribute('aria-modal', 'false')
   modal.innerHTML = `
-    <div class="window-scale-calibration-dialog">
-      <div class="window-scale-calibration-modal-title">
-        ${translate(getTitleKey(target))}
-      </div>
-      <div class="window-scale-calibration-modal-description">
-        ${translate('settings.windowScale.calibrationHint')}
-      </div>
-      <div class="window-scale-calibration-modal-buttons">
-        <button
-          type="button"
-          class="window-scale-calibration-modal-button"
-          data-calibration-action="cancel"
-        >${translate('settings.windowScale.cancel')}</button>
-        <button
-          type="button"
-          class="window-scale-calibration-modal-button"
-          data-calibration-action="confirm"
-        >${translate('settings.windowScale.confirm')}</button>
-      </div>
+    <div class="window-scale-calibration-modal-title">
+      ${translate(getTitleKey(target))}
+    </div>
+    <div class="window-scale-calibration-modal-description">
+      ${translate('settings.windowScale.calibrationHint')}
+    </div>
+    <div class="window-scale-calibration-modal-buttons">
+      <button
+        type="button"
+        class="window-scale-calibration-modal-button"
+        data-calibration-action="cancel"
+      >${translate('settings.windowScale.cancel')}</button>
+      <button
+        type="button"
+        class="window-scale-calibration-modal-button"
+        data-calibration-action="confirm"
+      >${translate('settings.windowScale.confirm')}</button>
     </div>
   `
   document.body.appendChild(modal)
 }
 
-const scheduleRender = () => {
+const scheduleRenderFrame = () => {
   if (renderFrame !== null) return
   renderFrame = window.requestAnimationFrame(renderModal)
+}
+
+const scheduleDelayedRender = () => {
+  clearShowTimer()
+  removeModal()
+
+  showTimer = window.setTimeout(() => {
+    showTimer = null
+    scheduleRenderFrame()
+  }, SHOW_DELAY_MS)
+}
+
+const handleCalibrationStateMutation = () => {
+  if (findActiveTarget()) return
+  clearShowTimer()
+  removeModal()
+}
+
+const handleBaselineChange = (event: Event) => {
+  const detail = (event as CustomEvent).detail
+
+  if (detail?.preview === true) {
+    scheduleDelayedRender()
+    return
+  }
+
+  clearShowTimer()
+  removeModal()
 }
 
 export const initializeWindowScaleCalibrationModal = (router: Router) => {
   injectStyle()
 
-  observer = new MutationObserver(scheduleRender)
+  observer = new MutationObserver(handleCalibrationStateMutation)
   observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-window-scale-calibrating'],
@@ -193,18 +229,33 @@ export const initializeWindowScaleCalibrationModal = (router: Router) => {
     subtree: true
   })
 
-  const removeAfterEach = router.afterEach(scheduleRender)
+  window.addEventListener(
+    WINDOW_SCALE_BASELINE_CHANGE_EVENT,
+    handleBaselineChange
+  )
+
+  const removeAfterEach = router.afterEach(() => {
+    clearShowTimer()
+    removeModal()
+  })
   const stopLocaleWatch = watch(
     () => i18n.global.locale.value,
-    scheduleRender
+    () => {
+      if (!findActiveTarget()) return
+      scheduleDelayedRender()
+    }
   )
-  scheduleRender()
 
   return () => {
     observer?.disconnect()
     observer = null
     removeAfterEach()
     stopLocaleWatch()
+    window.removeEventListener(
+      WINDOW_SCALE_BASELINE_CHANGE_EVENT,
+      handleBaselineChange
+    )
+    clearShowTimer()
     removeModal()
     document.getElementById(STYLE_ID)?.remove()
 
