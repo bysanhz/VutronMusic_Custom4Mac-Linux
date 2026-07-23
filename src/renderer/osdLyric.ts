@@ -7,6 +7,7 @@ import './assets/css/osdlyric.scss'
 // ======== newADD start======
 import { initializeSmoothOsdWindowScale } from './utils/smoothOsdWindowScale'
 import { initializeOsdFontRendering } from './utils/osdFontRendering'
+import { initializeOsdCoverControlsVisibility } from './utils/osdCoverControlsVisibility'
 import { useOsdLyricStore } from './store/osdLyric'
 // =========== newADD end ========
 
@@ -40,6 +41,8 @@ declare global {
 // ======== newADD start======
 // 在 Vue 挂载前应用首帧缩放，避免桌面歌词窗口出现后再突然改变大小。
 initializeSmoothOsdWindowScale()
+// 封面控件可见性独立于锁定状态，并在设置修改后实时同步。
+initializeOsdCoverControlsVisibility()
 // =========== newADD end ========
 
 const app = createApp(OSDLyric)
