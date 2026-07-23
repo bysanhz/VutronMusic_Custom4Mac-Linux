@@ -3,7 +3,6 @@ import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
 import type {
-  WindowScaleBaseline,
   WindowScaleBaselineField,
   WindowScaleTarget
 } from './windowScaleBaseline'
