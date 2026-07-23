@@ -6,6 +6,62 @@ body {
 
 /* ======== newADD start====== */
 /*
+ * 桌面歌词字体渲染基线。
+ *
+ * `--osd-font-family` 由 osdFontRendering.ts 根据 font-list 的 familyName
+ * 动态生成。这里使用 !important 覆盖旧版直接写入 PostScript 名称的内联
+ * font-family，避免 Chromium 在 Linux 下匹配失败后回退为系统默认字体。
+ */
+:root {
+  --osd-font-family: system-ui;
+}
+
+#main .container {
+  font-family: var(--osd-font-family) !important;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * 桌面歌词原本使用 600 字重，而 GNOME 窗口标题通常使用所选字体的 Bold
+ * 字形。统一到 700 后，Chromium 会在同一 familyName 下选择真实 Bold face，
+ * 避免 PeakFont 等字体被合成或回退后与窗口标题差异过大。
+ */
+#main .container .lyric {
+  font-weight: 700 !important;
+}
+
+/* 去除旧版人为描边，保留字体本身的笔画轮廓。 */
+#main .container .lyric-line span,
+#main .container .translation span {
+  -webkit-text-stroke: 0 !important;
+}
+
+/*
+ * 紧凑桌面歌词双行间距。
+ *
+ * 旧版使用 margin:-1px、padding:0、line-height:1 强行压缩，PeakFont 这类
+ * 上下延伸较大的字体会明显挤在一起。这里恢复独立行盒和 4px 行间距；
+ * CSS 像素会随桌面歌词统一 zoomFactor 一起缩放。
+ */
+#main.compact-mode .container.mini.two-line {
+  row-gap: 4px !important;
+}
+
+#main.compact-mode .container.mini.two-line .lyric:not(.hidden-measure) {
+  margin: 0 !important;
+  padding: 1px 0 !important;
+  line-height: 1.15 !important;
+}
+
+#main.compact-mode .container.mini.two-line .lyric-line,
+#main.compact-mode .container.mini.two-line .translation,
+#main.compact-mode .container.mini.two-line .lyric-line span,
+#main.compact-mode .container.mini.two-line .translation span {
+  line-height: 1.15 !important;
+}
+
+/*
  * 紧凑桌面歌词锁定状态。
  *
  * 主进程在 isLock=true 时已经启用 BrowserWindow 鼠标穿透；
