@@ -22,6 +22,7 @@ export type WindowScaleBaselineField =
   | 'minWidth'
   | 'minHeight'
   | 'baseFontSize'
+  | 'miniControlBaseSize'
 
 export type WindowScaleFieldRange = {
   min: number
@@ -113,7 +114,10 @@ export const getWindowScaleFieldRange = (
   return {
     min: -100,
     max: 100,
-    step: field === 'baseFontSize' ? 0.1 : 1
+    step:
+      field === 'baseFontSize' || field === 'miniControlBaseSize'
+        ? 0.1
+        : 1
   }
 }
 
