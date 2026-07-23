@@ -7,7 +7,8 @@ const mainAvailChannels: string[] = [
   'windowMouseleave',
 
   // ======== newADD start======
-  'drag-osd-window-absolute'
+  'drag-osd-window-absolute',
+  'getFontList'
   // =========== newADD end ========
 ]
 
