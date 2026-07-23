@@ -1,5 +1,5 @@
 /* ======== newADD start====== */
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, ipcMain, type Rectangle } from 'electron'
 
 export type WindowScaleTarget = 'main' | 'osd-small' | 'osd-normal'
 
@@ -66,7 +66,7 @@ export const sanitizeWindowScaleBaseline = (
 
 type CalibrationSession = {
   windowId: number
-  bounds: Electron.Rectangle
+  bounds: Rectangle
   minimumSize: [number, number]
   resizable: boolean
   maximized: boolean
@@ -162,7 +162,7 @@ const finishCalibration = (
     if (window && !window.isDestroyed()) {
       const baseline = sanitizeWindowScaleBaseline(target, payload.baseline)
       window.setMinimumSize(baseline.minWidth, baseline.minHeight)
-      window.setResizable(true)
+      window.setResizable(session?.resizable ?? true)
     }
     calibrationSessions.delete(target)
     return
