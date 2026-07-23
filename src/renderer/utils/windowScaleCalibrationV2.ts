@@ -16,6 +16,7 @@ import {
 
 const STYLE_ID = 'window-scale-calibration-v2-style'
 const ACTION_CLASS = 'window-scale-calibration-actions-v2'
+const SETTINGS_SELECTOR = '#app .system-settings'
 const MAIN_SETTING_SELECTOR =
   '#app .system-settings .app-font-size-setting.window-scale-font-range'
 const OSD_CONTROL_SELECTOR = '#osd-window-scale-baseline-setting'
@@ -208,10 +209,12 @@ const getSliders = (
 
 const renderTargetValues = (
   target: WindowScaleTarget,
-  baseline = readWindowScaleBaseline(target)
+  baseline = readWindowScaleBaseline(target),
+  preserveFocusedInput = false
 ) => {
   for (const field of getTargetFields(target)) {
     for (const input of getNumberInputs(target, field)) {
+      if (preserveFocusedInput && document.activeElement === input) continue
       input.value = String(baseline[field])
     }
   }
@@ -404,11 +407,12 @@ const decorateTarget = (target: WindowScaleTarget) => {
   getNumberInputs(target).forEach(decorateInput)
   getSliders(target).forEach(decorateSlider)
   ensureActions(target)
-  renderTargetValues(target)
+  renderTargetValues(target, readWindowScaleBaseline(target), true)
 }
 
 const startObserving = () => {
-  observer?.observe(document.documentElement, {
+  const settings = document.querySelector<HTMLElement>(SETTINGS_SELECTOR)
+  observer?.observe(settings ?? document.documentElement, {
     childList: true,
     subtree: true
   })
