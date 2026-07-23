@@ -3,7 +3,7 @@ import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
 import type {
-  WindowScaleBaselineField,
+  WindowScaleCalibrationField,
   WindowScaleTarget
 } from './windowScaleBaseline'
 import {
@@ -75,7 +75,7 @@ const getTargetFromElement = (
 
 const getFieldFromElement = (
   element: Element | null
-): WindowScaleBaselineField | null => {
+): WindowScaleCalibrationField | null => {
   const row = element?.closest<HTMLElement>(
     '[data-baseline-field], [data-field]'
   )
@@ -95,7 +95,7 @@ const getFieldFromElement = (
 
 const getNumberInputs = (
   target: WindowScaleTarget,
-  field?: WindowScaleBaselineField
+  field?: WindowScaleCalibrationField
 ) => {
   if (target === 'main') {
     const suffix = field
@@ -118,7 +118,7 @@ const getNumberInputs = (
 
 const getSliders = (
   target: WindowScaleTarget,
-  field?: WindowScaleBaselineField
+  field?: WindowScaleCalibrationField
 ) => {
   if (target === 'main') {
     const suffix = field
@@ -141,8 +141,8 @@ const getSliders = (
 
 const getTargetFields = (
   target: WindowScaleTarget
-): WindowScaleBaselineField[] => {
-  const fields: WindowScaleBaselineField[] = [
+): WindowScaleCalibrationField[] => {
+  const fields: WindowScaleCalibrationField[] = [
     'minWidth',
     'minHeight',
     'baseFontSize'
@@ -168,7 +168,7 @@ const resetRelativeSlider = (slider: HTMLInputElement) => {
   sliderStartValues.delete(slider)
 }
 
-const isScaleField = (field: WindowScaleBaselineField | null) => {
+const isScaleField = (field: WindowScaleCalibrationField | null) => {
   return field === 'baseFontSize' || field === 'miniControlBaseSize'
 }
 
@@ -338,7 +338,7 @@ const cancelConflictingOsdCalibration = (
 
 const previewFieldValue = (
   target: WindowScaleTarget,
-  field: WindowScaleBaselineField,
+  field: WindowScaleCalibrationField,
   value: number
 ) => {
   if (!Number.isFinite(value) || value <= 0) {
@@ -359,12 +359,12 @@ const previewFieldValue = (
   renderTargetValues(target, preview)
 }
 
-const getButtonStep = (field: WindowScaleBaselineField) => {
+const getButtonStep = (field: WindowScaleCalibrationField) => {
   return isScaleField(field) ? 0.5 : 10
 }
 
 const getRelativeSliderStep = (
-  field: WindowScaleBaselineField,
+  field: WindowScaleCalibrationField,
   startValue: number
 ) => {
   if (isScaleField(field)) {
