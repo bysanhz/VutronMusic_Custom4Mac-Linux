@@ -12,6 +12,17 @@ type ScrollState = {
 }
 
 // ======== newADD start======
+type FontSelectOption = {
+  label: string
+  value: string
+  /** Chromium 实际使用的字体族回退链。 */
+  fontFamily: string
+  /** 字体名称、字体族和 PostScript 名称组成的搜索文本。 */
+  searchText: string
+}
+// =========== newADD end ========
+
+// ======== newADD start======
 export type ExtendedUpdateCheckResult = UpdateCheckResult & {
   manualDownload?: boolean
   releaseUrl?: string
@@ -31,9 +42,15 @@ export const useNormalStateStore = defineStore('state', () => {
   const setThemeModal = ref(false)
   const setFontModal = ref(false)
   const setSaveThemeModal = ref(false)
-  const fontList = ref<{ label: string; value: string }[]>([
-    { label: '系统默认', value: 'system-ui' }
-  ])
+  // ======== newADD start======
+  const systemDefaultFontOption: FontSelectOption = {
+    label: '系统默认',
+    value: 'system-ui',
+    fontFamily: 'system-ui',
+    searchText: '系统默认 system-ui'
+  }
+  const fontList = ref<FontSelectOption[]>([systemDefaultFontOption])
+  // =========== newADD end ========
   const extensionCheckResult = ref(false)
   const modalOpen = ref(false)
   const addTrackToPlaylistModal = ref({
@@ -104,14 +121,71 @@ export const useNormalStateStore = defineStore('state', () => {
     }
   }
 
+  // ======== newADD start======
+  /**
+   * 将系统字体名称转换为安全的 CSS font-family 项。
+   *
+   * Args:
+   *   value: 字体族、完整字体名或 PostScript 名称。
+   *
+   * Returns:
+   *   可直接拼接进 font-family 的字符串。
+   *
+   * Raises:
+   *   不抛出异常。
+   */
+  const quoteFontFamily = (value: string): string => {
+    if (value === 'system-ui') return value
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+  }
+
+  /**
+   * 把 font-list 返回值转换为支持真实字体预览与搜索的选项。
+   *
+   * Args:
+   *   font: font-list 返回的单个系统字体信息。
+   *
+   * Returns:
+   *   可用的字体选项；缺少名称时返回 null。
+   *
+   * Raises:
+   *   不抛出异常。
+   */
+  const createFontOption = (font: IFontInfo): FontSelectOption | null => {
+    const label = font.name || font.familyName || font.postScriptName
+    const value = font.postScriptName || font.name || font.familyName
+
+    if (!label || !value) return null
+
+    const familyCandidates = [font.familyName, font.name, font.postScriptName].filter(
+      (item): item is string => Boolean(item)
+    )
+    const uniqueFamilies = [...new Set(familyCandidates)]
+
+    return {
+      label,
+      value,
+      fontFamily: [...uniqueFamilies.map(quoteFontFamily), 'system-ui'].join(', '),
+      searchText: uniqueFamilies.join(' ')
+    }
+  }
+  // =========== newADD end ========
+
   const getFontList = () => {
     window.mainApi?.invoke('getFontList').then((fonts: IFontInfo[]) => {
-      fontList.value = [
-        { label: '系统默认', value: 'system-ui' },
-        ...fonts
-          .filter((font) => font.familyName !== 'system-ui')
-          .map((font) => ({ label: font.name, value: font.postScriptName }))
-      ]
+      // ======== newADD start======
+      const normalizedFonts = Array.isArray(fonts)
+        ? fonts.filter((font): font is IFontInfo => Boolean(font && typeof font === 'object'))
+        : []
+
+      const fontOptions = normalizedFonts
+        .filter((font) => font.familyName !== 'system-ui')
+        .map(createFontOption)
+        .filter((option): option is FontSelectOption => option !== null)
+
+      const uniqueOptions = [...new Map(fontOptions.map((option) => [option.value, option])).values()]
+      fontList.value = [systemDefaultFontOption, ...uniqueOptions]
+      // =========== newADD end ========
     })
   }
 
