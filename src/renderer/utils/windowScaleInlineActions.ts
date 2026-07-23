@@ -21,28 +21,19 @@ export const initializeWindowScaleInlineActions = () => {
       margin: 0 !important;
       padding: 0 !important;
       border: 0 !important;
+      pointer-events: none;
     }
 
     [data-window-scale-calibrating='true']
       > .window-scale-calibration-actions {
-      position: sticky;
-      bottom: 8px;
-      z-index: 20;
       display: flex !important;
       justify-content: flex-end;
       align-items: center;
-      margin-top: 8px !important;
-      padding: 8px !important;
-      border: 1px solid
+      margin-top: 6px !important;
+      padding-top: 8px !important;
+      border-top: 1px solid
         color-mix(in srgb, var(--color-text), transparent 88%) !important;
-      border-radius: 10px;
-      background: color-mix(
-        in srgb,
-        var(--color-body-bg, var(--color-bg, #fff)),
-        transparent 3%
-      );
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-      backdrop-filter: blur(10px);
+      pointer-events: auto;
       -webkit-app-region: no-drag;
     }
 
@@ -56,6 +47,7 @@ export const initializeWindowScaleInlineActions = () => {
       align-items: center;
       gap: 8px;
       width: auto;
+      pointer-events: auto;
     }
 
     .window-scale-calibration-button {
@@ -70,10 +62,17 @@ export const initializeWindowScaleInlineActions = () => {
       cursor: pointer;
       font-weight: 700;
       line-height: 1;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-app-region: no-drag;
     }
 
     .window-scale-calibration-button:hover {
       background: color-mix(in srgb, var(--color-text), transparent 88%);
+    }
+
+    .window-scale-calibration-button:active {
+      transform: scale(0.96);
     }
 
     .window-scale-calibration-button[data-calibration-action='confirm'] {
