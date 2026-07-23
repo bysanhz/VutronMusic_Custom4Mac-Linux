@@ -1,9 +1,12 @@
 /* ======== newADD start====== */
+import { watch } from 'vue'
 import router from '../router'
+import i18n from '../plugins/i18n'
 import {
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-  WindowScaleBaseline,
-  calculateWindowZoomFactor
+  WindowScaleBaselineField,
+  calculateWindowZoomFactor,
+  getWindowScaleFieldRange
 } from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
@@ -20,74 +23,265 @@ const RESIZE_IDLE_DELAY_MS = 140
 const SETTINGS_RETRY_MS = 80
 const SETTINGS_MAX_RETRIES = 24
 const WINDOW_RESIZING_CLASS = 'vutron-window-resizing'
+const STYLE_ID = 'main-window-scale-baseline-style'
 
 type RuntimeWindow = Window & {
   __vutronBaselineWindowScaleCleanup__?: () => void
 }
 
-type BaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
+type FieldConfig = {
+  labelKey: string
+}
 
-const FIELD_CONFIG: Record<
-  BaselineField,
-  {
-    label: string
-    unit: string
-    step: number
-  }
-> = {
+const FIELD_CONFIG: Record<WindowScaleBaselineField, FieldConfig> = {
   minWidth: {
-    label: '最小窗口宽度',
-    unit: 'px',
-    step: 20
+    labelKey: 'settings.windowScale.minWidth'
   },
   minHeight: {
-    label: '最小窗口高度',
-    unit: 'px',
-    step: 20
+    labelKey: 'settings.windowScale.minHeight'
   },
   baseFontSize: {
-    label: '基准字号',
-    unit: 'px',
-    step: 1
+    labelKey: 'settings.windowScale.baseFontSize'
   }
 }
 
-const BASELINE_FIELDS = Object.keys(FIELD_CONFIG) as BaselineField[]
+const BASELINE_FIELDS = Object.keys(
+  FIELD_CONFIG
+) as WindowScaleBaselineField[]
+
+const translate = (
+  key: string,
+  params?: Record<string, string>
+) => {
+  return params
+    ? String(i18n.global.t(key, params))
+    : String(i18n.global.t(key))
+}
+
+const injectStyle = () => {
+  if (document.getElementById(STYLE_ID)) return
+
+  const style = document.createElement('style')
+  style.id = STYLE_ID
+  style.textContent = `
+    #app .app-font-size-setting.window-scale-font-range {
+      width: min(100%, 340px) !important;
+      max-width: 340px !important;
+      min-height: 0 !important;
+    }
+
+    #app .window-scale-font-row {
+      display: grid !important;
+      grid-template-columns: minmax(108px, 1fr) 28px minmax(72px, 92px) 28px !important;
+      grid-template-rows: auto auto;
+      align-items: center;
+      gap: 6px !important;
+    }
+
+    #app .window-scale-font-input {
+      width: 100%;
+      min-width: 0;
+      height: 28px;
+      padding: 0 6px;
+      box-sizing: border-box;
+      border: none;
+      border-radius: 6px;
+      outline: none;
+      text-align: center;
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--color-text), transparent 94%);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #app .window-scale-font-input::-webkit-inner-spin-button,
+    #app .window-scale-font-input::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+
+    #app .window-scale-font-slider {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
+      margin: 1px 0 3px;
+      cursor: pointer;
+    }
+  `
+  document.head.appendChild(style)
+}
+
+const getFieldLabel = (field: WindowScaleBaselineField) => {
+  return translate(FIELD_CONFIG[field].labelKey)
+}
 
 const updateSettingText = (setting: HTMLElement) => {
   const item = setting.closest<HTMLElement>('.item')
   const title = item?.querySelector<HTMLElement>('.left .title')
-  const description = item?.querySelector<HTMLElement>('.left .description')
+  const description = item?.querySelector<HTMLElement>(
+    '.left .description'
+  )
 
   item?.classList.add('window-scale-font-range-item')
 
-  if (title) title.textContent = '主窗口缩放基准'
+  if (title) {
+    title.textContent = translate('settings.windowScale.mainTitle')
+  }
   if (description) {
-    description.textContent =
-      '窗口达到设定的最小尺寸时使用基准字号；继续放大时，字体、封面、图标、按钮、间距和圆角会按同一比例缩放'
+    description.textContent = translate(
+      'settings.windowScale.mainDescription'
+    )
   }
 }
 
-const createFieldRow = (field: BaselineField) => {
-  const config = FIELD_CONFIG[field]
+const createFieldRow = (field: WindowScaleBaselineField) => {
+  const label = getFieldLabel(field)
+  const range = getWindowScaleFieldRange(TARGET, field)
+  const decreaseLabel = translate('settings.windowScale.decrease', {
+    field: label
+  })
+  const increaseLabel = translate('settings.windowScale.increase', {
+    field: label
+  })
+  const inputHint = translate('settings.windowScale.enterToApply')
+  const sliderHint = translate('settings.windowScale.dragToAdjust', {
+    field: label
+  })
+
   return `
     <div class="window-scale-font-row" data-baseline-field="${field}">
-      <span class="window-scale-font-label">${config.label}</span>
+      <span class="window-scale-font-label">${label}</span>
       <button
         class="window-scale-font-button"
         data-baseline-action="decrease"
         type="button"
-        aria-label="减小${config.label}"
+        aria-label="${decreaseLabel}"
+        title="${decreaseLabel}"
       >−</button>
-      <span class="window-scale-font-value" data-baseline-value="${field}"></span>
+      <input
+        class="window-scale-font-input"
+        data-baseline-input="${field}"
+        type="number"
+        min="${range.min}"
+        max="${range.max}"
+        step="${range.step}"
+        inputmode="numeric"
+        title="${inputHint}"
+      />
       <button
         class="window-scale-font-button"
         data-baseline-action="increase"
         type="button"
-        aria-label="增大${config.label}"
+        aria-label="${increaseLabel}"
+        title="${increaseLabel}"
       >+</button>
+      <input
+        class="window-scale-font-slider"
+        data-baseline-slider="${field}"
+        type="range"
+        min="${range.min}"
+        max="${range.max}"
+        step="${range.step}"
+        title="${sliderHint}"
+      />
     </div>
   `
+}
+
+const renderSettingValues = (setting: HTMLElement) => {
+  const baseline = readWindowScaleBaseline(TARGET)
+
+  for (const field of BASELINE_FIELDS) {
+    const input = setting.querySelector<HTMLInputElement>(
+      `[data-baseline-input="${field}"]`
+    )
+    const slider = setting.querySelector<HTMLInputElement>(
+      `[data-baseline-slider="${field}"]`
+    )
+    const value = String(baseline[field])
+
+    if (input) input.value = value
+    if (slider) slider.value = value
+  }
+}
+
+const resolveField = (element: Element | null) => {
+  const row = element?.closest<HTMLElement>('[data-baseline-field]')
+  return row?.dataset.baselineField as
+    | WindowScaleBaselineField
+    | undefined
+}
+
+const applyFieldValue = (
+  setting: HTMLElement,
+  field: WindowScaleBaselineField,
+  value: number
+) => {
+  if (!Number.isFinite(value)) {
+    renderSettingValues(setting)
+    return
+  }
+
+  const baseline = readWindowScaleBaseline(TARGET)
+  baseline[field] = value
+  saveWindowScaleBaseline(TARGET, baseline)
+  renderSettingValues(setting)
+}
+
+const installSettingListeners = (setting: HTMLElement) => {
+  setting.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+      '[data-baseline-action]'
+    )
+    const field = resolveField(button)
+    if (!button || !field) return
+
+    const baseline = readWindowScaleBaseline(TARGET)
+    const range = getWindowScaleFieldRange(TARGET, field)
+    const direction =
+      button.dataset.baselineAction === 'decrease' ? -1 : 1
+
+    applyFieldValue(
+      setting,
+      field,
+      baseline[field] + range.step * direction
+    )
+  })
+
+  setting.addEventListener('input', (event) => {
+    const slider = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-baseline-slider]'
+    )
+    const field = resolveField(slider)
+    if (!slider || !field) return
+
+    applyFieldValue(setting, field, Number(slider.value))
+  })
+
+  setting.addEventListener('change', (event) => {
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-baseline-input]'
+    )
+    const field = resolveField(input)
+    if (!input || !field) return
+
+    applyFieldValue(setting, field, Number(input.value))
+  })
+
+  setting.addEventListener('keydown', (event) => {
+    const keyboardEvent = event as KeyboardEvent
+    if (keyboardEvent.key !== 'Enter') return
+
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-baseline-input]'
+    )
+    const field = resolveField(input)
+    if (!input || !field) return
+
+    keyboardEvent.preventDefault()
+    applyFieldValue(setting, field, Number(input.value))
+    input.blur()
+  })
 }
 
 const mountBaselineSetting = () => {
@@ -96,50 +290,19 @@ const mountBaselineSetting = () => {
   )
   if (!setting) return false
 
+  injectStyle()
   updateSettingText(setting)
-
-  if (setting.dataset.windowScaleBaselineReady === 'true') {
-    syncWindowMinimumSize(TARGET, readWindowScaleBaseline(TARGET))
-    return true
-  }
-
-  setting.dataset.windowScaleBaselineReady = 'true'
   setting.classList.add('window-scale-font-range')
   setting.innerHTML = BASELINE_FIELDS.map(createFieldRow).join('')
 
-  const render = () => {
-    const baseline = readWindowScaleBaseline(TARGET)
-
-    for (const field of BASELINE_FIELDS) {
-      const value = setting.querySelector<HTMLElement>(
-        `[data-baseline-value="${field}"]`
-      )
-      if (value) {
-        value.textContent = `${baseline[field]}${FIELD_CONFIG[field].unit}`
-      }
-    }
+  if (setting.dataset.windowScaleBaselineReady !== 'true') {
+    setting.dataset.windowScaleBaselineReady = 'true'
+    installSettingListeners(setting)
   }
-
-  setting.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      '[data-baseline-action]'
-    )
-    const row = button?.closest<HTMLElement>('[data-baseline-field]')
-    const field = row?.dataset.baselineField as BaselineField | undefined
-    if (!button || !field) return
-
-    const baseline = readWindowScaleBaseline(TARGET)
-    const direction =
-      button.dataset.baselineAction === 'decrease' ? -1 : 1
-
-    baseline[field] += FIELD_CONFIG[field].step * direction
-    saveWindowScaleBaseline(TARGET, baseline)
-    render()
-  })
 
   const baseline = readWindowScaleBaseline(TARGET)
   syncWindowMinimumSize(TARGET, baseline)
-  render()
+  renderSettingValues(setting)
   return true
 }
 
@@ -161,7 +324,10 @@ const initializeSettingMount = () => {
     }
   }
 
-  const scheduleMount = (attempt: number, currentGeneration: number) => {
+  const scheduleMount = (
+    attempt: number,
+    currentGeneration: number
+  ) => {
     if (currentGeneration !== generation) return
 
     retryFrame = window.requestAnimationFrame(() => {
@@ -183,11 +349,16 @@ const initializeSettingMount = () => {
   }
 
   const removeAfterEach = router.afterEach(restartMount)
+  const stopLocaleWatch = watch(
+    () => i18n.global.locale.value,
+    restartMount
+  )
   restartMount()
 
   return () => {
     cancelPendingMount()
     removeAfterEach()
+    stopLocaleWatch()
   }
 }
 
@@ -202,12 +373,19 @@ export const initializeBaselineWindowScale = () => {
       stopSettingMount()
       delete runtimeWindow.__vutronBaselineWindowScaleCleanup__
     }
-    runtimeWindow.__vutronBaselineWindowScaleCleanup__ = cleanupWithoutElectron
+    runtimeWindow.__vutronBaselineWindowScaleCleanup__ =
+      cleanupWithoutElectron
     return cleanupWithoutElectron
   }
 
-  if (Number(localStorage.getItem(LEGACY_FONT_SIZE_KEY)) !== REFERENCE_FONT_SIZE) {
-    localStorage.setItem(LEGACY_FONT_SIZE_KEY, String(REFERENCE_FONT_SIZE))
+  if (
+    Number(localStorage.getItem(LEGACY_FONT_SIZE_KEY)) !==
+    REFERENCE_FONT_SIZE
+  ) {
+    localStorage.setItem(
+      LEGACY_FONT_SIZE_KEY,
+      String(REFERENCE_FONT_SIZE)
+    )
     window.dispatchEvent(new Event('app-global-font-size-change'))
   }
 
@@ -227,8 +405,14 @@ export const initializeBaselineWindowScale = () => {
     }
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
-    const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
-    const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
+    const contentWidth = Math.max(
+      1,
+      window.innerWidth * currentZoomFactor
+    )
+    const contentHeight = Math.max(
+      1,
+      window.innerHeight * currentZoomFactor
+    )
     const baseline = readWindowScaleBaseline(TARGET)
     const nextZoomFactor = calculateWindowZoomFactor(
       contentWidth,
@@ -275,13 +459,16 @@ export const initializeBaselineWindowScale = () => {
   const runScheduledUpdate = () => {
     animationFrameId = null
     const remaining =
-      ZOOM_UPDATE_INTERVAL_MS - (performance.now() - lastZoomUpdateAt)
+      ZOOM_UPDATE_INTERVAL_MS -
+      (performance.now() - lastZoomUpdateAt)
 
     if (remaining > 0) {
       if (delayedUpdateTimer === null) {
         delayedUpdateTimer = window.setTimeout(() => {
           delayedUpdateTimer = null
-          animationFrameId = window.requestAnimationFrame(runScheduledUpdate)
+          animationFrameId = window.requestAnimationFrame(
+            runScheduledUpdate
+          )
         }, remaining)
       }
       return
@@ -320,11 +507,17 @@ export const initializeBaselineWindowScale = () => {
 
   updateZoomFactor()
   window.addEventListener('resize', handleResize, { passive: true })
-  window.addEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
+  window.addEventListener(
+    WINDOW_SCALE_BASELINE_CHANGE_EVENT,
+    handleBaselineChange
+  )
 
   const cleanup = () => {
     window.removeEventListener('resize', handleResize)
-    window.removeEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
+    window.removeEventListener(
+      WINDOW_SCALE_BASELINE_CHANGE_EVENT,
+      handleBaselineChange
+    )
     stopSettingMount()
     document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
 
