@@ -13,8 +13,12 @@ export const windowScaleMessages = {
     baseFontSize: 'Baseline Font Size',
     decrease: 'Decrease {field}',
     increase: 'Increase {field}',
-    enterToApply: 'Enter a value and press Enter to apply',
-    dragToAdjust: 'Drag to adjust {field}'
+    enterToApply: 'Enter a value and press Enter to preview',
+    dragToAdjust: 'Drag to adjust {field}',
+    calibrationHint:
+      'Changes are previewed at the baseline window size. Confirm to save and release the window for normal resizing.',
+    confirm: 'Confirm',
+    cancel: 'Cancel'
   },
   zh: {
     mainTitle: '主窗口缩放基准',
@@ -30,8 +34,12 @@ export const windowScaleMessages = {
     baseFontSize: '基准字号',
     decrease: '减小{field}',
     increase: '增大{field}',
-    enterToApply: '输入数值后按 Enter 应用',
-    dragToAdjust: '拖动调节{field}'
+    enterToApply: '输入数值后按 Enter 预览',
+    dragToAdjust: '拖动调节{field}',
+    calibrationHint:
+      '调整时窗口会实时进入基准尺寸预览；点击确认后保存，并释放窗口供正常拖拽缩放。',
+    confirm: '确认',
+    cancel: '取消'
   },
   zht: {
     mainTitle: '主視窗縮放基準',
@@ -47,7 +55,11 @@ export const windowScaleMessages = {
     baseFontSize: '基準字號',
     decrease: '減小{field}',
     increase: '增大{field}',
-    enterToApply: '輸入數值後按 Enter 套用',
-    dragToAdjust: '拖曳調整{field}'
+    enterToApply: '輸入數值後按 Enter 預覽',
+    dragToAdjust: '拖曳調整{field}',
+    calibrationHint:
+      '調整時視窗會即時進入基準尺寸預覽；按下確認後儲存，並釋放視窗供正常拖曳縮放。',
+    confirm: '確認',
+    cancel: '取消'
   }
 } as const
