@@ -22,6 +22,9 @@ export type WindowScaleBaselineField =
   | 'minWidth'
   | 'minHeight'
   | 'baseFontSize'
+
+export type WindowScaleCalibrationField =
+  | WindowScaleBaselineField
   | 'miniControlBaseSize'
 
 export type WindowScaleFieldRange = {
@@ -107,7 +110,7 @@ export const getDefaultWindowScaleBaseline = (
  */
 export const getWindowScaleFieldRange = (
   target: WindowScaleTarget,
-  field: WindowScaleBaselineField
+  field: WindowScaleCalibrationField
 ): WindowScaleFieldRange => {
   void target
 
