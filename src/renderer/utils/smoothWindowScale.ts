@@ -8,8 +8,8 @@ import { initializeWindowScaleInlineActions } from './windowScaleInlineActions'
 
 export const initializeSmoothWindowScale = () => {
   const cleanupCalibration = initializeWindowScaleCalibration(router)
-  const cleanupInlineActions = initializeWindowScaleInlineActions()
   const cleanupMiniOsdSettings = initializeMiniOsdScaleSettings(router)
+  const cleanupInlineActions = initializeWindowScaleInlineActions()
   const cleanupDesktopLyricLabels =
     initializeDesktopLyricScaleLabels(router)
   const cleanupScale = initializeBaselineWindowScale()
@@ -17,8 +17,8 @@ export const initializeSmoothWindowScale = () => {
   return () => {
     cleanupScale?.()
     cleanupDesktopLyricLabels?.()
-    cleanupMiniOsdSettings?.()
     cleanupInlineActions?.()
+    cleanupMiniOsdSettings?.()
     cleanupCalibration?.()
   }
 }
