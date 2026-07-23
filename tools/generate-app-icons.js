@@ -59,24 +59,16 @@ const generateAppIcons = async () => {
   await fs.rm(generatedRoot, { recursive: true, force: true })
   await fs.mkdir(linuxIconDirectory, { recursive: true })
 
-  await sharp(sourceIconPath)
-    .resize(1024, 1024, { fit: 'contain' })
-    .png()
-    .toFile(commonIconPath)
+  await sharp(sourceIconPath).resize(1024, 1024, { fit: 'contain' }).png().toFile(commonIconPath)
 
   await Promise.all(
     linuxIconSizes.map(async (size) => {
       const outputPath = path.join(linuxIconDirectory, `${size}x${size}.png`)
-      await sharp(sourceIconPath)
-        .resize(size, size, { fit: 'contain' })
-        .png()
-        .toFile(outputPath)
+      await sharp(sourceIconPath).resize(size, size, { fit: 'contain' }).png().toFile(outputPath)
     })
   )
 
-  console.log(
-    `[AppIcon] 已生成 1024x1024 通用图标及 ${linuxIconSizes.length} 个 Linux 图标尺寸`
-  )
+  console.log(`[AppIcon] 已生成 1024x1024 通用图标及 ${linuxIconSizes.length} 个 Linux 图标尺寸`)
 }
 
 generateAppIcons().catch((error) => {

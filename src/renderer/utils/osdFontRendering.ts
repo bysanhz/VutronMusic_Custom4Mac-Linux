@@ -107,8 +107,8 @@ export const initializeOsdFontRendering = (font: Ref<string>): (() => void) => {
       try {
         const result = await window.mainApi?.invoke('getFontList')
         if (Array.isArray(result)) {
-          fonts = result.filter(
-            (item): item is FontInfo => Boolean(item && typeof item === 'object')
+          fonts = result.filter((item): item is FontInfo =>
+            Boolean(item && typeof item === 'object')
           )
         }
       } catch (error) {

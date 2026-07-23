@@ -183,7 +183,9 @@ export const useNormalStateStore = defineStore('state', () => {
         .map(createFontOption)
         .filter((option): option is FontSelectOption => option !== null)
 
-      const uniqueOptions = [...new Map(fontOptions.map((option) => [option.value, option])).values()]
+      const uniqueOptions = [
+        ...new Map(fontOptions.map((option) => [option.value, option])).values()
+      ]
       fontList.value = [systemDefaultFontOption, ...uniqueOptions]
       // =========== newADD end ========
     })
