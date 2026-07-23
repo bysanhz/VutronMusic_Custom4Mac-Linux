@@ -14,7 +14,9 @@ const injectStyle = () => {
   style.textContent = `
     #app .system-settings .item.${GRID_CLASS} {
       display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-template-rows: repeat(2, auto) !important;
+      grid-auto-flow: row !important;
       gap: 20px 28px;
       align-items: start;
       justify-items: center;
@@ -35,11 +37,34 @@ const injectStyle = () => {
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+      place-self: start center !important;
+      grid-column: auto !important;
+      grid-row: auto !important;
       gap: 8px;
       width: 100%;
       min-width: 0;
       margin: 0 !important;
       text-align: center;
+    }
+
+    #app .system-settings .item.${GRID_CLASS} > .color:nth-child(1) {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+    }
+
+    #app .system-settings .item.${GRID_CLASS} > .color:nth-child(2) {
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+    }
+
+    #app .system-settings .item.${GRID_CLASS} > .color:nth-child(3) {
+      grid-column: 1 !important;
+      grid-row: 2 !important;
+    }
+
+    #app .system-settings .item.${GRID_CLASS} > .color:nth-child(4) {
+      grid-column: 2 !important;
+      grid-row: 2 !important;
     }
 
     #app .system-settings .item.${GRID_CLASS} > .color .text {
@@ -51,12 +76,22 @@ const injectStyle = () => {
       opacity: 0.82;
     }
 
+    #app .system-settings .item.${GRID_CLASS} > .color > *:first-child {
+      flex: 0 0 auto;
+    }
+
     @media (max-width: 640px) {
       #app .system-settings .item.${GRID_CLASS} {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: repeat(4, auto) !important;
         width: min(100%, 300px);
         gap: 18px;
         padding: 16px;
+      }
+
+      #app .system-settings .item.${GRID_CLASS} > .color:nth-child(n) {
+        grid-column: 1 !important;
+        grid-row: auto !important;
       }
     }
   `
@@ -87,7 +122,8 @@ const decorateColorGrid = () => {
 
   findColorGridItems().forEach((item) => item.classList.add(GRID_CLASS))
 
-  observer?.observe(document.documentElement, {
+  const settings = document.querySelector<HTMLElement>(SETTINGS_SELECTOR)
+  observer?.observe(settings ?? document.documentElement, {
     childList: true,
     subtree: true
   })
