@@ -14,6 +14,17 @@ export type WindowScaleBaseline = {
   baseFontSize: number
 }
 
+export type WindowScaleBaselineField =
+  | 'minWidth'
+  | 'minHeight'
+  | 'baseFontSize'
+
+export type WindowScaleFieldRange = {
+  min: number
+  max: number
+  step: number
+}
+
 export const WINDOW_SCALE_REFERENCE_FONT_SIZE = 16
 export const WINDOW_SCALE_BASELINE_CHANGE_EVENT =
   'window-scale-baseline-change'
@@ -106,6 +117,33 @@ export const getDefaultWindowScaleBaseline = (
   target: WindowScaleTarget
 ): WindowScaleBaseline => {
   return { ...DEFAULT_WINDOW_SCALE_BASELINES[target] }
+}
+
+export const getWindowScaleFieldRange = (
+  target: WindowScaleTarget,
+  field: WindowScaleBaselineField
+): WindowScaleFieldRange => {
+  if (field === 'minWidth') {
+    return {
+      min: TARGET_LIMITS[target].minWidth,
+      max: MAX_MIN_WIDTH,
+      step: 20
+    }
+  }
+
+  if (field === 'minHeight') {
+    return {
+      min: TARGET_LIMITS[target].minHeight,
+      max: MAX_MIN_HEIGHT,
+      step: target === 'osd-small' ? 2 : 20
+    }
+  }
+
+  return {
+    min: MIN_BASE_FONT_SIZE,
+    max: MAX_BASE_FONT_SIZE,
+    step: 1
+  }
 }
 
 export const sanitizeWindowScaleBaseline = (
