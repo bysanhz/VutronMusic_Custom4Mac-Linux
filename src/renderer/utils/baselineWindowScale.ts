@@ -4,7 +4,7 @@ import {
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
   WindowScaleBaseline,
   calculateWindowZoomFactor
-} from '@/shared/windowScaleBaseline'
+} from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
   saveWindowScaleBaseline,
@@ -25,7 +25,7 @@ type RuntimeWindow = Window & {
   __vutronBaselineWindowScaleCleanup__?: () => void
 }
 
-type BaselineField = keyof WindowScaleBaseline
+type BaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
 
 const FIELD_CONFIG: Record<
   BaselineField,
@@ -51,6 +51,8 @@ const FIELD_CONFIG: Record<
     step: 1
   }
 }
+
+const BASELINE_FIELDS = Object.keys(FIELD_CONFIG) as BaselineField[]
 
 const updateSettingText = (setting: HTMLElement) => {
   const item = setting.closest<HTMLElement>('.item')
@@ -103,16 +105,12 @@ const mountBaselineSetting = () => {
 
   setting.dataset.windowScaleBaselineReady = 'true'
   setting.classList.add('window-scale-font-range')
-  setting.innerHTML = (
-    Object.keys(FIELD_CONFIG) as BaselineField[]
-  )
-    .map(createFieldRow)
-    .join('')
+  setting.innerHTML = BASELINE_FIELDS.map(createFieldRow).join('')
 
   const render = () => {
     const baseline = readWindowScaleBaseline(TARGET)
 
-    for (const field of Object.keys(FIELD_CONFIG) as BaselineField[]) {
+    for (const field of BASELINE_FIELDS) {
       const value = setting.querySelector<HTMLElement>(
         `[data-baseline-value="${field}"]`
       )
@@ -131,11 +129,10 @@ const mountBaselineSetting = () => {
     if (!button || !field) return
 
     const baseline = readWindowScaleBaseline(TARGET)
-    const step = FIELD_CONFIG[field].step
     const direction =
       button.dataset.baselineAction === 'decrease' ? -1 : 1
 
-    baseline[field] += step * direction
+    baseline[field] += FIELD_CONFIG[field].step * direction
     saveWindowScaleBaseline(TARGET, baseline)
     render()
   })
@@ -205,8 +202,7 @@ export const initializeBaselineWindowScale = () => {
       stopSettingMount()
       delete runtimeWindow.__vutronBaselineWindowScaleCleanup__
     }
-    runtimeWindow.__vutronBaselineWindowScaleCleanup__ =
-      cleanupWithoutElectron
+    runtimeWindow.__vutronBaselineWindowScaleCleanup__ = cleanupWithoutElectron
     return cleanupWithoutElectron
   }
 
@@ -231,14 +227,8 @@ export const initializeBaselineWindowScale = () => {
     }
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
-    const contentWidth = Math.max(
-      1,
-      window.innerWidth * currentZoomFactor
-    )
-    const contentHeight = Math.max(
-      1,
-      window.innerHeight * currentZoomFactor
-    )
+    const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
+    const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
     const baseline = readWindowScaleBaseline(TARGET)
     const nextZoomFactor = calculateWindowZoomFactor(
       contentWidth,
@@ -291,9 +281,7 @@ export const initializeBaselineWindowScale = () => {
       if (delayedUpdateTimer === null) {
         delayedUpdateTimer = window.setTimeout(() => {
           delayedUpdateTimer = null
-          animationFrameId = window.requestAnimationFrame(
-            runScheduledUpdate
-          )
+          animationFrameId = window.requestAnimationFrame(runScheduledUpdate)
         }, remaining)
       }
       return
@@ -332,17 +320,11 @@ export const initializeBaselineWindowScale = () => {
 
   updateZoomFactor()
   window.addEventListener('resize', handleResize, { passive: true })
-  window.addEventListener(
-    WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-    handleBaselineChange
-  )
+  window.addEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
 
   const cleanup = () => {
     window.removeEventListener('resize', handleResize)
-    window.removeEventListener(
-      WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-      handleBaselineChange
-    )
+    window.removeEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
     stopSettingMount()
     document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
 

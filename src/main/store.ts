@@ -1,12 +1,12 @@
 import Store from 'electron-store'
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { TrackInfoOrder, streamStatus } from '@/types/music'
+import type { TrackInfoOrder, streamStatus } from '@/types/music'
 import {
   WindowScaleBaseline,
   WindowScaleTarget,
   getDefaultWindowScaleBaseline,
   sanitizeWindowScaleBaseline
-} from '@/shared/windowScaleBaseline'
+} from './windowScaleBaseline'
 
 export interface TypeElectronStore {
   window: {
@@ -70,10 +70,8 @@ const store = new Store<TypeElectronStore>({
       type: 'small',
       show: false,
       isLock: false,
-      scaleBaselineSmall:
-        getDefaultWindowScaleBaseline('osd-small'),
-      scaleBaselineNormal:
-        getDefaultWindowScaleBaseline('osd-normal')
+      scaleBaselineSmall: getDefaultWindowScaleBaseline('osd-small'),
+      scaleBaselineNormal: getDefaultWindowScaleBaseline('osd-normal')
     },
     settings: {
       innerFirst: false,
@@ -82,12 +80,11 @@ const store = new Store<TypeElectronStore>({
       closeAppOption: 'ask',
       useCustomTitlebar: false,
       showTray: true,
-      trayColor: 0, // 0: 彩色, 1: 白色, 2: 黑色, 3: 跟随系统
-      embedCoverArt: 0, // 0: 不嵌入, 1: 内嵌, 2: 歌曲路径下, 3: 两者都嵌入
-      embedStyle: 0, // 0: 跳过, 1: 覆盖
+      trayColor: 0,
+      embedCoverArt: 0,
+      embedStyle: 0,
       enableGlobalShortcut: false,
-      windowScaleBaseline:
-        getDefaultWindowScaleBaseline('main'),
+      windowScaleBaseline: getDefaultWindowScaleBaseline('main'),
       unblockNeteaseMusic: {
         enable: true,
         source: '',
@@ -196,9 +193,7 @@ const readMainWindowBaseline = () => {
   )
 }
 
-const readOsdWindowBaseline = (
-  target: 'osd-small' | 'osd-normal'
-) => {
+const readOsdWindowBaseline = (target: 'osd-small' | 'osd-normal') => {
   const key =
     target === 'osd-small'
       ? 'osdWin.scaleBaselineSmall'
@@ -240,23 +235,16 @@ const findDesktopLyricWindow = () => {
 
 const applyCreatedWindowBaseline = (window: BrowserWindow) => {
   if (window.getTitle() === '桌面歌词') {
-    const type = store.get('osdWin.type') === 'normal'
-      ? 'osd-normal'
-      : 'osd-small'
-    applyWindowMinimumSize(
-      window,
-      type,
-      readOsdWindowBaseline(type)
-    )
+    const type =
+      store.get('osdWin.type') === 'normal'
+        ? 'osd-normal'
+        : 'osd-small'
+    applyWindowMinimumSize(window, type, readOsdWindowBaseline(type))
     return
   }
 
   if (window.getTitle() === app.getName()) {
-    applyWindowMinimumSize(
-      window,
-      'main',
-      readMainWindowBaseline()
-    )
+    applyWindowMinimumSize(window, 'main', readMainWindowBaseline())
   }
 }
 

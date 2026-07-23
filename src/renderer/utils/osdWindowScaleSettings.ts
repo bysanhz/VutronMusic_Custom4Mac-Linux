@@ -1,9 +1,6 @@
 /* ======== newADD start====== */
 import type { Router } from 'vue-router'
-import type {
-  WindowScaleBaseline,
-  WindowScaleTarget
-} from '@/shared/windowScaleBaseline'
+import type { WindowScaleBaseline, WindowScaleTarget } from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
   saveWindowScaleBaseline
@@ -12,7 +9,7 @@ import {
 const CONTROL_ID = 'osd-window-scale-baseline-setting'
 const STYLE_ID = 'osd-window-scale-baseline-style'
 
-type BaselineField = keyof WindowScaleBaseline
+type BaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
 
 const FIELD_CONFIG: Record<
   BaselineField,
@@ -34,6 +31,8 @@ const FIELD_CONFIG: Record<
     step: 1
   }
 }
+
+const BASELINE_FIELDS = Object.keys(FIELD_CONFIG) as BaselineField[]
 
 const TARGET_CONFIG: Array<{
   target: WindowScaleTarget
@@ -158,9 +157,7 @@ const createTargetSection = (
   target: WindowScaleTarget,
   title: string
 ) => {
-  const fields = (Object.keys(FIELD_CONFIG) as BaselineField[])
-    .map((field) => createFieldRow(target, field))
-    .join('')
+  const fields = BASELINE_FIELDS.map((field) => createFieldRow(target, field)).join('')
 
   return `
     <section class="osd-window-scale-section" data-section-target="${target}">
@@ -180,7 +177,7 @@ const renderTarget = (
   )
   if (!section) return
 
-  for (const field of Object.keys(FIELD_CONFIG) as BaselineField[]) {
+  for (const field of BASELINE_FIELDS) {
     const input = section.querySelector<HTMLInputElement>(
       `[data-field="${field}"] [data-value="${field}"]`
     )
@@ -199,7 +196,7 @@ const readSectionBaseline = (
   if (!section) return current
 
   const result = { ...current }
-  for (const field of Object.keys(FIELD_CONFIG) as BaselineField[]) {
+  for (const field of BASELINE_FIELDS) {
     const input = section.querySelector<HTMLInputElement>(
       `[data-field="${field}"] [data-value="${field}"]`
     )
@@ -272,10 +269,9 @@ const injectControl = () => {
   if (!osdPanel) return false
 
   injectStyle()
-  const numberInputs =
-    osdPanel.querySelectorAll<HTMLInputElement>(
-      'input[type="number"].text-input'
-    )
+  const numberInputs = osdPanel.querySelectorAll<HTMLInputElement>(
+    'input[type="number"].text-input'
+  )
   const fontSizeItem = numberInputs.item(1)?.closest('.item')
   const control = createControl()
 

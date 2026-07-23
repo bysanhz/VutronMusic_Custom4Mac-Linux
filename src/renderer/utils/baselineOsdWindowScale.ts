@@ -3,7 +3,7 @@ import {
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
   WindowScaleTarget,
   calculateWindowZoomFactor
-} from '@/shared/windowScaleBaseline'
+} from './windowScaleBaseline'
 import {
   getWindowScaleBaselineStorageKeys,
   readWindowScaleBaseline
@@ -49,14 +49,8 @@ export const initializeBaselineOsdWindowScale = () => {
     }
 
     const currentZoomFactor = window.mainApi?.getZoomFactor() || 1
-    const contentWidth = Math.max(
-      1,
-      window.innerWidth * currentZoomFactor
-    )
-    const contentHeight = Math.max(
-      1,
-      window.innerHeight * currentZoomFactor
-    )
+    const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
+    const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
     const target = readOsdTarget()
     const baseline = readWindowScaleBaseline(target)
     const nextZoomFactor = calculateWindowZoomFactor(
@@ -86,8 +80,7 @@ export const initializeBaselineOsdWindowScale = () => {
       `${baseline.baseFontSize}px`
     )
     document.documentElement.dataset.osdScaleMode = target
-    document.documentElement.dataset.osdWindowZoom =
-      nextZoomFactor.toFixed(4)
+    document.documentElement.dataset.osdWindowZoom = nextZoomFactor.toFixed(4)
 
     if (Math.abs(nextZoomFactor - currentZoomFactor) < ZOOM_EPSILON) {
       return
@@ -113,9 +106,7 @@ export const initializeBaselineOsdWindowScale = () => {
       if (delayedUpdateTimer === null) {
         delayedUpdateTimer = window.setTimeout(() => {
           delayedUpdateTimer = null
-          animationFrameId = window.requestAnimationFrame(
-            runScheduledUpdate
-          )
+          animationFrameId = window.requestAnimationFrame(runScheduledUpdate)
         }, remaining)
       }
       return
@@ -160,18 +151,12 @@ export const initializeBaselineOsdWindowScale = () => {
   updateZoomFactor()
   window.addEventListener('resize', handleResize, { passive: true })
   window.addEventListener('storage', handleStorage)
-  window.addEventListener(
-    WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-    handleBaselineChange
-  )
+  window.addEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
 
   const cleanup = () => {
     window.removeEventListener('resize', handleResize)
     window.removeEventListener('storage', handleStorage)
-    window.removeEventListener(
-      WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-      handleBaselineChange
-    )
+    window.removeEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
 
     if (animationFrameId !== null) {
       window.cancelAnimationFrame(animationFrameId)

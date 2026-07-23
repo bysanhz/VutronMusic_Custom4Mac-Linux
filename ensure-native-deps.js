@@ -34,21 +34,15 @@ if (initialCheck.status === 0) {
   process.exit(0)
 }
 
-console.warn(
-  '[native-deps] better-sqlite3 缺失或 ABI 不匹配，开始自动重建'
-)
+console.warn('[native-deps] better-sqlite3 缺失或 ABI 不匹配，开始自动重建')
 printFailureOutput(initialCheck)
 
 const rebuildScript = path.join(projectRoot, 'rebuild.js')
-const rebuildResult = childProcess.spawnSync(
-  process.execPath,
-  [rebuildScript],
-  {
-    cwd: projectRoot,
-    env: process.env,
-    stdio: 'inherit'
-  }
-)
+const rebuildResult = childProcess.spawnSync(process.execPath, [rebuildScript], {
+  cwd: projectRoot,
+  env: process.env,
+  stdio: 'inherit'
+})
 
 if (rebuildResult.status !== 0) {
   console.error('[native-deps] Electron 原生依赖重建失败')

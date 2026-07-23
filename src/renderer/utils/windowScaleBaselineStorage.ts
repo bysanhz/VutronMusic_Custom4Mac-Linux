@@ -5,7 +5,7 @@ import {
   WindowScaleBaseline,
   WindowScaleTarget,
   sanitizeWindowScaleBaseline
-} from '@/shared/windowScaleBaseline'
+} from './windowScaleBaseline'
 
 const LEGACY_MAIN_MIN_FONT_KEY = 'appWindowScaleMinFontSize'
 const LEGACY_OSD_MIN_FONT_KEY = 'osdWindowScaleMinFontSize'
@@ -41,10 +41,7 @@ export const readWindowScaleBaseline = (
     localStorage.setItem(keys.minHeight, String(baseline.minHeight))
   }
   if (localStorage.getItem(keys.baseFontSize) === null) {
-    localStorage.setItem(
-      keys.baseFontSize,
-      String(baseline.baseFontSize)
-    )
+    localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
   }
 
   return baseline
@@ -77,10 +74,7 @@ export const saveWindowScaleBaseline = (
 
   localStorage.setItem(keys.minWidth, String(baseline.minWidth))
   localStorage.setItem(keys.minHeight, String(baseline.minHeight))
-  localStorage.setItem(
-    keys.baseFontSize,
-    String(baseline.baseFontSize)
-  )
+  localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
 
   window.dispatchEvent(
     new CustomEvent(WINDOW_SCALE_BASELINE_CHANGE_EVENT, {
