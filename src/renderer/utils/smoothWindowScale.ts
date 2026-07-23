@@ -4,12 +4,12 @@ import { initializeBaselineWindowScale } from './baselineWindowScale'
 import { initializeWindowScaleCalibration } from './windowScaleCalibration'
 
 export const initializeSmoothWindowScale = () => {
-  const cleanupScale = initializeBaselineWindowScale()
   const cleanupCalibration = initializeWindowScaleCalibration(router)
+  const cleanupScale = initializeBaselineWindowScale()
 
   return () => {
-    cleanupCalibration?.()
     cleanupScale?.()
+    cleanupCalibration?.()
   }
 }
 /* =========== newADD end ======== */
