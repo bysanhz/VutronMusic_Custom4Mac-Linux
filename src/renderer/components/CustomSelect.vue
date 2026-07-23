@@ -58,6 +58,14 @@
         <slot name="option" :option="option">
           <div>{{ option.label }}</div>
         </slot>
+        <!-- ======== newADD start====== -->
+        <!-- 字体选项使用同一字体同时预览中文、日文与英文。 -->
+        <div v-if="option.fontFamily" class="font-preview-sample" aria-hidden="true">
+          <span lang="zh-CN">中文</span>
+          <span lang="ja">日本語</span>
+          <span lang="en">English</span>
+        </div>
+        <!-- =========== newADD end ======== -->
       </div>
     </div>
   </div>
@@ -488,6 +496,27 @@ watch(dropdownVisible, (visible) => {
  */
 :deep(.custom-select-item > *) {
   font-family: inherit !important;
+}
+
+.font-preview-sample {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0;
+  white-space: nowrap;
+  opacity: 0.78;
+}
+
+.custom-select-item:hover .font-preview-sample,
+.custom-select-item.highlighted .font-preview-sample,
+.custom-select-item.active .font-preview-sample {
+  opacity: 0.95;
 }
 /* =========== newADD end ======== */
 
