@@ -6,6 +6,15 @@ const baseConfig = {
   // ======== newADD start======
   // 固定应用身份，避免不同构建回退到 electron-builder 默认标识。
   appId: 'com.bysanhz.vutronmusic',
+  // 使用仓库根目录的同一张高分辨率 PNG 作为三平台应用图标源。
+  // electron-builder 会在构建 macOS/Windows 时自动转换为 ICNS/ICO，
+  // Linux 则自动生成各尺寸的 PNG 图标。
+  extraResources: [
+    {
+      from: 'new_icon.png',
+      to: 'new_icon.png'
+    }
+  ],
   // =========== newADD end ========
   asar: true,
   asarUnpack: [
@@ -24,7 +33,9 @@ const baseConfig = {
     hardenedRuntime: true,
     gatekeeperAssess: false,
     notarize: false,
-    icon: 'buildAssets/icons/icon.icns',
+    // ======== newADD start======
+    icon: 'new_icon.png',
+    // =========== newADD end ========
     type: 'distribution',
     target: [{ target: 'dmg', arch: 'x64' }]
   },
@@ -45,7 +56,9 @@ const baseConfig = {
     sign: false
   },
   win: {
-    icon: 'buildAssets/icons/icon.ico',
+    // ======== newADD start======
+    icon: 'new_icon.png',
+    // =========== newADD end ========
     target: [
       { target: 'zip', arch: 'x64' },
       { target: 'portable', arch: 'x64' },
@@ -63,7 +76,9 @@ const baseConfig = {
   },
   linux: {
     executableName: 'vutron',
-    icon: 'buildAssets/icons/icon.png',
+    // ======== newADD start======
+    icon: 'new_icon.png',
+    // =========== newADD end ========
     category: 'Utility',
     target: [
       {
