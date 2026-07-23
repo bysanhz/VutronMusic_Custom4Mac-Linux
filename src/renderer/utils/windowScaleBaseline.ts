@@ -4,6 +4,9 @@
  *
  * 当窗口等于设定的最小宽高时，界面使用设定的基准字号；窗口继续增大时，
  * Electron webFrame 按窗口相对基准面积的平方根统一缩放全部元素。
+ *
+ * 迷你桌面歌词额外使用 miniControlBaseSize。它只控制左侧封面与控制按钮
+ * 相对右侧歌词的比例，不参与 Electron 窗口缩放倍数计算。
  */
 
 export type WindowScaleTarget = 'main' | 'osd-small' | 'osd-normal'
@@ -12,6 +15,7 @@ export type WindowScaleBaseline = {
   minWidth: number
   minHeight: number
   baseFontSize: number
+  miniControlBaseSize: number
 }
 
 export type WindowScaleBaselineField =
@@ -61,17 +65,20 @@ export const DEFAULT_WINDOW_SCALE_BASELINES: Record<
   main: {
     minWidth: 810,
     minHeight: 540,
-    baseFontSize: 12
+    baseFontSize: 12,
+    miniControlBaseSize: 12
   },
   'osd-small': {
     minWidth: 420,
     minHeight: 50,
-    baseFontSize: 12
+    baseFontSize: 12,
+    miniControlBaseSize: 12
   },
   'osd-normal': {
     minWidth: 360,
     minHeight: 400,
-    baseFontSize: 12
+    baseFontSize: 12,
+    miniControlBaseSize: 12
   }
 }
 
@@ -81,7 +88,7 @@ const normalizeDimension = (value: unknown, fallback: number) => {
   return Math.max(1, Math.round(parsed))
 }
 
-const normalizeFontSize = (value: unknown, fallback: number) => {
+const normalizeScaleValue = (value: unknown, fallback: number) => {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
   return Math.round(parsed * 100) / 100
@@ -115,13 +122,18 @@ export const sanitizeWindowScaleBaseline = (
   value: Partial<WindowScaleBaseline> | null | undefined
 ): WindowScaleBaseline => {
   const fallback = DEFAULT_WINDOW_SCALE_BASELINES[target]
+  const baseFontSize = normalizeScaleValue(
+    value?.baseFontSize,
+    fallback.baseFontSize
+  )
 
   return {
     minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
     minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
-    baseFontSize: normalizeFontSize(
-      value?.baseFontSize,
-      fallback.baseFontSize
+    baseFontSize,
+    miniControlBaseSize: normalizeScaleValue(
+      value?.miniControlBaseSize,
+      baseFontSize
     )
   }
 }
