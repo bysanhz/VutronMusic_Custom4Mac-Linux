@@ -16,7 +16,7 @@ export const windowScaleMessages = {
     enterToApply: 'Enter a value and press Enter to preview',
     dragToAdjust: 'Drag to adjust {field}',
     calibrationHint:
-      'Changes are previewed at the baseline window size. Confirm to save and release the window for normal resizing.',
+      'Changes are previewed at the baseline window size. Confirm to save and release the window for normal resizing. Press Esc to cancel or Ctrl/Command + Enter to confirm.',
     confirm: 'Confirm',
     cancel: 'Cancel'
   },
@@ -37,7 +37,7 @@ export const windowScaleMessages = {
     enterToApply: '输入数值后按 Enter 预览',
     dragToAdjust: '拖动调节{field}',
     calibrationHint:
-      '调整时窗口会实时进入基准尺寸预览；点击确认后保存，并释放窗口供正常拖拽缩放。',
+      '调整时窗口会实时进入基准尺寸预览；点击确认后保存，并释放窗口供正常拖拽缩放。按 Esc 取消，按 Ctrl/Command + Enter 确认。',
     confirm: '确认',
     cancel: '取消'
   },
@@ -58,7 +58,7 @@ export const windowScaleMessages = {
     enterToApply: '輸入數值後按 Enter 預覽',
     dragToAdjust: '拖曳調整{field}',
     calibrationHint:
-      '調整時視窗會即時進入基準尺寸預覽；按下確認後儲存，並釋放視窗供正常拖曳縮放。',
+      '調整時視窗會即時進入基準尺寸預覽；按下確認後儲存，並釋放視窗供正常拖曳縮放。按 Esc 取消，按 Ctrl/Command + Enter 確認。',
     confirm: '確認',
     cancel: '取消'
   }
