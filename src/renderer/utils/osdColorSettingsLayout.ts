@@ -1,26 +1,25 @@
 /* ======== newADD start====== */
 const STYLE_ID = 'osd-color-settings-layout-style'
+const GRID_CLASS = 'osd-color-settings-grid'
+const SETTINGS_SELECTOR = '#app .system-settings'
 
-/**
- * 优化桌面歌词颜色选择区域的响应式布局。
- *
- * 原布局复用了通用 item 的 flex 规则，窗口整体缩放后容易出现色块错位、
- * 不等距和大面积空白。这里仅匹配直接包含颜色选择器的设置项。
- */
-export const initializeOsdColorSettingsLayout = () => {
+let observer: MutationObserver | null = null
+let decorateFrame: number | null = null
+
+const injectStyle = () => {
   document.getElementById(STYLE_ID)?.remove()
 
   const style = document.createElement('style')
   style.id = STYLE_ID
   style.textContent = `
-    #app .system-settings .item:has(> .color) {
+    #app .system-settings .item.${GRID_CLASS} {
       display: grid !important;
-      grid-template-columns: repeat(2, minmax(140px, 1fr));
-      gap: 22px 28px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px 28px;
       align-items: start;
       justify-items: center;
-      width: min(100%, 560px);
-      margin: 14px auto 20px;
+      width: min(100%, 520px);
+      margin: 14px auto 22px;
       padding: 18px 20px 22px;
       box-sizing: border-box;
       border-radius: 14px;
@@ -31,8 +30,8 @@ export const initializeOsdColorSettingsLayout = () => {
       );
     }
 
-    #app .system-settings .item:has(> .color) > .color {
-      display: flex;
+    #app .system-settings .item.${GRID_CLASS} > .color {
+      display: flex !important;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
@@ -43,7 +42,7 @@ export const initializeOsdColorSettingsLayout = () => {
       text-align: center;
     }
 
-    #app .system-settings .item:has(> .color) > .color .text {
+    #app .system-settings .item.${GRID_CLASS} > .color .text {
       width: 100%;
       margin: 0 !important;
       line-height: 1.35;
@@ -52,23 +51,74 @@ export const initializeOsdColorSettingsLayout = () => {
       opacity: 0.82;
     }
 
-    #app .system-settings .item:has(> .color) > .color > *:first-child {
-      flex: 0 0 auto;
-    }
-
-    @media (max-width: 720px) {
-      #app .system-settings .item:has(> .color) {
-        grid-template-columns: minmax(140px, 1fr);
-        width: min(100%, 320px);
+    @media (max-width: 640px) {
+      #app .system-settings .item.${GRID_CLASS} {
+        grid-template-columns: minmax(0, 1fr);
+        width: min(100%, 300px);
         gap: 18px;
         padding: 16px;
       }
     }
   `
   document.head.appendChild(style)
+}
+
+const findColorGridItems = () => {
+  const settings = document.querySelector<HTMLElement>(SETTINGS_SELECTOR)
+  if (!settings) return []
+
+  return Array.from(settings.querySelectorAll<HTMLElement>('.item')).filter(
+    (item) => {
+      const directColors = Array.from(item.children).filter((child) =>
+        child.classList.contains('color')
+      )
+      return directColors.length === 4
+    }
+  )
+}
+
+const decorateColorGrid = () => {
+  decorateFrame = null
+  observer?.disconnect()
+
+  document
+    .querySelectorAll<HTMLElement>(`.${GRID_CLASS}`)
+    .forEach((item) => item.classList.remove(GRID_CLASS))
+
+  findColorGridItems().forEach((item) => item.classList.add(GRID_CLASS))
+
+  observer?.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  })
+}
+
+const scheduleDecorate = () => {
+  if (decorateFrame !== null) return
+  decorateFrame = window.requestAnimationFrame(decorateColorGrid)
+}
+
+export const initializeOsdColorSettingsLayout = () => {
+  injectStyle()
+  observer = new MutationObserver(scheduleDecorate)
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  })
+  scheduleDecorate()
 
   return () => {
+    observer?.disconnect()
+    observer = null
+    document
+      .querySelectorAll<HTMLElement>(`.${GRID_CLASS}`)
+      .forEach((item) => item.classList.remove(GRID_CLASS))
     document.getElementById(STYLE_ID)?.remove()
+
+    if (decorateFrame !== null) {
+      window.cancelAnimationFrame(decorateFrame)
+      decorateFrame = null
+    }
   }
 }
 /* =========== newADD end ======== */
