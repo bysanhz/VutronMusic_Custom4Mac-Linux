@@ -45,15 +45,14 @@ export const readPersistedWindowScaleBaseline = (
   target: WindowScaleTarget
 ): WindowScaleBaseline => {
   const keys = WINDOW_SCALE_BASELINE_KEYS[target]
-  const storedBaseFontSize =
-    readStoredNumber(keys.baseFontSize) ?? readLegacyBaseFont(target)
+  const storedBaseFontSize = readStoredNumber(keys.baseFontSize) ?? readLegacyBaseFont(target)
   const baseline = sanitizeWindowScaleBaseline(target, {
     minWidth: readStoredNumber(keys.minWidth),
     minHeight: readStoredNumber(keys.minHeight),
     baseFontSize: storedBaseFontSize,
     miniControlBaseSize:
       target === 'osd-small'
-        ? readStoredNumber(MINI_CONTROL_BASE_SIZE_KEY) ?? storedBaseFontSize
+        ? (readStoredNumber(MINI_CONTROL_BASE_SIZE_KEY) ?? storedBaseFontSize)
         : storedBaseFontSize
   })
 
@@ -66,26 +65,15 @@ export const readPersistedWindowScaleBaseline = (
   if (localStorage.getItem(keys.baseFontSize) === null) {
     localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
   }
-  if (
-    target === 'osd-small' &&
-    localStorage.getItem(MINI_CONTROL_BASE_SIZE_KEY) === null
-  ) {
-    localStorage.setItem(
-      MINI_CONTROL_BASE_SIZE_KEY,
-      String(baseline.miniControlBaseSize)
-    )
+  if (target === 'osd-small' && localStorage.getItem(MINI_CONTROL_BASE_SIZE_KEY) === null) {
+    localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
   }
 
   return baseline
 }
 
-export const readWindowScaleBaseline = (
-  target: WindowScaleTarget
-): WindowScaleBaseline => {
-  return (
-    readPreviewBaseline(target) ||
-    readPersistedWindowScaleBaseline(target)
-  )
+export const readWindowScaleBaseline = (target: WindowScaleTarget): WindowScaleBaseline => {
+  return readPreviewBaseline(target) || readPersistedWindowScaleBaseline(target)
 }
 
 const dispatchBaselineChange = (
@@ -104,10 +92,7 @@ const dispatchBaselineChange = (
   )
 }
 
-export const syncWindowMinimumSize = (
-  target: WindowScaleTarget,
-  baseline: WindowScaleBaseline
-) => {
+export const syncWindowMinimumSize = (target: WindowScaleTarget, baseline: WindowScaleBaseline) => {
   if (target === 'main') {
     window.mainApi?.send('setStoreSettings', {
       windowScaleBaseline: baseline
@@ -116,9 +101,7 @@ export const syncWindowMinimumSize = (
   }
 
   window.mainApi?.send('updateOsdState', {
-    [target === 'osd-small'
-      ? 'scaleBaselineSmall'
-      : 'scaleBaselineNormal']: baseline
+    [target === 'osd-small' ? 'scaleBaselineSmall' : 'scaleBaselineNormal']: baseline
   })
 }
 
@@ -142,20 +125,14 @@ export const commitWindowScaleBaseline = (
   target: WindowScaleTarget,
   value?: Partial<WindowScaleBaseline>
 ) => {
-  const baseline = sanitizeWindowScaleBaseline(
-    target,
-    value || readWindowScaleBaseline(target)
-  )
+  const baseline = sanitizeWindowScaleBaseline(target, value || readWindowScaleBaseline(target))
   const keys = WINDOW_SCALE_BASELINE_KEYS[target]
 
   localStorage.setItem(keys.minWidth, String(baseline.minWidth))
   localStorage.setItem(keys.minHeight, String(baseline.minHeight))
   localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
   if (target === 'osd-small') {
-    localStorage.setItem(
-      MINI_CONTROL_BASE_SIZE_KEY,
-      String(baseline.miniControlBaseSize)
-    )
+    localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
   }
   localStorage.removeItem(getPreviewKey(target))
 
@@ -169,9 +146,7 @@ export const commitWindowScaleBaseline = (
   return baseline
 }
 
-export const cancelWindowScaleCalibration = (
-  target: WindowScaleTarget
-) => {
+export const cancelWindowScaleCalibration = (target: WindowScaleTarget) => {
   localStorage.removeItem(getPreviewKey(target))
   const baseline = readPersistedWindowScaleBaseline(target)
 
@@ -184,11 +159,7 @@ export const cancelWindowScaleCalibration = (
 }
 
 export const clearWindowScaleCalibrationPreviews = () => {
-  const targets: WindowScaleTarget[] = [
-    'main',
-    'osd-small',
-    'osd-normal'
-  ]
+  const targets: WindowScaleTarget[] = ['main', 'osd-small', 'osd-normal']
 
   for (const target of targets) {
     localStorage.removeItem(getPreviewKey(target))
@@ -199,13 +170,8 @@ export const clearWindowScaleCalibrationPreviews = () => {
   }
 }
 
-export const getWindowScaleBaselineStorageKeys = (
-  target: WindowScaleTarget
-) => {
-  const keys = [
-    ...Object.values(WINDOW_SCALE_BASELINE_KEYS[target]),
-    getPreviewKey(target)
-  ]
+export const getWindowScaleBaselineStorageKeys = (target: WindowScaleTarget) => {
+  const keys = [...Object.values(WINDOW_SCALE_BASELINE_KEYS[target]), getPreviewKey(target)]
 
   if (target === 'osd-small') {
     keys.push(MINI_CONTROL_BASE_SIZE_KEY)

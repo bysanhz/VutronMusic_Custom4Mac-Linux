@@ -181,23 +181,17 @@ const store = new Store<TypeElectronStore>({
 })
 
 // ======== newADD start======
-const WINDOW_SCALE_LISTENERS_KEY =
-  '__VUTRON_WINDOW_SCALE_LISTENERS_INSTALLED__'
+const WINDOW_SCALE_LISTENERS_KEY = '__VUTRON_WINDOW_SCALE_LISTENERS_INSTALLED__'
 
 const readMainWindowBaseline = () => {
   return sanitizeWindowScaleBaseline(
     'main',
-    store.get('settings.windowScaleBaseline') as
-      | Partial<WindowScaleBaseline>
-      | undefined
+    store.get('settings.windowScaleBaseline') as Partial<WindowScaleBaseline> | undefined
   )
 }
 
 const readOsdWindowBaseline = (target: 'osd-small' | 'osd-normal') => {
-  const key =
-    target === 'osd-small'
-      ? 'osdWin.scaleBaselineSmall'
-      : 'osdWin.scaleBaselineNormal'
+  const key = target === 'osd-small' ? 'osdWin.scaleBaselineSmall' : 'osdWin.scaleBaselineNormal'
 
   return sanitizeWindowScaleBaseline(
     target,
@@ -226,19 +220,12 @@ const applyWindowMinimumSize = (
 }
 
 const findDesktopLyricWindow = () => {
-  return (
-    BrowserWindow.getAllWindows().find(
-      (window) => window.getTitle() === '桌面歌词'
-    ) || null
-  )
+  return BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
 }
 
 const applyCreatedWindowBaseline = (window: BrowserWindow) => {
   if (window.getTitle() === '桌面歌词') {
-    const type =
-      store.get('osdWin.type') === 'normal'
-        ? 'osd-normal'
-        : 'osd-small'
+    const type = store.get('osdWin.type') === 'normal' ? 'osd-normal' : 'osd-small'
     applyWindowMinimumSize(window, type, readOsdWindowBaseline(type))
     return
   }
@@ -259,11 +246,7 @@ const installWindowScaleListeners = () => {
 
     const baseline = sanitizeWindowScaleBaseline('main', value)
     store.set('settings.windowScaleBaseline', baseline)
-    applyWindowMinimumSize(
-      BrowserWindow.fromWebContents(event.sender),
-      'main',
-      baseline
-    )
+    applyWindowMinimumSize(BrowserWindow.fromWebContents(event.sender), 'main', baseline)
   })
 
   ipcMain.on('updateOsdState', (_event, data: any) => {
@@ -276,26 +259,14 @@ const installWindowScaleListeners = () => {
           : null
     if (!target) return
 
-    const baseline = sanitizeWindowScaleBaseline(
-      target,
-      value as Partial<WindowScaleBaseline>
-    )
+    const baseline = sanitizeWindowScaleBaseline(target, value as Partial<WindowScaleBaseline>)
     const storeKey =
-      target === 'osd-small'
-        ? 'osdWin.scaleBaselineSmall'
-        : 'osdWin.scaleBaselineNormal'
+      target === 'osd-small' ? 'osdWin.scaleBaselineSmall' : 'osdWin.scaleBaselineNormal'
     store.set(storeKey, baseline)
 
-    const currentTarget =
-      store.get('osdWin.type') === 'normal'
-        ? 'osd-normal'
-        : 'osd-small'
+    const currentTarget = store.get('osdWin.type') === 'normal' ? 'osd-normal' : 'osd-small'
     if (currentTarget === target) {
-      applyWindowMinimumSize(
-        findDesktopLyricWindow(),
-        target,
-        baseline
-      )
+      applyWindowMinimumSize(findDesktopLyricWindow(), target, baseline)
     }
   })
 }

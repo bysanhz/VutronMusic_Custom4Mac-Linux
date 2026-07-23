@@ -8,9 +8,7 @@ import { windowScaleMessages } from '../locales/windowScale'
 const settings = JSON.parse(localStorage.getItem('settings') || '{}')
 const language = settings?.general?.language || 'zh'
 
-const mergeWindowScaleMessages = <
-  T extends { settings: Record<string, unknown> }
->(
+const mergeWindowScaleMessages = <T extends { settings: Record<string, unknown> }>(
   messages: T,
   windowScale: Record<string, string>
 ) => ({

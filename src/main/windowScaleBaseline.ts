@@ -9,10 +9,7 @@ export type WindowScaleBaseline = {
   baseFontSize: number
 }
 
-export const DEFAULT_WINDOW_SCALE_BASELINES: Record<
-  WindowScaleTarget,
-  WindowScaleBaseline
-> = {
+export const DEFAULT_WINDOW_SCALE_BASELINES: Record<WindowScaleTarget, WindowScaleBaseline> = {
   main: {
     minWidth: 810,
     minHeight: 540,
@@ -42,9 +39,7 @@ const normalizeFontSize = (value: unknown, fallback: number) => {
   return Math.round(parsed * 100) / 100
 }
 
-export const getDefaultWindowScaleBaseline = (
-  target: WindowScaleTarget
-): WindowScaleBaseline => {
+export const getDefaultWindowScaleBaseline = (target: WindowScaleTarget): WindowScaleBaseline => {
   return { ...DEFAULT_WINDOW_SCALE_BASELINES[target] }
 }
 
@@ -57,10 +52,7 @@ export const sanitizeWindowScaleBaseline = (
   return {
     minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
     minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
-    baseFontSize: normalizeFontSize(
-      value?.baseFontSize,
-      fallback.baseFontSize
-    )
+    baseFontSize: normalizeFontSize(value?.baseFontSize, fallback.baseFontSize)
   }
 }
 
@@ -79,16 +71,11 @@ type CalibrationPayload = {
   action?: 'commit' | 'cancel'
 }
 
-const CALIBRATION_LISTENERS_KEY =
-  '__VUTRON_WINDOW_SCALE_CALIBRATION_LISTENERS__'
+const CALIBRATION_LISTENERS_KEY = '__VUTRON_WINDOW_SCALE_CALIBRATION_LISTENERS__'
 const calibrationSessions = new Map<WindowScaleTarget, CalibrationSession>()
 
 const findDesktopLyricWindow = () => {
-  return (
-    BrowserWindow.getAllWindows().find(
-      (window) => window.getTitle() === '桌面歌词'
-    ) || null
-  )
+  return BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
 }
 
 const resolveCalibrationWindow = (
@@ -99,10 +86,7 @@ const resolveCalibrationWindow = (
   return findDesktopLyricWindow()
 }
 
-const captureCalibrationSession = (
-  target: WindowScaleTarget,
-  window: BrowserWindow
-) => {
+const captureCalibrationSession = (target: WindowScaleTarget, window: BrowserWindow) => {
   const existing = calibrationSessions.get(target)
   if (existing?.windowId === window.id) return existing
 
@@ -150,10 +134,7 @@ const previewCalibrationBaseline = (
   })
 }
 
-const finishCalibration = (
-  senderWindow: BrowserWindow | null,
-  payload: CalibrationPayload
-) => {
+const finishCalibration = (senderWindow: BrowserWindow | null, payload: CalibrationPayload) => {
   const target = payload.target
   const window = resolveCalibrationWindow(senderWindow, target)
   const session = calibrationSessions.get(target)
@@ -183,25 +164,13 @@ const finishCalibration = (
 }
 
 const installCalibrationListeners = () => {
-  ipcMain.on(
-    'preview-window-scale-baseline',
-    (event, payload: CalibrationPayload) => {
-      previewCalibrationBaseline(
-        BrowserWindow.fromWebContents(event.sender),
-        payload
-      )
-    }
-  )
+  ipcMain.on('preview-window-scale-baseline', (event, payload: CalibrationPayload) => {
+    previewCalibrationBaseline(BrowserWindow.fromWebContents(event.sender), payload)
+  })
 
-  ipcMain.on(
-    'finish-window-scale-calibration',
-    (event, payload: CalibrationPayload) => {
-      finishCalibration(
-        BrowserWindow.fromWebContents(event.sender),
-        payload
-      )
-    }
-  )
+  ipcMain.on('finish-window-scale-calibration', (event, payload: CalibrationPayload) => {
+    finishCalibration(BrowserWindow.fromWebContents(event.sender), payload)
+  })
 }
 
 const runtimeGlobal = globalThis as Record<string, unknown>

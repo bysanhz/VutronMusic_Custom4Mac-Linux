@@ -14,9 +14,7 @@ let observer: MutationObserver | null = null
 let scheduleFrame: number | null = null
 
 const translate = (key: string, params?: Record<string, string>) => {
-  return params
-    ? String(i18n.global.t(key, params))
-    : String(i18n.global.t(key))
+  return params ? String(i18n.global.t(key, params)) : String(i18n.global.t(key))
 }
 
 const createRow = () => {
@@ -81,9 +79,7 @@ const ensureRow = () => {
   const section = document.querySelector<HTMLElement>(SECTION_SELECTOR)
   if (section && !document.getElementById(ROW_ID)) {
     const row = createRow()
-    const actions = section.querySelector(
-      '.window-scale-calibration-actions'
-    )
+    const actions = section.querySelector('.window-scale-calibration-actions')
 
     if (actions) {
       actions.insertAdjacentElement('beforebegin', row)

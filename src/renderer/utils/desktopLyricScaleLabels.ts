@@ -15,14 +15,10 @@ const normalizeText = (value: string | null | undefined) => {
 }
 
 const removeLegacyFontSizeSetting = () => {
-  const legacyTitle = normalizeText(
-    String(i18n.global.t('settings.osdLyric.fontSize'))
-  )
+  const legacyTitle = normalizeText(String(i18n.global.t('settings.osdLyric.fontSize')))
   if (!legacyTitle) return
 
-  const titles = document.querySelectorAll<HTMLElement>(
-    `${SETTINGS_SELECTOR} .item .left .title`
-  )
+  const titles = document.querySelectorAll<HTMLElement>(`${SETTINGS_SELECTOR} .item .left .title`)
 
   for (const title of titles) {
     if (normalizeText(title.textContent) !== legacyTitle) continue
@@ -40,9 +36,7 @@ const updateLabels = () => {
 
   removeLegacyFontSizeSetting()
 
-  const label = String(
-    i18n.global.t('settings.windowScale.lyricBaseFontSize')
-  )
+  const label = String(i18n.global.t('settings.windowScale.lyricBaseFontSize'))
   const fields = document.querySelectorAll<HTMLElement>(
     `${CONTROL_SELECTOR} [data-field="baseFontSize"] .osd-window-scale-label`
   )
@@ -69,10 +63,7 @@ export const initializeDesktopLyricScaleLabels = (router: Router) => {
   })
 
   const removeAfterEach = router.afterEach(scheduleUpdate)
-  const stopLocaleWatch = watch(
-    () => i18n.global.locale.value,
-    scheduleUpdate
-  )
+  const stopLocaleWatch = watch(() => i18n.global.locale.value, scheduleUpdate)
   scheduleUpdate()
 
   return () => {

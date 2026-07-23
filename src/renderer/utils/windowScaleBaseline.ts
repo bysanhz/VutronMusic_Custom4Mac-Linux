@@ -18,14 +18,9 @@ export type WindowScaleBaseline = {
   miniControlBaseSize: number
 }
 
-export type WindowScaleBaselineField =
-  | 'minWidth'
-  | 'minHeight'
-  | 'baseFontSize'
+export type WindowScaleBaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
 
-export type WindowScaleCalibrationField =
-  | WindowScaleBaselineField
-  | 'miniControlBaseSize'
+export type WindowScaleCalibrationField = WindowScaleBaselineField | 'miniControlBaseSize'
 
 export type WindowScaleFieldRange = {
   min: number
@@ -34,8 +29,7 @@ export type WindowScaleFieldRange = {
 }
 
 export const WINDOW_SCALE_REFERENCE_FONT_SIZE = 16
-export const WINDOW_SCALE_BASELINE_CHANGE_EVENT =
-  'window-scale-baseline-change'
+export const WINDOW_SCALE_BASELINE_CHANGE_EVENT = 'window-scale-baseline-change'
 
 export const WINDOW_SCALE_BASELINE_KEYS: Record<
   WindowScaleTarget,
@@ -62,10 +56,7 @@ export const WINDOW_SCALE_BASELINE_KEYS: Record<
   }
 }
 
-export const DEFAULT_WINDOW_SCALE_BASELINES: Record<
-  WindowScaleTarget,
-  WindowScaleBaseline
-> = {
+export const DEFAULT_WINDOW_SCALE_BASELINES: Record<WindowScaleTarget, WindowScaleBaseline> = {
   main: {
     minWidth: 810,
     minHeight: 540,
@@ -98,9 +89,7 @@ const normalizeScaleValue = (value: unknown, fallback: number) => {
   return Math.round(parsed * 100) / 100
 }
 
-export const getDefaultWindowScaleBaseline = (
-  target: WindowScaleTarget
-): WindowScaleBaseline => {
+export const getDefaultWindowScaleBaseline = (target: WindowScaleTarget): WindowScaleBaseline => {
   return { ...DEFAULT_WINDOW_SCALE_BASELINES[target] }
 }
 
@@ -117,10 +106,7 @@ export const getWindowScaleFieldRange = (
   return {
     min: -100,
     max: 100,
-    step:
-      field === 'baseFontSize' || field === 'miniControlBaseSize'
-        ? 0.1
-        : 1
+    step: field === 'baseFontSize' || field === 'miniControlBaseSize' ? 0.1 : 1
   }
 }
 
@@ -129,19 +115,13 @@ export const sanitizeWindowScaleBaseline = (
   value: Partial<WindowScaleBaseline> | null | undefined
 ): WindowScaleBaseline => {
   const fallback = DEFAULT_WINDOW_SCALE_BASELINES[target]
-  const baseFontSize = normalizeScaleValue(
-    value?.baseFontSize,
-    fallback.baseFontSize
-  )
+  const baseFontSize = normalizeScaleValue(value?.baseFontSize, fallback.baseFontSize)
 
   return {
     minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
     minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
     baseFontSize,
-    miniControlBaseSize: normalizeScaleValue(
-      value?.miniControlBaseSize,
-      baseFontSize
-    )
+    miniControlBaseSize: normalizeScaleValue(value?.miniControlBaseSize, baseFontSize)
   }
 }
 
@@ -160,13 +140,8 @@ export const calculateWindowZoomFactor = (
   contentHeight: number,
   baseline: WindowScaleBaseline
 ) => {
-  const geometryScale = calculateWindowGeometryScale(
-    contentWidth,
-    contentHeight,
-    baseline
-  )
-  const baselineZoom =
-    baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
+  const geometryScale = calculateWindowGeometryScale(contentWidth, contentHeight, baseline)
+  const baselineZoom = baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
 
   return baselineZoom * geometryScale
 }

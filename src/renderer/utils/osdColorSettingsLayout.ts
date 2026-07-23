@@ -102,14 +102,12 @@ const findColorGridItems = () => {
   const settings = document.querySelector<HTMLElement>(SETTINGS_SELECTOR)
   if (!settings) return []
 
-  return Array.from(settings.querySelectorAll<HTMLElement>('.item')).filter(
-    (item) => {
-      const directColors = Array.from(item.children).filter((child) =>
-        child.classList.contains('color')
-      )
-      return directColors.length === 4
-    }
-  )
+  return Array.from(settings.querySelectorAll<HTMLElement>('.item')).filter((item) => {
+    const directColors = Array.from(item.children).filter((child) =>
+      child.classList.contains('color')
+    )
+    return directColors.length === 4
+  })
 }
 
 const decorateColorGrid = () => {

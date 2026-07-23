@@ -2,10 +2,7 @@
 import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
-import type {
-  WindowScaleCalibrationField,
-  WindowScaleTarget
-} from './windowScaleBaseline'
+import type { WindowScaleCalibrationField, WindowScaleTarget } from './windowScaleBaseline'
 import {
   cancelWindowScaleCalibration,
   clearWindowScaleCalibrationPreviews,
@@ -17,8 +14,7 @@ import {
 const STYLE_ID = 'window-scale-calibration-v2-style'
 const ACTION_CLASS = 'window-scale-calibration-actions-v2'
 const SETTINGS_SELECTOR = '#app .system-settings'
-const MAIN_SETTING_SELECTOR =
-  '#app .system-settings .app-font-size-setting.window-scale-font-range'
+const MAIN_SETTING_SELECTOR = '#app .system-settings .app-font-size-setting.window-scale-font-range'
 const OSD_CONTROL_SELECTOR = '#osd-window-scale-baseline-setting'
 const RELATIVE_SLIDER_RANGE = 100
 
@@ -108,37 +104,26 @@ const getTargetContainer = (target: WindowScaleTarget) => {
   )
 }
 
-const getTargetFromElement = (
-  element: Element | null
-): WindowScaleTarget | null => {
+const getTargetFromElement = (element: Element | null): WindowScaleTarget | null => {
   if (!element) return null
   if (element.closest(MAIN_SETTING_SELECTOR)) return 'main'
 
-  const rowTarget = element.closest<HTMLElement>('[data-target]')?.dataset
-    .target
+  const rowTarget = element.closest<HTMLElement>('[data-target]')?.dataset.target
   if (rowTarget === 'osd-small' || rowTarget === 'osd-normal') {
     return rowTarget
   }
 
-  const actionTarget = element.closest<HTMLElement>('[data-calibration-target]')
-    ?.dataset.calibrationTarget
-  if (
-    actionTarget === 'main' ||
-    actionTarget === 'osd-small' ||
-    actionTarget === 'osd-normal'
-  ) {
+  const actionTarget = element.closest<HTMLElement>('[data-calibration-target]')?.dataset
+    .calibrationTarget
+  if (actionTarget === 'main' || actionTarget === 'osd-small' || actionTarget === 'osd-normal') {
     return actionTarget
   }
 
   return null
 }
 
-const getFieldFromElement = (
-  element: Element | null
-): WindowScaleCalibrationField | null => {
-  const row = element?.closest<HTMLElement>(
-    '[data-baseline-field], [data-field]'
-  )
+const getFieldFromElement = (element: Element | null): WindowScaleCalibrationField | null => {
+  const row = element?.closest<HTMLElement>('[data-baseline-field], [data-field]')
   const field = row?.dataset.baselineField || row?.dataset.field
 
   if (
@@ -153,22 +138,13 @@ const getFieldFromElement = (
   return null
 }
 
-const getTargetFields = (
-  target: WindowScaleTarget
-): WindowScaleCalibrationField[] => {
-  const fields: WindowScaleCalibrationField[] = [
-    'minWidth',
-    'minHeight',
-    'baseFontSize'
-  ]
+const getTargetFields = (target: WindowScaleTarget): WindowScaleCalibrationField[] => {
+  const fields: WindowScaleCalibrationField[] = ['minWidth', 'minHeight', 'baseFontSize']
   if (target === 'osd-small') fields.push('miniControlBaseSize')
   return fields
 }
 
-const getNumberInputs = (
-  target: WindowScaleTarget,
-  field?: WindowScaleCalibrationField
-) => {
+const getNumberInputs = (target: WindowScaleTarget, field?: WindowScaleCalibrationField) => {
   const container = getTargetContainer(target)
   if (!container) return []
 
@@ -181,15 +157,10 @@ const getNumberInputs = (
         ? `[data-value="${field}"]`
         : '[data-value]'
 
-  return Array.from(
-    container.querySelectorAll<HTMLInputElement>(selector)
-  )
+  return Array.from(container.querySelectorAll<HTMLInputElement>(selector))
 }
 
-const getSliders = (
-  target: WindowScaleTarget,
-  field?: WindowScaleCalibrationField
-) => {
+const getSliders = (target: WindowScaleTarget, field?: WindowScaleCalibrationField) => {
   const container = getTargetContainer(target)
   if (!container) return []
 
@@ -202,9 +173,7 @@ const getSliders = (
         ? `[data-slider="${field}"]`
         : '[data-slider]'
 
-  return Array.from(
-    container.querySelectorAll<HTMLInputElement>(selector)
-  )
+  return Array.from(container.querySelectorAll<HTMLInputElement>(selector))
 }
 
 const renderTargetValues = (
@@ -244,9 +213,7 @@ const resetRelativeSlider = (slider: HTMLInputElement) => {
   sliderStartValues.delete(slider)
 }
 
-const beginOsdModePreview = (
-  target: 'osd-small' | 'osd-normal'
-) => {
+const beginOsdModePreview = (target: 'osd-small' | 'osd-normal') => {
   if (originalOsdLyricRaw === undefined) {
     originalOsdLyricRaw = localStorage.getItem('osdLyric')
   }
@@ -275,16 +242,11 @@ const restoreOsdModePreview = () => {
 
 const removeActions = (target: WindowScaleTarget) => {
   const container = getTargetContainer(target)
-  container
-    ?.querySelector<HTMLElement>(`.${ACTION_CLASS}`)
-    ?.remove()
+  container?.querySelector<HTMLElement>(`.${ACTION_CLASS}`)?.remove()
   if (container) container.dataset.windowScaleCalibrating = 'false'
 }
 
-function finishTargetCalibration(
-  target: WindowScaleTarget,
-  action: CalibrationAction
-) {
+function finishTargetCalibration(target: WindowScaleTarget, action: CalibrationAction) {
   if (action === 'confirm') {
     commitWindowScaleBaseline(target, readWindowScaleBaseline(target))
   } else {
@@ -355,11 +317,8 @@ const ensureActions = (target: WindowScaleTarget) => {
   if (!existing) container.appendChild(createActions(target))
 }
 
-const cancelConflictingOsdCalibration = (
-  target: 'osd-small' | 'osd-normal'
-) => {
-  const otherTarget =
-    target === 'osd-small' ? 'osd-normal' : 'osd-small'
+const cancelConflictingOsdCalibration = (target: 'osd-small' | 'osd-normal') => {
+  const otherTarget = target === 'osd-small' ? 'osd-normal' : 'osd-small'
   if (activeTargets.has(otherTarget)) {
     finishTargetCalibration(otherTarget, 'cancel')
   }
@@ -393,10 +352,7 @@ const getButtonStep = (field: WindowScaleCalibrationField) => {
   return isScaleField(field) ? 0.5 : 10
 }
 
-const getRelativeSliderStep = (
-  field: WindowScaleCalibrationField,
-  startValue: number
-) => {
+const getRelativeSliderStep = (field: WindowScaleCalibrationField, startValue: number) => {
   if (isScaleField(field)) {
     return Math.max(0.05, startValue / 200)
   }
@@ -469,8 +425,7 @@ const handleInput = (event: Event) => {
   event.stopImmediatePropagation()
   event.stopPropagation()
 
-  const startValue =
-    sliderStartValues.get(slider) ?? readWindowScaleBaseline(target)[field]
+  const startValue = sliderStartValues.get(slider) ?? readWindowScaleBaseline(target)[field]
   const delta = Number(slider.value)
   const step = getRelativeSliderStep(field, startValue)
   previewFieldValue(target, field, startValue + delta * step)
@@ -478,9 +433,7 @@ const handleInput = (event: Event) => {
 
 const handleChange = (event: Event) => {
   const element = event.target as HTMLElement
-  const slider = element.closest<HTMLInputElement>(
-    '[data-relative-window-scale-slider="true"]'
-  )
+  const slider = element.closest<HTMLInputElement>('[data-relative-window-scale-slider="true"]')
 
   if (slider) {
     event.stopImmediatePropagation()
@@ -489,9 +442,7 @@ const handleChange = (event: Event) => {
     return
   }
 
-  const input = element.closest<HTMLInputElement>(
-    '[data-baseline-input], [data-value]'
-  )
+  const input = element.closest<HTMLInputElement>('[data-baseline-input], [data-value]')
   const target = getTargetFromElement(input)
   const field = getFieldFromElement(input)
   if (!input || !target || !field) return
@@ -509,11 +460,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
     return
   }
 
-  if (
-    event.key === 'Enter' &&
-    (event.ctrlKey || event.metaKey) &&
-    activeTargets.size > 0
-  ) {
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && activeTargets.size > 0) {
     event.preventDefault()
     event.stopImmediatePropagation()
     confirmAllCalibrations()
@@ -547,15 +494,10 @@ const handleClick = (event: MouseEvent) => {
   event.stopImmediatePropagation()
   event.stopPropagation()
 
-  const action =
-    stepButton.dataset.baselineAction || stepButton.dataset.action
+  const action = stepButton.dataset.baselineAction || stepButton.dataset.action
   const direction = action === 'decrease' ? -1 : 1
   const current = readWindowScaleBaseline(target)[field]
-  previewFieldValue(
-    target,
-    field,
-    current + getButtonStep(field) * direction
-  )
+  previewFieldValue(target, field, current + getButtonStep(field) * direction)
 }
 
 export const initializeWindowScaleCalibrationV2 = (router: Router) => {
@@ -576,10 +518,7 @@ export const initializeWindowScaleCalibrationV2 = (router: Router) => {
     return true
   })
   const removeAfterEach = router.afterEach(scheduleDecorate)
-  const stopLocaleWatch = watch(
-    () => i18n.global.locale.value,
-    scheduleDecorate
-  )
+  const stopLocaleWatch = watch(() => i18n.global.locale.value, scheduleDecorate)
 
   window.addEventListener('beforeunload', cancelAllCalibrations)
   scheduleDecorate()

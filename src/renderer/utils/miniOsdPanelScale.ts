@@ -59,13 +59,8 @@ const updateMiniPanelScale = () => {
   const lyricBase = Math.max(0.01, baseline.baseFontSize)
   const relativeScale = baseline.miniControlBaseSize / lyricBase
 
-  root.style.setProperty(
-    '--mini-osd-control-relative-scale',
-    relativeScale.toFixed(4)
-  )
-  root.dataset.miniOsdControlBaseSize = String(
-    baseline.miniControlBaseSize
-  )
+  root.style.setProperty('--mini-osd-control-relative-scale', relativeScale.toFixed(4))
+  root.dataset.miniOsdControlBaseSize = String(baseline.miniControlBaseSize)
 }
 
 export const initializeMiniOsdPanelScale = () => {
@@ -89,17 +84,11 @@ export const initializeMiniOsdPanelScale = () => {
   }
 
   window.addEventListener('storage', handleStorage)
-  window.addEventListener(
-    WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-    handleBaselineChange
-  )
+  window.addEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
 
   const cleanup = () => {
     window.removeEventListener('storage', handleStorage)
-    window.removeEventListener(
-      WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-      handleBaselineChange
-    )
+    window.removeEventListener(WINDOW_SCALE_BASELINE_CHANGE_EVENT, handleBaselineChange)
     delete runtimeWindow.__vutronMiniOsdPanelScaleCleanup__
   }
 

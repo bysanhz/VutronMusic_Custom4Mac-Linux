@@ -53,11 +53,7 @@ export const initializeBaselineOsdWindowScale = () => {
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
     const target = readOsdTarget()
     const baseline = readWindowScaleBaseline(target)
-    const nextZoomFactor = calculateWindowZoomFactor(
-      contentWidth,
-      contentHeight,
-      baseline
-    )
+    const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline)
 
     document.documentElement.style.setProperty(
       '--osd-window-zoom-factor',
@@ -67,14 +63,8 @@ export const initializeBaselineOsdWindowScale = () => {
       '--osd-window-effective-reference-font-size',
       `${(nextZoomFactor * REFERENCE_FONT_SIZE).toFixed(2)}px`
     )
-    document.documentElement.style.setProperty(
-      '--osd-window-min-width',
-      `${baseline.minWidth}px`
-    )
-    document.documentElement.style.setProperty(
-      '--osd-window-min-height',
-      `${baseline.minHeight}px`
-    )
+    document.documentElement.style.setProperty('--osd-window-min-width', `${baseline.minWidth}px`)
+    document.documentElement.style.setProperty('--osd-window-min-height', `${baseline.minHeight}px`)
     document.documentElement.style.setProperty(
       '--osd-window-base-font-size',
       `${baseline.baseFontSize}px`
@@ -99,8 +89,7 @@ export const initializeBaselineOsdWindowScale = () => {
 
   const runScheduledUpdate = () => {
     animationFrameId = null
-    const remaining =
-      ZOOM_UPDATE_INTERVAL_MS - (performance.now() - lastZoomUpdateAt)
+    const remaining = ZOOM_UPDATE_INTERVAL_MS - (performance.now() - lastZoomUpdateAt)
 
     if (remaining > 0) {
       if (delayedUpdateTimer === null) {
