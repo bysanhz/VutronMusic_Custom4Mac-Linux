@@ -98,9 +98,11 @@ export const getDefaultWindowScaleBaseline = (
  * 实际交互由相对增量滑块接管，最终基准值没有固定上下限。
  */
 export const getWindowScaleFieldRange = (
-  _target: WindowScaleTarget,
+  target: WindowScaleTarget,
   field: WindowScaleBaselineField
 ): WindowScaleFieldRange => {
+  void target
+
   return {
     min: -100,
     max: 100,
