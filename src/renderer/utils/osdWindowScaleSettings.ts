@@ -1,15 +1,53 @@
 /* ======== newADD start====== */
 import type { Router } from 'vue-router'
+import type {
+  WindowScaleBaseline,
+  WindowScaleTarget
+} from '@/shared/windowScaleBaseline'
 import {
-  OSD_SCALE_MAX_FONT_SIZE_KEY,
-  OSD_SCALE_MIN_FONT_SIZE_KEY,
-  OSD_SCALE_SETTINGS_CHANGE_EVENT,
-  readOsdScaleRange
-} from './smoothOsdWindowScale'
+  readWindowScaleBaseline,
+  saveWindowScaleBaseline
+} from './windowScaleBaselineStorage'
 
-const CONTROL_ID = 'osd-window-scale-font-range-setting'
-const STYLE_ID = 'osd-window-scale-font-range-style'
-const MIN_POSITIVE_FONT_SIZE = 1
+const CONTROL_ID = 'osd-window-scale-baseline-setting'
+const STYLE_ID = 'osd-window-scale-baseline-style'
+
+type BaselineField = keyof WindowScaleBaseline
+
+const FIELD_CONFIG: Record<
+  BaselineField,
+  {
+    label: string
+    step: number
+  }
+> = {
+  minWidth: {
+    label: '最小宽度',
+    step: 20
+  },
+  minHeight: {
+    label: '最小高度',
+    step: 10
+  },
+  baseFontSize: {
+    label: '基准字号',
+    step: 1
+  }
+}
+
+const TARGET_CONFIG: Array<{
+  target: WindowScaleTarget
+  title: string
+}> = [
+  {
+    target: 'osd-small',
+    title: '紧凑桌面歌词'
+  },
+  {
+    target: 'osd-normal',
+    title: '普通桌面歌词'
+  }
+]
 
 const injectStyle = () => {
   if (document.getElementById(STYLE_ID)) return
@@ -22,24 +60,39 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-card {
-      width: min(100%, 330px);
+      width: min(100%, 420px);
       display: grid;
-      gap: 8px;
-      padding: 10px 12px;
+      gap: 12px;
+      padding: 12px;
       box-sizing: border-box;
       border-radius: 10px;
       background: var(--color-secondary-bg);
     }
 
+    #${CONTROL_ID} .osd-window-scale-section {
+      display: grid;
+      gap: 7px;
+    }
+
+    #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
+      padding-top: 12px;
+      border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+    }
+
+    #${CONTROL_ID} .osd-window-scale-section-title {
+      font-weight: 700;
+      opacity: 0.88;
+    }
+
     #${CONTROL_ID} .osd-window-scale-row {
       display: grid;
-      grid-template-columns: minmax(80px, auto) 32px minmax(58px, 1fr) 32px;
+      grid-template-columns: minmax(76px, auto) 30px minmax(70px, 1fr) 30px;
       align-items: center;
       gap: 7px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
-      opacity: 0.72;
+      opacity: 0.7;
       white-space: nowrap;
       font-weight: 600;
     }
@@ -67,7 +120,7 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button {
-      width: 32px;
+      width: 30px;
       height: 28px;
       padding: 0;
       border: none;
@@ -78,29 +131,82 @@ const injectStyle = () => {
       font-weight: 700;
     }
 
-    #${CONTROL_ID} .osd-window-scale-button:hover:not(:disabled) {
+    #${CONTROL_ID} .osd-window-scale-button:hover {
       background: color-mix(in srgb, var(--color-text), transparent 84%);
-    }
-
-    #${CONTROL_ID} .osd-window-scale-button:disabled {
-      opacity: 0.3;
-      cursor: default;
     }
   `
   document.head.appendChild(style)
 }
 
-const saveRange = (minValue: number, maxValue: number) => {
-  const min = Number.isFinite(minValue) && minValue > 0 ? minValue : MIN_POSITIVE_FONT_SIZE
-  let max = Number.isFinite(maxValue) && maxValue > 0 ? maxValue : MIN_POSITIVE_FONT_SIZE
+const createFieldRow = (
+  target: WindowScaleTarget,
+  field: BaselineField
+) => {
+  const label = FIELD_CONFIG[field].label
 
-  if (min > max) max = min
+  return `
+    <div class="osd-window-scale-row" data-target="${target}" data-field="${field}">
+      <span class="osd-window-scale-label">${label}</span>
+      <button type="button" class="osd-window-scale-button" data-action="decrease">−</button>
+      <input type="number" step="1" class="osd-window-scale-input" data-value="${field}" />
+      <button type="button" class="osd-window-scale-button" data-action="increase">+</button>
+    </div>
+  `
+}
 
-  localStorage.setItem(OSD_SCALE_MIN_FONT_SIZE_KEY, String(min))
-  localStorage.setItem(OSD_SCALE_MAX_FONT_SIZE_KEY, String(max))
-  window.dispatchEvent(new Event(OSD_SCALE_SETTINGS_CHANGE_EVENT))
+const createTargetSection = (
+  target: WindowScaleTarget,
+  title: string
+) => {
+  const fields = (Object.keys(FIELD_CONFIG) as BaselineField[])
+    .map((field) => createFieldRow(target, field))
+    .join('')
 
-  return { min, max }
+  return `
+    <section class="osd-window-scale-section" data-section-target="${target}">
+      <div class="osd-window-scale-section-title">${title}</div>
+      ${fields}
+    </section>
+  `
+}
+
+const renderTarget = (
+  item: HTMLElement,
+  target: WindowScaleTarget
+) => {
+  const baseline = readWindowScaleBaseline(target)
+  const section = item.querySelector<HTMLElement>(
+    `[data-section-target="${target}"]`
+  )
+  if (!section) return
+
+  for (const field of Object.keys(FIELD_CONFIG) as BaselineField[]) {
+    const input = section.querySelector<HTMLInputElement>(
+      `[data-field="${field}"] [data-value="${field}"]`
+    )
+    if (input) input.value = String(baseline[field])
+  }
+}
+
+const readSectionBaseline = (
+  item: HTMLElement,
+  target: WindowScaleTarget
+) => {
+  const current = readWindowScaleBaseline(target)
+  const section = item.querySelector<HTMLElement>(
+    `[data-section-target="${target}"]`
+  )
+  if (!section) return current
+
+  const result = { ...current }
+  for (const field of Object.keys(FIELD_CONFIG) as BaselineField[]) {
+    const input = section.querySelector<HTMLInputElement>(
+      `[data-field="${field}"] [data-value="${field}"]`
+    )
+    const value = Number(input?.value)
+    if (Number.isFinite(value)) result[field] = value
+  }
+  return result
 }
 
 const createControl = () => {
@@ -109,84 +215,52 @@ const createControl = () => {
   item.className = 'item'
   item.innerHTML = `
     <div class="left">
-      <div class="title">桌面歌词整体缩放范围</div>
-      <div class="description">紧凑模式以窗口宽度变化为主，普通模式综合宽高；歌词、封面、图标、按钮、间距和圆角会同步缩放</div>
+      <div class="title">桌面歌词缩放基准</div>
+      <div class="description">窗口达到设定的最小尺寸时使用基准字号；继续放大时，歌词、封面、图标、按钮、间距和圆角按同一比例缩放</div>
     </div>
     <div class="right">
       <div class="osd-window-scale-card">
-        <div class="osd-window-scale-row">
-          <span class="osd-window-scale-label">最小等效字号</span>
-          <button type="button" class="osd-window-scale-button" data-action="min-minus">−</button>
-          <input type="number" step="1" class="osd-window-scale-input" data-value="min" />
-          <button type="button" class="osd-window-scale-button" data-action="min-plus">+</button>
-        </div>
-        <div class="osd-window-scale-row">
-          <span class="osd-window-scale-label">最大等效字号</span>
-          <button type="button" class="osd-window-scale-button" data-action="max-minus">−</button>
-          <input type="number" step="1" class="osd-window-scale-input" data-value="max" />
-          <button type="button" class="osd-window-scale-button" data-action="max-plus">+</button>
-        </div>
+        ${TARGET_CONFIG.map(({ target, title }) => createTargetSection(target, title)).join('')}
       </div>
     </div>
   `
 
-  const minInput = item.querySelector<HTMLInputElement>('[data-value="min"]')!
-  const maxInput = item.querySelector<HTMLInputElement>('[data-value="max"]')!
-  const minMinus = item.querySelector<HTMLButtonElement>('[data-action="min-minus"]')!
-
-  const render = () => {
-    const range = readOsdScaleRange()
-    minInput.value = String(range.min)
-    maxInput.value = String(range.max)
-    minMinus.disabled = range.min <= MIN_POSITIVE_FONT_SIZE
-  }
-
-  const commitInputs = (changed: 'min' | 'max') => {
-    let min = Number(minInput.value)
-    let max = Number(maxInput.value)
-
-    if (!Number.isFinite(min) || min <= 0) min = readOsdScaleRange().min
-    if (!Number.isFinite(max) || max <= 0) max = readOsdScaleRange().max
-
-    if (changed === 'min' && min > max) max = min
-    if (changed === 'max' && max < min) min = max
-
-    const saved = saveRange(min, max)
-    minInput.value = String(saved.min)
-    maxInput.value = String(saved.max)
-    render()
-  }
-
-  minInput.addEventListener('change', () => commitInputs('min'))
-  maxInput.addEventListener('change', () => commitInputs('max'))
-
-  item.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-action]')
-    if (!button || button.disabled) return
-
-    const range = readOsdScaleRange()
-    switch (button.dataset.action) {
-      case 'min-minus':
-        range.min = Math.max(MIN_POSITIVE_FONT_SIZE, range.min - 1)
-        break
-      case 'min-plus':
-        range.min += 1
-        if (range.min > range.max) range.max = range.min
-        break
-      case 'max-minus':
-        range.max = Math.max(MIN_POSITIVE_FONT_SIZE, range.max - 1)
-        if (range.max < range.min) range.min = range.max
-        break
-      case 'max-plus':
-        range.max += 1
-        break
+  const renderAll = () => {
+    for (const { target } of TARGET_CONFIG) {
+      renderTarget(item, target)
     }
+  }
 
-    saveRange(range.min, range.max)
-    render()
+  item.addEventListener('change', (event) => {
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '.osd-window-scale-input'
+    )
+    const row = input?.closest<HTMLElement>('[data-target][data-field]')
+    const target = row?.dataset.target as WindowScaleTarget | undefined
+    if (!input || !target) return
+
+    saveWindowScaleBaseline(target, readSectionBaseline(item, target))
+    renderTarget(item, target)
   })
 
-  render()
+  item.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+      '[data-action]'
+    )
+    const row = button?.closest<HTMLElement>('[data-target][data-field]')
+    const target = row?.dataset.target as WindowScaleTarget | undefined
+    const field = row?.dataset.field as BaselineField | undefined
+    if (!button || !target || !field) return
+
+    const baseline = readSectionBaseline(item, target)
+    const direction = button.dataset.action === 'decrease' ? -1 : 1
+    baseline[field] += FIELD_CONFIG[field].step * direction
+
+    saveWindowScaleBaseline(target, baseline)
+    renderTarget(item, target)
+  })
+
+  renderAll()
   return item
 }
 
@@ -198,7 +272,10 @@ const injectControl = () => {
   if (!osdPanel) return false
 
   injectStyle()
-  const numberInputs = osdPanel.querySelectorAll<HTMLInputElement>('input[type="number"].text-input')
+  const numberInputs =
+    osdPanel.querySelectorAll<HTMLInputElement>(
+      'input[type="number"].text-input'
+    )
   const fontSizeItem = numberInputs.item(1)?.closest('.item')
   const control = createControl()
 
@@ -218,12 +295,12 @@ const scheduleInjectionAttempts = () => {
       injectControl()
     }, delay)
   )
-  return () => timers.forEach((timer) => window.clearTimeout(timer))
+
+  return () => {
+    timers.forEach((timer) => window.clearTimeout(timer))
+  }
 }
 
-/**
- * 在桌面歌词设置面板中安装独立缩放范围控件。
- */
 export const initializeOsdWindowScaleSettings = (router: Router) => {
   let stopAttempts = scheduleInjectionAttempts()
 
