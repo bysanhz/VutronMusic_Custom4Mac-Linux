@@ -79,12 +79,11 @@ const baseConfig = {
     // electron-builder 26.x 在 Linux 下要求图标目录中的文件使用 NxN.png 命名，
     // 且实际像素尺寸与文件名一致，避免回退到旧 icon.png。
     icon: 'buildAssets/generated-icons/linux',
-    // 让 .desktop 文件名、StartupWMClass 与 Electron app_id 使用同一身份，
-    // 防止 GNOME 把新窗口继续归到旧启动器图标。
-    syncDesktopName: true,
+    // electron-builder 26.8.1 尚不支持 syncDesktopName。使用其默认的
+    // vutron.desktop 文件名，并显式写入与 Electron desktopName 一致的 WM_CLASS。
     desktop: {
       entry: {
-        StartupWMClass: 'com.bysanhz.vutronmusic'
+        StartupWMClass: 'vutron'
       }
     },
     // =========== newADD end ========
