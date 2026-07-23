@@ -158,27 +158,40 @@ const ensureControl = () => {
  * 自动监听设置页面挂载和路由切换。
  *
  * 详细说明：
- * SystemSettings.vue 使用路由和 v-show 切换面板。通过 MutationObserver 与几次
- * 延迟补偿，可在首次进入、返回设置页以及语言切换后重新注入该设置项。
+ * SystemSettings.vue 使用路由和 v-show 切换面板。MutationObserver 只负责触发
+ * 经过节流的检查，避免播放器等高频 DOM 更新导致重复查询设置面板。
  */
 const initializeOsdCoverControlsSettings = () => {
-  const run = () => {
-    ensureControl()
+  let pendingTimer: number | null = null
+
+  const scheduleEnsureControl = (delay = 80) => {
+    if (pendingTimer !== null) return
+
+    pendingTimer = window.setTimeout(() => {
+      pendingTimer = null
+      ensureControl()
+    }, delay)
   }
 
-  const observer = new MutationObserver(run)
+  const observer = new MutationObserver(() => {
+    scheduleEnsureControl()
+  })
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true
   })
 
   ;[0, 80, 240, 600, 1200].forEach((delay) => {
-    window.setTimeout(run, delay)
+    window.setTimeout(() => {
+      ensureControl()
+    }, delay)
   })
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeOsdCoverControlsSettings, { once: true })
+  document.addEventListener('DOMContentLoaded', initializeOsdCoverControlsSettings, {
+    once: true
+  })
 } else {
   initializeOsdCoverControlsSettings()
 }
