@@ -4,12 +4,11 @@ import { initializeBaselineWindowScale } from './baselineWindowScale'
 import { initializeDesktopLyricScaleLabels } from './desktopLyricScaleLabels'
 import { initializeMiniOsdScaleSettings } from './miniOsdScaleSettings'
 import { initializeWindowScaleCalibration } from './windowScaleCalibration'
-import { initializeWindowScaleCalibrationModal } from './windowScaleCalibrationModal'
+import { initializeWindowScaleInlineActions } from './windowScaleInlineActions'
 
 export const initializeSmoothWindowScale = () => {
   const cleanupCalibration = initializeWindowScaleCalibration(router)
-  const cleanupCalibrationModal =
-    initializeWindowScaleCalibrationModal(router)
+  const cleanupInlineActions = initializeWindowScaleInlineActions()
   const cleanupMiniOsdSettings = initializeMiniOsdScaleSettings(router)
   const cleanupDesktopLyricLabels =
     initializeDesktopLyricScaleLabels(router)
@@ -19,7 +18,7 @@ export const initializeSmoothWindowScale = () => {
     cleanupScale?.()
     cleanupDesktopLyricLabels?.()
     cleanupMiniOsdSettings?.()
-    cleanupCalibrationModal?.()
+    cleanupInlineActions?.()
     cleanupCalibration?.()
   }
 }
