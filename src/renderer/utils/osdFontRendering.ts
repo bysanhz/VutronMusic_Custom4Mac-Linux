@@ -107,7 +107,9 @@ export const initializeOsdFontRendering = (font: Ref<string>): (() => void) => {
       try {
         const result = await window.mainApi?.invoke('getFontList')
         if (Array.isArray(result)) {
-          fonts = result.filter((item): item is FontInfo => Boolean(item && typeof item === 'object'))
+          fonts = result.filter(
+            (item): item is FontInfo => Boolean(item && typeof item === 'object')
+          )
         }
       } catch (error) {
         console.warn('[OsdFontRendering] 获取系统字体信息失败：', error)
