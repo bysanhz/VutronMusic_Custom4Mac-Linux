@@ -61,6 +61,10 @@ $RECYCLE.BIN/
 dist/
 dist-native/
 release/
+# ======== newADD start======
+# 由 tools/generate-app-icons.js 在构建前从 new_icon.png 自动生成。
+buildAssets/generated-icons/
+# =========== newADD end ========
 tests/results/
 npm-debug.log
 npm-debug.log.*
