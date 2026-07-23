@@ -1,4 +1,6 @@
 /* ======== newADD start====== */
+import { BrowserWindow, ipcMain } from 'electron'
+
 export type WindowScaleTarget = 'main' | 'osd-small' | 'osd-normal'
 
 export type WindowScaleBaseline = {
@@ -28,41 +30,16 @@ export const DEFAULT_WINDOW_SCALE_BASELINES: Record<
   }
 }
 
-const TARGET_LIMITS: Record<
-  WindowScaleTarget,
-  {
-    minWidth: number
-    minHeight: number
-  }
-> = {
-  main: {
-    minWidth: 480,
-    minHeight: 320
-  },
-  'osd-small': {
-    minWidth: 240,
-    minHeight: 36
-  },
-  'osd-normal': {
-    minWidth: 280,
-    minHeight: 320
-  }
+const normalizeDimension = (value: unknown, fallback: number) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.max(1, Math.round(parsed))
 }
 
-const MAX_MIN_WIDTH = 3840
-const MAX_MIN_HEIGHT = 2160
-const MIN_BASE_FONT_SIZE = 8
-const MAX_BASE_FONT_SIZE = 48
-
-const clampNumber = (
-  value: unknown,
-  fallback: number,
-  minimum: number,
-  maximum: number
-) => {
+const normalizeFontSize = (value: unknown, fallback: number) => {
   const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.min(maximum, Math.max(minimum, Math.round(parsed)))
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.round(parsed * 100) / 100
 }
 
 export const getDefaultWindowScaleBaseline = (
@@ -76,27 +53,160 @@ export const sanitizeWindowScaleBaseline = (
   value: Partial<WindowScaleBaseline> | null | undefined
 ): WindowScaleBaseline => {
   const fallback = DEFAULT_WINDOW_SCALE_BASELINES[target]
-  const limits = TARGET_LIMITS[target]
 
   return {
-    minWidth: clampNumber(
-      value?.minWidth,
-      fallback.minWidth,
-      limits.minWidth,
-      MAX_MIN_WIDTH
-    ),
-    minHeight: clampNumber(
-      value?.minHeight,
-      fallback.minHeight,
-      limits.minHeight,
-      MAX_MIN_HEIGHT
-    ),
-    baseFontSize: clampNumber(
+    minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
+    minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
+    baseFontSize: normalizeFontSize(
       value?.baseFontSize,
-      fallback.baseFontSize,
-      MIN_BASE_FONT_SIZE,
-      MAX_BASE_FONT_SIZE
+      fallback.baseFontSize
     )
   }
+}
+
+type CalibrationSession = {
+  windowId: number
+  bounds: Electron.Rectangle
+  minimumSize: [number, number]
+  resizable: boolean
+  maximized: boolean
+  fullScreen: boolean
+}
+
+type CalibrationPayload = {
+  target: WindowScaleTarget
+  baseline?: Partial<WindowScaleBaseline>
+  action?: 'commit' | 'cancel'
+}
+
+const CALIBRATION_LISTENERS_KEY =
+  '__VUTRON_WINDOW_SCALE_CALIBRATION_LISTENERS__'
+const calibrationSessions = new Map<WindowScaleTarget, CalibrationSession>()
+
+const findDesktopLyricWindow = () => {
+  return (
+    BrowserWindow.getAllWindows().find(
+      (window) => window.getTitle() === '桌面歌词'
+    ) || null
+  )
+}
+
+const resolveCalibrationWindow = (
+  senderWindow: BrowserWindow | null,
+  target: WindowScaleTarget
+) => {
+  if (target === 'main') return senderWindow
+  return findDesktopLyricWindow()
+}
+
+const captureCalibrationSession = (
+  target: WindowScaleTarget,
+  window: BrowserWindow
+) => {
+  const existing = calibrationSessions.get(target)
+  if (existing?.windowId === window.id) return existing
+
+  const session: CalibrationSession = {
+    windowId: window.id,
+    bounds: window.getBounds(),
+    minimumSize: window.getMinimumSize(),
+    resizable: window.isResizable(),
+    maximized: window.isMaximized(),
+    fullScreen: window.isFullScreen()
+  }
+
+  calibrationSessions.set(target, session)
+  window.once('closed', () => {
+    const current = calibrationSessions.get(target)
+    if (current?.windowId === window.id) {
+      calibrationSessions.delete(target)
+    }
+  })
+  return session
+}
+
+const previewCalibrationBaseline = (
+  senderWindow: BrowserWindow | null,
+  payload: CalibrationPayload
+) => {
+  const target = payload.target
+  const window = resolveCalibrationWindow(senderWindow, target)
+  if (!window || window.isDestroyed()) return
+
+  const baseline = sanitizeWindowScaleBaseline(target, payload.baseline)
+  captureCalibrationSession(target, window)
+
+  if (window.isFullScreen()) window.setFullScreen(false)
+  if (window.isMaximized()) window.unmaximize()
+
+  const bounds = window.getBounds()
+  window.setMinimumSize(1, 1)
+  window.setResizable(false)
+  window.setBounds({
+    x: bounds.x,
+    y: bounds.y,
+    width: baseline.minWidth,
+    height: baseline.minHeight
+  })
+}
+
+const finishCalibration = (
+  senderWindow: BrowserWindow | null,
+  payload: CalibrationPayload
+) => {
+  const target = payload.target
+  const window = resolveCalibrationWindow(senderWindow, target)
+  const session = calibrationSessions.get(target)
+
+  if (payload.action === 'commit') {
+    if (window && !window.isDestroyed()) {
+      const baseline = sanitizeWindowScaleBaseline(target, payload.baseline)
+      window.setMinimumSize(baseline.minWidth, baseline.minHeight)
+      window.setResizable(true)
+    }
+    calibrationSessions.delete(target)
+    return
+  }
+
+  if (!window || window.isDestroyed() || !session) {
+    calibrationSessions.delete(target)
+    return
+  }
+
+  window.setMinimumSize(...session.minimumSize)
+  window.setResizable(session.resizable)
+  window.setBounds(session.bounds)
+
+  if (session.maximized) window.maximize()
+  if (session.fullScreen) window.setFullScreen(true)
+  calibrationSessions.delete(target)
+}
+
+const installCalibrationListeners = () => {
+  ipcMain.on(
+    'preview-window-scale-baseline',
+    (event, payload: CalibrationPayload) => {
+      previewCalibrationBaseline(
+        BrowserWindow.fromWebContents(event.sender),
+        payload
+      )
+    }
+  )
+
+  ipcMain.on(
+    'finish-window-scale-calibration',
+    (event, payload: CalibrationPayload) => {
+      finishCalibration(
+        BrowserWindow.fromWebContents(event.sender),
+        payload
+      )
+    }
+  )
+}
+
+const runtimeGlobal = globalThis as Record<string, unknown>
+if (!runtimeGlobal[CALIBRATION_LISTENERS_KEY]) {
+  runtimeGlobal[CALIBRATION_LISTENERS_KEY] = true
+  installCalibrationListeners()
 }
 /* =========== newADD end ======== */
