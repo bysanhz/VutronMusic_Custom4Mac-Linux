@@ -3,6 +3,10 @@ import en from '../locales/en.json'
 import zh from '../locales/zh-hans.json'
 import zht from '../locales/zh-hant.json'
 import { windowScaleMessages } from '../locales/windowScale'
+// ======== newADD start======
+// 设置页面挂载后自动注入紧凑桌面歌词左侧封面与控制按钮开关。
+import '../utils/osdCoverControlsSettings'
+// =========== newADD end ========
 // import { getCurrentLocale } from '../utils'
 
 const settings = JSON.parse(localStorage.getItem('settings') || '{}')
