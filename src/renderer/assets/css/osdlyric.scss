@@ -62,13 +62,44 @@ body {
 }
 
 /*
- * 紧凑桌面歌词锁定状态。
+ * 紧凑桌面歌词左侧封面与控制区。
  *
- * 主进程在 isLock=true 时已经启用 BrowserWindow 鼠标穿透；
- * 这里同步隐藏封面、喜欢、主窗口显隐、上一首、播放暂停、下一首等控件，
- * 并把歌词区域扩展为完整窗口宽度，避免保留无法点击的空白控制区。
+ * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
+ * is-lock 绑定。锁定后控件可以继续显示，但由于窗口进入鼠标穿透状态，
+ * 需要先解锁才能操作按钮。
  */
-#main.compact-mode.is-lock {
+#main.compact-mode .compact-osd-layout {
+  column-gap: 8px !important;
+}
+
+#main.compact-mode .compact-left-panel {
+  position: relative;
+  z-index: 10003;
+  pointer-events: none;
+}
+
+#main.compact-mode .compact-cover-controls {
+  position: relative;
+  z-index: 10004;
+  pointer-events: none;
+  transform: translateX(4px);
+}
+
+/* 未锁定时恢复左侧按钮交互，并缩小边缘拉伸热区。 */
+#main.compact-mode:not(.is-lock) {
+  --resize-edge-size: 2px;
+  --resize-corner-size: 7px;
+
+  .compact-cover-controls {
+    pointer-events: auto;
+  }
+}
+
+/*
+ * 用户关闭“显示左侧封面与控制按钮”后，无论是否锁定都折叠左侧列，
+ * 同时让歌词区域占满整个紧凑桌面歌词窗口。
+ */
+html.osd-cover-controls-hidden #main.compact-mode {
   .compact-osd-layout {
     grid-template-columns: minmax(0, 1fr) !important;
     column-gap: 0 !important;
@@ -85,42 +116,6 @@ body {
     grid-column: 1 / -1 !important;
     width: 100% !important;
     min-width: 0 !important;
-  }
-}
-
-/*
- * 紧凑桌面歌词左侧控制区鼠标优先级。
- *
- * 原来的左侧边缘为 4px，四角为 14px。封面控制区距离窗口左边缘很近时，
- * 左上角和左下角的拉伸层会覆盖“上一首”和“主窗口”按钮，鼠标因此容易显示
- * 拉伸光标。紧凑模式下缩小边角热区，并让封面按钮在其实际矩形范围内优先
- * 接收鼠标事件；控制区以外的左边缘仍然可以正常拉伸窗口。
- */
-#main.compact-mode:not(.is-lock) {
-  --resize-edge-size: 2px;
-  --resize-corner-size: 7px;
-
-  /*
-   * 封面与歌词之间保留独立间距。
-   *
-   * 使用布局间距而不是移动歌词或封面，因此该距离会与桌面歌词窗口的统一
-   * zoomFactor 一起连续缩放，且不会影响左侧六个按钮的鼠标命中区域。
-   */
-  .compact-osd-layout {
-    column-gap: 8px !important;
-  }
-
-  .compact-left-panel {
-    position: relative;
-    z-index: 10003;
-    pointer-events: none;
-  }
-
-  .compact-cover-controls {
-    position: relative;
-    z-index: 10004;
-    pointer-events: auto;
-    transform: translateX(4px);
   }
 }
 /* =========== newADD end ======== */
