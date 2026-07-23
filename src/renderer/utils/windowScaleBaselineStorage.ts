@@ -1,6 +1,5 @@
 /* ======== newADD start====== */
 import {
-  DEFAULT_WINDOW_SCALE_BASELINES,
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
   WINDOW_SCALE_BASELINE_IPC_CHANNEL,
   WINDOW_SCALE_BASELINE_KEYS,
@@ -29,7 +28,6 @@ export const readWindowScaleBaseline = (
   target: WindowScaleTarget
 ): WindowScaleBaseline => {
   const keys = WINDOW_SCALE_BASELINE_KEYS[target]
-  const fallback = DEFAULT_WINDOW_SCALE_BASELINES[target]
   const baseline = sanitizeWindowScaleBaseline(target, {
     minWidth: readStoredNumber(keys.minWidth),
     minHeight: readStoredNumber(keys.minHeight),
@@ -44,7 +42,10 @@ export const readWindowScaleBaseline = (
     localStorage.setItem(keys.minHeight, String(baseline.minHeight))
   }
   if (localStorage.getItem(keys.baseFontSize) === null) {
-    localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+    localStorage.setItem(
+      keys.baseFontSize,
+      String(baseline.baseFontSize)
+    )
   }
 
   return baseline
@@ -69,7 +70,10 @@ export const saveWindowScaleBaseline = (
 
   localStorage.setItem(keys.minWidth, String(baseline.minWidth))
   localStorage.setItem(keys.minHeight, String(baseline.minHeight))
-  localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+  localStorage.setItem(
+    keys.baseFontSize,
+    String(baseline.baseFontSize)
+  )
 
   window.dispatchEvent(
     new CustomEvent(WINDOW_SCALE_BASELINE_CHANGE_EVENT, {
