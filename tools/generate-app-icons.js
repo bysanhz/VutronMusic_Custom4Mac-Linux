@@ -60,9 +60,7 @@ const isNearWhitePixel = (data, offset) => {
   const blueDistance = 255 - data[offset + 2]
   const alpha = data[offset + 3]
   const distanceToWhiteSquared =
-    redDistance * redDistance +
-    greenDistance * greenDistance +
-    blueDistance * blueDistance
+    redDistance * redDistance + greenDistance * greenDistance + blueDistance * blueDistance
 
   return alpha > 0 && distanceToWhiteSquared <= 110 * 110
 }
