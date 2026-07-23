@@ -6,8 +6,7 @@ import {
 } from '@/shared/windowScaleBaseline'
 import {
   getWindowScaleBaselineStorageKeys,
-  readWindowScaleBaseline,
-  syncWindowMinimumSize
+  readWindowScaleBaseline
 } from './windowScaleBaselineStorage'
 
 const REFERENCE_FONT_SIZE = 16
@@ -65,8 +64,6 @@ export const initializeBaselineOsdWindowScale = () => {
       contentHeight,
       baseline
     )
-
-    syncWindowMinimumSize(target, baseline)
 
     document.documentElement.style.setProperty(
       '--osd-window-zoom-factor',
