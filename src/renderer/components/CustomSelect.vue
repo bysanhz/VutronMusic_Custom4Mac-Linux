@@ -1,17 +1,11 @@
 <template>
   <div ref="rootRef" class="select-wrapper">
     <div class="custom-select" @click="toggleDropdown">
-      <input
-        v-if="searchable && dropdownVisible"
-        ref="searchInputRef"
-        v-model="searchKeyword"
-        class="custom-input"
-        :placeholder="selectedLabel"
-        @input="onSearchInput"
-        @keydown="onKeyDown"
-        @click.stop
-      />
-      <span v-else class="custom-text" @click.stop="toggleDropdown">{{ selectedLabel }}</span>
+      <span class="custom-text" :style="selectedOptionStyle" @click.stop="toggleDropdown">
+        <slot name="selected" :option="selectedOption">
+          {{ selectedLabel }}
+        </slot>
+      </span>
       <span class="custom-icon"
         ><svg-icon
           icon-class="dropdown"
@@ -25,17 +19,39 @@
       :class="{ 'dropdown-up': dropdownPosition === 'up' }"
       :style="dropdownStyle"
     >
+      <!-- ======== newADD start====== -->
+      <!--
+        可搜索下拉框使用独立搜索栏。
+
+        旧实现会在展开时直接把当前选中值替换成输入框，搜索入口不明显，
+        用户也难以区分“当前字体”和“搜索关键字”。独立搜索栏可以始终保留
+        当前选中项显示，同时明确提示可输入字体名称。
+      -->
+      <div v-if="searchable" class="custom-search" @click.stop>
+        <input
+          ref="searchInputRef"
+          v-model="searchKeyword"
+          class="custom-search-input"
+          :placeholder="searchPlaceholder"
+          @input="onSearchInput"
+          @keydown="onKeyDown"
+          @click.stop
+        />
+      </div>
+      <!-- =========== newADD end ======== -->
       <div v-if="filteredOptions.length === 0" class="no-data-item">
         {{ noDataText }}
       </div>
       <div
         v-for="(option, index) in filteredOptions"
         :key="String(option.value)"
+        :data-option-index="index"
         class="custom-select-item"
         :class="{
           active: option.value === hoverValue,
           highlighted: index === highlightedIndex
         }"
+        :style="getOptionStyle(option)"
         @mouseover="onMouseOver(option.value, index)"
         @click="selectOption(option.value)"
       >
@@ -52,23 +68,37 @@ import SvgIcon from './SvgIcon.vue'
 import { useNormalStateStore } from '../store/state'
 import { storeToRefs } from 'pinia'
 
+// ======== newADD start======
+type SelectOption = {
+  label: string
+  value: string | number | boolean
+  /** 选项预览使用的真实 CSS 字体族。 */
+  fontFamily?: string
+  /** 除 label/value 外可参与搜索的文本。 */
+  searchText?: string
+}
+// =========== newADD end ========
+
 const props = withDefaults(
   defineProps<{
     modelValue: string | number | boolean | null | undefined
-    options: Array<{ label: string; value: string | number | boolean }>
+    options: SelectOption[]
     searchable?: boolean
     noDataText?: string
     placeholder?: string
+    // ======== newADD start======
+    searchPlaceholder?: string
+    // =========== newADD end ========
     direction?: 'auto' | 'up' | 'down'
-    filterMethod?: (
-      keyword: string,
-      option: { label: string; value: string | number | boolean }
-    ) => boolean
+    filterMethod?: (keyword: string, option: SelectOption) => boolean
   }>(),
   {
     searchable: false,
     placeholder: '请选择',
     noDataText: '暂无数据',
+    // ======== newADD start======
+    searchPlaceholder: '搜索...',
+    // =========== newADD end ========
     direction: 'auto',
     filterMethod: undefined
   }
@@ -92,11 +122,13 @@ const dropdownStyle = ref<Record<string, string>>({})
 const searchKeyword = ref('')
 const highlightedIndex = ref(-1)
 
-const defaultFilterMethod = (
-  keyword: string,
-  option: { label: string; value: string | number | boolean }
-) => {
-  return option.label.toLowerCase().includes(keyword.toLowerCase())
+const defaultFilterMethod = (keyword: string, option: SelectOption) => {
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase()
+  const searchableText = [option.label, String(option.value), option.searchText ?? '']
+    .join(' ')
+    .toLocaleLowerCase()
+
+  return searchableText.includes(normalizedKeyword)
 }
 
 const filteredOptions = computed(() => {
@@ -108,10 +140,38 @@ const filteredOptions = computed(() => {
   return props.options.filter((option) => filterFn(searchKeyword.value, option))
 })
 
-const selectedLabel = computed(() => {
-  const selectedOption = props.options.find((option) => option.value === props.modelValue)
-  return selectedOption ? selectedOption.label : props.placeholder
+// ======== newADD start======
+const selectedOption = computed(() => {
+  return props.options.find((option) => option.value === props.modelValue)
 })
+// =========== newADD end ========
+
+const selectedLabel = computed(() => {
+  return selectedOption.value ? selectedOption.value.label : props.placeholder
+})
+
+// ======== newADD start======
+/**
+ * 返回字体预览选项的内联样式。
+ *
+ * Args:
+ *   option: 当前下拉选项。
+ *
+ * Returns:
+ *   字体选项返回 font-family，其余选项返回空对象。
+ *
+ * Raises:
+ *   不抛出异常。
+ */
+const getOptionStyle = (option: SelectOption): Record<string, string> => {
+  return option.fontFamily ? { fontFamily: option.fontFamily } : {}
+}
+
+/** 当前已选择项的字体预览样式。 */
+const selectedOptionStyle = computed<Record<string, string>>(() => {
+  return selectedOption.value ? getOptionStyle(selectedOption.value) : {}
+})
+// =========== newADD end ========
 
 const calculateDropdownPosition = async () => {
   if (!rootRef.value || !dropdownRef.value) return
@@ -182,9 +242,11 @@ const resetSearch = () => {
   highlightedIndex.value = -1
 }
 
-const onSearchInput = () => {
+const onSearchInput = async () => {
   highlightedIndex.value = -1
   $emit('search', searchKeyword.value)
+  await nextTick()
+  calculateDropdownPosition()
 }
 
 const onMouseOver = (value: string | number | boolean, index: number) => {
@@ -192,7 +254,26 @@ const onMouseOver = (value: string | number | boolean, index: number) => {
   highlightedIndex.value = index
 }
 
-const onKeyDown = (event: KeyboardEvent) => {
+// ======== newADD start======
+/**
+ * 将键盘高亮项滚动到下拉框可视区域。
+ *
+ * Returns:
+ *   无返回值。
+ *
+ * Raises:
+ *   目标元素不存在时静默跳过。
+ */
+const scrollHighlightedOptionIntoView = async () => {
+  await nextTick()
+  const optionElement = dropdownRef.value?.querySelector<HTMLElement>(
+    `[data-option-index="${highlightedIndex.value}"]`
+  )
+  optionElement?.scrollIntoView({ block: 'nearest' })
+}
+// =========== newADD end ========
+
+const onKeyDown = async (event: KeyboardEvent) => {
   const optionsLength = filteredOptions.value.length
 
   if (optionsLength === 0) return
@@ -203,6 +284,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       highlightedIndex.value =
         highlightedIndex.value < optionsLength - 1 ? highlightedIndex.value + 1 : 0
       hoverValue.value = filteredOptions.value[highlightedIndex.value]?.value
+      await scrollHighlightedOptionIntoView()
       break
 
     case 'ArrowUp':
@@ -210,6 +292,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       highlightedIndex.value =
         highlightedIndex.value > 0 ? highlightedIndex.value - 1 : optionsLength - 1
       hoverValue.value = filteredOptions.value[highlightedIndex.value]?.value
+      await scrollHighlightedOptionIntoView()
       break
 
     case 'Enter':
@@ -297,24 +380,6 @@ watch(dropdownVisible, (visible) => {
   cursor: pointer;
 }
 
-.custom-select .custom-input {
-  background: transparent;
-  border: none;
-  outline: none;
-  width: 120px;
-  color: var(--color-text);
-  font-size: 16px;
-  font-weight: 600;
-  box-sizing: border-box;
-  text-align: center;
-  cursor: text;
-
-  &::placeholder {
-    color: var(--color-text-secondary);
-    font-weight: normal;
-  }
-}
-
 .custom-select .custom-text {
   color: var(--color-text);
   font-size: 16px;
@@ -322,6 +387,9 @@ watch(dropdownVisible, (visible) => {
   width: 100%;
   user-select: none;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .custom-select .custom-icon {
@@ -355,6 +423,39 @@ watch(dropdownVisible, (visible) => {
   }
 }
 
+/* ======== newADD start====== */
+.custom-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px;
+  background: var(--color-secondary-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.custom-search-input {
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  outline: none;
+  background: var(--color-body-bg, rgba(127, 127, 127, 0.08));
+  color: var(--color-text);
+  font-size: 14px;
+
+  &:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  &::placeholder {
+    color: var(--color-text-secondary);
+  }
+}
+/* =========== newADD end ======== */
+
 .custom-select-item {
   padding: 8px 12px;
   cursor: pointer;
@@ -379,6 +480,16 @@ watch(dropdownVisible, (visible) => {
     border-bottom-right-radius: 8px;
   }
 }
+
+/* ======== newADD start====== */
+/*
+ * 字体选项槽位中旧代码可能仍设置 PostScript 名称。
+ * 继承父项上已经解析完成的 familyName，并用 important 覆盖旧内联值。
+ */
+:deep(.custom-select-item > *) {
+  font-family: inherit !important;
+}
+/* =========== newADD end ======== */
 
 .custom-select-item.active {
   background-color: var(--color-primary);
