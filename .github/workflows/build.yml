@@ -257,6 +257,9 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Checkout release metadata
+        uses: actions/checkout@v6
+
       - name: Download all artifacts
         uses: actions/download-artifact@v6
         with:
@@ -293,11 +296,29 @@ jobs:
             echo "RELEASE_IS_DRAFT=false" >> "$GITHUB_ENV"
           fi
 
-      - name: Upload and publish release
+      - name: Verify formal release notes
+        if: github.event_name == 'push'
+        shell: bash
+        run: test -f ".github/release-notes/${RELEASE_TAG}.md"
+
+      - name: Upload and publish formal release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v3
         with:
           files: upload/*
-          draft: ${{ env.RELEASE_IS_DRAFT }}
+          body_path: .github/release-notes/${{ env.RELEASE_TAG }}.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+
+      - name: Upload draft release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v3
+        with:
+          files: upload/*
+          draft: true
           prerelease: false
           generate_release_notes: true
           tag_name: ${{ env.RELEASE_TAG }}
