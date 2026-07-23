@@ -6,9 +6,7 @@ const baseConfig = {
   // ======== newADD start======
   // 固定应用身份，避免不同构建回退到 electron-builder 默认标识。
   appId: 'com.bysanhz.vutronmusic',
-  // 使用仓库根目录的同一张高分辨率 PNG 作为三平台应用图标源。
-  // electron-builder 会在构建 macOS/Windows 时自动转换为 ICNS/ICO，
-  // Linux 则自动生成各尺寸的 PNG 图标。
+  // 运行时仍保留原始图标，供 BrowserWindow.setIcon 使用。
   extraResources: [
     {
       from: 'new_icon.png',
@@ -34,7 +32,8 @@ const baseConfig = {
     gatekeeperAssess: false,
     notarize: false,
     // ======== newADD start======
-    icon: 'new_icon.png',
+    // build:pre 会根据 new_icon.png 生成实际尺寸和文件名一致的标准图标。
+    icon: 'buildAssets/generated-icons/1024x1024.png',
     // =========== newADD end ========
     type: 'distribution',
     target: [{ target: 'dmg', arch: 'x64' }]
@@ -57,7 +56,7 @@ const baseConfig = {
   },
   win: {
     // ======== newADD start======
-    icon: 'new_icon.png',
+    icon: 'buildAssets/generated-icons/1024x1024.png',
     // =========== newADD end ========
     target: [
       { target: 'zip', arch: 'x64' },
@@ -77,7 +76,17 @@ const baseConfig = {
   linux: {
     executableName: 'vutron',
     // ======== newADD start======
-    icon: 'new_icon.png',
+    // electron-builder 26.x 在 Linux 下要求图标目录中的文件使用 NxN.png 命名，
+    // 且实际像素尺寸与文件名一致，避免回退到旧 icon.png。
+    icon: 'buildAssets/generated-icons/linux',
+    // 让 .desktop 文件名、StartupWMClass 与 Electron app_id 使用同一身份，
+    // 防止 GNOME 把新窗口继续归到旧启动器图标。
+    syncDesktopName: true,
+    desktop: {
+      entry: {
+        StartupWMClass: 'com.bysanhz.vutronmusic'
+      }
+    },
     // =========== newADD end ========
     category: 'Utility',
     target: [
