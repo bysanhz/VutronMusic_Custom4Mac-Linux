@@ -354,6 +354,19 @@ const restoreOsdModePreview = () => {
   originalOsdLyricRaw = undefined
 }
 
+const cancelConflictingOsdCalibration = (
+  target: 'osd-small' | 'osd-normal'
+) => {
+  const otherTarget =
+    target === 'osd-small' ? 'osd-normal' : 'osd-small'
+  if (!activeTargets.has(otherTarget)) return
+
+  cancelWindowScaleCalibration(otherTarget)
+  activeTargets.delete(otherTarget)
+  setTargetCalibrating(otherTarget, false)
+  renderTargetValues(otherTarget)
+}
+
 const previewFieldValue = (
   target: WindowScaleTarget,
   field: WindowScaleBaselineField,
@@ -365,6 +378,7 @@ const previewFieldValue = (
   }
 
   if (target === 'osd-small' || target === 'osd-normal') {
+    cancelConflictingOsdCalibration(target)
     beginOsdModePreview(target)
   }
 
@@ -417,6 +431,12 @@ const cancelAllCalibrations = () => {
   activeTargets.clear()
   restoreOsdModePreview()
   scheduleDecorate()
+}
+
+const confirmAllCalibrations = () => {
+  for (const target of Array.from(activeTargets)) {
+    finishTargetCalibration(target, 'confirm')
+  }
 }
 
 const handlePointerDown = (event: Event) => {
@@ -473,6 +493,26 @@ const handleChange = (event: Event) => {
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && activeTargets.size > 0) {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    event.stopPropagation()
+    cancelAllCalibrations()
+    return
+  }
+
+  if (
+    event.key === 'Enter' &&
+    (event.ctrlKey || event.metaKey) &&
+    activeTargets.size > 0
+  ) {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    event.stopPropagation()
+    confirmAllCalibrations()
+    return
+  }
+
   if (event.key !== 'Enter') return
 
   const input = (event.target as HTMLElement).closest<HTMLInputElement>(
