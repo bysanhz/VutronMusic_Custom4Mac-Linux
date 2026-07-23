@@ -26,6 +26,7 @@ const activeTargets = new Set<WindowScaleTarget>()
 const sliderStartValues = new WeakMap<HTMLInputElement, number>()
 let originalOsdLyricRaw: string | null | undefined
 let decorateFrame: number | null = null
+let observer: MutationObserver | null = null
 
 type CalibrationAction = 'confirm' | 'cancel'
 
@@ -140,7 +141,9 @@ const getNumberInputs = (
   field?: WindowScaleBaselineField
 ) => {
   if (target === 'main') {
-    const suffix = field ? `[data-baseline-input="${field}"]` : '[data-baseline-input]'
+    const suffix = field
+      ? `[data-baseline-input="${field}"]`
+      : '[data-baseline-input]'
     return Array.from(
       document.querySelectorAll<HTMLInputElement>(
         `${MAIN_SETTING_SELECTOR} ${suffix}`
@@ -161,7 +164,9 @@ const getSliders = (
   field?: WindowScaleBaselineField
 ) => {
   if (target === 'main') {
-    const suffix = field ? `[data-baseline-slider="${field}"]` : '[data-baseline-slider]'
+    const suffix = field
+      ? `[data-baseline-slider="${field}"]`
+      : '[data-baseline-slider]'
     return Array.from(
       document.querySelectorAll<HTMLInputElement>(
         `${MAIN_SETTING_SELECTOR} ${suffix}`
@@ -210,7 +215,10 @@ const decorateSlider = (slider: HTMLInputElement) => {
   slider.min = String(-RELATIVE_SLIDER_RANGE)
   slider.max = String(RELATIVE_SLIDER_RANGE)
   slider.step = '1'
-  slider.value = '0'
+
+  if (!sliderStartValues.has(slider)) {
+    slider.value = '0'
+  }
 }
 
 const createActions = (target: WindowScaleTarget) => {
@@ -235,6 +243,26 @@ const createActions = (target: WindowScaleTarget) => {
     </div>
   `
   return actions
+}
+
+const setTargetCalibrating = (
+  target: WindowScaleTarget,
+  calibrating: boolean
+) => {
+  if (target === 'main') {
+    const setting = document.querySelector<HTMLElement>(MAIN_SETTING_SELECTOR)
+    if (setting) {
+      setting.dataset.windowScaleCalibrating = String(calibrating)
+    }
+    return
+  }
+
+  const section = document.querySelector<HTMLElement>(
+    `${OSD_CONTROL_SELECTOR} [data-section-target="${target}"]`
+  )
+  if (section) {
+    section.dataset.windowScaleCalibrating = String(calibrating)
+  }
 }
 
 const decorateMainControls = () => {
@@ -277,11 +305,20 @@ const decorateOsdControls = () => {
   }
 }
 
+const startObserving = () => {
+  observer?.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  })
+}
+
 const decorateControls = () => {
   decorateFrame = null
+  observer?.disconnect()
   injectStyle()
   decorateMainControls()
   decorateOsdControls()
+  startObserving()
 }
 
 const scheduleDecorate = () => {
@@ -336,8 +373,8 @@ const previewFieldValue = (
   baseline[field] = value
   const preview = previewWindowScaleBaseline(target, baseline)
   activeTargets.add(target)
+  setTargetCalibrating(target, true)
   renderTargetValues(target, preview)
-  scheduleDecorate()
 }
 
 const getButtonStep = (field: WindowScaleBaselineField) => {
@@ -366,6 +403,7 @@ const finishTargetCalibration = (
   }
 
   activeTargets.delete(target)
+  setTargetCalibrating(target, false)
   if (target === 'osd-small' || target === 'osd-normal') {
     restoreOsdModePreview()
   }
@@ -502,11 +540,8 @@ export const initializeWindowScaleCalibration = (router: Router) => {
   document.addEventListener('keydown', handleKeyDown, true)
   document.addEventListener('click', handleClick, true)
 
-  const observer = new MutationObserver(scheduleDecorate)
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  })
+  observer = new MutationObserver(scheduleDecorate)
+  startObserving()
 
   const removeBeforeEach = router.beforeEach(() => {
     cancelAllCalibrations()
@@ -523,7 +558,8 @@ export const initializeWindowScaleCalibration = (router: Router) => {
 
   return () => {
     cancelAllCalibrations()
-    observer.disconnect()
+    observer?.disconnect()
+    observer = null
     removeBeforeEach()
     removeAfterEach()
     stopLocaleWatch()
