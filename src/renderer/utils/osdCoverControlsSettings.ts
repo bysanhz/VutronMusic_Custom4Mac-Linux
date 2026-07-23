@@ -180,7 +180,6 @@ const initializeOsdCoverControlsSettings = () => {
     childList: true,
     subtree: true
   })
-
   ;[0, 80, 240, 600, 1200].forEach((delay) => {
     window.setTimeout(() => {
       ensureControl()
