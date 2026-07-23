@@ -1,7 +1,6 @@
 /* ======== newADD start====== */
 import {
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
-  WINDOW_SCALE_BASELINE_IPC_CHANNEL,
   WINDOW_SCALE_BASELINE_KEYS,
   WindowScaleBaseline,
   WindowScaleTarget,
@@ -55,9 +54,17 @@ export const syncWindowMinimumSize = (
   target: WindowScaleTarget,
   baseline: WindowScaleBaseline
 ) => {
-  window.mainApi?.send(WINDOW_SCALE_BASELINE_IPC_CHANNEL, {
-    target,
-    baseline
+  if (target === 'main') {
+    window.mainApi?.send('setStoreSettings', {
+      windowScaleBaseline: baseline
+    })
+    return
+  }
+
+  window.mainApi?.send('updateOsdState', {
+    [target === 'osd-small'
+      ? 'scaleBaselineSmall'
+      : 'scaleBaselineNormal']: baseline
   })
 }
 
