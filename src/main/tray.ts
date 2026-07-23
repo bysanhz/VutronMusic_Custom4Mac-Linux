@@ -18,7 +18,6 @@ let shuffleMode = false
 let isOSDLock = (store.get('osdWin.isLock') as boolean) || false
 
 const themeList = [
-  { id: 0, fileName: 'vutronmusic-icon' },
   { id: 1, fileName: 'vutronmusic-white' },
   { id: 2, fileName: 'vutronmusic-black' }
 ]
@@ -35,11 +34,20 @@ const createNativeImage = (filename: string) => {
 
 const getIconPath = () => {
   const themeId = (store.get('settings.trayColor') as number) || 0
+
+  // ======== newADD start======
+  // 默认托盘主题使用 new_icon.png 生成的 24x24 透明图标。
+  // 用户明确选择纯白、纯黑或跟随系统主题时，仍保留原来的单色托盘图标。
+  if (themeId === 0) {
+    return nativeImage.createFromPath(Constants.APP_TRAY_ICON_PATH)
+  }
+  // =========== newADD end ========
+
   const theme =
     themeId === 3
       ? nativeTheme.shouldUseDarkColors
-        ? themeList[1]
-        : themeList[2]
+        ? themeList[0]
+        : themeList[1]
       : themeList.find((t) => t.id === themeId) || themeList[0]
   return nativeImage.createFromPath(
     Constants.IS_DEV_ENV
