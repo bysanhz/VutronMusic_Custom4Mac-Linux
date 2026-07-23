@@ -75,7 +75,9 @@ export const initializeOsdCoverControlsVisibility = (): (() => void) => {
 
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== OSD_COVER_CONTROLS_VISIBILITY_KEY) return
-    applyOsdCoverControlsVisibility(event.newValue === null ? true : event.newValue === 'true')
+
+    const visible = event.newValue === null ? true : event.newValue === 'true'
+    applyOsdCoverControlsVisibility(visible)
   }
 
   window.addEventListener('storage', handleStorage)
