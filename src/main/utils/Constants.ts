@@ -21,15 +21,18 @@ export default class Constants {
 
   // ======== newADD start======
   /**
-   * 主窗口与打包产物统一使用的应用图标路径。
+   * 主窗口与打包产物统一使用的透明应用图标路径。
    *
-   * 开发环境从仓库根目录读取；打包后从 electron-builder 的
-   * extraResources 目录读取。这样直接运行 linux-unpacked/vutron 时，
-   * BrowserWindow 也不会继续使用旧图标或 Electron 默认图标。
+   * 开发环境读取构建前生成的透明图标；打包后从 extraResources 读取。
    */
   static APP_ICON_PATH = Constants.IS_DEV_ENV
-    ? join(process.cwd(), 'new_icon.png')
-    : join(process.resourcesPath, 'new_icon.png')
+    ? join(process.cwd(), 'buildAssets/generated-icons/1024x1024.png')
+    : join(process.resourcesPath, 'app-icon.png')
+
+  /** Linux 顶部状态栏使用的 24x24 透明托盘图标路径。 */
+  static APP_TRAY_ICON_PATH = Constants.IS_DEV_ENV
+    ? join(process.cwd(), 'buildAssets/generated-icons/tray/24x24.png')
+    : join(process.resourcesPath, 'app-tray-icon.png')
   // =========== newADD end ========
 
   static DEFAULT_WEB_PREFERENCES = {
