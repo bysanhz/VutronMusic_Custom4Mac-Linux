@@ -15,8 +15,8 @@ export type WindowScaleBaseline = {
 }
 
 export const WINDOW_SCALE_REFERENCE_FONT_SIZE = 16
-export const WINDOW_SCALE_BASELINE_CHANGE_EVENT = 'window-scale-baseline-change'
-export const WINDOW_SCALE_BASELINE_IPC_CHANNEL = 'update-window-scale-baseline'
+export const WINDOW_SCALE_BASELINE_CHANGE_EVENT =
+  'window-scale-baseline-change'
 
 export const WINDOW_SCALE_BASELINE_KEYS: Record<
   WindowScaleTarget,
@@ -160,6 +160,9 @@ export const calculateWindowZoomFactor = (
   const baselineZoom =
     baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
 
-  return Math.min(MAX_WINDOW_ZOOM_FACTOR, baselineZoom * geometryScale)
+  return Math.min(
+    MAX_WINDOW_ZOOM_FACTOR,
+    baselineZoom * geometryScale
+  )
 }
 /* =========== newADD end ======== */
