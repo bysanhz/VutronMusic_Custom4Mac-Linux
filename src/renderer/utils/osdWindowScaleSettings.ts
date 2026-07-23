@@ -1,6 +1,13 @@
 /* ======== newADD start====== */
+import { watch } from 'vue'
 import type { Router } from 'vue-router'
-import type { WindowScaleBaseline, WindowScaleTarget } from './windowScaleBaseline'
+import i18n from '../plugins/i18n'
+import type {
+  WindowScaleBaseline,
+  WindowScaleBaselineField,
+  WindowScaleTarget
+} from './windowScaleBaseline'
+import { getWindowScaleFieldRange } from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
   saveWindowScaleBaseline
@@ -8,45 +15,52 @@ import {
 
 const CONTROL_ID = 'osd-window-scale-baseline-setting'
 const STYLE_ID = 'osd-window-scale-baseline-style'
+const ANCHOR_ID = 'osd-window-scale-baseline-anchor'
+const LEGACY_FONT_SIZE_ATTRIBUTE =
+  'data-legacy-osd-font-size-setting'
 
-type BaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
+type FieldConfig = {
+  labelKey: string
+}
 
-const FIELD_CONFIG: Record<
-  BaselineField,
-  {
-    label: string
-    step: number
-  }
-> = {
+const FIELD_CONFIG: Record<WindowScaleBaselineField, FieldConfig> = {
   minWidth: {
-    label: '最小宽度',
-    step: 20
+    labelKey: 'settings.windowScale.minWidth'
   },
   minHeight: {
-    label: '最小高度',
-    step: 10
+    labelKey: 'settings.windowScale.minHeight'
   },
   baseFontSize: {
-    label: '基准字号',
-    step: 1
+    labelKey: 'settings.windowScale.baseFontSize'
   }
 }
 
-const BASELINE_FIELDS = Object.keys(FIELD_CONFIG) as BaselineField[]
+const BASELINE_FIELDS = Object.keys(
+  FIELD_CONFIG
+) as WindowScaleBaselineField[]
 
 const TARGET_CONFIG: Array<{
-  target: WindowScaleTarget
-  title: string
+  target: 'osd-small' | 'osd-normal'
+  titleKey: string
 }> = [
   {
     target: 'osd-small',
-    title: '紧凑桌面歌词'
+    titleKey: 'settings.windowScale.compactDesktop'
   },
   {
     target: 'osd-normal',
-    title: '普通桌面歌词'
+    titleKey: 'settings.windowScale.normalDesktop'
   }
 ]
+
+const translate = (
+  key: string,
+  params?: Record<string, string>
+) => {
+  return params
+    ? String(i18n.global.t(key, params))
+    : String(i18n.global.t(key))
+}
 
 const injectStyle = () => {
   if (document.getElementById(STYLE_ID)) return
@@ -54,12 +68,16 @@ const injectStyle = () => {
   const style = document.createElement('style')
   style.id = STYLE_ID
   style.textContent = `
+    [${LEGACY_FONT_SIZE_ATTRIBUTE}="true"] {
+      display: none !important;
+    }
+
     #${CONTROL_ID} {
       align-items: start;
     }
 
     #${CONTROL_ID} .osd-window-scale-card {
-      width: min(100%, 420px);
+      width: min(100%, 440px);
       display: grid;
       gap: 12px;
       padding: 12px;
@@ -70,7 +88,7 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-section {
       display: grid;
-      gap: 7px;
+      gap: 8px;
     }
 
     #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
@@ -85,7 +103,8 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-row {
       display: grid;
-      grid-template-columns: minmax(76px, auto) 30px minmax(70px, 1fr) 30px;
+      grid-template-columns: minmax(92px, 1fr) 30px minmax(72px, 94px) 30px;
+      grid-template-rows: auto auto;
       align-items: center;
       gap: 7px;
     }
@@ -118,6 +137,14 @@ const injectStyle = () => {
       margin: 0;
     }
 
+    #${CONTROL_ID} .osd-window-scale-slider {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
+      margin: 1px 0 3px;
+      cursor: pointer;
+    }
+
     #${CONTROL_ID} .osd-window-scale-button {
       width: 30px;
       height: 28px;
@@ -137,31 +164,78 @@ const injectStyle = () => {
   document.head.appendChild(style)
 }
 
+const getFieldLabel = (field: WindowScaleBaselineField) => {
+  return translate(FIELD_CONFIG[field].labelKey)
+}
+
 const createFieldRow = (
-  target: WindowScaleTarget,
-  field: BaselineField
+  target: 'osd-small' | 'osd-normal',
+  field: WindowScaleBaselineField
 ) => {
-  const label = FIELD_CONFIG[field].label
+  const label = getFieldLabel(field)
+  const range = getWindowScaleFieldRange(target, field)
+  const decreaseLabel = translate('settings.windowScale.decrease', {
+    field: label
+  })
+  const increaseLabel = translate('settings.windowScale.increase', {
+    field: label
+  })
+  const inputHint = translate('settings.windowScale.enterToApply')
+  const sliderHint = translate('settings.windowScale.dragToAdjust', {
+    field: label
+  })
 
   return `
     <div class="osd-window-scale-row" data-target="${target}" data-field="${field}">
       <span class="osd-window-scale-label">${label}</span>
-      <button type="button" class="osd-window-scale-button" data-action="decrease">−</button>
-      <input type="number" step="1" class="osd-window-scale-input" data-value="${field}" />
-      <button type="button" class="osd-window-scale-button" data-action="increase">+</button>
+      <button
+        type="button"
+        class="osd-window-scale-button"
+        data-action="decrease"
+        aria-label="${decreaseLabel}"
+        title="${decreaseLabel}"
+      >−</button>
+      <input
+        type="number"
+        class="osd-window-scale-input"
+        data-value="${field}"
+        min="${range.min}"
+        max="${range.max}"
+        step="${range.step}"
+        inputmode="numeric"
+        title="${inputHint}"
+      />
+      <button
+        type="button"
+        class="osd-window-scale-button"
+        data-action="increase"
+        aria-label="${increaseLabel}"
+        title="${increaseLabel}"
+      >+</button>
+      <input
+        type="range"
+        class="osd-window-scale-slider"
+        data-slider="${field}"
+        min="${range.min}"
+        max="${range.max}"
+        step="${range.step}"
+        title="${sliderHint}"
+      />
     </div>
   `
 }
 
 const createTargetSection = (
-  target: WindowScaleTarget,
-  title: string
+  target: 'osd-small' | 'osd-normal',
+  titleKey: string
 ) => {
-  const fields = BASELINE_FIELDS.map((field) => createFieldRow(target, field)).join('')
+  const fields = BASELINE_FIELDS.map((field) =>
+    createFieldRow(target, field)
+  ).join('')
 
   return `
     <section class="osd-window-scale-section" data-section-target="${target}">
-      <div class="osd-window-scale-section-title">${title}</div>
+      <div class="osd-window-scale-section-title">${translate(titleKey)}</div>
       ${fields}
     </section>
   `
@@ -169,7 +243,7 @@ const createTargetSection = (
 
 const renderTarget = (
   item: HTMLElement,
-  target: WindowScaleTarget
+  target: 'osd-small' | 'osd-normal'
 ) => {
   const baseline = readWindowScaleBaseline(target)
   const section = item.querySelector<HTMLElement>(
@@ -181,29 +255,100 @@ const renderTarget = (
     const input = section.querySelector<HTMLInputElement>(
       `[data-field="${field}"] [data-value="${field}"]`
     )
-    if (input) input.value = String(baseline[field])
+    const slider = section.querySelector<HTMLInputElement>(
+      `[data-field="${field}"] [data-slider="${field}"]`
+    )
+    const value = String(baseline[field])
+
+    if (input) input.value = value
+    if (slider) slider.value = value
   }
 }
 
-const readSectionBaseline = (
-  item: HTMLElement,
-  target: WindowScaleTarget
-) => {
-  const current = readWindowScaleBaseline(target)
-  const section = item.querySelector<HTMLElement>(
-    `[data-section-target="${target}"]`
-  )
-  if (!section) return current
+const resolveTargetAndField = (element: Element | null) => {
+  const row = element?.closest<HTMLElement>('[data-target][data-field]')
+  const target = row?.dataset.target as
+    | 'osd-small'
+    | 'osd-normal'
+    | undefined
+  const field = row?.dataset.field as
+    | WindowScaleBaselineField
+    | undefined
 
-  const result = { ...current }
-  for (const field of BASELINE_FIELDS) {
-    const input = section.querySelector<HTMLInputElement>(
-      `[data-field="${field}"] [data-value="${field}"]`
-    )
-    const value = Number(input?.value)
-    if (Number.isFinite(value)) result[field] = value
+  return { target, field }
+}
+
+const applyFieldValue = (
+  item: HTMLElement,
+  target: 'osd-small' | 'osd-normal',
+  field: WindowScaleBaselineField,
+  value: number
+) => {
+  if (!Number.isFinite(value)) {
+    renderTarget(item, target)
+    return
   }
-  return result
+
+  const baseline = readWindowScaleBaseline(target)
+  baseline[field] = value
+  saveWindowScaleBaseline(target, baseline)
+  renderTarget(item, target)
+}
+
+const installControlListeners = (item: HTMLElement) => {
+  item.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+      '[data-action]'
+    )
+    const { target, field } = resolveTargetAndField(button)
+    if (!button || !target || !field) return
+
+    const baseline = readWindowScaleBaseline(target)
+    const range = getWindowScaleFieldRange(target, field)
+    const direction = button.dataset.action === 'decrease' ? -1 : 1
+
+    applyFieldValue(
+      item,
+      target,
+      field,
+      baseline[field] + range.step * direction
+    )
+  })
+
+  item.addEventListener('input', (event) => {
+    const slider = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-slider]'
+    )
+    const { target, field } = resolveTargetAndField(slider)
+    if (!slider || !target || !field) return
+
+    applyFieldValue(item, target, field, Number(slider.value))
+  })
+
+  item.addEventListener('change', (event) => {
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-value]'
+    )
+    const { target, field } = resolveTargetAndField(input)
+    if (!input || !target || !field) return
+
+    applyFieldValue(item, target, field, Number(input.value))
+  })
+
+  item.addEventListener('keydown', (event) => {
+    const keyboardEvent = event as KeyboardEvent
+    if (keyboardEvent.key !== 'Enter') return
+
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
+      '[data-value]'
+    )
+    const { target, field } = resolveTargetAndField(input)
+    if (!input || !target || !field) return
+
+    keyboardEvent.preventDefault()
+    applyFieldValue(item, target, field, Number(input.value))
+    input.blur()
+  })
 }
 
 const createControl = () => {
@@ -212,75 +357,67 @@ const createControl = () => {
   item.className = 'item'
   item.innerHTML = `
     <div class="left">
-      <div class="title">桌面歌词缩放基准</div>
-      <div class="description">窗口达到设定的最小尺寸时使用基准字号；继续放大时，歌词、封面、图标、按钮、间距和圆角按同一比例缩放</div>
+      <div class="title">${translate('settings.windowScale.desktopTitle')}</div>
+      <div class="description">${translate('settings.windowScale.desktopDescription')}</div>
     </div>
     <div class="right">
       <div class="osd-window-scale-card">
-        ${TARGET_CONFIG.map(({ target, title }) => createTargetSection(target, title)).join('')}
+        ${TARGET_CONFIG.map(({ target, titleKey }) => createTargetSection(target, titleKey)).join('')}
       </div>
     </div>
   `
 
-  const renderAll = () => {
-    for (const { target } of TARGET_CONFIG) {
-      renderTarget(item, target)
-    }
+  installControlListeners(item)
+  for (const { target } of TARGET_CONFIG) {
+    renderTarget(item, target)
   }
-
-  item.addEventListener('change', (event) => {
-    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
-      '.osd-window-scale-input'
-    )
-    const row = input?.closest<HTMLElement>('[data-target][data-field]')
-    const target = row?.dataset.target as WindowScaleTarget | undefined
-    if (!input || !target) return
-
-    saveWindowScaleBaseline(target, readSectionBaseline(item, target))
-    renderTarget(item, target)
-  })
-
-  item.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      '[data-action]'
-    )
-    const row = button?.closest<HTMLElement>('[data-target][data-field]')
-    const target = row?.dataset.target as WindowScaleTarget | undefined
-    const field = row?.dataset.field as BaselineField | undefined
-    if (!button || !target || !field) return
-
-    const baseline = readSectionBaseline(item, target)
-    const direction = button.dataset.action === 'decrease' ? -1 : 1
-    baseline[field] += FIELD_CONFIG[field].step * direction
-
-    saveWindowScaleBaseline(target, baseline)
-    renderTarget(item, target)
-  })
-
-  renderAll()
   return item
 }
 
-const injectControl = () => {
-  if (document.getElementById(CONTROL_ID)) return true
-
+const findOsdPanel = () => {
   const lockInput = document.getElementById('isLock')
-  const osdPanel = lockInput?.closest('.item')?.parentElement
-  if (!osdPanel) return false
+  return lockInput?.closest('.item')?.parentElement || null
+}
 
-  injectStyle()
+const hideLegacyFontSizeSetting = (osdPanel: Element) => {
   const numberInputs = osdPanel.querySelectorAll<HTMLInputElement>(
     'input[type="number"].text-input'
   )
-  const fontSizeItem = numberInputs.item(1)?.closest('.item')
-  const control = createControl()
+  const legacyItem = numberInputs.item(1)?.closest<HTMLElement>('.item')
+  if (!legacyItem) return null
 
-  if (fontSizeItem?.parentElement === osdPanel) {
-    fontSizeItem.insertAdjacentElement('afterend', control)
+  legacyItem.setAttribute(LEGACY_FONT_SIZE_ATTRIBUTE, 'true')
+  return legacyItem
+}
+
+const ensureAnchor = (osdPanel: Element) => {
+  const existing = document.getElementById(ANCHOR_ID)
+  if (existing) return existing
+
+  const legacyItem = hideLegacyFontSizeSetting(osdPanel)
+  const anchor = document.createElement('div')
+  anchor.id = ANCHOR_ID
+  anchor.hidden = true
+
+  if (legacyItem?.parentElement === osdPanel) {
+    legacyItem.insertAdjacentElement('beforebegin', anchor)
   } else {
-    osdPanel.appendChild(control)
+    osdPanel.appendChild(anchor)
   }
 
+  return anchor
+}
+
+const injectControl = () => {
+  const osdPanel = findOsdPanel()
+  if (!osdPanel) return false
+
+  injectStyle()
+  hideLegacyFontSizeSetting(osdPanel)
+  if (document.getElementById(CONTROL_ID)) return true
+
+  const anchor = ensureAnchor(osdPanel)
+  anchor.insertAdjacentElement('afterend', createControl())
   return true
 }
 
@@ -300,14 +437,22 @@ const scheduleInjectionAttempts = () => {
 export const initializeOsdWindowScaleSettings = (router: Router) => {
   let stopAttempts = scheduleInjectionAttempts()
 
-  const removeAfterEach = router.afterEach(() => {
+  const restartInjection = () => {
     stopAttempts()
+    document.getElementById(CONTROL_ID)?.remove()
     stopAttempts = scheduleInjectionAttempts()
-  })
+  }
+
+  const removeAfterEach = router.afterEach(restartInjection)
+  const stopLocaleWatch = watch(
+    () => i18n.global.locale.value,
+    restartInjection
+  )
 
   return () => {
     stopAttempts()
     removeAfterEach()
+    stopLocaleWatch()
   }
 }
 /* =========== newADD end ======== */
