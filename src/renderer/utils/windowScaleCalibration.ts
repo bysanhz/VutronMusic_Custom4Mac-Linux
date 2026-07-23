@@ -39,49 +39,6 @@ const injectStyle = () => {
   style.textContent = `
     .${ACTION_CLASS} {
       grid-column: 1 / -1;
-      display: grid;
-      gap: 7px;
-      margin-top: 4px;
-      padding-top: 8px;
-      border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
-    }
-
-    .window-scale-calibration-hint {
-      line-height: 1.35;
-      opacity: 0.66;
-      font-size: 0.86em;
-    }
-
-    .window-scale-calibration-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .window-scale-calibration-button {
-      min-width: 68px;
-      height: 30px;
-      padding: 0 12px;
-      border: none;
-      border-radius: 7px;
-      color: var(--color-text);
-      background: color-mix(in srgb, var(--color-text), transparent 91%);
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    .window-scale-calibration-button[data-calibration-action='confirm'] {
-      color: white;
-      background: var(--color-primary, #335eea);
-    }
-
-    .window-scale-calibration-button:hover {
-      filter: brightness(0.96);
-    }
-
-    [data-window-scale-calibrating='true'] .window-scale-calibration-hint {
-      opacity: 1;
-      font-weight: 600;
     }
 
     input[data-relative-window-scale-slider='true'] {
@@ -127,7 +84,8 @@ const getFieldFromElement = (
   if (
     field === 'minWidth' ||
     field === 'minHeight' ||
-    field === 'baseFontSize'
+    field === 'baseFontSize' ||
+    field === 'miniControlBaseSize'
   ) {
     return field
   }
@@ -181,17 +139,24 @@ const getSliders = (
   )
 }
 
-const renderTargetValues = (
-  target: WindowScaleTarget,
-  baseline = readWindowScaleBaseline(target)
-) => {
+const getTargetFields = (
+  target: WindowScaleTarget
+): WindowScaleBaselineField[] => {
   const fields: WindowScaleBaselineField[] = [
     'minWidth',
     'minHeight',
     'baseFontSize'
   ]
 
-  for (const field of fields) {
+  if (target === 'osd-small') fields.push('miniControlBaseSize')
+  return fields
+}
+
+const renderTargetValues = (
+  target: WindowScaleTarget,
+  baseline = readWindowScaleBaseline(target)
+) => {
+  for (const field of getTargetFields(target)) {
     for (const input of getNumberInputs(target, field)) {
       input.value = String(baseline[field])
     }
@@ -203,10 +168,14 @@ const resetRelativeSlider = (slider: HTMLInputElement) => {
   sliderStartValues.delete(slider)
 }
 
+const isScaleField = (field: WindowScaleBaselineField | null) => {
+  return field === 'baseFontSize' || field === 'miniControlBaseSize'
+}
+
 const decorateInput = (input: HTMLInputElement) => {
   input.removeAttribute('min')
   input.removeAttribute('max')
-  input.step = getFieldFromElement(input) === 'baseFontSize' ? '0.1' : '1'
+  input.step = isScaleField(getFieldFromElement(input)) ? '0.1' : '1'
 }
 
 const decorateSlider = (slider: HTMLInputElement) => {
@@ -391,14 +360,14 @@ const previewFieldValue = (
 }
 
 const getButtonStep = (field: WindowScaleBaselineField) => {
-  return field === 'baseFontSize' ? 0.5 : 10
+  return isScaleField(field) ? 0.5 : 10
 }
 
 const getRelativeSliderStep = (
   field: WindowScaleBaselineField,
   startValue: number
 ) => {
-  if (field === 'baseFontSize') {
+  if (isScaleField(field)) {
     return Math.max(0.05, startValue / 200)
   }
   return Math.max(1, Math.round(startValue / 200))
@@ -427,6 +396,8 @@ const finishTargetCalibration = (
 const cancelAllCalibrations = () => {
   for (const target of Array.from(activeTargets)) {
     cancelWindowScaleCalibration(target)
+    setTargetCalibrating(target, false)
+    renderTargetValues(target)
   }
   activeTargets.clear()
   restoreOsdModePreview()
