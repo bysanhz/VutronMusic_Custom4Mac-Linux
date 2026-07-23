@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Type, Mode, TranslationMode } from '@/types/music'
+
+const LEGACY_FIXED_LYRIC_FONT_SIZE = 26
 
 export const useOsdLyricStore = defineStore(
   'osdLyric',
@@ -10,7 +12,20 @@ export const useOsdLyricStore = defineStore(
     const mode = ref<Mode>('twoLines')
     const isLock = ref(false)
     const alwaysOnTop = ref(false)
-    const fontSize = ref(26)
+    // ======== newADD start======
+    // 旧版独立歌词字号仅为兼容历史持久化数据保留。
+    // 新版统一由窗口最小尺寸和基准字号控制整体缩放。
+    const fontSize = ref(LEGACY_FIXED_LYRIC_FONT_SIZE)
+    watch(
+      fontSize,
+      (value) => {
+        if (value !== LEGACY_FIXED_LYRIC_FONT_SIZE) {
+          fontSize.value = LEGACY_FIXED_LYRIC_FONT_SIZE
+        }
+      },
+      { immediate: true, flush: 'sync' }
+    )
+    // =========== newADD end ========
     const staticTime = ref(1500)
     const showButtonWhenLock = ref(true)
     const isWordByWord = ref(true)
@@ -37,7 +52,6 @@ export const useOsdLyricStore = defineStore(
         mode.value = newState.mode ?? mode.value
         isLock.value = newState.isLock ?? isLock.value
         alwaysOnTop.value = newState.alwaysOnTop ?? alwaysOnTop.value
-        fontSize.value = newState.fontSize ?? fontSize.value
         staticTime.value = newState.staticTime ?? staticTime.value
         showButtonWhenLock.value = newState.showButtonWhenLock ?? showButtonWhenLock.value
         isWordByWord.value = newState.isWordByWord ?? isWordByWord.value
