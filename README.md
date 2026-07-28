@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux">
-    <img src="buildAssets/icons/icon.png" alt="VutronMusic Logo" width="156" height="156">
+    <img src="new_icon.png" alt="VutronMusic Logo" width="156" height="156">
   </a>
   <h2>VutronMusic Custom for macOS & Linux</h2>
   <p>面向 macOS 与 Linux 持续适配的第三方网易云音乐桌面播放器</p>
@@ -37,12 +37,12 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 | --- | --- | --- | --- |
 | Linux | x86_64 | AppImage / Deb / RPM / Snap | AppImage 支持应用内更新；其他格式跳转 Release |
 | Linux | ARM64 | AppImage / Deb / RPM | 应用内检查版本，跳转 Release 手动下载 |
-| macOS | Apple Silicon | DMG arm64 | 应用内检查版本，跳转 Release 手动下载 |
-| macOS | Intel | DMG x64 | 应用内检查版本，跳转 Release 手动下载 |
+| macOS | Apple Silicon | 本机源码构建（推荐）/ 未签名 DMG arm64 | 应用内检查版本，跳转 Release |
+| macOS | Intel | 本机源码构建（推荐）/ 未签名 DMG x64 | 应用内检查版本，跳转 Release |
 | Windows | x64 | 安装版 / Portable | 支持应用内更新 |
 | Windows | ARM64 | 安装版 | 支持应用内更新 |
 
-macOS 安装包当前未进行 Apple Developer ID 签名和公证。首次运行时可能需要在系统设置的“隐私与安全性”中手动允许。
+macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，下载后可能被 Gatekeeper 判定为“已损坏”或阻止打开。macOS 用户推荐在自己的电脑上拉取源码并按本文“macOS 本机构建”一节生成与当前机器架构匹配的应用。仓库不会要求用户安装或配置签名证书。
 
 ## 定制功能
 
@@ -59,7 +59,7 @@ macOS 安装包当前未进行 Apple Developer ID 签名和公证。首次运行
 - 支持普通模式与紧凑模式；
 - 桌面歌词窗口具有独立的缩放参考值；
 - 歌词、封面、按钮、间距和圆角随窗口整体连续缩放；
-- 锁定后隐藏控制区域并启用鼠标穿透；
+- 锁定后启用鼠标穿透；左侧封面与控制按钮是否显示由设置项独立控制；
 - 优化 macOS/Linux 下窗口拉伸、拖动和边缘控件命中区域；
 - 紧凑模式提供上一首、播放/暂停、下一首、主窗口显隐、心动模式和喜欢控制；
 - 首次打开桌面歌词时同步当前歌曲、歌词行、偏移、封面和喜欢状态。
@@ -135,16 +135,84 @@ yarn run vue:type-check
 yarn vite build
 ```
 
-本地打包：
+### 同步源码
+
+仓库处于正常状态时：
 
 ```bash
-# Linux
+git pull --ff-only origin main
+```
 
+如果出现 `MERGE_HEAD exists`，说明之前的合并尚未结束。确认不需要保留这次未完成合并后，可执行：
+
+```bash
+git status
+git merge --abort
+git pull --ff-only origin main
+```
+
+不要在不清楚本地修改内容时直接使用 `git reset --hard`。
+
+### macOS 本机构建
+
+先安装 Xcode Command Line Tools，并确认 Node.js 与 Yarn 版本：
+
+```bash
+xcode-select --install
+node --version
+yarn --version
+```
+
+安装冻结依赖并执行完整检查：
+
+```bash
+yarn install --frozen-lockfile --network-timeout 600000
+yarn run format:check
+yarn lint
+yarn run vue:type-check
+yarn vite build
+```
+
+Apple Silicon（M1/M2/M3/M4/M5）构建 ARM64 DMG：
+
+```bash
+rm -rf "release/$(node -p \"require('./package.json').version\")"
+yarn run build:mac -- --arm64 -p never
+```
+
+Intel Mac 构建 x64 DMG：
+
+```bash
+rm -rf "release/$(node -p \"require('./package.json').version\")"
+yarn run build:mac -- --x64 -p never
+```
+
+构建完成后查看产物：
+
+```bash
+VERSION="$(node -p \"require('./package.json').version\")"
+find "release/${VERSION}" -maxdepth 2 -type f -name '*.dmg' -print
+open "release/${VERSION}"
+```
+
+本机构建不会进行 Developer ID 签名或 Apple 公证。由于产物由本机生成，通常可以直接打开。若要跳过 DMG、直接检查 `.app`，可生成解包目录：
+
+```bash
+VERSION="$(node -p \"require('./package.json').version\")"
+rm -rf "release/${VERSION}"
+yarn run build:pre
+CSC_IDENTITY_AUTO_DISCOVERY=false ./node_modules/.bin/electron-builder \
+  --config=buildAssets/builder/config.js \
+  --mac --arm64 --dir -p never
+find "release/${VERSION}" -maxdepth 3 -name 'VutronMusic.app' -print
+```
+
+Intel Mac 将上面的 `--arm64` 替换为 `--x64`。
+
+### Linux 本地打包
+
+```bash
 yarn run build:linux
-
-# 当前 macOS 架构
-
-yarn run build:mac
 ```
 
 构建过程执行：
@@ -168,14 +236,14 @@ yarn run format:fix
 3. 执行 Prettier、ESLint、Vue TypeScript 和 Vite 检查；
 4. 构建 Linux x64/ARM64、macOS ARM64/x64、Windows x64/ARM64；
 5. 汇总安装包和更新元数据；
-6. 自动发布 GitHub Release 并生成 Release Notes。
+6. 使用 `.github/release-notes/vX.Y.Z.md` 发布正式 GitHub Release。
 
-发布新版本时先更新 `package.json` 与 `yarn.lock`，完成本地验证后执行：
+发布新版本时先更新 `package.json`、`yarn.lock` 和对应的版本更新说明，完成本地验证后执行：
 
 ```bash
-VERSION=3.2.4
+VERSION=x.y.z
 
-git add package.json yarn.lock
+git add package.json yarn.lock ".github/release-notes/v${VERSION}.md"
 git commit -m "发布 VutronMusic ${VERSION}"
 git push origin main
 
@@ -192,6 +260,7 @@ git push origin "v${VERSION}"
 - 心动模式需要登录网易云账号，并且“我喜欢的音乐”中至少有一首歌曲；
 - 修改 preload、桌面歌词窗口或 Electron 主进程后，需要完整退出并重新启动；
 - Linux Deb 和未签名 macOS 构建只负责检查新版本，不执行静默安装；
+- macOS 下载版 DMG 被 Gatekeeper 拦截时，优先使用本文的本机构建流程；
 - 出现问题时，可在“设置 → 软件更新 → 更新与诊断”中导出诊断信息并打开日志文件；
 - 网易云账号登录和通用功能可参考[上游 Wiki](https://github.com/stark81/VutronMusic/wiki/)。
 
