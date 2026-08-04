@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: apply-v327-hardening
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   RESULT_BRANCH: automation/v327-hardening-result
@@ -29,17 +29,16 @@ jobs:
           fetch-depth: 0
 
       - name: Configure automation identity
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Publish workflow marker
-        shell: bash
+      - name: Prepare result branch
         run: |
           git switch -C "$RESULT_BRANCH"
           printf 'workflow-started=%s\nsource=%s\n' "$(date -u +%FT%TZ)" "$GITHUB_SHA" > .github/hardening-result.txt
-          git add .github/hardening-result.txt
+          rm -f .github/hardening-apply.log
+          git add -A
           git commit -m "记录 v3.2.7 加固工作流启动"
           git push --force origin "HEAD:$RESULT_BRANCH"
 
@@ -47,27 +46,21 @@ jobs:
         shell: bash
         run: |
           set +e
-          {
-            cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
-            python3 - <<'PY'
-          import base64
-          import gzip
-          from pathlib import Path
-
-          payload = Path('/tmp/hardening.b64').read_text().strip()
-          script = gzip.decompress(base64.b64decode(payload))
-          target = Path('/tmp/apply-v327-hardening.py')
-          target.write_bytes(script)
-          compile(script, str(target), 'exec')
-          PY
-            python3 /tmp/apply-v327-hardening.py
-          } > .github/hardening-apply.log 2>&1
-          status=$?
+          cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
+          python3 -c "import base64,gzip,pathlib; p=pathlib.Path('/tmp/hardening.b64').read_text().strip(); s=gzip.decompress(base64.b64decode(p)); pathlib.Path('/tmp/apply-v327-hardening.py').write_bytes(s); compile(s, '/tmp/apply-v327-hardening.py', 'exec')" > .github/hardening-apply.log 2>&1
+          decode_status=$?
+          if [ "$decode_status" -eq 0 ]; then
+            timeout 60s python3 /tmp/apply-v327-hardening.py >> .github/hardening-apply.log 2>&1
+            apply_status=$?
+          else
+            apply_status=$decode_status
+          fi
+          printf '\nexit_status=%s\n' "$apply_status" >> .github/hardening-apply.log
           cat .github/hardening-apply.log
           git add -A
           git commit -m "记录 v3.2.7 加固补丁执行结果" || true
           git push --force origin "HEAD:$RESULT_BRANCH"
-          exit "$status"
+          exit "$apply_status"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -82,7 +75,6 @@ jobs:
         run: yarn run format:fix
 
       - name: Publish generated source for review
-        shell: bash
         run: |
           git add -A
           if git diff --cached --quiet; then
@@ -101,7 +93,6 @@ jobs:
           yarn vite --config vite.config.ts build
 
       - name: Promote validated changes to main
-        shell: bash
         run: |
           git commit --allow-empty -m "修复 v3.2.7 安全性与交互稳定性问题"
           git push origin HEAD:main
