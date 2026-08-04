@@ -7,6 +7,7 @@ const controlEnsurers = new Set<() => boolean>()
 let settingsObserver: MutationObserver | null = null
 let pendingEnsureTimer: number | null = null
 let cleanupRegistered = false
+let controlsReady = false
 
 export const resolveFeatureLanguage = (): SupportedLanguage => {
   try {
@@ -162,17 +163,28 @@ export const createV327SettingsItem = (
 }
 
 const ensureAllControls = (): void => {
+  let allMounted = controlEnsurers.size > 0
+
   controlEnsurers.forEach((ensureControl) => {
     try {
-      ensureControl()
+      allMounted = ensureControl() && allMounted
     } catch (error) {
+      allMounted = false
       console.warn('[V327Features] 挂载设置项失败：', error)
     }
   })
+
+  controlsReady = allMounted
 }
 
 const scheduleEnsureAllControls = (): void => {
-  if (pendingEnsureTimer !== null) return
+  const settingsRoot = document.querySelector('#app .system-settings')
+  if (!settingsRoot) {
+    controlsReady = false
+    return
+  }
+  if (controlsReady || pendingEnsureTimer !== null) return
+
   pendingEnsureTimer = window.setTimeout(() => {
     pendingEnsureTimer = null
     ensureAllControls()
@@ -200,6 +212,7 @@ const initializeSharedObserver = (): void => {
         settingsObserver?.disconnect()
         settingsObserver = null
         controlEnsurers.clear()
+        controlsReady = false
         if (pendingEnsureTimer !== null) {
           window.clearTimeout(pendingEnsureTimer)
           pendingEnsureTimer = null
@@ -213,6 +226,7 @@ const initializeSharedObserver = (): void => {
 export const observeV327SettingsControl = (ensureControl: () => boolean): void => {
   injectV327FeatureStyle()
   controlEnsurers.add(ensureControl)
-  ensureControl()
+  controlsReady = false
+  ensureAllControls()
   initializeSharedObserver()
 }
