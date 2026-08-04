@@ -1,3 +1,4 @@
+import { usePlayerStore } from '../store/player'
 import {
   createV327SettingsItem,
   observeV327SettingsControl,
@@ -129,10 +130,11 @@ const cancelTimer = (message?: string): void => {
   updateStatus(message)
 }
 
-const pausePlayback = (): void => {
+const pausePlayback = async (): Promise<void> => {
   state.completed = true
-  if (window.vutronmusic?.playing) {
-    window.mainApi?.send('sleep-timer-pause')
+  const playerStore = usePlayerStore()
+  if (playerStore.playing) {
+    await playerStore.playOrPause()
   }
   cancelTimer(TEXTS[resolveFeatureLanguage()].completed)
 }
@@ -142,7 +144,7 @@ const tick = (): void => {
 
   if (state.mode === 'minutes') {
     if (Date.now() >= state.endAt) {
-      pausePlayback()
+      void pausePlayback()
       return
     }
     updateStatus()
@@ -158,7 +160,7 @@ const tick = (): void => {
   const progress = Number(window.vutronmusic?.progress || 0)
   const duration = resolveTrackDuration(track)
   if (duration > 0 && duration - progress <= 0.8) {
-    pausePlayback()
+    void pausePlayback()
     return
   }
 
