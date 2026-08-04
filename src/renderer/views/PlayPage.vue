@@ -54,6 +54,7 @@
     <ConvolverModal />
     <PitchModal />
     <PlaybackModal />
+    <SleepTimerModal />
     <PlayerFontModal />
     <PlayerThemeModal />
     <SaveThemeModal />
@@ -71,6 +72,10 @@
       }}</div>
       <div class="item" @click="setPitchModal = true">{{ $t('contextMenu.pitch') }}</div>
       <div class="item" @click="setConvolverModal = true">{{ $t('contextMenu.setConvolver') }}</div>
+      <div class="item sleep-timer-menu-item" @click="sleepTimerModalVisible = true">
+        <span>睡眠定时器</span>
+        <span v-if="sleepTimerActive" class="sleep-timer-active-label">已启用</span>
+      </div>
       <hr />
       <div class="item" @click="backgroundModal.show = true">背景设置</div>
       <div class="item" @click="setFontModal = true">歌词设置</div>
@@ -84,6 +89,7 @@ import ContextMenu from '../components/ContextMenu.vue'
 import ConvolverModal from '../components/ModalConvolver.vue'
 import PlaybackModal from '../components/ModalPlayback.vue'
 import PitchModal from '../components/ModalPitch.vue'
+import SleepTimerModal from '../components/ModalSleepTimer.vue'
 import PlayerThemeModal from '../components/ModalPlayerTheme.vue'
 import PlayerFontModal from '../components/ModalPlayerFont.vue'
 import SaveThemeModal from '../components/ModalSaveTheme.vue'
@@ -97,6 +103,7 @@ import SvgIcon from '../components/SvgIcon.vue'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { usePlayerThemeStore } from '../store/playerTheme'
+import { sleepTimerActive, sleepTimerModalVisible } from '../utils/sleepTimerSettings'
 import { storeToRefs } from 'pinia'
 import { ref, provide, computed, watch } from 'vue'
 import { TrackSourceType } from '@/types/music.d'
@@ -284,6 +291,19 @@ watch(
   .player-button {
     opacity: 0.88;
   }
+}
+
+.sleep-timer-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sleep-timer-active-label {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .sense-modal {
