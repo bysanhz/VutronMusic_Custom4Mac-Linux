@@ -3,6 +3,10 @@ export type JsonRecord = Record<string, any>
 
 const STYLE_ID = 'vutronmusic-v327-feature-style'
 const SETTINGS_STORAGE_KEY = 'settings'
+const controlEnsurers = new Set<() => boolean>()
+let settingsObserver: MutationObserver | null = null
+let pendingEnsureTimer: number | null = null
+let cleanupRegistered = false
 
 export const resolveFeatureLanguage = (): SupportedLanguage => {
   try {
@@ -157,33 +161,58 @@ export const createV327SettingsItem = (
   return item
 }
 
-export const observeV327SettingsControl = (ensureControl: () => boolean): void => {
-  injectV327FeatureStyle()
-  let pendingTimer: number | null = null
-
-  const scheduleEnsureControl = (): void => {
-    if (pendingTimer !== null) return
-    pendingTimer = window.setTimeout(() => {
-      pendingTimer = null
+const ensureAllControls = (): void => {
+  controlEnsurers.forEach((ensureControl) => {
+    try {
       ensureControl()
-    }, 80)
-  }
+    } catch (error) {
+      console.warn('[V327Features] 挂载设置项失败：', error)
+    }
+  })
+}
 
-  const observer = new MutationObserver(scheduleEnsureControl)
-  observer.observe(document.documentElement, {
+const scheduleEnsureAllControls = (): void => {
+  if (pendingEnsureTimer !== null) return
+  pendingEnsureTimer = window.setTimeout(() => {
+    pendingEnsureTimer = null
+    ensureAllControls()
+  }, 80)
+}
+
+const initializeSharedObserver = (): void => {
+  if (settingsObserver) return
+
+  settingsObserver = new MutationObserver(scheduleEnsureAllControls)
+  settingsObserver.observe(document.documentElement, {
     childList: true,
     subtree: true
   })
 
   ;[0, 100, 300, 800, 1600].forEach((delay) => {
-    window.setTimeout(ensureControl, delay)
+    window.setTimeout(ensureAllControls, delay)
   })
 
-  window.addEventListener(
-    'beforeunload',
-    () => {
-      observer.disconnect()
-    },
-    { once: true }
-  )
+  if (!cleanupRegistered) {
+    cleanupRegistered = true
+    window.addEventListener(
+      'beforeunload',
+      () => {
+        settingsObserver?.disconnect()
+        settingsObserver = null
+        controlEnsurers.clear()
+        if (pendingEnsureTimer !== null) {
+          window.clearTimeout(pendingEnsureTimer)
+          pendingEnsureTimer = null
+        }
+      },
+      { once: true }
+    )
+  }
+}
+
+export const observeV327SettingsControl = (ensureControl: () => boolean): void => {
+  injectV327FeatureStyle()
+  controlEnsurers.add(ensureControl)
+  ensureControl()
+  initializeSharedObserver()
 }
