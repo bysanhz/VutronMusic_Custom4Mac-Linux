@@ -46,8 +46,10 @@ jobs:
       - name: Reconstruct and apply patch
         shell: bash
         run: |
-          cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
-          python3 - <<'PY'
+          set +e
+          {
+            cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
+            python3 - <<'PY'
           import base64
           import gzip
           from pathlib import Path
@@ -58,7 +60,14 @@ jobs:
           target.write_bytes(script)
           compile(script, str(target), 'exec')
           PY
-          python3 /tmp/apply-v327-hardening.py
+            python3 /tmp/apply-v327-hardening.py
+          } > .github/hardening-apply.log 2>&1
+          status=$?
+          cat .github/hardening-apply.log
+          git add -A
+          git commit -m "记录 v3.2.7 加固补丁执行结果" || true
+          git push --force origin "HEAD:$RESULT_BRANCH"
+          exit "$status"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
