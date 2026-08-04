@@ -6,6 +6,8 @@ import { windowScaleMessages } from '../locales/windowScale'
 // ======== newADD start======
 // 设置页面挂载后自动注入紧凑桌面歌词左侧封面与控制按钮开关。
 import '../utils/osdCoverControlsSettings'
+// 加载桌面歌词预设、设置备份恢复与睡眠定时器。
+import '../utils/v327Features'
 // =========== newADD end ========
 // import { getCurrentLocale } from '../utils'
 
