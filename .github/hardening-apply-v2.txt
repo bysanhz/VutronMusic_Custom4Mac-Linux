@@ -1,3 +1,0 @@
-v3.2.7 hardening patches applied
-
-exit_status=0
