@@ -32,20 +32,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Prepare result branch
-        run: |
           git switch -C "$RESULT_BRANCH"
-          printf 'workflow-started=%s\nsource=%s\n' "$(date -u +%FT%TZ)" "$GITHUB_SHA" > .github/hardening-result.txt
-          rm -f .github/hardening-apply.txt
-          git add -A
-          git commit -m "记录 v3.2.7 加固工作流启动"
-          git push --force origin "HEAD:$RESULT_BRANCH"
 
       - name: Reconstruct and apply patch
         shell: bash
         run: |
           set +e
+          printf 'workflow-started=%s\nsource=%s\n' "$(date -u +%FT%TZ)" "$GITHUB_SHA" > .github/hardening-result.txt
           cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
           python3 -c "import base64,gzip,pathlib; p=pathlib.Path('/tmp/hardening.b64').read_text().strip(); s=gzip.decompress(base64.b64decode(p)); target=pathlib.Path('.github/apply-v327-hardening.py'); target.write_bytes(s); compile(s, str(target), 'exec')" > .github/hardening-apply.txt 2>&1
           decode_status=$?
@@ -58,9 +51,9 @@ jobs:
           rm -f .github/apply-v327-hardening.py
           printf '\nexit_status=%s\n' "$apply_status" >> .github/hardening-apply.txt
           cat .github/hardening-apply.txt
-          git add -f .github/hardening-apply.txt
+          git add -f .github/hardening-apply.txt .github/hardening-result.txt
           git add -A
-          git commit -m "记录 v3.2.7 加固补丁执行结果" || true
+          git commit -m "生成 v3.2.7 安全性与交互稳定性修复" || true
           git push --force origin "HEAD:$RESULT_BRANCH"
           exit "$apply_status"
 
@@ -76,13 +69,13 @@ jobs:
       - name: Format generated changes
         run: yarn run format:fix
 
-      - name: Publish generated source for review
+      - name: Publish formatted source for review
         run: |
           git add -A
           if git diff --cached --quiet; then
-            echo "No generated changes"
+            echo "No formatting changes"
           else
-            git commit -m "生成 v3.2.7 安全性与交互稳定性修复"
+            git commit -m "格式化 v3.2.7 加固代码"
             git push --force origin "HEAD:$RESULT_BRANCH"
           fi
 
