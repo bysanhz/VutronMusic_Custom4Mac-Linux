@@ -816,8 +816,10 @@ class BackGround {
   }
 
   handleAppEvents() {
-    this.handleProtocol()
     app.whenReady().then(async () => {
+      // protocol.handle() accesses the Electron default session and must run after app readiness.
+      this.handleProtocol()
+
       this.createMainWindow().then(() => {
         // @ts-ignore
         this.fastifyApp.win = this.win
