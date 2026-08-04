@@ -155,7 +155,9 @@ class DB {
         return { sqlFile, version }
       })
       .filter((item) => validate(item.version))
-      .sort((a, b) => compare(a.version, b.version, '>') ? 1 : compare(a.version, b.version, '<') ? -1 : 0)
+      .sort((a, b) =>
+        compare(a.version, b.version, '>') ? 1 : compare(a.version, b.version, '<') ? -1 : 0
+      )
 
     const currentVersion = appVersion?.value || '0.0.0'
     const pendingFiles = migrationFiles.filter((item) => compare(item.version, currentVersion, '>'))
@@ -312,7 +314,8 @@ class DB {
       log.log(`Deleted ${keys.length} records from ${table} in ${totalBatches} batches`)
     } catch (transactionError) {
       log.error(`Transaction failed:`, transactionError)
-      const message = transactionError instanceof Error ? transactionError.message : String(transactionError)
+      const message =
+        transactionError instanceof Error ? transactionError.message : String(transactionError)
       throw new Error(`Bulk delete operation failed: ${message}`)
     }
   }

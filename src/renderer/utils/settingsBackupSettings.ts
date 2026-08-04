@@ -235,33 +235,32 @@ const importBackup = async (file: File): Promise<void> => {
   let mergedSettings: JsonRecord | null = null
 
   try {
-
-  if (payload.settings && typeof payload.settings === 'object') {
-    const safeImportedSettings = sanitizeSettings(payload.settings)
-    mergedSettings = deepMerge(readJsonRecord(SETTINGS_STORAGE_KEY), safeImportedSettings)
-    writeJsonRecord(SETTINGS_STORAGE_KEY, mergedSettings)
-  }
-  if (payload.osdLyric && typeof payload.osdLyric === 'object') {
-    writeJsonRecord(OSD_STORAGE_KEY, deepMerge(readJsonRecord(OSD_STORAGE_KEY), payload.osdLyric))
-  }
-  if (payload.playerPreferences && typeof payload.playerPreferences === 'object') {
-    writeJsonRecord(
-      PLAYER_STORAGE_KEY,
-      deepMerge(readJsonRecord(PLAYER_STORAGE_KEY), payload.playerPreferences)
-    )
-  }
-  if (Array.isArray(payload.osdPresets)) {
-    writeStorageValue(PRESETS_STORAGE_KEY, JSON.stringify(payload.osdPresets))
-  }
-  if (typeof payload.osdCoverControlsVisible === 'boolean') {
-    writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(payload.osdCoverControlsVisible))
-  }
-  if (payload.uiStorage && typeof payload.uiStorage === 'object') {
-    UI_STORAGE_KEYS.forEach((key) => {
-      const value = payload.uiStorage[key]
-      if (typeof value === 'string') writeStorageValue(key, value)
-    })
-  }
+    if (payload.settings && typeof payload.settings === 'object') {
+      const safeImportedSettings = sanitizeSettings(payload.settings)
+      mergedSettings = deepMerge(readJsonRecord(SETTINGS_STORAGE_KEY), safeImportedSettings)
+      writeJsonRecord(SETTINGS_STORAGE_KEY, mergedSettings)
+    }
+    if (payload.osdLyric && typeof payload.osdLyric === 'object') {
+      writeJsonRecord(OSD_STORAGE_KEY, deepMerge(readJsonRecord(OSD_STORAGE_KEY), payload.osdLyric))
+    }
+    if (payload.playerPreferences && typeof payload.playerPreferences === 'object') {
+      writeJsonRecord(
+        PLAYER_STORAGE_KEY,
+        deepMerge(readJsonRecord(PLAYER_STORAGE_KEY), payload.playerPreferences)
+      )
+    }
+    if (Array.isArray(payload.osdPresets)) {
+      writeStorageValue(PRESETS_STORAGE_KEY, JSON.stringify(payload.osdPresets))
+    }
+    if (typeof payload.osdCoverControlsVisible === 'boolean') {
+      writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(payload.osdCoverControlsVisible))
+    }
+    if (payload.uiStorage && typeof payload.uiStorage === 'object') {
+      UI_STORAGE_KEYS.forEach((key) => {
+        const value = payload.uiStorage[key]
+        if (typeof value === 'string') writeStorageValue(key, value)
+      })
+    }
 
     if (mergedSettings) syncImportedSettingsToMain(mergedSettings)
   } catch (error) {

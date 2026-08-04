@@ -77,8 +77,7 @@ const TEXTS = {
   },
   en: {
     title: 'Desktop Lyric Presets',
-    description:
-      'Save and switch font, layout, colors, translation and cover-control settings.',
+    description: 'Save and switch font, layout, colors, translation and cover-control settings.',
     apply: 'Apply',
     save: 'Save Current',
     delete: 'Delete',

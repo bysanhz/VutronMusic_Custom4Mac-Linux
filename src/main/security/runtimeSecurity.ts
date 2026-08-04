@@ -118,7 +118,11 @@ const decryptSecret = (value: string): string => {
   }
 }
 
-const mapProtectedValue = (keyPath: string, value: unknown, mode: 'encrypt' | 'decrypt'): unknown => {
+const mapProtectedValue = (
+  keyPath: string,
+  value: unknown,
+  mode: 'encrypt' | 'decrypt'
+): unknown => {
   if (isSensitivePath(keyPath) && typeof value === 'string') {
     return mode === 'encrypt' ? encryptSecret(value) : decryptSecret(value)
   }
@@ -297,7 +301,11 @@ const getLocalTrackDirectories = async (): Promise<string[]> => {
 
     for (const row of rows as Array<{ json?: string }>) {
       try {
-        const track = JSON.parse(row.json || '{}') as { filePath?: string; url?: string; cache?: boolean }
+        const track = JSON.parse(row.json || '{}') as {
+          filePath?: string
+          url?: string
+          cache?: boolean
+        }
         const candidates = [track.filePath, track.cache ? track.url : undefined]
         for (const candidate of candidates) {
           if (typeof candidate !== 'string' || !candidate) continue
@@ -321,7 +329,12 @@ const getLocalTrackDirectories = async (): Promise<string[]> => {
 }
 
 const getStaticAllowedRoots = async (): Promise<string[]> => {
-  const candidates = [app.getPath('userData'), app.getPath('music'), app.getAppPath(), process.resourcesPath]
+  const candidates = [
+    app.getPath('userData'),
+    app.getPath('music'),
+    app.getAppPath(),
+    process.resourcesPath
+  ]
   const roots = await Promise.all(candidates.map(realpathIfPresent))
   return roots.filter((item): item is string => Boolean(item))
 }

@@ -92,9 +92,11 @@ const handleBackdrop = () => {
 
 const getFocusableElements = (): HTMLElement[] => {
   if (!modal.value) return []
-  return [...modal.value.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-  )].filter((element) => element.offsetParent !== null)
+  return [
+    ...modal.value.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ].filter((element) => element.offsetParent !== null)
 }
 
 const handleKeydown = (event: KeyboardEvent) => {

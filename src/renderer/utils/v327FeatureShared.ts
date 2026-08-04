@@ -51,11 +51,7 @@ export const writeJsonRecord = (key: string, value: JsonRecord): void => {
 const UNSAFE_JSON_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
 const MAX_MERGE_DEPTH = 12
 
-export const deepMerge = (
-  base: JsonRecord,
-  patch: JsonRecord,
-  depth = 0
-): JsonRecord => {
+export const deepMerge = (base: JsonRecord, patch: JsonRecord, depth = 0): JsonRecord => {
   if (depth > MAX_MERGE_DEPTH) throw new Error('设置对象层级过深')
   const result = cloneJson(base)
 
@@ -208,7 +204,6 @@ const initializeSharedObserver = (): void => {
     childList: true,
     subtree: true
   })
-
   ;[0, 100, 300, 800, 1600].forEach((delay) => {
     window.setTimeout(ensureAllControls, delay)
   })

@@ -116,8 +116,10 @@ export function transformRepeatMode(mode: string): RepeatType {
 export async function getAmuseInfo(win: BrowserWindow): Promise<AmuseInfo> {
   if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return emptyAmuse
 
-  const info: GlobalVutronMusic | null | undefined =
-    await win.webContents.executeJavaScript('window.vutronmusic', true)
+  const info: GlobalVutronMusic | null | undefined = await win.webContents.executeJavaScript(
+    'window.vutronmusic',
+    true
+  )
 
   if (!info || !('id' in info.currentTrack)) return emptyAmuse
 

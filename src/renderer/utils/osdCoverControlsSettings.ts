@@ -188,7 +188,6 @@ const initializeOsdCoverControlsSettings = () => {
     if (input) input.checked = event.newValue !== 'false'
   }
   window.addEventListener('storage', handleStorage)
-
   ;[0, 80, 240, 600, 1200].forEach((delay) => {
     window.setTimeout(() => {
       ensureControl()

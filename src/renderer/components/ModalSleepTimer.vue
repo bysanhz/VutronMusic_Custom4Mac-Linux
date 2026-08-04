@@ -29,12 +29,7 @@
 
     <template #footer>
       <div class="sleep-timer-footer">
-        <button
-          v-if="sleepTimerActive"
-          type="button"
-          class="cancel-button"
-          @click="cancel"
-        >
+        <button v-if="sleepTimerActive" type="button" class="cancel-button" @click="cancel">
           {{ text.cancel }}
         </button>
         <button type="button" class="primary start-button" @click="start">
@@ -148,10 +143,7 @@ const formatDuration = (seconds: number): string => {
 
 const statusText = computed(() => {
   if (sleepTimerMode.value === 'minutes') {
-    return text.value.countdown.replace(
-      '{time}',
-      formatDuration(sleepTimerRemainingSeconds.value)
-    )
+    return text.value.countdown.replace('{time}', formatDuration(sleepTimerRemainingSeconds.value))
   }
   if (sleepTimerMode.value === 'trackEnd') return text.value.waitingTrack
 
