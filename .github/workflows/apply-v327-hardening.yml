@@ -10,10 +10,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: apply-v327-hardening
-  cancel-in-progress: true
-
 env:
   RESULT_BRANCH: automation/v327-hardening-result
 
