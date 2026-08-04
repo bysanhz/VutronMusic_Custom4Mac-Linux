@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/protocol-ready-trigger'
+      - .github/protocol-ready-trigger
 
 permissions:
   contents: write
@@ -22,32 +22,11 @@ jobs:
 
       - name: Patch protocol registration timing
         shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+        run: >-
+          python3 -c "from pathlib import Path; p=Path('src/main/index.ts'); s=p.read_text(); old='  handleAppEvents() {\n    this.handleProtocol()\n    app.whenReady().then(async () => {\n      this.createMainWindow().then(() => {\n'; new='  handleAppEvents() {\n    app.whenReady().then(async () => {\n      // protocol.handle() accesses the Electron default session and must run after app readiness.\n      this.handleProtocol()\n\n      this.createMainWindow().then(() => {\n'; count=s.count(old); assert count == 1, f'Expected one protocol timing block, found {count}'; p.write_text(s.replace(old, new))"
 
-          path = Path('src/main/index.ts')
-          source = path.read_text()
-          old = """  handleAppEvents() {
-    this.handleProtocol()
-    app.whenReady().then(async () => {
-      this.createMainWindow().then(() => {
-"""
-          new = """  handleAppEvents() {
-    app.whenReady().then(async () => {
-      // protocol.handle() accesses Electron's default session and must only run after app readiness.
-      this.handleProtocol()
-
-      this.createMainWindow().then(() => {
-"""
-          count = source.count(old)
-          if count != 1:
-              raise RuntimeError(f'Expected one protocol timing block, found {count}')
-          path.write_text(source.replace(old, new))
-          PY
-
-          rm -f .github/protocol-ready-trigger
-          rm -f .github/workflows/fix-protocol-ready.yml
+      - name: Remove temporary workflow files
+        run: rm -f .github/protocol-ready-trigger .github/workflows/fix-protocol-ready.yml
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
