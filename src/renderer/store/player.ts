@@ -24,6 +24,11 @@ import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { extractExpirationFromUrl } from '../utils'
 import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
+import {
+  cancelSleepTimerForTrackChange,
+  consumeSleepTimerAtTrackEnd,
+  registerSleepTimerPauseHandler
+} from '../utils/sleepTimerSettings'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -871,6 +876,7 @@ export const usePlayerStore = defineStore(
     }
 
     const replaceCurrentTrack = async (trackID: number | string, autoPlay = true) => {
+      cancelSleepTimerForTrackChange(trackID)
       if (autoPlay && currentTrack.value?.name) {
         scrobbleFM(currentTrack.value, seek.value)
       }
@@ -948,8 +954,7 @@ export const usePlayerStore = defineStore(
       audioNodes.audio!.src = source
       audioNodes.audio!.load()
       if (autoPlay) {
-        play()
-        playing.value = true
+        playing.value = await play()
       }
     }
 
@@ -1078,6 +1083,12 @@ export const usePlayerStore = defineStore(
       clearTimeout(timer)
       scrobbleFM(currentTrack.value!, 0, true)
 
+      if (consumeSleepTimerAtTrackEnd(currentTrack.value?.id)) {
+        playing.value = false
+        void pause()
+        return
+      }
+
       if (!isPersonalFM.value && repeatMode.value === 'one') {
         replaceCurrentTrack(currentTrack.value!.id)
       } else {
@@ -1097,8 +1108,8 @@ export const usePlayerStore = defineStore(
       window.mainApi?.send('pauseDiscordPresence', cloneDeep(track))
     }
 
-    const play = async () => {
-      if (!audioNodes.audio) return
+    const play = async (): Promise<boolean> => {
+      if (!audioNodes.audio) return false
 
       try {
         if (!isValidUrl(currentTrack.value?.url || '')) {
@@ -1137,6 +1148,7 @@ export const usePlayerStore = defineStore(
 
         playDiscordPresence(currentTrack.value!, audioNodes.audio.currentTime)
         updateNowPlaying()
+        return !audioNodes.audio.paused
       } catch (error) {
         if (currentTrack.value?.cache) {
           const isOk = (await window.mainApi?.invoke(
@@ -1154,6 +1166,7 @@ export const usePlayerStore = defineStore(
           showToast(`歌曲 ${currentTrack.value?.name} 的音乐链接已过期，正在重新获取...`)
           replaceCurrentTrack(currentTrack.value!.id, true)
         }
+        return false
       }
     }
 
@@ -1176,10 +1189,16 @@ export const usePlayerStore = defineStore(
         await pause()
         audioNodes.audioContext?.suspend()
       } else {
-        play()
-        playing.value = true
+        playing.value = await play()
       }
     }
+
+    registerSleepTimerPauseHandler(async () => {
+      if (!playing.value) return
+      playing.value = false
+      await pause()
+      await audioNodes.audioContext?.suspend()
+    })
 
     const setDevice = (device: string) => {
       if ('setSinkId' in AudioContext.prototype) {
@@ -1844,6 +1863,7 @@ export const usePlayerStore = defineStore(
     })
 
     onBeforeUnmount(() => {
+      registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0
       if (pic.value.startsWith('blob:')) URL.revokeObjectURL(pic.value)
       destroAudioNode()

@@ -24,12 +24,14 @@ import { requestUserAuth, scrobbleTrack, updateNowPlaying } from './utils/lastfm
 
 let isLock = store.get('osdWin.isLock') as boolean
 let blockerId: number | null = null
-let coverWorker: Worker
+let coverWorker: Worker | null = null
 let cacheWorker: Worker | null = null
+let quittingForCoverWorker = false
 
 const closeCacheWorker = async () => {
-  await cacheWorker.terminate()
+  const worker = cacheWorker
   cacheWorker = null
+  if (worker) await worker.terminate()
 }
 
 /*
@@ -52,13 +54,23 @@ export default class IPCs {
 
     coverWorker = createWorker('writeCover')
     coverWorker.on('message', (msg) => {
-      if (msg.status === 'done') app.exit(0)
+      if (msg.status === 'done' && quittingForCoverWorker) app.exit(0)
     })
 
     app.on('before-quit', (event) => {
+      if (quittingForCoverWorker) return
+      quittingForCoverWorker = true
       event.preventDefault()
       win.hide()
-      coverWorker.postMessage({ type: 'finished' })
+
+      const forceExitTimer = setTimeout(() => app.exit(0), 3000)
+      forceExitTimer.unref?.()
+      try {
+        coverWorker?.postMessage({ type: 'finished' })
+      } catch (error) {
+        log.warn('通知封面写入线程退出失败:', error)
+        app.exit(0)
+      }
     })
   }
 }
@@ -172,6 +184,7 @@ function initTrayIpcMain(win: BrowserWindow, tray: YPMTray): void {
       } else if (key === 'autoCacheTrack') {
         const autoCache = (store.get('settings.autoCacheTrack.enable') as boolean) || false
         if (autoCache) {
+          if (cacheWorker) return
           cacheWorker = createWorker('cacheTrack')
           cacheWorker?.on('message', async (msg) => {
             if (msg.type === 'task-done') {
@@ -188,8 +201,8 @@ function initTrayIpcMain(win: BrowserWindow, tray: YPMTray): void {
               closeCacheWorker()
             }
           })
-        } else {
-          cacheWorker?.postMessage({ type: 'quit' })
+        } else if (cacheWorker) {
+          cacheWorker.postMessage({ type: 'quit' })
         }
       } else if (key === 'proxy') {
         const map = { 1: 'http', 2: 'https' }
@@ -522,7 +535,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
       const piscina = new Piscina({
         filename: workerPath,
         minThreads: 2,
-        maxThreads: Math.min(os.cpus().length / 2, 6)
+        maxThreads: Math.max(1, Math.min(Math.floor(os.cpus().length / 2), 6))
       })
 
       const batchSize = 100
@@ -639,7 +652,10 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
       }
       win.webContents.send('scanLocalMusicDone')
     } catch (error) {
-      log.error('+++++++++++++++++++++++++++++', error.stack || error)
+      const message = error instanceof Error ? error.stack || error.message : String(error)
+      log.error('扫描本地音乐失败:', message)
+      win.webContents.send('msgHandleScanLocalMusicError', message)
+      win.webContents.send('scanLocalMusicDone')
     }
   })
 
@@ -649,13 +665,11 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
   })
 
   ipcMain.on('deleteLocalMusicDB', () => {
-    const trackIDs = cache.get(CacheAPIs.LocalMusic)?.songs.map((track: any) => track.id)
-    if (!trackIDs.length) return
-    db.deleteMany(Tables.Track, trackIDs)
+    const trackIDs = cache.get(CacheAPIs.LocalMusic)?.songs.map((track: any) => track.id) || []
+    if (trackIDs.length) db.deleteMany(Tables.Track, trackIDs)
 
-    const playlistIDs = cache.get(CacheAPIs.LocalPlaylist)?.map((playlist) => playlist.id)
-    if (!playlistIDs.length) return
-    db.deleteMany(Tables.Playlist, playlistIDs)
+    const playlistIDs = cache.get(CacheAPIs.LocalPlaylist)?.map((playlist) => playlist.id) || []
+    if (playlistIDs.length) db.deleteMany(Tables.Playlist, playlistIDs)
   })
 
   ipcMain.handle('clearCacheTracks', async (event, clearAll: boolean) => {
@@ -747,6 +761,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
   ipcMain.on('update-powersave', async (event, enable: boolean) => {
     const { powerSaveBlocker } = await import('electron')
     if (enable) {
+      if (blockerId && powerSaveBlocker.isStarted(blockerId)) return
       blockerId = powerSaveBlocker.start('prevent-app-suspension')
     } else {
       if (blockerId && powerSaveBlocker.isStarted(blockerId)) {
@@ -780,7 +795,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
     ) => {
       const embedOption = (store.get('settings.embedCoverArt') as number) || 0
       const embedStyle = (store.get('settings.embedStyle') as number) || 0
-      coverWorker.postMessage({ type: 'normal', ...data, embedOption, embedStyle })
+      coverWorker?.postMessage({ type: 'normal', ...data, embedOption, embedStyle })
     }
   )
 
@@ -795,7 +810,8 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
       fs.mkdirSync(screenshotsDir, { recursive: true })
     }
 
-    const fileName = `screenshot_${name}.png`
+    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'capture'
+    const fileName = `screenshot_${safeName}.png`
     const filePath = path.join(screenshotsDir, fileName)
 
     try {

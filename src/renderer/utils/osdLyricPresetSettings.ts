@@ -165,10 +165,28 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
   const preset = value as Partial<OsdPreset>
   if (!preset.id || !preset.name || !preset.settings) return null
 
+  const settings = preset.settings as Partial<OsdPresetSettings>
   return {
-    id: String(preset.id),
-    name: String(preset.name),
-    settings: preset.settings as OsdPresetSettings
+    id: String(preset.id).slice(0, 120),
+    name: String(preset.name).slice(0, 80),
+    settings: {
+      type: settings.type === 'normal' ? 'normal' : 'small',
+      mode: settings.mode === 'oneLine' ? 'oneLine' : 'twoLines',
+      isWordByWord: settings.isWordByWord !== false,
+      translationMode: ['none', 'tlyric', 'rlyric'].includes(String(settings.translationMode))
+        ? (settings.translationMode as OsdPresetSettings['translationMode'])
+        : 'tlyric',
+      backgroundColor: String(settings.backgroundColor || 'rgba(0, 0, 0, 0)'),
+      playedLrcColor: String(settings.playedLrcColor || '#37cf88'),
+      unplayLrcColor: String(settings.unplayLrcColor || 'rgba(210, 210, 210, 1)'),
+      textShadow: String(settings.textShadow || 'rgba(0, 0, 0, 0.2)'),
+      font: String(settings.font || 'system-ui').slice(0, 200),
+      align: ['left', 'center', 'right'].includes(String(settings.align))
+        ? (settings.align as OsdPresetSettings['align'])
+        : 'center',
+      showButtonWhenLock: settings.showButtonWhenLock !== false,
+      coverControlsVisible: settings.coverControlsVisible !== false
+    }
   }
 }
 

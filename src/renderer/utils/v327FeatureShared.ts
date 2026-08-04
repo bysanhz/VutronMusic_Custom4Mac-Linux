@@ -48,10 +48,19 @@ export const writeJsonRecord = (key: string, value: JsonRecord): void => {
   writeStorageValue(key, JSON.stringify(value))
 }
 
-export const deepMerge = (base: JsonRecord, patch: JsonRecord): JsonRecord => {
+const UNSAFE_JSON_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+const MAX_MERGE_DEPTH = 12
+
+export const deepMerge = (
+  base: JsonRecord,
+  patch: JsonRecord,
+  depth = 0
+): JsonRecord => {
+  if (depth > MAX_MERGE_DEPTH) throw new Error('设置对象层级过深')
   const result = cloneJson(base)
 
   Object.entries(patch).forEach(([key, value]) => {
+    if (UNSAFE_JSON_KEYS.has(key)) return
     if (
       value &&
       typeof value === 'object' &&
@@ -60,7 +69,7 @@ export const deepMerge = (base: JsonRecord, patch: JsonRecord): JsonRecord => {
       typeof result[key] === 'object' &&
       !Array.isArray(result[key])
     ) {
-      result[key] = deepMerge(result[key], value)
+      result[key] = deepMerge(result[key], value, depth + 1)
     } else {
       result[key] = cloneJson(value)
     }

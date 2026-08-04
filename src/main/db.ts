@@ -90,6 +90,7 @@ const readSqlFile = (filename: string) => {
 
 class DB {
   sqlite: SQLite3.Database
+  persistent = true
   dbFilePath: string = path.resolve(app.getPath('userData'), './api_cache/db.sqlite')
 
   constructor() {
@@ -120,6 +121,7 @@ class DB {
        * 和桌面歌词仍可正常启动。原始初始化异常已经记录到日志中，便于继续排查。
        */
       try {
+        this.persistent = false
         this.sqlite = new SQLite3(':memory:')
         this.sqlite.pragma('auto_vacuum = FULL')
         this.initTables()
@@ -144,27 +146,38 @@ class DB {
     const updateAppVersionInDB = () => {
       this.upsert(Tables.AppData, { id: key, value: Constants.APP_VERSION })
     }
-    if (!appVersion?.value) {
-      if (compare(Constants.APP_VERSION, '1.5.0', '>=')) {
-        const file = readSqlFile('1.5.0.sql')
-        this.sqlite.exec(file)
-        this.sqlite.pragma('journal_mode=WAL')
-      }
+
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .map((sqlFile) => {
+        const versionMatch = sqlFile.match(/^(\d+(\.\d+)*)(?=\.)/)
+        const version = versionMatch ? versionMatch[0] : ''
+        return { sqlFile, version }
+      })
+      .filter((item) => validate(item.version))
+      .sort((a, b) => compare(a.version, b.version, '>') ? 1 : compare(a.version, b.version, '<') ? -1 : 0)
+
+    const currentVersion = appVersion?.value || '0.0.0'
+    const pendingFiles = migrationFiles.filter((item) => compare(item.version, currentVersion, '>'))
+    if (!pendingFiles.length) {
       updateAppVersionInDB()
       return
     }
-    const sqlFiles = fs.readdirSync(migrationsDir)
-    sqlFiles.forEach((sqlFile: string) => {
-      const versionMatch = sqlFile.match(/^(\d+(\.\d+)*)(?=\.)/)
-      const version = versionMatch ? versionMatch[0] : ''
-      if (!validate(version)) return
-      if (compare(version, appVersion.value, '>')) {
-        const file = readSqlFile(sqlFile)
-        this.sqlite.exec(file)
-        this.sqlite.pragma('journal_mode=WAL')
+
+    if (this.persistent && fs.existsSync(this.dbFilePath)) {
+      const backupPath = `${this.dbFilePath}.before-${Constants.APP_VERSION}.bak`
+      if (!fs.existsSync(backupPath)) fs.copyFileSync(this.dbFilePath, backupPath)
+    }
+
+    const runMigrations = this.sqlite.transaction(() => {
+      for (const item of pendingFiles) {
+        this.sqlite.exec(readSqlFile(item.sqlFile))
       }
+      updateAppVersionInDB()
     })
-    updateAppVersionInDB()
+
+    runMigrations()
+    this.sqlite.pragma('journal_mode=WAL')
   }
 
   find<T extends TableNames>(
@@ -180,12 +193,11 @@ class DB {
     table: T,
     keys: TablesStructures[T]['id'][]
   ): TablesStructures[T][] {
-    const idsQuery = keys.map((key) => `id = ${key}`).join(' OR ')
-    if (idsQuery === '')
-      return this.sqlite.prepare(`SELECT * FROM ${table}`).all() as TablesStructures[T][]
+    if (keys.length === 0) return []
+    const placeholders = keys.map(() => '?').join(', ')
     return this.sqlite
-      .prepare(`SELECT * FROM ${table} WHERE ${idsQuery}`)
-      .all() as TablesStructures[T][]
+      .prepare(`SELECT * FROM ${table} WHERE id IN (${placeholders})`)
+      .all(...keys) as TablesStructures[T][]
   }
 
   findAll<T extends TableNames>(table: T, condition = ''): TablesStructures[T][] {
@@ -199,7 +211,10 @@ class DB {
 
   create<T extends TableNames>(table: T, data: TablesStructures[T], skipWhenExist: boolean = true) {
     if (skipWhenExist && db.find(table, data.id)) return
-    return this.sqlite.prepare(`INSERT INTO ${table} VALUES (?)`).run(data)
+    const valuesQuery = Object.keys(data)
+      .map((key) => `:${key}`)
+      .join(', ')
+    return this.sqlite.prepare(`INSERT INTO ${table} VALUES (${valuesQuery})`).run(data)
   }
 
   createMany<T extends TableNames>(
@@ -207,6 +222,7 @@ class DB {
     data: TablesStructures[T][],
     skipWhenExist: boolean = true
   ) {
+    if (data.length === 0) return
     const valuesQuery = Object.keys(data[0])
       .map((key) => `:${key}`)
       .join(', ')
@@ -224,21 +240,14 @@ class DB {
     key: TablesStructures[T]['id'],
     data: Partial<TablesStructures[T]>
   ) {
-    // 构造SET子句的部分，使用占位符
-    const placeholders = Object.keys(data)
-      .map(() => '?')
+    const setClauses = Object.keys(data)
+      .map((columnName) => `${columnName} = ?`)
       .join(', ')
-    const setClauses = Object.entries(data)
-      .map(([columnName, value], index) => `${columnName} = ?`) // 注意这里的?占位符
-      .join(', ')
+    if (!setClauses) return
 
-    // 构造完整的SQL语句
-    const sql = `UPDATE ${table} SET ${setClauses} WHERE id = ?` // 注意这里的?占位符
-
-    // 准备SQL语句，并传递值数组作为第二个参数
-    // 假设this.sqlite是一个支持这种用法的SQLite库实例
-    const values = [...Object.values(data), key] // 将data的值和key合并为一个数组
-    return this.sqlite.prepare(sql).run(values) // 注意这里只调用.run(values)
+    const sql = `UPDATE ${table} SET ${setClauses} WHERE id = ?`
+    const values = [...Object.values(data), key]
+    return this.sqlite.prepare(sql).run(...values)
   }
 
   upsert<T extends TableNames>(table: T, data: TablesStructures[T]) {
@@ -249,6 +258,7 @@ class DB {
   }
 
   upsertMany<T extends TableNames>(table: T, data: TablesStructures[T][]) {
+    if (data.length === 0) return
     const valuesQuery = Object.keys(data[0])
       .map((key) => `:${key}`)
       .join(', ')
@@ -302,7 +312,8 @@ class DB {
       log.log(`Deleted ${keys.length} records from ${table} in ${totalBatches} batches`)
     } catch (transactionError) {
       log.error(`Transaction failed:`, transactionError)
-      throw new Error(`Bulk delete operation partially failed: ${transactionError.message}`)
+      const message = transactionError instanceof Error ? transactionError.message : String(transactionError)
+      throw new Error(`Bulk delete operation failed: ${message}`)
     }
   }
 

@@ -1519,26 +1519,28 @@ const updateAppearance = (mode: Appearance) => {
 }
 
 const inputValue = ref<number>(lyricWidth.value)
-let debounceTimeout
+let lyricWidthDebounceTimeout: ReturnType<typeof setTimeout> | undefined
+let fontSizeDebounceTimeout: ReturnType<typeof setTimeout> | undefined
+let unblockSourceDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 const inputDebounce = () => {
-  if (debounceTimeout) clearTimeout(debounceTimeout)
-  debounceTimeout = setTimeout(() => {
+  if (lyricWidthDebounceTimeout) clearTimeout(lyricWidthDebounceTimeout)
+  lyricWidthDebounceTimeout = setTimeout(() => {
     if (inputValue.value >= 100) lyricWidth.value = inputValue.value
   }, 500)
 }
 
 const inputFontSizeValue = ref<number>(fontSize.value)
 const inputFontSizeDebounce = () => {
-  if (debounceTimeout) clearTimeout(debounceTimeout)
-  debounceTimeout = setTimeout(() => {
+  if (fontSizeDebounceTimeout) clearTimeout(fontSizeDebounceTimeout)
+  fontSizeDebounceTimeout = setTimeout(() => {
     fontSize.value = inputFontSizeValue.value
   }, 500)
 }
 
 const unblockSource = ref(unblockNeteaseMusic.value.source)
 const updateUnblockSource = () => {
-  if (debounceTimeout) clearTimeout(debounceTimeout)
-  debounceTimeout = setTimeout(() => {
+  if (unblockSourceDebounceTimeout) clearTimeout(unblockSourceDebounceTimeout)
+  unblockSourceDebounceTimeout = setTimeout(() => {
     unblockNeteaseMusic.value.source = unblockSource.value
   }, 500)
 }
@@ -1704,6 +1706,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   updatePadding(96)
   observer.disconnect()
+  if (lyricWidthDebounceTimeout) clearTimeout(lyricWidthDebounceTimeout)
+  if (fontSizeDebounceTimeout) clearTimeout(fontSizeDebounceTimeout)
+  if (unblockSourceDebounceTimeout) clearTimeout(unblockSourceDebounceTimeout)
 })
 </script>
 

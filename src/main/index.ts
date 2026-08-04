@@ -151,8 +151,8 @@ class BackGround {
         ? Constants.ELECTRON_DEV_NETEASE_API_PORT || 40001
         : Constants.ELECTRON_WEB_SERVER_PORT || 41830
     )
-    await server.listen({ port })
-    log.info(`AppServer is running at http://localhost:${port}`)
+    await server.listen({ host: '127.0.0.1', port })
+    log.info(`AppServer is running at http://127.0.0.1:${port}`)
     return server
   }
 
@@ -266,7 +266,7 @@ class BackGround {
 
     const x = (type === 'small' ? store.get('osdWin.x') : store.get('osdWin.x2')) as number
     const y = (type === 'small' ? store.get('osdWin.y') : store.get('osdWin.y2')) as number
-    if (x && y) {
+    if (Number.isFinite(x) && Number.isFinite(y)) {
       const displays = screen.getAllDisplays()
       let isResetWindow = false
       if (displays.length === 1) {
@@ -344,10 +344,6 @@ class BackGround {
   dragOsdWindow(data: { dx: number; dy: number; startHeight: number; startWidth: number }) {
     const bds = this.lyricWin?.getBounds()
     if (!bds) return
-
-    // ======== newADD start======
-    console.log('[OSD DRAG]', data, bds)
-    // =========== newADD end ========
 
     let x = bds.x + data.dx
     let y = bds.y + data.dy
@@ -440,13 +436,11 @@ class BackGround {
   }
 
   updateOsdHeight(height: number) {
-    const bounds = this.lyricWin?.getBounds()
-    this.lyricWin?.setBounds({
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height
-    })
+    if (!this.lyricWin || this.lyricWin.isDestroyed()) return
+    const bounds = this.lyricWin.getBounds()
+    const minimumHeight = this.osdMode === 'small' ? 30 : 400
+    const nextHeight = Math.max(minimumHeight, Math.round(height))
+    this.lyricWin.setBounds({ ...bounds, height: nextHeight })
   }
   // updateOsdHeight(height: number) {
   //   const bounds = this.lyricWin?.getBounds()
@@ -905,8 +899,9 @@ class BackGround {
 
     app.on('quit', () => {
       globalShortcut.unregisterAll()
-      this.fastifyApp?.close()
-      this.amuseFastifyApp?.close()
+      if (this.checkInterval) clearInterval(this.checkInterval)
+      void this.fastifyApp?.close()
+      void this.amuseFastifyApp?.close()
     })
 
     powerMonitor.on('resume', () => {
@@ -982,11 +977,12 @@ class BackGround {
         this.createAmuseFastifyAppPromise.then(async () => {
           try {
             this.amuseFastifyApp = await startAmuseFastifyInstance(this.win)
+            this.win.webContents.send('updateAmuseServerStatus', true, null)
           } catch (e) {
             console.error('Failed to start Amuse Fastify App:', e)
+            this.amuseFastifyApp = null
             this.win.webContents.send('updateAmuseServerStatus', false, `${e}`)
           }
-          this.win.webContents.send('updateAmuseServerStatus', true, null)
         })
       } else {
         this.createAmuseFastifyAppPromise

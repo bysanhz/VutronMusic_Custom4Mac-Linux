@@ -73,8 +73,10 @@
       <div class="item" @click="setPitchModal = true">{{ $t('contextMenu.pitch') }}</div>
       <div class="item" @click="setConvolverModal = true">{{ $t('contextMenu.setConvolver') }}</div>
       <div class="item sleep-timer-menu-item" @click="sleepTimerModalVisible = true">
-        <span>睡眠定时器</span>
-        <span v-if="sleepTimerActive" class="sleep-timer-active-label">已启用</span>
+        <span>{{ sleepTimerMenuText.title }}</span>
+        <span v-if="sleepTimerActive" class="sleep-timer-active-label">{{
+          sleepTimerMenuStatus
+        }}</span>
       </div>
       <hr />
       <div class="item" @click="backgroundModal.show = true">背景设置</div>
@@ -103,7 +105,13 @@ import SvgIcon from '../components/SvgIcon.vue'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { usePlayerThemeStore } from '../store/playerTheme'
-import { sleepTimerActive, sleepTimerModalVisible } from '../utils/sleepTimerSettings'
+import {
+  sleepTimerActive,
+  sleepTimerModalVisible,
+  sleepTimerMode,
+  sleepTimerRemainingSeconds
+} from '../utils/sleepTimerSettings'
+import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 import { storeToRefs } from 'pinia'
 import { ref, provide, computed, watch } from 'vue'
 import { TrackSourceType } from '@/types/music.d'
@@ -129,6 +137,32 @@ const { currentTrack } = storeToRefs(playerStore)
 const playerThemeStore = usePlayerThemeStore()
 const { activeTheme, activeBG } = storeToRefs(playerThemeStore)
 const { resetTheme } = playerThemeStore
+
+const SLEEP_TIMER_MENU_TEXTS = {
+  zh: { title: '睡眠定时器', active: '已启用', remaining: '剩余 {time}' },
+  zht: { title: '睡眠定時器', active: '已啟用', remaining: '剩餘 {time}' },
+  en: { title: 'Sleep Timer', active: 'Active', remaining: '{time} left' }
+} as const
+
+const formatSleepTimerDuration = (seconds: number): string => {
+  const totalSeconds = Math.max(0, Math.ceil(seconds))
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds % 60
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds
+    .toString()
+    .padStart(2, '0')}`
+}
+
+const sleepTimerMenuText = computed(() => SLEEP_TIMER_MENU_TEXTS[resolveFeatureLanguage()])
+const sleepTimerMenuStatus = computed(() => {
+  if (sleepTimerMode.value === 'minutes') {
+    return sleepTimerMenuText.value.remaining.replace(
+      '{time}',
+      formatSleepTimerDuration(sleepTimerRemainingSeconds.value)
+    )
+  }
+  return sleepTimerMenuText.value.active
+})
 
 const showSenseSelector = ref(false)
 const tabIdx = ref(0)

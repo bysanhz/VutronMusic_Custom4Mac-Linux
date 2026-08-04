@@ -2,9 +2,7 @@ import cors from '@fastify/cors'
 import { BrowserWindow } from 'electron'
 import fastify from 'fastify'
 
-// #region
 export type LikeStatus = 'INDIFFERENT' | 'LIKE' | 'DISLIKE'
-
 export type RepeatType = 'NONE' | 'ALL' | 'ONE'
 
 export interface PlayerInfo {
@@ -36,9 +34,7 @@ export interface AmuseInfo {
   player: PlayerInfo
   track: TrackInfo
 }
-// #endregion
 
-// #region
 export interface Album {
   id: number
   name: string
@@ -60,7 +56,7 @@ export interface Track {
   artists?: Artist[]
   al?: Album
   album?: Album
-  dt: number // milliseconds
+  dt: number
   alia: string[]
   tns?: string[]
 }
@@ -72,7 +68,7 @@ export interface Lyric {
 }
 
 export interface GlobalVutronMusic {
-  progress: number // seconds
+  progress: number
   playing: boolean
   volume: number
   currentTrack: Track | {}
@@ -80,7 +76,6 @@ export interface GlobalVutronMusic {
   repeatMode: 'on' | 'one' | 'off'
   lyric: Lyric
 }
-// #endregion
 
 const emptyAmuse = {
   player: {
@@ -119,33 +114,41 @@ export function transformRepeatMode(mode: string): RepeatType {
 }
 
 export async function getAmuseInfo(win: BrowserWindow): Promise<AmuseInfo> {
-  const info: GlobalVutronMusic | null | undefined =
-    await win.webContents.executeJavaScript(`window.vutronmusic`)
+  if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return emptyAmuse
 
-  if (!info || !('id' in info.currentTrack)) {
-    return emptyAmuse
-  }
+  const info: GlobalVutronMusic | null | undefined =
+    await win.webContents.executeJavaScript('window.vutronmusic', true)
+
+  if (!info || !('id' in info.currentTrack)) return emptyAmuse
 
   const { playing, volume, progress, isLiked, repeatMode, currentTrack: track } = info
-  const trackDurationSeconds = track.dt / 1000
-  const thumbnailUrl = new URL((track.al || track.album)!.picUrl)
-  thumbnailUrl.searchParams.set('param', '256y256')
+  const trackDurationSeconds = Math.max(0, Number(track.dt) / 1000)
+  const coverUrl = (track.al || track.album)?.picUrl || ''
+  let cover = coverUrl
+  try {
+    const thumbnailUrl = new URL(coverUrl)
+    thumbnailUrl.searchParams.set('param', '256y256')
+    cover = thumbnailUrl.toString()
+  } catch {
+    cover = coverUrl
+  }
+
   return {
     player: {
       hasSong: true,
       isPaused: !playing,
-      volumePercent: volume * 100,
+      volumePercent: Math.max(0, Math.min(100, volume * 100)),
       seekbarCurrentPosition: progress,
       seekbarCurrentPositionHuman: toDurationHuman(progress),
-      statePercent: progress / trackDurationSeconds,
+      statePercent: trackDurationSeconds > 0 ? progress / trackDurationSeconds : 0,
       likeStatus: isLiked ? 'LIKED' : 'INDIFFERENT',
       repeatType: transformRepeatMode(repeatMode)
     },
     track: {
-      author: (track.ar || track.artists)!.map((x) => x.name).join(', '),
+      author: (track.ar || track.artists || []).map((artist) => artist.name).join(', '),
       title: `${track.name}${track.tns?.length ? ` (${track.tns[0]})` : ''}`,
-      album: (track.al || track.album)!.name,
-      cover: thumbnailUrl.toString(),
+      album: (track.al || track.album)?.name || '',
+      cover,
       duration: trackDurationSeconds,
       durationHuman: toDurationHuman(trackDurationSeconds),
       url: `https://music.163.com/song?id=${track.id}`,
@@ -160,18 +163,34 @@ export async function getAmuseInfo(win: BrowserWindow): Promise<AmuseInfo> {
 export const amuseDefaultPort = 9863
 
 export async function startInstance(win: BrowserWindow) {
+  const allowedOrigins = new Set([
+    'http://localhost:41830',
+    'http://127.0.0.1:41830',
+    'http://localhost:40001',
+    'http://127.0.0.1:40001'
+  ])
+
   const instance = fastify({
-    ignoreTrailingSlash: true
+    ignoreTrailingSlash: true,
+    bodyLimit: 64 * 1024
   })
-    .register(cors, { origin: '*' })
-    .register(async (fastify) => {
-      fastify.get('/query', async () => {
-        return await getAmuseInfo(win)
-      })
+    .register(cors, {
+      origin: (origin, callback) => {
+        callback(null, !origin || allowedOrigins.has(origin))
+      },
+      methods: ['GET']
+    })
+    .addHook('onSend', async (_request, reply, payload) => {
+      reply.header('Cache-Control', 'no-store')
+      reply.header('X-Content-Type-Options', 'nosniff')
+      return payload
+    })
+    .register(async (server) => {
+      server.get('/query', async () => await getAmuseInfo(win))
     })
 
-  await instance.listen({ port: amuseDefaultPort })
-  console.log(`AmuseServer is running at http://localhost:${amuseDefaultPort}`)
+  await instance.listen({ host: '127.0.0.1', port: amuseDefaultPort })
+  console.log(`AmuseServer is running at http://127.0.0.1:${amuseDefaultPort}`)
 
   return instance
 }

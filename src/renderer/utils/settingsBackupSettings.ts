@@ -16,6 +16,7 @@ const OSD_STORAGE_KEY = 'osdLyric'
 const PLAYER_STORAGE_KEY = 'player'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
+const MAX_BACKUP_FILE_SIZE = 2 * 1024 * 1024
 
 /**
  * 可安全迁移的独立 localStorage 设置。
@@ -208,12 +209,32 @@ const syncImportedSettingsToMain = (settings: JsonRecord): void => {
 
 const importBackup = async (file: File): Promise<void> => {
   const text = TEXTS[resolveFeatureLanguage()]
-  const payload = JSON.parse(await file.text()) as JsonRecord
+  if (file.size <= 0 || file.size > MAX_BACKUP_FILE_SIZE) throw new Error(text.invalid)
 
-  if (payload.schemaVersion !== 1) throw new Error(text.invalid)
+  const payload = JSON.parse(await file.text()) as JsonRecord
+  if (
+    payload.schemaVersion !== 1 ||
+    !payload.settings ||
+    typeof payload.settings !== 'object' ||
+    Array.isArray(payload.settings)
+  ) {
+    throw new Error(text.invalid)
+  }
   if (!window.confirm(text.confirm)) return
 
+  const rollback = new Map<string, string | null>()
+  ;[
+    SETTINGS_STORAGE_KEY,
+    OSD_STORAGE_KEY,
+    PLAYER_STORAGE_KEY,
+    PRESETS_STORAGE_KEY,
+    COVER_CONTROLS_STORAGE_KEY,
+    ...UI_STORAGE_KEYS
+  ].forEach((key) => rollback.set(key, localStorage.getItem(key)))
+
   let mergedSettings: JsonRecord | null = null
+
+  try {
 
   if (payload.settings && typeof payload.settings === 'object') {
     const safeImportedSettings = sanitizeSettings(payload.settings)
@@ -242,7 +263,14 @@ const importBackup = async (file: File): Promise<void> => {
     })
   }
 
-  if (mergedSettings) syncImportedSettingsToMain(mergedSettings)
+    if (mergedSettings) syncImportedSettingsToMain(mergedSettings)
+  } catch (error) {
+    rollback.forEach((value, key) => {
+      if (value === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, value)
+    })
+    throw error
+  }
 
   window.alert(text.imported)
   window.location.reload()

@@ -1,9 +1,28 @@
 <template>
-  <div v-if="show" class="shade" :style="{ background: showLyrics ? 'rgba(0, 0, 0, 0.38)' : '' }">
-    <div class="modal" :style="modalStyle" @click.stop>
+  <div
+    v-if="show"
+    ref="shade"
+    class="shade"
+    :style="{ background: showLyrics ? 'rgba(0, 0, 0, 0.38)' : '' }"
+    role="presentation"
+    @mousedown.self="handleBackdrop"
+  >
+    <div
+      ref="modal"
+      class="modal"
+      :style="modalStyle"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="title"
+      tabindex="-1"
+      @click.stop
+      @keydown="handleKeydown"
+    >
       <div class="header">
         <div class="title">{{ title }}</div>
-        <button class="close" @click="props.closeFn()"><svg-icon icon-class="x" /></button>
+        <button class="close" type="button" :aria-label="closeLabel" @click="closeModal">
+          <svg-icon icon-class="x" />
+        </button>
       </div>
       <div class="content">
         <slot></slot>
@@ -16,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
 import SvgIcon from './SvgIcon.vue'
@@ -45,30 +64,93 @@ const props = defineProps({
   minWidth: {
     type: String,
     default: 'calc(min(23rem, 100vw))'
+  },
+  closeOnBackdrop: {
+    type: Boolean,
+    default: false
+  },
+  closeLabel: {
+    type: String,
+    default: 'Close'
   }
 })
 
 const stateStore = useNormalStateStore()
 const { showLyrics, enableScrolling } = storeToRefs(stateStore)
+const modal = ref<HTMLElement | null>(null)
+let previouslyFocusedElement: HTMLElement | null = null
 
 const modalStyle = computed(() => ({ width: props.width, minWidth: props.minWidth }))
 
+const closeModal = () => {
+  props.closeFn()
+}
+
+const handleBackdrop = () => {
+  if (props.closeOnBackdrop) closeModal()
+}
+
+const getFocusableElements = (): HTMLElement[] => {
+  if (!modal.value) return []
+  return [...modal.value.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter((element) => element.offsetParent !== null)
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeModal()
+    return
+  }
+
+  if (event.key !== 'Tab') return
+  const focusable = getFocusableElements()
+  if (!focusable.length) {
+    event.preventDefault()
+    modal.value?.focus()
+    return
+  }
+
+  const first = focusable[0]
+  const last = focusable.at(-1)!
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 watch(
   () => props.show,
-  (val) => {
-    enableScrolling.value = !val
-  }
+  async (value) => {
+    enableScrolling.value = !value
+    if (value) {
+      previouslyFocusedElement = document.activeElement as HTMLElement | null
+      await nextTick()
+      const first = getFocusableElements()[0]
+      ;(first || modal.value)?.focus()
+    } else {
+      previouslyFocusedElement?.focus()
+      previouslyFocusedElement = null
+    }
+  },
+  { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  enableScrolling.value = true
+  previouslyFocusedElement?.focus()
+})
 </script>
 
 <style lang="scss" scoped>
 .shade {
   background: rgba(255, 255, 255, 0.58);
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -88,6 +170,7 @@ watch(
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 128px - 64px);
+  outline: none;
 
   ::-webkit-scrollbar {
     width: 4px;
@@ -135,9 +218,12 @@ watch(
     align-items: center;
     opacity: 0.68;
     transition: 0.2s;
-    &:hover {
+    &:hover,
+    &:focus-visible {
       opacity: 1;
       background: var(--color-secondary-bg-for-transparent);
+      outline: 2px solid color-mix(in srgb, var(--color-primary), transparent 45%);
+      outline-offset: 2px;
     }
   }
   .svg-icon {
@@ -163,6 +249,10 @@ watch(
     transition: 0.2s;
     &:active {
       transform: scale(0.94);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
     }
   }
   button.primary {

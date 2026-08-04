@@ -1,3 +1,4 @@
+import '../security/runtimeSecurity'
 import { app } from 'electron'
 import { join, dirname } from 'path'
 import { name, version } from '../../../package.json'
@@ -38,6 +39,7 @@ export default class Constants {
   static DEFAULT_WEB_PREFERENCES = {
     nodeIntegration: false,
     contextIsolation: true,
+    sandbox: true,
     enableRemoteModule: false,
     preload: join(__dirname, '../preload/index.js')
   }
@@ -45,6 +47,7 @@ export default class Constants {
   static DEFAULT_OSD_PREFERENCES = {
     nodeIntegration: false,
     contextIsolation: true,
+    sandbox: true,
     enableRemoteModule: false,
     preload: join(__dirname, '../preload/osdWin.js')
   }
@@ -52,6 +55,7 @@ export default class Constants {
   static DEFAULT_AUTH_PREFERENCES = {
     nodeIntegration: false,
     contextIsolation: true,
+    sandbox: true,
     enableRemoteModule: false,
     preload: join(__dirname, '../preload/authWin.js')
   }

@@ -4,10 +4,12 @@
       v-show="showMenu"
       ref="menu"
       class="menu"
+      role="menu"
       tabindex="-1"
       :style="{ top: topValue, left: leftValue }"
-      @blur="closeMenu"
-      @click="closeMenu"
+      @blur="handleBlur"
+      @click="handleMenuClick"
+      @keydown="handleKeydown"
     >
       <slot></slot>
     </div>
@@ -15,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { usePlayerStore } from '../store/player'
 import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
@@ -26,36 +28,101 @@ const menu = ref<HTMLElement | null>(null)
 const topValue = ref('0px')
 const leftValue = ref('0px')
 const player = storeToRefs(usePlayerStore())
+let previouslyFocusedElement: HTMLElement | null = null
 
-const $emit = defineEmits(['closeMenu'])
+const emit = defineEmits(['closeMenu'])
+
+const getItems = (): HTMLElement[] => {
+  if (!menu.value) return []
+  return [...menu.value.querySelectorAll<HTMLElement>('.item:not([aria-disabled="true"])')]
+}
 
 const closeMenu = () => {
+  if (!showMenu.value) return
   showMenu.value = false
-  $emit('closeMenu')
+  emit('closeMenu')
+  previouslyFocusedElement?.focus()
+  previouslyFocusedElement = null
 }
 
 const setMenu = (top: number, left: number) => {
   const playerEnabled = player.enabled.value || false
   const heightOffset = playerEnabled ? 64 : 0
-  const largestHeight = window.innerHeight - (menu.value?.offsetHeight || 0) - heightOffset
-  const largestWidth = window.innerWidth - (menu.value?.offsetWidth || 0) - 25
-  if (top > largestHeight) top = largestHeight
-  if (left > largestWidth) left = largestWidth
-  topValue.value = top + 'px'
-  leftValue.value = left + 'px'
+  const menuHeight = menu.value?.offsetHeight || 0
+  const menuWidth = menu.value?.offsetWidth || 0
+  const largestHeight = Math.max(8, window.innerHeight - menuHeight - heightOffset - 8)
+  const largestWidth = Math.max(8, window.innerWidth - menuWidth - 8)
+
+  topValue.value = Math.max(8, Math.min(top, largestHeight)) + 'px'
+  leftValue.value = Math.max(8, Math.min(left, largestWidth)) + 'px'
 }
 
-const openMenu = (e: MouseEvent) => {
-  showMenu.value = true
-  nextTick(() => {
-    menu.value?.focus()
-    setMenu(e.y, e.x)
+const focusItem = (index: number) => {
+  const items = getItems()
+  if (!items.length) return
+  const normalizedIndex = (index + items.length) % items.length
+  items[normalizedIndex].tabIndex = 0
+  items[normalizedIndex].focus()
+  items.forEach((item, itemIndex) => {
+    if (itemIndex !== normalizedIndex) item.tabIndex = -1
   })
-  e.preventDefault()
 }
 
-watch(showMenu, (val) => {
-  state.enableScrolling.value = !val
+const handleKeydown = (event: KeyboardEvent) => {
+  const items = getItems()
+  const currentIndex = items.findIndex((item) => item === document.activeElement)
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeMenu()
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    focusItem(currentIndex + 1)
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    focusItem(currentIndex - 1)
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    focusItem(0)
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    focusItem(items.length - 1)
+  }
+}
+
+const handleBlur = (event: FocusEvent) => {
+  const nextTarget = event.relatedTarget
+  if (nextTarget instanceof Node && menu.value?.contains(nextTarget)) return
+  closeMenu()
+}
+
+const handleMenuClick = (event: MouseEvent) => {
+  if ((event.target as HTMLElement).closest('.item')) closeMenu()
+}
+
+const openMenu = (event: MouseEvent) => {
+  previouslyFocusedElement = document.activeElement as HTMLElement | null
+  showMenu.value = true
+  event.preventDefault()
+
+  nextTick(() => {
+    setMenu(event.clientY, event.clientX)
+    const items = getItems()
+    items.forEach((item) => {
+      item.setAttribute('role', item.getAttribute('role') || 'menuitem')
+      item.tabIndex = -1
+    })
+    if (items.length) focusItem(0)
+    else menu.value?.focus()
+  })
+}
+
+watch(showMenu, (value) => {
+  state.enableScrolling.value = !value
+})
+
+onBeforeUnmount(() => {
+  state.enableScrolling.value = true
 })
 
 defineExpose({
@@ -66,15 +133,13 @@ defineExpose({
 
 <style lang="scss">
 .context-menu {
-  // width: 100%;
-  // height: 100%;
   user-select: none;
 }
 
 .menu {
   position: fixed;
   min-width: 136px;
-  max-width: 240px;
+  max-width: 260px;
   list-style: none;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.08);
@@ -103,7 +168,10 @@ defineExpose({
   cursor: default;
   display: flex;
   align-items: center;
-  &:hover {
+  outline: none;
+
+  &:hover,
+  &:focus-visible {
     color: var(--color-primary);
     background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
     transition:
@@ -147,7 +215,7 @@ hr {
 }
 
 .item-info {
-  padding: 10px 10px;
+  padding: 10px;
   display: flex;
   align-items: center;
   cursor: default;
