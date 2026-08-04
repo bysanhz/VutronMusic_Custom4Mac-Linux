@@ -39,8 +39,32 @@ jobs:
           python3 -c "import base64,gzip,pathlib; p=pathlib.Path('/tmp/hardening.b64').read_text().strip(); s=gzip.decompress(base64.b64decode(p)); target=pathlib.Path('.github/apply-v327-hardening.py'); target.write_bytes(s); compile(s, str(target), 'exec')" > .github/hardening-apply-v2.txt 2>&1
           decode_status=$?
           if [ "$decode_status" -eq 0 ]; then
-            timeout 60s python3 .github/apply-v327-hardening.py >> .github/hardening-apply-v2.txt 2>&1
-            apply_status=$?
+            python3 - <<'PY' >> .github/hardening-apply-v2.txt 2>&1
+          from pathlib import Path
+
+          target = Path('.github/apply-v327-hardening.py')
+          source = target.read_text()
+          old = '''replace_once(
+              'src/renderer/store/player.ts',
+              "    onBeforeUnmount(() => {\\n      destroAudioNode()",
+              "    onBeforeUnmount(() => {\\n      registerSleepTimerPauseHandler(null)\\n      destroAudioNode()",
+          )'''
+          new = '''replace_once(
+              'src/renderer/store/player.ts',
+              "    onBeforeUnmount(() => {\\n      progress.value = audioNodes.audio?.currentTime || 0",
+              "    onBeforeUnmount(() => {\\n      registerSleepTimerPauseHandler(null)\\n      progress.value = audioNodes.audio?.currentTime || 0",
+          )'''
+          if old not in source:
+              raise RuntimeError('sleep timer unmount patch target not found')
+          target.write_text(source.replace(old, new))
+          PY
+            patch_status=$?
+            if [ "$patch_status" -eq 0 ]; then
+              timeout 60s python3 .github/apply-v327-hardening.py >> .github/hardening-apply-v2.txt 2>&1
+              apply_status=$?
+            else
+              apply_status=$patch_status
+            fi
           else
             apply_status=$decode_status
           fi
