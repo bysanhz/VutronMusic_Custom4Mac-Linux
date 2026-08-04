@@ -68,10 +68,7 @@ const mainAvailChannels: string[] = [
   'track-scrobble',
   'get-screenshot',
   'delete-screenshot',
-  'get-cache-path',
-  // ======== newADD start======
-  'sleep-timer-pause'
-  // =========== newADD end ========
+  'get-cache-path'
 ]
 const rendererAvailChannels: string[] = [
   'msgHandleScanLocalMusic',
