@@ -5,6 +5,7 @@ import {
 
 const CONTROL_ID = 'osd-cover-controls-visibility-setting'
 const STYLE_ID = 'osd-cover-controls-visibility-setting-style'
+const STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 
 const TEXTS = {
   zh: {
@@ -180,11 +181,29 @@ const initializeOsdCoverControlsSettings = () => {
     childList: true,
     subtree: true
   })
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) return
+    const input = document.querySelector<HTMLInputElement>('#showCompactCoverControls')
+    if (input) input.checked = event.newValue !== 'false'
+  }
+  window.addEventListener('storage', handleStorage)
+
   ;[0, 80, 240, 600, 1200].forEach((delay) => {
     window.setTimeout(() => {
       ensureControl()
     }, delay)
   })
+
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      observer.disconnect()
+      window.removeEventListener('storage', handleStorage)
+      if (pendingTimer !== null) window.clearTimeout(pendingTimer)
+    },
+    { once: true }
+  )
 }
 
 if (document.readyState === 'loading') {
