@@ -123,6 +123,15 @@ const collectUiStorage = (): Record<string, string> => {
   )
 }
 
+const readPresetStorage = (): unknown[] => {
+  try {
+    const value = JSON.parse(localStorage.getItem(PRESETS_STORAGE_KEY) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
 const downloadJson = (filename: string, value: unknown): void => {
   const blob = new Blob([JSON.stringify(value, null, 2)], {
     type: 'application/json;charset=utf-8'
@@ -154,7 +163,7 @@ const exportBackup = async (): Promise<void> => {
     exportedAt: new Date().toISOString(),
     settings: sanitizeSettings(readJsonRecord(SETTINGS_STORAGE_KEY)),
     osdLyric: readJsonRecord(OSD_STORAGE_KEY),
-    osdPresets: JSON.parse(localStorage.getItem(PRESETS_STORAGE_KEY) || '[]'),
+    osdPresets: readPresetStorage(),
     osdCoverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false',
     playerPreferences: extractPlayerPreferences(readJsonRecord(PLAYER_STORAGE_KEY)),
     uiStorage: collectUiStorage()
@@ -164,6 +173,39 @@ const exportBackup = async (): Promise<void> => {
   downloadJson(`VutronMusic-settings-${date}.json`, payload)
 }
 
+const compactDefinedValues = (value: JsonRecord): JsonRecord => {
+  return Object.fromEntries(Object.entries(value).filter((entry) => entry[1] !== undefined))
+}
+
+const syncImportedSettingsToMain = (settings: JsonRecord): void => {
+  const general = settings.general || {}
+  const tray = settings.tray || {}
+  const localMusic = settings.localMusic || {}
+  const misc = settings.misc || {}
+
+  const mainSettings = compactDefinedValues({
+    lang: general.language,
+    musicQuality: general.musicQuality,
+    closeAppOption: general.closeAppOption,
+    useCustomTitlebar: general.useCustomTitlebar,
+    trayColor: general.trayColor,
+    forceFactor: general.forceFactor,
+    enableAmuseServer: misc.enableAmuseServer,
+    enableGlobalShortcut: settings.enableGlobalShortcut,
+    shortcuts: settings.shortcuts,
+    showTray: tray.showTray,
+    enableTrayMenu: !(tray.showControl || tray.showLyric),
+    innerFirst: localMusic.useInnerInfoFirst,
+    trackInfoOrder: localMusic.trackInfoOrder,
+    autoCacheTrack: settings.autoCacheTrack,
+    unblockNeteaseMusic: settings.unblockNeteaseMusic
+  })
+
+  if (Object.keys(mainSettings).length > 0) {
+    window.mainApi?.send('setStoreSettings', mainSettings)
+  }
+}
+
 const importBackup = async (file: File): Promise<void> => {
   const text = TEXTS[resolveFeatureLanguage()]
   const payload = JSON.parse(await file.text()) as JsonRecord
@@ -171,11 +213,12 @@ const importBackup = async (file: File): Promise<void> => {
   if (payload.schemaVersion !== 1) throw new Error(text.invalid)
   if (!window.confirm(text.confirm)) return
 
+  let mergedSettings: JsonRecord | null = null
+
   if (payload.settings && typeof payload.settings === 'object') {
-    writeJsonRecord(
-      SETTINGS_STORAGE_KEY,
-      deepMerge(readJsonRecord(SETTINGS_STORAGE_KEY), payload.settings)
-    )
+    const safeImportedSettings = sanitizeSettings(payload.settings)
+    mergedSettings = deepMerge(readJsonRecord(SETTINGS_STORAGE_KEY), safeImportedSettings)
+    writeJsonRecord(SETTINGS_STORAGE_KEY, mergedSettings)
   }
   if (payload.osdLyric && typeof payload.osdLyric === 'object') {
     writeJsonRecord(OSD_STORAGE_KEY, deepMerge(readJsonRecord(OSD_STORAGE_KEY), payload.osdLyric))
@@ -198,6 +241,8 @@ const importBackup = async (file: File): Promise<void> => {
       if (typeof value === 'string') writeStorageValue(key, value)
     })
   }
+
+  if (mergedSettings) syncImportedSettingsToMain(mergedSettings)
 
   window.alert(text.imported)
   window.location.reload()
