@@ -7,7 +7,7 @@ import {
   writeStorageValue
 } from './v327FeatureShared'
 
- type OsdPresetSettings = {
+type OsdPresetSettings = {
   type: 'small' | 'normal'
   mode: 'oneLine' | 'twoLines'
   isWordByWord: boolean
@@ -27,6 +27,17 @@ type OsdPreset = {
   name: string
   settings: OsdPresetSettings
 }
+
+type CommonPresetSettings = Pick<
+  OsdPresetSettings,
+  | 'isWordByWord'
+  | 'backgroundColor'
+  | 'playedLrcColor'
+  | 'unplayLrcColor'
+  | 'textShadow'
+  | 'font'
+  | 'showButtonWhenLock'
+>
 
 const CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const OSD_STORAGE_KEY = 'osdLyric'
@@ -84,7 +95,7 @@ const TEXTS = {
 
 const getBuiltInPresets = (): OsdPreset[] => {
   const text = TEXTS[resolveFeatureLanguage()]
-  const common = {
+  const common: CommonPresetSettings = {
     isWordByWord: true,
     backgroundColor: 'rgba(0, 0, 0, 0)',
     playedLrcColor: '#37cf88',
