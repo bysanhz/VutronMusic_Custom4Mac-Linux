@@ -14,6 +14,9 @@ concurrency:
   group: apply-v327-hardening
   cancel-in-progress: false
 
+env:
+  RESULT_BRANCH: automation/v327-hardening-result
+
 jobs:
   apply:
     if: github.actor != 'github-actions[bot]'
@@ -24,6 +27,21 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Configure automation identity
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish workflow marker
+        shell: bash
+        run: |
+          git switch -C "$RESULT_BRANCH"
+          printf 'workflow-started=%s\nsource=%s\n' "$(date -u +%FT%TZ)" "$GITHUB_SHA" > .github/hardening-result.txt
+          git add .github/hardening-result.txt
+          git commit -m "记录 v3.2.7 加固工作流启动"
+          git push --force origin "HEAD:$RESULT_BRANCH"
 
       - name: Reconstruct and apply patch
         shell: bash
@@ -54,6 +72,17 @@ jobs:
       - name: Format generated changes
         run: yarn run format:fix
 
+      - name: Publish generated source for review
+        shell: bash
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "生成 v3.2.7 安全性与交互稳定性修复"
+            git push --force origin "HEAD:$RESULT_BRANCH"
+          fi
+
       - name: Validate code quality
         run: |
           yarn run format:check
@@ -62,15 +91,8 @@ jobs:
           yarn playwright test tests/security-hardening.spec.ts
           yarn vite --config vite.config.ts build
 
-      - name: Commit hardened code
+      - name: Promote validated changes to main
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-            exit 0
-          fi
-          git commit -m "修复 v3.2.7 安全性与交互稳定性问题"
+          git commit --allow-empty -m "修复 v3.2.7 安全性与交互稳定性问题"
           git push origin HEAD:main
