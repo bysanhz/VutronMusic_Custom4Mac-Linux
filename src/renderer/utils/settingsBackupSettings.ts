@@ -17,6 +17,28 @@ const PLAYER_STORAGE_KEY = 'player'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 
+/**
+ * 可安全迁移的独立 localStorage 设置。
+ *
+ * 使用显式白名单而不是导出所有前缀键，避免未来新增的认证或隐私字段被
+ * 无意写入备份。预览中的临时缩放值不在白名单中。
+ */
+const UI_STORAGE_KEYS = [
+  'appGlobalFontSize',
+  'appWindowScaleMinFontSize',
+  'osdWindowScaleMinFontSize',
+  'mainWindowScaleMinWidth',
+  'mainWindowScaleMinHeight',
+  'mainWindowScaleBaseFontSize',
+  'osdSmallWindowScaleMinWidth',
+  'osdSmallWindowScaleMinHeight',
+  'osdSmallWindowScaleBaseFontSize',
+  'osdNormalWindowScaleMinWidth',
+  'osdNormalWindowScaleMinHeight',
+  'osdNormalWindowScaleBaseFontSize',
+  'osdMiniControlBaseSize'
+] as const
+
 const TEXTS = {
   zh: {
     title: '设置备份与恢复',
@@ -94,18 +116,11 @@ const extractPlayerPreferences = (player: JsonRecord): JsonRecord => {
 }
 
 const collectUiStorage = (): Record<string, string> => {
-  const result: Record<string, string> = {}
-
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index)
-    if (!key?.startsWith('vutronmusic-')) continue
-    if (key === PRESETS_STORAGE_KEY || key === COVER_CONTROLS_STORAGE_KEY) continue
-
-    const value = localStorage.getItem(key)
-    if (value !== null) result[key] = value
-  }
-
-  return result
+  return Object.fromEntries(
+    UI_STORAGE_KEYS.map((key) => [key, localStorage.getItem(key)]).filter(
+      (entry): entry is [string, string] => entry[1] !== null
+    )
+  )
 }
 
 const downloadJson = (filename: string, value: unknown): void => {
@@ -178,10 +193,9 @@ const importBackup = async (file: File): Promise<void> => {
     writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(payload.osdCoverControlsVisible))
   }
   if (payload.uiStorage && typeof payload.uiStorage === 'object') {
-    Object.entries(payload.uiStorage).forEach(([key, value]) => {
-      if (key.startsWith('vutronmusic-') && typeof value === 'string') {
-        writeStorageValue(key, value)
-      }
+    UI_STORAGE_KEYS.forEach((key) => {
+      const value = payload.uiStorage[key]
+      if (typeof value === 'string') writeStorageValue(key, value)
     })
   }
 
@@ -193,7 +207,8 @@ const ensureControl = (): boolean => {
   const anchorItem = (
     document.getElementById('real-ip') || document.getElementById('enableAmuseServer')
   )?.closest<HTMLElement>('.item')
-  if (!anchorItem?.parentElement) return false
+  const parent = anchorItem?.parentElement
+  if (!anchorItem || !parent) return false
   if (document.getElementById(CONTROL_ID)) return true
 
   const text = TEXTS[resolveFeatureLanguage()]
@@ -239,7 +254,7 @@ const ensureControl = (): boolean => {
   })
 
   controls.append(exportButton, importButton, input, status)
-  anchorItem.parentElement.appendChild(item)
+  parent.appendChild(item)
   return true
 }
 
