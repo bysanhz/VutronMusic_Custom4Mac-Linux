@@ -2,9 +2,6 @@ import { app } from 'electron'
 import { join, dirname } from 'path'
 import { name, version } from '../../../package.json'
 import { fileURLToPath } from 'url'
-// ======== newADD start======
-import '../sleepTimerIpc'
-// =========== newADD end ========
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
