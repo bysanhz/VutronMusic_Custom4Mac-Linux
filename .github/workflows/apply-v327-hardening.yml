@@ -37,7 +37,7 @@ jobs:
         run: |
           git switch -C "$RESULT_BRANCH"
           printf 'workflow-started=%s\nsource=%s\n' "$(date -u +%FT%TZ)" "$GITHUB_SHA" > .github/hardening-result.txt
-          rm -f .github/hardening-apply.log
+          rm -f .github/hardening-apply.txt
           git add -A
           git commit -m "记录 v3.2.7 加固工作流启动"
           git push --force origin "HEAD:$RESULT_BRANCH"
@@ -47,16 +47,17 @@ jobs:
         run: |
           set +e
           cat .github/hardening-payload/part*.txt > /tmp/hardening.b64
-          python3 -c "import base64,gzip,pathlib; p=pathlib.Path('/tmp/hardening.b64').read_text().strip(); s=gzip.decompress(base64.b64decode(p)); pathlib.Path('/tmp/apply-v327-hardening.py').write_bytes(s); compile(s, '/tmp/apply-v327-hardening.py', 'exec')" > .github/hardening-apply.log 2>&1
+          python3 -c "import base64,gzip,pathlib; p=pathlib.Path('/tmp/hardening.b64').read_text().strip(); s=gzip.decompress(base64.b64decode(p)); pathlib.Path('/tmp/apply-v327-hardening.py').write_bytes(s); compile(s, '/tmp/apply-v327-hardening.py', 'exec')" > .github/hardening-apply.txt 2>&1
           decode_status=$?
           if [ "$decode_status" -eq 0 ]; then
-            timeout 60s python3 /tmp/apply-v327-hardening.py >> .github/hardening-apply.log 2>&1
+            timeout 60s python3 /tmp/apply-v327-hardening.py >> .github/hardening-apply.txt 2>&1
             apply_status=$?
           else
             apply_status=$decode_status
           fi
-          printf '\nexit_status=%s\n' "$apply_status" >> .github/hardening-apply.log
-          cat .github/hardening-apply.log
+          printf '\nexit_status=%s\n' "$apply_status" >> .github/hardening-apply.txt
+          cat .github/hardening-apply.txt
+          git add -f .github/hardening-apply.txt
           git add -A
           git commit -m "记录 v3.2.7 加固补丁执行结果" || true
           git push --force origin "HEAD:$RESULT_BRANCH"
