@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, type check and build
+    name: Lint, type check, test and build
     runs-on: ubuntu-latest
 
     steps:
@@ -42,5 +42,8 @@ jobs:
       - name: Type check
         run: yarn run vue:type-check
 
+      - name: Run security regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts
+
       - name: Build renderer and main process
-        run: yarn vite build
+        run: yarn vite --config vite.config.ts build
