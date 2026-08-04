@@ -16,6 +16,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  hotfix_protocol_ready:
+    name: Apply protocol ready hotfix
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect hotfix marker
+        id: marker
+        shell: bash
+        run: |
+          if [ -f .github/protocol-ready-trigger ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply protocol registration timing fix
+        if: steps.marker.outputs.enabled == 'true'
+        shell: bash
+        run: >-
+          python3 -c "from pathlib import Path; p=Path('src/main/index.ts'); s=p.read_text(); old='  handleAppEvents() {\n    this.handleProtocol()\n    app.whenReady().then(async () => {\n      this.createMainWindow().then(() => {\n'; new='  handleAppEvents() {\n    app.whenReady().then(async () => {\n      // protocol.handle() accesses the Electron default session and must run after app readiness.\n      this.handleProtocol()\n\n      this.createMainWindow().then(() => {\n'; count=s.count(old); assert count == 1, f'Expected one protocol timing block, found {count}'; p.write_text(s.replace(old, new))"
+
+      - name: Remove temporary hotfix files
+        if: steps.marker.outputs.enabled == 'true'
+        run: rm -f .github/protocol-ready-trigger .github/workflows/fix-protocol-ready.yml
+
+      - name: Commit hotfix
+        if: steps.marker.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "修复 Electron 就绪前注册协议导致的启动卡死"
+          git push origin HEAD:main
+
   verify:
     name: Lint, type check, test and build
     runs-on: ubuntu-latest
