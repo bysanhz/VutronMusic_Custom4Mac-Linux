@@ -1,0 +1,189 @@
+export type SupportedLanguage = 'zh' | 'zht' | 'en'
+export type JsonRecord = Record<string, any>
+
+const STYLE_ID = 'vutronmusic-v327-feature-style'
+const SETTINGS_STORAGE_KEY = 'settings'
+
+export const resolveFeatureLanguage = (): SupportedLanguage => {
+  try {
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}')
+    const language = settings?.general?.language
+    return language === 'zh' || language === 'zht' ? language : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+export const readJsonRecord = (key: string): JsonRecord => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '{}')
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  } catch {
+    return {}
+  }
+}
+
+export const cloneJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+export const writeStorageValue = (key: string, newValue: string): void => {
+  const oldValue = localStorage.getItem(key)
+  localStorage.setItem(key, newValue)
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key,
+      oldValue,
+      newValue,
+      storageArea: localStorage,
+      url: window.location.href
+    })
+  )
+}
+
+export const writeJsonRecord = (key: string, value: JsonRecord): void => {
+  writeStorageValue(key, JSON.stringify(value))
+}
+
+export const deepMerge = (base: JsonRecord, patch: JsonRecord): JsonRecord => {
+  const result = cloneJson(base)
+
+  Object.entries(patch).forEach(([key, value]) => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      result[key] &&
+      typeof result[key] === 'object' &&
+      !Array.isArray(result[key])
+    ) {
+      result[key] = deepMerge(result[key], value)
+    } else {
+      result[key] = cloneJson(value)
+    }
+  })
+
+  return result
+}
+
+export const injectV327FeatureStyle = (): void => {
+  if (document.getElementById(STYLE_ID)) return
+
+  const style = document.createElement('style')
+  style.id = STYLE_ID
+  style.textContent = `
+    .vutronmusic-v327-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: min(430px, 100%);
+    }
+
+    .vutronmusic-v327-controls select,
+    .vutronmusic-v327-controls input[type='text'] {
+      min-width: 190px;
+      height: 38px;
+      box-sizing: border-box;
+      padding: 0 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      outline: none;
+      background: var(--color-secondary-bg);
+      color: var(--color-text);
+      font: inherit;
+    }
+
+    .vutronmusic-v327-controls button {
+      min-height: 36px;
+      white-space: nowrap;
+    }
+
+    .vutronmusic-v327-status {
+      flex-basis: 100%;
+      min-height: 18px;
+      color: var(--color-text-secondary);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    @media (max-width: 720px) {
+      .vutronmusic-v327-controls {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .vutronmusic-v327-controls select {
+        flex: 1 1 190px;
+      }
+
+      .vutronmusic-v327-status {
+        text-align: left;
+      }
+    }
+  `
+  document.head.appendChild(style)
+}
+
+export const createV327SettingsItem = (
+  id: string,
+  title: string,
+  description: string
+): HTMLElement => {
+  const item = document.createElement('div')
+  item.id = id
+  item.className = 'item'
+
+  const left = document.createElement('div')
+  left.className = 'left'
+
+  const titleElement = document.createElement('div')
+  titleElement.className = 'title'
+  titleElement.textContent = title
+
+  const descriptionElement = document.createElement('div')
+  descriptionElement.className = 'description'
+  descriptionElement.textContent = description
+
+  left.append(titleElement, descriptionElement)
+
+  const right = document.createElement('div')
+  right.className = 'right'
+
+  const controls = document.createElement('div')
+  controls.className = 'vutronmusic-v327-controls'
+  right.appendChild(controls)
+  item.append(left, right)
+
+  return item
+}
+
+export const observeV327SettingsControl = (ensureControl: () => boolean): void => {
+  injectV327FeatureStyle()
+  let pendingTimer: number | null = null
+
+  const scheduleEnsureControl = (): void => {
+    if (pendingTimer !== null) return
+    pendingTimer = window.setTimeout(() => {
+      pendingTimer = null
+      ensureControl()
+    }, 80)
+  }
+
+  const observer = new MutationObserver(scheduleEnsureControl)
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  })
+
+  ;[0, 100, 300, 800, 1600].forEach((delay) => {
+    window.setTimeout(ensureControl, delay)
+  })
+
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      observer.disconnect()
+    },
+    { once: true }
+  )
+}
