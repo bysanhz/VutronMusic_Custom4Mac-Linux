@@ -38,25 +38,30 @@ import { usePlayerStore } from '../store/player'
 import { useRouter } from 'vue-router'
 import { Vibrant } from 'node-vibrant/browser'
 import Color from 'color'
+import { normalizeNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
 const { moveToFMTrash, playPersonalFM, playNextFMTrack } = playerStore
-const { personalFMTrack, personalFMNextTrack, playing, isPersonalFM } = storeToRefs(playerStore)
+const { personalFMTrack, playing, isPersonalFM } = storeToRefs(playerStore)
 
 const background = ref<string>()
 
 const track = computed(() => personalFMTrack.value)
 const isPlaying = computed(() => playing.value && isPersonalFM.value)
 const artists = computed(() => track.value.artists || track.value.ar || [])
+const album = computed(() => track.value?.album || track.value?.al)
 
 const image = computed(() => {
-  const album = track.value?.album || track.value?.al
-  return album ? album.picUrl + '?param=256y256' : ''
+  const picUrl = album.value?.picUrl
+  return picUrl ? `${normalizeNeteaseAssetUrl(picUrl)}?param=256y256` : ''
 })
 
-const getColor = (track: any) => {
-  const cover = `${(track.album || track.al).picUrl.replace('http://', 'https://')}?param=512y512`
+const getColor = (currentTrack: any) => {
+  const currentAlbum = currentTrack.album || currentTrack.al
+  if (!currentAlbum?.picUrl) return
+
+  const cover = `${normalizeNeteaseAssetUrl(currentAlbum.picUrl)}?param=512y512`
   Vibrant.from(cover)
     .getPalette()
     .then((palette) => {
@@ -70,18 +75,24 @@ const getColor = (track: any) => {
         console.log('未找到 DarkMuted 颜色')
       }
     })
+    .catch((error) => {
+      console.warn('[FMCard] 提取封面颜色失败', error)
+    })
 }
 
 const goToAlbum = () => {
-  if (track.value.album.id === 0) return
-  router.push({ path: `/album/${track.value.album.id}` })
+  const albumId = album.value?.id
+  if (!albumId) return
+  void router.push({ path: `/album/${albumId}` })
 }
 
-watch(track, (val) => {
-  if (val) {
-    getColor(val)
-  }
-})
+watch(
+  track,
+  (value) => {
+    if (value) getColor(value)
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped lang="scss">
