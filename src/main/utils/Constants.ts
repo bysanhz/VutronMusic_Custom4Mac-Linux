@@ -1,4 +1,5 @@
 import '../security/runtimeSecurity'
+import '../security/localTrackIdentityGuard'
 import { app } from 'electron'
 import { join, dirname } from 'path'
 import { name, version } from '../../../package.json'
