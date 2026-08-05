@@ -1,15 +1,12 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent, webFrame } from 'electron'
+import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron'
 
 const mainAvailChannels: string[] = [
   'mouseleave',
   'from-osd',
   'osd-resize',
   'windowMouseleave',
-
-  // ======== newADD start======
   'drag-osd-window-absolute',
   'getFontList'
-  // =========== newADD end ========
 ]
 
 const rendererAvailChannels: string[] = [
@@ -19,84 +16,105 @@ const rendererAvailChannels: string[] = [
   'mouseInWindow'
 ]
 
+type RendererListener = (event: undefined, ...args: any[]) => void
+type WrappedListener = (event: IpcRendererEvent, ...args: any[]) => void
+
+const wrappedListeners = new WeakMap<RendererListener, Map<string, WrappedListener>>()
 let messagePort: MessagePort | null = null
 
-ipcRenderer.on('port-connect', (event: any) => {
-  if (messagePort) {
-    messagePort.close()
+const assertMainChannel = (channel: string): void => {
+  if (!mainAvailChannels.includes(channel)) {
+    throw new Error(`Unknown ipc channel name: ${channel}`)
   }
-  messagePort = event.ports[0]
-  messagePort.start()
+}
 
-  messagePort.onmessage = (event) => {
-    window.postMessage(event.data, '*')
+const assertRendererChannel = (channel: string): void => {
+  if (!rendererAvailChannels.includes(channel)) {
+    throw new Error(`Unknown ipc channel name: ${channel}`)
+  }
+}
+
+const getWrappedListener = (channel: string, listener: RendererListener): WrappedListener => {
+  let channelMap = wrappedListeners.get(listener)
+  if (!channelMap) {
+    channelMap = new Map()
+    wrappedListeners.set(listener, channelMap)
+  }
+
+  let wrapped = channelMap.get(channel)
+  if (!wrapped) {
+    wrapped = (_event, ...args) => listener(undefined, ...args)
+    channelMap.set(channel, wrapped)
+  }
+  return wrapped
+}
+
+const removeWrappedListener = (channel: string, listener: RendererListener): WrappedListener | null => {
+  const channelMap = wrappedListeners.get(listener)
+  const wrapped = channelMap?.get(channel) || null
+  if (wrapped) {
+    channelMap?.delete(channel)
+    if (channelMap?.size === 0) wrappedListeners.delete(listener)
+  }
+  return wrapped
+}
+
+ipcRenderer.on('port-connect', (event) => {
+  const port = event.ports?.[0]
+  if (!port) {
+    console.error('[OSD Preload] port-connect 未携带 MessagePort')
+    return
+  }
+
+  messagePort?.close()
+  messagePort = port
+  messagePort.start()
+  messagePort.onmessage = (messageEvent) => {
+    window.postMessage(messageEvent.data, '*')
   }
 })
 
 window.addEventListener('unload', () => {
-  if (messagePort) {
-    messagePort.close()
-  }
+  messagePort?.close()
+  messagePort = null
 })
 
 contextBridge.exposeInMainWorld('mainApi', {
   send: (channel: string, ...data: any[]): void => {
-    if (mainAvailChannels.includes(channel)) {
-      ipcRenderer.send.apply(null, [channel, ...data])
-    } else {
-      throw new Error(`Unknown ipc channel name: ${channel}`)
-    }
+    assertMainChannel(channel)
+    ipcRenderer.send(channel, ...data)
   },
-  on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void => {
-    if (rendererAvailChannels.includes(channel)) {
-      ipcRenderer.on(channel, listener)
-    } else {
-      throw new Error(`Unknown ipc channel name: ${channel}`)
-    }
+  on: (channel: string, listener: RendererListener): void => {
+    assertRendererChannel(channel)
+    ipcRenderer.on(channel, getWrappedListener(channel, listener))
   },
-  once: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void => {
-    if (rendererAvailChannels.includes(channel)) {
-      ipcRenderer.once(channel, listener)
-    } else {
-      throw new Error(`Unknown ipc channel name: ${channel}`)
-    }
+  once: (channel: string, listener: RendererListener): void => {
+    assertRendererChannel(channel)
+    ipcRenderer.once(channel, (_event, ...args) => listener(undefined, ...args))
   },
-  off: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void => {
-    if (rendererAvailChannels.includes(channel)) {
-      ipcRenderer.off(channel, listener)
-    } else {
-      throw new Error(`Unknown ipc channel name: ${channel}`)
-    }
+  off: (channel: string, listener: RendererListener): void => {
+    assertRendererChannel(channel)
+    const wrapped = removeWrappedListener(channel, listener)
+    if (wrapped) ipcRenderer.off(channel, wrapped)
   },
   invoke: async (channel: string, ...data: any[]): Promise<any> => {
-    if (mainAvailChannels.includes(channel)) {
-      const result = await ipcRenderer.invoke.apply(null, [channel, ...data])
-      return result
-    }
-
-    throw new Error(`Unknown ipc channel name: ${channel}`)
+    assertMainChannel(channel)
+    return await ipcRenderer.invoke(channel, ...data)
   },
-  sendMessage: (message: any) => {
-    if (messagePort) {
-      messagePort.postMessage(message)
-    } else {
-      throw new Error('Message port is not available')
-    }
+  sendMessage: (message: any): void => {
+    if (!messagePort) throw new Error('Message port is not available')
+    messagePort.postMessage(message)
   },
-  closeMessagePort: () => {
-    if (messagePort) {
-      messagePort.close()
-      messagePort = null
-    }
+  closeMessagePort: (): void => {
+    messagePort?.close()
+    messagePort = null
   },
-  // ======== newADD start======
   // 桌面歌词使用独立的页面缩放范围，与主窗口设置相互隔离。
-  setZoomFactor: (factor: number) => {
+  setZoomFactor: (factor: number): void => {
     if (!Number.isFinite(factor) || factor <= 0) return
     webFrame.setZoomFactor(factor)
   },
-  getZoomFactor: () => webFrame.getZoomFactor()
-  // =========== newADD end ========
+  getZoomFactor: (): number => webFrame.getZoomFactor()
 })
 
 contextBridge.exposeInMainWorld('env', {
@@ -107,45 +125,48 @@ contextBridge.exposeInMainWorld('env', {
   isWindows: process.platform === 'win32'
 })
 
-const throttle = (func: Function, limit: number) => {
-  let inThrottle: boolean
+const throttle = <T extends (...args: any[]) => void>(func: T, limit: number) => {
+  let inThrottle = false
 
-  return function (...args) {
-    if (!inThrottle) {
-      func.apply(this, args)
-      inThrottle = true
-      setTimeout(() => (inThrottle = false), limit)
-    }
+  return (...args: Parameters<T>): void => {
+    if (inThrottle) return
+    func(...args)
+    inThrottle = true
+    window.setTimeout(() => {
+      inThrottle = false
+    }, limit)
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const titleBar = document.getElementById('titleBar')
+  const root = document.querySelector<HTMLElement>('#main')
+  const lockEl = document.querySelector<HTMLElement>('#osd-lock')
+  if (!root) {
+    console.error('[OSD Preload] 未找到 #main，已跳过窗口交互绑定')
+    return
+  }
+
   let isDragging = false
-  let timeoutId: any = null
-  let lastMoveTime: number = 0
+  let timeoutId: number | null = null
+  let lastMoveTime = 0
 
-  const root = document.querySelector('#main') as HTMLElement
-  const lockEl = document.querySelector('#osd-lock') as HTMLElement
+  titleBar?.addEventListener('mousedown', (event: MouseEvent) => {
+    if (!(event.target instanceof Element) || !event.target.classList.contains('header')) return
 
-  // 监控鼠标按下事件，用来处理窗口移动，以避免设置元素的drag导致无法相应鼠标hover
-  titleBar?.addEventListener('mousedown', (e: MouseEvent) => {
-    // @ts-ignore
-    if (!e.target?.classList.contains('header')) return
-
-    e.preventDefault()
+    event.preventDefault()
     isDragging = true
 
-    const startX = e.clientX
-    const startY = e.clientY
+    const startX = event.clientX
+    const startY = event.clientY
     const startHeight = window.innerHeight
     const startWidth = window.innerWidth
 
-    const onMouseMove = throttle((e: MouseEvent) => {
+    const onMouseMove = throttle((moveEvent: MouseEvent) => {
       if (!isDragging) return
       titleBar.style.cursor = 'move'
-      const dx = e.clientX - startX
-      const dy = e.clientY - startY
+      const dx = moveEvent.clientX - startX
+      const dy = moveEvent.clientY - startY
       ipcRenderer.send('window-drag', { dx, dy, startHeight, startWidth })
     }, 16)
 
@@ -169,33 +190,37 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
   root.addEventListener('mouseenter', () => {
-    if (!lockEl) return
-    lockEl.style.opacity = '1'
+    if (lockEl) lockEl.style.opacity = '1'
   })
 
   root.addEventListener('mouseleave', () => {
-    clearTimeout(timeoutId)
+    if (timeoutId !== null) window.clearTimeout(timeoutId)
+    timeoutId = null
     if (lockEl) lockEl.style.opacity = '0'
     root.style.opacity = '1'
   })
 
   root.addEventListener('mousemove', () => {
     if (!root.classList.contains('is-lock')) return
-    clearTimeout(timeoutId)
+    if (timeoutId !== null) window.clearTimeout(timeoutId)
 
-    const osdLyric = JSON.parse(localStorage.getItem('osdLyric'))
-    if (osdLyric?.staticTime === 0) return
+    let osdLyric: { staticTime?: number } | null = null
+    try {
+      osdLyric = JSON.parse(localStorage.getItem('osdLyric') || 'null')
+    } catch {
+      osdLyric = null
+    }
+
+    const staticTime = Number(osdLyric?.staticTime ?? 1500)
+    if (!Number.isFinite(staticTime) || staticTime <= 0) return
 
     lastMoveTime = Date.now()
-    timeoutId = setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       const now = Date.now()
-      if (
-        root?.classList?.contains('is-lock') &&
-        now - lastMoveTime >= (osdLyric.staticTime ?? 1500)
-      ) {
+      if (root.classList.contains('is-lock') && now - lastMoveTime >= staticTime) {
         root.style.opacity = '0.02'
-        clearTimeout(timeoutId)
       }
-    }, osdLyric.staticTime ?? 1500)
+      timeoutId = null
+    }, staticTime)
   })
 })
