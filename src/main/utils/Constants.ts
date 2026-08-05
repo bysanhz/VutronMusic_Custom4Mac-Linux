@@ -1,4 +1,5 @@
 import '../security/graphicsCompatibility'
+import '../security/contentSecurityPolicy'
 import '../security/runtimeSecurity'
 import '../security/networkFetchGuard'
 import '../security/frameIpcGuard'
