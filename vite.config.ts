@@ -110,17 +110,14 @@ export default defineConfig(({ mode }) => {
       __VUE_I18N_LEGACY_API__: false,
       __INTLIFY_PROD_DEVTOOLS__: false
     },
-    // ======== newADD start======
-    // 开发环境启用 CSS Source Map。
-    // 作用：
-    // 1. 让 DevTools 里样式来源尽量从 <style> 映射回 .vue 源文件；
-    // 2. 方便点击 Styles 面板右侧来源，定位到具体组件和行号；
-    // 3. 只建议开发环境开启，避免影响生产构建体积。
     css: {
-      devSourcemap: isDevEnv
+      devSourcemap: isDevEnv,
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler'
+        }
+      }
     },
-    // =========== newADD end ========
-
     resolve: {
       extensions: ['.mjs', '.js', '.ts', '.vue', '.json', '.scss'],
       alias: {
@@ -143,23 +140,13 @@ export default defineConfig(({ mode }) => {
       }
     },
     plugins: [
-      // bindingSqlite3(),
       Vue(),
       createSvgIconsPlugin({
         iconDirs: [resolve(process.cwd(), 'src/renderer/assets/icons')],
         symbolId: 'icon-[dir]-[name]'
       }),
       VueJsx(),
-      // Docs: https://github.com/vuetifyjs/vuetify-loader
-      // VuetifyPlugin({
-      //   autoImport: true
-      //   // styles: {
-      //   //   configFile: 'assets/css/global.scss'
-      //   // }
-      // }),
-      // Docs: https://github.com/gxmari007/vite-plugin-eslint
       EslintPlugin(),
-      // Docs: https://github.com/electron-vite/vite-plugin-electron
       ElectronPlugin(electronPluginConfigs),
       RendererPlugin()
     ],
@@ -168,19 +155,19 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/netease': {
-          target: `http://127.0.0.1:40001`,
+          target: 'http://127.0.0.1:40001',
           changeOrigin: true
         },
         '/local-asset': {
-          target: `http://127.0.0.1:40001`,
+          target: 'http://127.0.0.1:40001',
           changeOrigin: true
         },
         '/stream-asset': {
-          target: `http://127.0.0.1:40001`,
+          target: 'http://127.0.0.1:40001',
           changeOrigin: true
         },
         '/lastfm-callback': {
-          target: `http://127.0.0.1:40001`,
+          target: 'http://127.0.0.1:40001',
           changeOrigin: true
         }
       }
