@@ -32,10 +32,19 @@
     "@typescript-eslint/no-unused-vars": [
       "warn",
       {
+        "args": "none",
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
       }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/renderer/utils/soundtouch-worklet.js"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
 }
