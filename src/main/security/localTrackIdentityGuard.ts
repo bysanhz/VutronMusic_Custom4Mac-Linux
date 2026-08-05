@@ -1,5 +1,4 @@
 import { ipcMain, type IpcMainEvent } from 'electron'
-import { db, Tables } from '../db'
 
 const INSTALL_KEY = '__vutronLocalTrackIdentityGuardInstalled'
 
@@ -14,7 +13,8 @@ type ScanTrack = {
   }
 }
 
-const readReservedTrackIds = (): Set<number> => {
+const readReservedTrackIds = async (): Promise<Set<number>> => {
+  const { db, Tables } = await import('../db')
   const ids = new Set<number>()
 
   for (const row of db.findAll(Tables.Track)) {
@@ -46,7 +46,7 @@ const installLocalTrackIdentityGuard = (): void => {
     return guardedOn(channel, async (event: IpcMainEvent, ...args: unknown[]) => {
       const sender = event.sender as typeof event.sender & Record<string, any>
       const originalSend = sender.send.bind(sender)
-      const reservedIds = readReservedTrackIds()
+      const reservedIds = await readReservedTrackIds()
       let nextId = Math.max(0, ...reservedIds) + 1
 
       sender.send = (outgoingChannel: string, ...outgoingArgs: unknown[]) => {
