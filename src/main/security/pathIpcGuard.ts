@@ -38,8 +38,6 @@ type LocalResourceGrant = {
   type: 'file' | 'directory'
 }
 
-type PathGuardGlobal = typeof globalThis & Record<string, any>
-
 const realpathIfPresent = async (value: string): Promise<string | null> => {
   if (!value || value.includes('\0')) return null
   try {
@@ -114,7 +112,7 @@ const isGrantedPath = async (
   const resolved = await realpathIfPresent(value)
   if (!resolved) return false
 
-  let stat: fs.Stats
+  let stat
   try {
     stat = await fs.promises.stat(resolved)
   } catch {
@@ -196,13 +194,17 @@ const validatePathArguments = async (channel: string, args: unknown[]): Promise<
     if (typeof data?.picUrl === 'string' && data.picUrl) {
       await assertPublicRemoteUrl(data.picUrl)
     }
+  } else if (channel === 'cacheATrack') {
+    const data = args[0] as { url?: unknown } | undefined
+    if (typeof data?.url !== 'string') throw new Error('缓存歌曲地址无效')
+    await assertPublicRemoteUrl(data.url)
   }
 
   return args
 }
 
 const installPathIpcGuard = (): void => {
-  const target = ipcMain as typeof ipcMain & PathGuardGlobal
+  const target = ipcMain as typeof ipcMain & Record<string, any>
   if (target[INSTALL_KEY]) return
   target[INSTALL_KEY] = true
 
@@ -216,6 +218,13 @@ const installPathIpcGuard = (): void => {
         return await listener(event, ...validatedArgs)
       } catch (error) {
         console.warn(`[Security] 已阻止文件系统 IPC: ${channel}`, error)
+        if (channel === 'msgScanLocalMusic') {
+          event.sender.send('msgHandleScanLocalMusicError', {
+            err: error instanceof Error ? error.message : String(error),
+            filePath: ''
+          })
+          event.sender.send('scanLocalMusicDone')
+        }
       }
     })
 
