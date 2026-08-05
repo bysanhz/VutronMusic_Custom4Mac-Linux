@@ -1,11 +1,24 @@
 import { parentPort as cachePort } from 'node:worker_threads'
 import fs from 'node:fs'
-import { extname } from 'node:path'
+import { extname, join } from 'node:path'
 import sharp from 'sharp'
 import { downloadPublicBuffer } from '../security/workerHttp'
 
 const MAX_AUDIO_CACHE_BYTES = 1536 * 1024 * 1024
 const MAX_COVER_BYTES = 20 * 1024 * 1024
+const SAFE_AUDIO_EXTENSIONS = new Set([
+  'mp3',
+  'ogg',
+  'wav',
+  'flac',
+  'm4a',
+  'aac',
+  'mp4',
+  'opus',
+  'aiff',
+  'aif',
+  'alac'
+])
 
 const getFilePath = (
   track: Record<string, any>,
@@ -22,21 +35,22 @@ const getFilePath = (
     'audio/x-m4a': 'm4a',
     'audio/m4a': 'm4a',
     'audio/aac': 'aac',
-    'audio/mp4': 'mp4'
+    'audio/mp4': 'mp4',
+    'audio/opus': 'opus',
+    'audio/aiff': 'aiff'
   }
 
-  let extension = 'mp3'
-  if (url.pathname) {
-    const urlExt = extname(url.pathname).toLowerCase()
-    if (urlExt && urlExt.length > 1) extension = urlExt.substring(1)
-  }
   const normalizedContentType = contentType.split(';')[0].trim().toLowerCase()
-  if (extension === 'mp3' && typeMap[normalizedContentType]) {
-    extension = typeMap[normalizedContentType]
+  let extension = typeMap[normalizedContentType] || 'mp3'
+  if (url.pathname) {
+    const urlExtension = extname(url.pathname).toLowerCase().slice(1)
+    if (SAFE_AUDIO_EXTENSIONS.has(urlExtension)) extension = urlExtension
   }
 
   const name = String(track.name || 'track').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
-  return decodeURI(`${audioCachePath}/${track.id}-${track.br ?? 320000}-${name}.${extension}`)
+  const id = String(track.id || 'track').replace(/[^a-zA-Z0-9_-]/g, '_')
+  const bitrate = String(track.br ?? 320000).replace(/[^0-9]/g, '') || '320000'
+  return join(audioCachePath, `${id}-${bitrate}-${name}.${extension}`)
 }
 
 const getPic = async (value: string): Promise<{ pic: Buffer; format: string }> => {
@@ -83,10 +97,11 @@ const runCacheTask = async (track: Record<string, any>, url: string, audioCacheP
   const filePath = getFilePath(track, resolvedUrl, audio.contentType, audioCachePath)
   const modifiedBuffer = await updateMetadata(audio.buffer, track)
   await fs.promises.writeFile(filePath, Buffer.from(modifiedBuffer))
+  const finalSize = (await fs.promises.stat(filePath)).size
 
   return {
     ...track,
-    size: audio.size,
+    size: finalSize,
     url: filePath,
     cache: true,
     insertTime: Date.now()
@@ -130,20 +145,17 @@ async function processQueue() {
   }
 }
 
-cachePort?.on(
-  'message',
-  (data: CacheTask | { type: 'quit' }) => {
-    try {
-      if (data.type === 'task') {
-        if (quitRequested) return
-        taskQueue.push(data)
-        void processQueue()
-      } else {
-        quitRequested = true
-        notifyFinishedWhenIdle()
-      }
-    } catch (error) {
-      console.error('[Worker cacheTrack] message handler error:', error)
+cachePort?.on('message', (data: CacheTask | { type: 'quit' }) => {
+  try {
+    if (data.type === 'task') {
+      if (quitRequested) return
+      taskQueue.push(data)
+      void processQueue()
+    } else {
+      quitRequested = true
+      notifyFinishedWhenIdle()
     }
+  } catch (error) {
+    console.error('[Worker cacheTrack] message handler error:', error)
   }
-)
+})
