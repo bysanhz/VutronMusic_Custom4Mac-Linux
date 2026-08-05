@@ -159,8 +159,23 @@ const router = createRouter({
   routes
 })
 
+const resetRouteScrollPosition = (): void => {
+  const mainContainer = document.getElementById('main')
+  if (mainContainer) {
+    mainContainer.scrollTop = 0
+    mainContainer.scrollLeft = 0
+    return
+  }
+
+  const scrollingElement = document.scrollingElement
+  if (scrollingElement) {
+    scrollingElement.scrollTop = 0
+    scrollingElement.scrollLeft = 0
+  }
+}
+
 router.beforeEach((to, from, next) => {
-  document.documentElement.scrollTo({ top: 0 })
+  resetRouteScrollPosition()
   if (to.meta.requireLogin) {
     if (isAccountLoggedIn()) {
       next()
