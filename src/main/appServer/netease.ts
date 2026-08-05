@@ -15,6 +15,15 @@ const isRepeatedDailySignin = (name: string, error: any): boolean => {
   )
 }
 
+const isCloudRequestTimeout = (name: string, error: any): boolean => {
+  return (
+    name === 'user/cloud' &&
+    error?.status === 400 &&
+    error?.body?.code === -601 &&
+    error?.body?.message === '请求超时！'
+  )
+}
+
 async function netease(fastify: FastifyInstance) {
   const NeteaseCloudMusicApi = require('@neteasecloudmusicapienhanced/api')
   const getHandler = (name: string, neteaseApi: (params: any) => any) => {
@@ -38,6 +47,15 @@ async function netease(fastify: FastifyInstance) {
             code: 200,
             alreadySigned: true,
             msg: error.body.msg
+          })
+        }
+
+        if (isCloudRequestTimeout(name, error)) {
+          log.warn('网易云云盘请求超时，本次加载已跳过，可稍后刷新重试')
+          return reply.status(504).send({
+            code: -601,
+            retryable: true,
+            message: error.body.message
           })
         }
 
