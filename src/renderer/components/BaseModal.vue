@@ -38,6 +38,10 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
+import {
+  acquireOverlayScrollLock,
+  releaseOverlayScrollLock
+} from '../utils/overlayScrollLock'
 import SvgIcon from './SvgIcon.vue'
 
 const props = defineProps({
@@ -76,9 +80,10 @@ const props = defineProps({
 })
 
 const stateStore = useNormalStateStore()
-const { showLyrics, enableScrolling } = storeToRefs(stateStore)
+const { showLyrics } = storeToRefs(stateStore)
 const modal = ref<HTMLElement | null>(null)
 let previouslyFocusedElement: HTMLElement | null = null
+let scrollLockToken: symbol | null = null
 
 const modalStyle = computed(() => ({ width: props.width, minWidth: props.minWidth }))
 
@@ -128,13 +133,15 @@ const handleKeydown = (event: KeyboardEvent) => {
 watch(
   () => props.show,
   async (value) => {
-    enableScrolling.value = !value
     if (value) {
+      if (!scrollLockToken) scrollLockToken = acquireOverlayScrollLock()
       previouslyFocusedElement = document.activeElement as HTMLElement | null
       await nextTick()
       const first = getFocusableElements()[0]
       ;(first || modal.value)?.focus()
     } else {
+      releaseOverlayScrollLock(scrollLockToken)
+      scrollLockToken = null
       previouslyFocusedElement?.focus()
       previouslyFocusedElement = null
     }
@@ -143,7 +150,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  enableScrolling.value = true
+  releaseOverlayScrollLock(scrollLockToken)
+  scrollLockToken = null
   previouslyFocusedElement?.focus()
 })
 </script>
