@@ -22,6 +22,9 @@ import {
 const INSTALL_KEY = '__VUTRON_RUNTIME_SECURITY_INSTALLED__'
 const ENCRYPTED_PREFIX = 'vutron-secure:v1:'
 const LOCAL_TRACK_DIRECTORY_CACHE_MS = 5000
+const LOCAL_RESOURCE_GRANT_CACHE_MS = 5000
+const LOCAL_RESOURCE_GRANTS_KEY = 'security.localResourceGrants'
+const MAX_LOCAL_RESOURCE_GRANTS = 96
 const MAX_LOCAL_JSON_BYTES = 2 * 1024 * 1024
 const TRUSTED_ORIGINS = new Set([
   'http://localhost:41830',
@@ -79,15 +82,20 @@ const MEDIA_FILE_EXTENSIONS = new Set([
 ])
 const JSON_FILE_EXTENSIONS = new Set(['.json'])
 
-type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
-
 type SecurityGlobal = typeof globalThis & {
   [INSTALL_KEY]?: boolean
+}
+
+type LocalResourceGrant = {
+  path: string
+  type: 'file' | 'directory'
 }
 
 let warnedEncryptionUnavailable = false
 let cachedTrackDirectories: string[] = []
 let cachedTrackDirectoriesAt = 0
+let cachedLocalResourceGrants: LocalResourceGrant[] = []
+let cachedLocalResourceGrantsAt = 0
 
 const reportBlockedAction = (message: string, details?: unknown): void => {
   console.warn(`[Security] ${message}`, details ?? '')
@@ -238,6 +246,105 @@ const clearStoredStreamPassword = async (platform: string): Promise<void> => {
   store.set(`accounts.${platform}.password`, '')
 }
 
+const realpathIfPresent = async (value: string): Promise<string | null> => {
+  if (!value) return null
+  try {
+    return await fs.promises.realpath(value)
+  } catch {
+    return null
+  }
+}
+
+const extractDialogPaths = (channel: string, result: unknown): string[] => {
+  if (channel === 'selecteFolder' && Array.isArray(result)) {
+    return result.filter((item): item is string => typeof item === 'string')
+  }
+
+  if (
+    ['showOpenDialog', 'msgOpenFile'].includes(channel) &&
+    result &&
+    typeof result === 'object'
+  ) {
+    const filePaths = (result as Record<string, unknown>).filePaths
+    if (Array.isArray(filePaths)) {
+      return filePaths.filter((item): item is string => typeof item === 'string')
+    }
+  }
+
+  return []
+}
+
+const normalizeLocalResourceGrant = async (value: string): Promise<LocalResourceGrant | null> => {
+  const resolved = await realpathIfPresent(value)
+  if (!resolved) return null
+
+  try {
+    const stat = await fs.promises.stat(resolved)
+    if (stat.isFile()) return { path: resolved, type: 'file' }
+    if (stat.isDirectory()) return { path: resolved, type: 'directory' }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+const persistDialogResourceGrants = async (channel: string, result: unknown): Promise<void> => {
+  const selectedPaths = extractDialogPaths(channel, result)
+  if (!selectedPaths.length) return
+
+  const normalized = (
+    await Promise.all(selectedPaths.map((value) => normalizeLocalResourceGrant(value)))
+  ).filter((item): item is LocalResourceGrant => item !== null)
+  if (!normalized.length) return
+
+  const { default: store } = await import('../store')
+  const stored = store.get(LOCAL_RESOURCE_GRANTS_KEY) as LocalResourceGrant[] | undefined
+  const existing = Array.isArray(stored) ? stored : []
+  const deduplicated = new Map<string, LocalResourceGrant>()
+
+  for (const grant of [...existing, ...normalized]) {
+    if (!grant || typeof grant.path !== 'string') continue
+    if (grant.type !== 'file' && grant.type !== 'directory') continue
+    deduplicated.set(`${grant.type}:${grant.path}`, grant)
+  }
+
+  const grants = [...deduplicated.values()].slice(-MAX_LOCAL_RESOURCE_GRANTS)
+  store.set(LOCAL_RESOURCE_GRANTS_KEY, grants)
+  cachedLocalResourceGrants = grants
+  cachedLocalResourceGrantsAt = Date.now()
+}
+
+const getLocalResourceGrants = async (): Promise<LocalResourceGrant[]> => {
+  const now = Date.now()
+  if (now - cachedLocalResourceGrantsAt < LOCAL_RESOURCE_GRANT_CACHE_MS) {
+    return cachedLocalResourceGrants
+  }
+
+  try {
+    const { default: store } = await import('../store')
+    const stored = store.get(LOCAL_RESOURCE_GRANTS_KEY) as LocalResourceGrant[] | undefined
+    const candidates = Array.isArray(stored) ? stored.slice(-MAX_LOCAL_RESOURCE_GRANTS) : []
+    const normalized = (
+      await Promise.all(
+        candidates.map(async (grant) => {
+          if (!grant || typeof grant.path !== 'string') return null
+          return await normalizeLocalResourceGrant(grant.path)
+        })
+      )
+    ).filter((item): item is LocalResourceGrant => item !== null)
+
+    cachedLocalResourceGrants = normalized
+    cachedLocalResourceGrantsAt = now
+    return normalized
+  } catch (error) {
+    reportBlockedAction('读取本地资源授权记录失败', error)
+    cachedLocalResourceGrants = []
+    cachedLocalResourceGrantsAt = now
+    return []
+  }
+}
+
 const prepareIpcArguments = async (channel: string, args: unknown[]): Promise<unknown[]> => {
   if (channel === 'msgOpenExternalLink' && !parseSafeExternalUrl(args[0])) {
     throw new Error('Blocked unsafe external URL')
@@ -287,6 +394,7 @@ const finalizeIpcInvocation = async (
     await clearStoredStreamPassword(platform)
   }
 
+  await persistDialogResourceGrants(channel, result)
   return sanitizeIpcResult(channel, result)
 }
 
@@ -354,15 +462,6 @@ const isSafeRemoteUrl = async (value: string): Promise<boolean> => {
     return addresses.length > 0 && addresses.every((item) => !isPrivateIpAddress(item.address))
   } catch {
     return false
-  }
-}
-
-const realpathIfPresent = async (value: string): Promise<string | null> => {
-  if (!value) return null
-  try {
-    return await fs.promises.realpath(value)
-  } catch {
-    return null
   }
 }
 
@@ -435,6 +534,15 @@ const isAllowedLocalReadPath = async (
     if (!stat.isFile() || stat.size > maxBytes) return false
   } catch {
     return false
+  }
+
+  const grants = await getLocalResourceGrants()
+  if (
+    grants.some((grant) =>
+      grant.type === 'file' ? grant.path === resolved : isPathInside(resolved, grant.path)
+    )
+  ) {
+    return true
   }
 
   const roots = [...(await getStaticAllowedRoots()), ...(await getLocalTrackDirectories())]
