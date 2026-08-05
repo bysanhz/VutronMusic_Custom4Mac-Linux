@@ -17,18 +17,21 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref } from 'vue'
 import { usePlayerStore } from '../store/player'
 import { storeToRefs } from 'pinia'
-import { useNormalStateStore } from '../store/state'
+import {
+  acquireOverlayScrollLock,
+  releaseOverlayScrollLock
+} from '../utils/overlayScrollLock'
 
-const state = storeToRefs(useNormalStateStore())
 const showMenu = ref(false)
 const menu = ref<HTMLElement | null>(null)
 const topValue = ref('0px')
 const leftValue = ref('0px')
 const player = storeToRefs(usePlayerStore())
 let previouslyFocusedElement: HTMLElement | null = null
+let scrollLockToken: symbol | null = null
 
 const emit = defineEmits(['closeMenu'])
 
@@ -40,6 +43,8 @@ const getItems = (): HTMLElement[] => {
 const closeMenu = () => {
   if (!showMenu.value) return
   showMenu.value = false
+  releaseOverlayScrollLock(scrollLockToken)
+  scrollLockToken = null
   emit('closeMenu')
   previouslyFocusedElement?.focus()
   previouslyFocusedElement = null
@@ -68,6 +73,15 @@ const focusItem = (index: number) => {
   })
 }
 
+const activateFocusedItem = (): void => {
+  const activeElement = document.activeElement
+  if (!(activeElement instanceof HTMLElement) || !menu.value?.contains(activeElement)) return
+  if (!activeElement.classList.contains('item') || activeElement.getAttribute('aria-disabled') === 'true') {
+    return
+  }
+  activeElement.click()
+}
+
 const handleKeydown = (event: KeyboardEvent) => {
   const items = getItems()
   const currentIndex = items.findIndex((item) => item === document.activeElement)
@@ -87,6 +101,9 @@ const handleKeydown = (event: KeyboardEvent) => {
   } else if (event.key === 'End') {
     event.preventDefault()
     focusItem(items.length - 1)
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    activateFocusedItem()
   }
 }
 
@@ -101,7 +118,9 @@ const handleMenuClick = (event: MouseEvent) => {
 }
 
 const openMenu = (event: MouseEvent) => {
+  if (showMenu.value) closeMenu()
   previouslyFocusedElement = document.activeElement as HTMLElement | null
+  scrollLockToken = acquireOverlayScrollLock()
   showMenu.value = true
   event.preventDefault()
 
@@ -117,12 +136,9 @@ const openMenu = (event: MouseEvent) => {
   })
 }
 
-watch(showMenu, (value) => {
-  state.enableScrolling.value = !value
-})
-
 onBeforeUnmount(() => {
-  state.enableScrolling.value = true
+  releaseOverlayScrollLock(scrollLockToken)
+  scrollLockToken = null
 })
 
 defineExpose({
