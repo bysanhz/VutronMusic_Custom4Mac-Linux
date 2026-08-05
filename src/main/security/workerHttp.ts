@@ -32,6 +32,13 @@ const assertPublicUrl = async (value: string | URL): Promise<URL> => {
   return url
 }
 
+const normalizeContentType = (value: string | string[] | undefined): string => {
+  return String(Array.isArray(value) ? value[0] : value || 'application/octet-stream')
+    .split(';')[0]
+    .trim()
+    .toLowerCase()
+}
+
 const requestBuffer = async (
   url: URL,
   options: Required<DownloadOptions>,
@@ -91,7 +98,7 @@ const requestBuffer = async (
         response.on('end', () => {
           resolve({
             buffer: Buffer.concat(chunks),
-            contentType: String(response.headers['content-type'] || 'application/octet-stream'),
+            contentType: normalizeContentType(response.headers['content-type']),
             size: receivedBytes,
             url: url.toString()
           })
