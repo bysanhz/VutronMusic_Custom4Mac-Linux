@@ -78,6 +78,14 @@ const installLocalTrackIdentityGuard = (): void => {
               nextId += 1
             }
           }
+        } else if (
+          outgoingChannel === 'msgHandleScanLocalMusicError' &&
+          typeof outgoingArgs[0] === 'string'
+        ) {
+          outgoingArgs[0] = {
+            err: outgoingArgs[0],
+            filePath: ''
+          }
         }
 
         return originalSend(outgoingChannel, ...outgoingArgs)
