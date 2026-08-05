@@ -25,6 +25,12 @@ const readReservedTrackIds = async (): Promise<Set<number>> => {
   return ids
 }
 
+const findNextTrackId = (reservedIds: Set<number>): number => {
+  let highestId = 0
+  for (const id of reservedIds) highestId = Math.max(highestId, id)
+  return highestId + 1
+}
+
 const updateLocalAssetUrls = (track: ScanTrack, id: number): void => {
   track.id = id
   track.picUrl = `atom://local-asset?type=pic&id=${id}`
@@ -47,7 +53,7 @@ const installLocalTrackIdentityGuard = (): void => {
       const sender = event.sender as typeof event.sender & Record<string, any>
       const originalSend = sender.send.bind(sender)
       const reservedIds = await readReservedTrackIds()
-      let nextId = Math.max(0, ...reservedIds) + 1
+      let nextId = findNextTrackId(reservedIds)
 
       sender.send = (outgoingChannel: string, ...outgoingArgs: unknown[]) => {
         if (outgoingChannel === 'msgHandleScanLocalMusic') {
