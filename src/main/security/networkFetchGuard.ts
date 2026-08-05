@@ -1,4 +1,4 @@
-import { net } from 'electron'
+import { app, net } from 'electron'
 import { assertConfiguredOrPublicRemoteUrl, isRedirectStatus } from './remoteUrl'
 
 const INSTALL_KEY = '__vutronNetworkFetchGuardInstalled'
@@ -41,6 +41,8 @@ const installNetworkFetchGuard = (): void => {
   if (guardedNet[INSTALL_KEY]) return
   guardedNet[INSTALL_KEY] = true
 
+  // Electron 的 net API 只能在 app ready 之后访问。这里必须在 ready 回调内读取
+  // 并绑定原始方法，不能在模块加载阶段执行，否则会中断主进程初始化。
   const originalFetch = net.fetch.bind(net)
 
   guardedNet.fetch = async (
@@ -92,4 +94,8 @@ const installNetworkFetchGuard = (): void => {
   }
 }
 
-installNetworkFetchGuard()
+if (app.isReady()) {
+  installNetworkFetchGuard()
+} else {
+  app.once('ready', installNetworkFetchGuard)
+}
