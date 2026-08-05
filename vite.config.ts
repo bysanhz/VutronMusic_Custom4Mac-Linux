@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'url'
 import { defineConfig, loadEnv } from 'vite'
 import ElectronPlugin, { ElectronOptions } from 'vite-plugin-electron'
-import RendererPlugin from 'vite-plugin-electron-renderer'
 import EslintPlugin from 'vite-plugin-eslint'
 import VueJsx from '@vitejs/plugin-vue-jsx'
 import Vue from '@vitejs/plugin-vue'
@@ -147,8 +146,7 @@ export default defineConfig(({ mode }) => {
       }),
       VueJsx(),
       EslintPlugin(),
-      ElectronPlugin(electronPluginConfigs),
-      RendererPlugin()
+      ElectronPlugin(electronPluginConfigs)
     ],
     server: {
       port: 41830,
