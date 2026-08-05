@@ -17,5 +17,7 @@ if (enableVueDevTools) {
       console.warn('[DevTools] Vue DevTools 加载失败，应用将继续运行', error)
     })
 } else {
-  console.info('[DevTools] 默认不加载 Vue DevTools；需要时使用 yarn dev:vue-devtools')
+  console.info(
+    '[DevTools] 默认不加载 Vue DevTools；需要时使用 VUTRON_ENABLE_VUE_DEVTOOLS=1 yarn dev'
+  )
 }
