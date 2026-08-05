@@ -91,6 +91,16 @@ macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，�
 - 主进程与渲染进程会捕获未处理 Promise，并对短时间内的重复错误去重；
 - Discord 未运行时只记录一次可忽略警告，不影响播放器启动。
 
+### 安全与稳定性加固
+
+- 主窗口与桌面歌词窗口启用 Electron 沙箱、严格 CSP、受信来源 IPC 校验和外部导航拦截；
+- `atom://` 本地资源读取限制到已登记音乐目录、应用资源、音频缓存和用户主动选择的文件或目录，并按资源类型校验扩展名与文件大小；
+- 流媒体密码、访问令牌、Last.fm 会话密钥和第三方 Cookie 使用系统安全存储加密，渲染进程只接收是否已保存密码，不接收明文密码；
+- SQLite 迁移按语义版本排序并在事务中执行，迁移前创建备份；持久化数据库不可用时会明确记录内存回退状态；
+- 本地音乐扫描会防止歌曲 ID 与已有缓存记录冲突，扫描失败会结束扫描状态并写入日志；
+- 睡眠定时器直接接入播放器结束事件；重叠弹窗和右键菜单使用引用计数滚动锁，不会互相提前解除页面滚动限制；
+- CI 固定使用唯一的 `vite.config.ts`，并执行安全回归测试、格式、Lint、类型检查和构建。
+
 ## 上游功能
 
 本仓库继续保留上游项目的主要能力：
@@ -132,7 +142,8 @@ yarn dev
 yarn run format:check
 yarn lint
 yarn run vue:type-check
-yarn vite build
+yarn vite --config vite.config.ts build
+yarn playwright test tests/security-hardening.spec.ts
 ```
 
 ### 同步源码
@@ -170,7 +181,8 @@ yarn install --frozen-lockfile --network-timeout 600000
 yarn run format:check
 yarn lint
 yarn run vue:type-check
-yarn vite build
+yarn vite --config vite.config.ts build
+yarn playwright test tests/security-hardening.spec.ts
 ```
 
 Apple Silicon（M1/M2/M3/M4/M5）构建 ARM64 DMG：
