@@ -11,26 +11,39 @@ export const isPathInside = (candidate: string, root: string): boolean => {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
 }
 
+const isNonPublicIpv4 = (address: string): boolean => {
+  const octets = address.split('.').map(Number)
+  if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value))) return true
+
+  const [a, b] = octets
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51) ||
+    (a === 203 && b === 0) ||
+    a >= 224
+  )
+}
+
 export const isPrivateIpAddress = (address: string): boolean => {
   const normalized = address.toLowerCase().split('%')[0]
   const version = net.isIP(normalized)
 
-  if (version === 4) {
-    const octets = normalized.split('.').map(Number)
-    const [a, b] = octets
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      a >= 224
-    )
-  }
+  if (version === 4) return isNonPublicIpv4(normalized)
 
   if (version === 6) {
+    if (normalized.startsWith('::ffff:')) {
+      const mappedIpv4 = normalized.slice('::ffff:'.length)
+      if (net.isIP(mappedIpv4) === 4) return isNonPublicIpv4(mappedIpv4)
+    }
+
     return (
       normalized === '::' ||
       normalized === '::1' ||
@@ -41,9 +54,7 @@ export const isPrivateIpAddress = (address: string): boolean => {
       normalized.startsWith('fea') ||
       normalized.startsWith('feb') ||
       normalized.startsWith('ff') ||
-      normalized.startsWith('::ffff:127.') ||
-      normalized.startsWith('::ffff:10.') ||
-      normalized.startsWith('::ffff:192.168.')
+      normalized.startsWith('2001:db8:')
     )
   }
 
@@ -56,6 +67,10 @@ export const isUnsafeHostname = (hostname: string): boolean => {
     normalized === 'localhost' ||
     normalized.endsWith('.localhost') ||
     normalized.endsWith('.local') ||
+    normalized.endsWith('.internal') ||
+    normalized.endsWith('.lan') ||
+    normalized === 'home.arpa' ||
+    normalized.endsWith('.home.arpa') ||
     isPrivateIpAddress(normalized)
   )
 }
