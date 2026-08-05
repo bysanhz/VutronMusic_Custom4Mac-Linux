@@ -1,5 +1,5 @@
 import { net } from 'electron'
-import { assertPublicRemoteUrl, isRedirectStatus } from './remoteUrl'
+import { assertConfiguredOrPublicRemoteUrl, isRedirectStatus } from './remoteUrl'
 
 const INSTALL_KEY = '__vutronNetworkFetchGuardInstalled'
 const MAX_REDIRECTS = 5
@@ -49,7 +49,7 @@ const installNetworkFetchGuard = (): void => {
   ): Promise<Response> => {
     const initialUrl =
       input instanceof Request ? input.url : input instanceof URL ? input.toString() : input
-    let currentUrl = await assertPublicRemoteUrl(initialUrl)
+    let currentUrl = await assertConfiguredOrPublicRemoteUrl(initialUrl)
     let requestInit: RequestInit = {
       ...init,
       method: init.method || (input instanceof Request ? input.method : undefined),
@@ -69,7 +69,7 @@ const installNetworkFetchGuard = (): void => {
       const location = response.headers.get('location')
       if (!location) return await enforceResponseSizeLimit(response)
 
-      const nextUrl = await assertPublicRemoteUrl(new URL(location, currentUrl))
+      const nextUrl = await assertConfiguredOrPublicRemoteUrl(new URL(location, currentUrl))
       const method = String(requestInit.method || 'GET').toUpperCase()
       if (!['GET', 'HEAD'].includes(method)) {
         await response.body?.cancel().catch(() => undefined)
