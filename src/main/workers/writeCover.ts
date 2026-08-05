@@ -1,9 +1,10 @@
-// 这里必须使用require的导包方式，否则会报错
-const { parentPort: coverPort } = require('node:worker_threads')
-const fs = require('node:fs')
-const https = require('node:https')
-const http = require('node:http')
-const sharp = require('sharp')
+import { parentPort as coverPort } from 'node:worker_threads'
+import fs from 'node:fs'
+import sharp from 'sharp'
+import { downloadPublicBuffer } from '../security/workerHttp'
+
+const MAX_COVER_BYTES = 20 * 1024 * 1024
+const MAX_TASK_ATTEMPTS = 3
 
 let currentPlayingPath: string | null = null
 let running = false
@@ -11,124 +12,101 @@ let running = false
 const checkEmbeddedExist = async (filePath: string) => {
   const { readPictures } = await import('taglib-wasm')
   const decodedPath = decodeURI(filePath)
-  const picture = (await readPictures(decodedPath)).find((p) => p.type === 3)
-  return !!picture
+  const picture = (await readPictures(decodedPath)).find((item) => item.type === 3)
+  return Boolean(picture)
 }
 
 const writeCoverToEmbedded = async (
   filePath: string,
-  image: { pic: Buffer<ArrayBufferLike>; format: string }
+  image: { pic: Buffer; format: string }
 ) => {
-  try {
-    const { replacePictureByType } = await import('taglib-wasm')
-    const decodedPath = decodeURI(filePath)
+  const { replacePictureByType } = await import('taglib-wasm')
+  const decodedPath = decodeURI(filePath)
+  const modifiedBuffer = await replacePictureByType(decodedPath, {
+    mimeType: image.format,
+    data: image.pic,
+    type: 3
+  })
+  await fs.promises.writeFile(decodedPath, Buffer.from(modifiedBuffer))
+}
 
-    const modifiedBuffer = await replacePictureByType(decodedPath, {
-      mimeType: image.format,
-      data: image.pic,
-      type: 3
-    })
-    await fs.promises.writeFile(decodedPath, Buffer.from(modifiedBuffer))
-  } catch (error) {
-    console.error(`写入封面图片 ${filePath} 失败:`, error)
+const getPicFromApi = async (value: string): Promise<{ pic: Buffer; format: string }> => {
+  const url = new URL(value)
+  url.searchParams.set('param', '1024y1024')
+  const result = await downloadPublicBuffer(url, { maxBytes: MAX_COVER_BYTES })
+  return {
+    pic: result.buffer,
+    format: result.contentType
   }
 }
 
 const writeCoverToFile = async (filePath: string, url: string, embedStyle: number) => {
-  try {
-    if (embedStyle === 0) {
-      let flag = false
-      const prefixs = ['.jpg', '.png', '.jpeg', '.webp']
-      for (const prefix of prefixs) {
-        const possibleFile = filePath.replace(/\.[^/.]+$/, prefix)
-        flag = await fs.promises
-          .access(possibleFile, fs.constants.F_OK)
-          .then(() => true)
-          .catch(() => false)
-        if (flag) return
-      }
+  if (embedStyle === 0) {
+    for (const extension of ['.jpg', '.png', '.jpeg', '.webp']) {
+      const possibleFile = filePath.replace(/\.[^/.]+$/, extension)
+      const exists = await fs.promises
+        .access(possibleFile, fs.constants.F_OK)
+        .then(() => true)
+        .catch(() => false)
+      if (exists) return
     }
-
-    const image = await getPicFromApi(url)
-    image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
-
-    const prefix = image.format.includes('image/png') ? '.png' : '.jpg'
-    const coverPath = filePath.replace(/\.[^/.]+$/, prefix)
-
-    await fs.promises.writeFile(coverPath, image.pic)
-  } catch (error) {
-    console.error(`写入封面图片 ${filePath} 失败:`, error)
   }
+
+  const image = await getPicFromApi(url)
+  image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
+
+  const extension = image.format.includes('image/png') ? '.png' : '.jpg'
+  const coverPath = filePath.replace(/\.[^/.]+$/, extension)
+  await fs.promises.writeFile(coverPath, image.pic)
 }
 
-const getPicFromApi = async (url: string): Promise<{ pic: Buffer; format: string }> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const client = url.startsWith('https') ? https : http
-      url = url + '?param=1024y1024'
-      const req = client.get(url, (res) => {
-        if (res.statusCode !== 200) {
-          res.resume()
-          return reject(new Error(`Request Failed: ${res.statusCode}`))
-        }
-
-        const chunks: Buffer[] = []
-        res.on('data', (chunk) => chunks.push(chunk))
-        res.on('end', () => {
-          try {
-            resolve({
-              pic: Buffer.concat(chunks),
-              format: res.headers['content-type'] || 'image/jpeg'
-            })
-          } catch (err) {
-            reject(err)
-          }
-        })
-      })
-
-      req.on('error', (err) => {
-        reject(err)
-      })
-
-      req.end()
-    } catch (e) {
-      reject(e)
-    }
-  })
+type EmbedTask = {
+  url: string
+  functions: Array<typeof writeCoverToEmbedded>
+  attempts: number
 }
 
-const embeddedMap = new Map<string, { url: string; func: (typeof writeCoverToEmbedded)[] }>()
+const embeddedMap = new Map<string, EmbedTask>()
 
 const runEmbedTasks = async () => {
   if (running) return
   running = true
 
-  while (embeddedMap.size > 0) {
-    const entries = Array.from(embeddedMap.entries())
-    let taskProcessed = false
+  try {
+    while (embeddedMap.size > 0) {
+      const entries = [...embeddedMap.entries()]
+      let processedTask = false
 
-    for (const [filePath, task] of entries) {
-      if (filePath === currentPlayingPath) continue
+      for (const [filePath, task] of entries) {
+        if (filePath === currentPlayingPath) continue
+        processedTask = true
 
-      try {
-        const image = await getPicFromApi(task.url)
-        image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
-        for (const fn of task.func) {
-          await fn(filePath, image)
+        try {
+          const image = await getPicFromApi(task.url)
+          image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
+          for (const writeFunction of task.functions) {
+            await writeFunction(filePath, image)
+          }
+          embeddedMap.delete(filePath)
+        } catch (error) {
+          task.attempts += 1
+          console.error(
+            `[Cover Writer] 写入 ${filePath} 失败（${task.attempts}/${MAX_TASK_ATTEMPTS}）：`,
+            error
+          )
+          if (task.attempts >= MAX_TASK_ATTEMPTS) {
+            embeddedMap.delete(filePath)
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 1500))
+          }
         }
-        embeddedMap.delete(filePath)
-        taskProcessed = true
-      } catch (error) {
-        console.error(`[Cover Writer] 写入 ${filePath} 失败，保留在队列中:`, error)
-        taskProcessed = true
-        await new Promise((resolve) => setTimeout(resolve, 5000))
       }
+
+      if (!processedTask) break
     }
-
-    if (!taskProcessed) break
+  } finally {
+    running = false
   }
-
-  running = false
 }
 
 coverPort?.on(
@@ -146,32 +124,41 @@ coverPort?.on(
         currentPlayingPath = data.currentPlayingPath ?? currentPlayingPath
 
         if (data.filePath && data.picUrl) {
-          const func: (typeof writeCoverToEmbedded)[] = []
+          const shouldEmbed = data.embedOption === 1 || data.embedOption === 3
+          const shouldWriteFile = data.embedOption === 2 || data.embedOption === 3
+          const functions: Array<typeof writeCoverToEmbedded> = []
 
-          if (data.embedOption !== 2) {
-            let isExist: boolean = false
-            if (data.embedStyle === 0) {
-              isExist = await checkEmbeddedExist(data.filePath)
-            }
-            if (!isExist) func.push(writeCoverToEmbedded)
-          }
-          if (data.embedOption !== 1) {
-            writeCoverToFile(data.filePath, data.picUrl, data.embedStyle)
+          if (shouldEmbed) {
+            const embeddedExists =
+              data.embedStyle === 0 ? await checkEmbeddedExist(data.filePath) : false
+            if (!embeddedExists) functions.push(writeCoverToEmbedded)
           }
 
-          if (func.length > 0) {
-            embeddedMap.set(data.filePath, { url: data.picUrl, func })
+          if (shouldWriteFile) {
+            await writeCoverToFile(data.filePath, data.picUrl, data.embedStyle)
+          }
+
+          if (functions.length > 0) {
+            embeddedMap.set(data.filePath, {
+              url: data.picUrl,
+              functions,
+              attempts: 0
+            })
           }
         }
       } else {
         currentPlayingPath = null
       }
+
       await runEmbedTasks()
       if (data.type === 'finished') {
-        coverPort.postMessage({ status: 'done' })
+        coverPort?.postMessage({ status: 'done' })
       }
-    } catch (err) {
-      console.error('[Worker writeCover] message handler error:', err)
+    } catch (error) {
+      console.error('[Worker writeCover] message handler error:', error)
+      if (data.type === 'finished') {
+        coverPort?.postMessage({ status: 'done' })
+      }
     }
   }
 )
