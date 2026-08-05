@@ -156,20 +156,13 @@ const validatePathArguments = async (channel: string, args: unknown[]): Promise<
   if (channel === 'msgScanLocalMusic') {
     const data = args[0] as { filePath?: unknown } | undefined
     const directories = Array.isArray(data?.filePath) ? data.filePath : []
-    if (
-      !directories.length ||
-      directories.some(
-        (directory) => typeof directory !== 'string' || !isGrantedPath(directory, 'directory')
+    const results = await Promise.all(
+      directories.map((directory) =>
+        typeof directory === 'string' ? isGrantedPath(directory, 'directory') : false
       )
-    ) {
-      const results = await Promise.all(
-        directories.map((directory) =>
-          typeof directory === 'string' ? isGrantedPath(directory, 'directory') : false
-        )
-      )
-      if (!results.length || results.some((allowed) => !allowed)) {
-        throw new Error('本地音乐扫描目录未获得授权')
-      }
+    )
+    if (!results.length || results.some((allowed) => !allowed)) {
+      throw new Error('本地音乐扫描目录未获得授权')
     }
   } else if (channel === 'getFilesInFolder') {
     const folderPath = args[0]
