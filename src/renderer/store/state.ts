@@ -238,12 +238,42 @@ export const useNormalStateStore = defineStore('state', () => {
   }
   // =========== newADD end ========
 
+  let pendingScrollFrame: number | null = null
+
+  const applyScrollingState = (value: boolean, remainingAttempts = 30): void => {
+    const mainContainer = document.getElementById('main')
+    if (mainContainer) {
+      mainContainer.style.overflowY = value ? 'auto' : 'hidden'
+      document.documentElement.style.overflowY = ''
+      if (document.body) document.body.style.overflowY = ''
+      pendingScrollFrame = null
+      return
+    }
+
+    // Store 会在 App.vue 的 #main 容器挂载前初始化。容器尚不存在时先对文档根节点
+    // 应用同等限制，并在后续动画帧短暂重试，避免空节点断言导致整个 Vue 渲染失败。
+    document.documentElement.style.overflowY = value ? '' : 'hidden'
+    if (document.body) document.body.style.overflowY = value ? '' : 'hidden'
+
+    if (remainingAttempts <= 0) {
+      pendingScrollFrame = null
+      return
+    }
+
+    pendingScrollFrame = window.requestAnimationFrame(() => {
+      applyScrollingState(value, remainingAttempts - 1)
+    })
+  }
+
   watch(
     enableScrolling,
-    (value) => {
-      nextTick(() => {
-        document.getElementById('main')!.style.overflowY = value ? 'auto' : 'hidden'
-      })
+    async (value) => {
+      await nextTick()
+      if (pendingScrollFrame !== null) {
+        window.cancelAnimationFrame(pendingScrollFrame)
+        pendingScrollFrame = null
+      }
+      applyScrollingState(value)
     },
     { immediate: true }
   )
