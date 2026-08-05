@@ -1,31 +1,36 @@
 <template>
   <div class="stream-container">
     <div class="icon-container">
-      <div
+      <button
         v-for="platform in services"
         :key="platform.name"
         ref="iconWrappers"
+        type="button"
         class="icon-wrapper"
+        :aria-label="platform.name"
+        :aria-pressed="platform.name === currentService"
         @click="selectPlatform(platform.name)"
       >
         <img
           :src="getImagePath(platform.name)"
           :class="{ selected: platform.name === currentService }"
-          alt="platform logo"
+          alt=""
         />
-      </div>
+      </button>
       <div class="indicator" :class="{ animated: isIndicatorReady }" :style="indicatorStyle"></div>
     </div>
     <div class="title">{{ currentService }}</div>
-    <div class="section-2">
+    <form class="section-2" @submit.prevent="login">
       <div class="input-box">
         <div class="container" :class="{ active: inputFocus === 'web' }">
           <svg-icon icon-class="web" />
           <div class="inputs">
             <input
-              v-model="url"
-              type="text"
-              placeholder="主机地址"
+              v-model.trim="url"
+              type="url"
+              autocomplete="url"
+              placeholder="主机地址，例如 http://192.168.1.10:4533"
+              required
               @focus="inputFocus = 'web'"
               @blur="inputFocus = ''"
             />
@@ -38,9 +43,11 @@
           <svg-icon icon-class="user" />
           <div class="inputs">
             <input
-              v-model="user"
+              v-model.trim="user"
               type="text"
+              autocomplete="username"
               placeholder="账号"
+              required
               @focus="inputFocus = 'user'"
               @blur="inputFocus = ''"
             />
@@ -55,7 +62,9 @@
             <input
               v-model="password"
               type="password"
-              placeholder="密码"
+              autocomplete="current-password"
+              :placeholder="passwordPlaceholder"
+              :required="!hasSavedPassword"
               @focus="inputFocus = 'password'"
               @blur="inputFocus = ''"
             />
@@ -63,18 +72,22 @@
         </div>
       </div>
 
+      <div v-if="hasSavedPassword && !password" class="credential-hint">
+        已保存的密码由系统安全存储保护；留空会继续使用该密码。
+      </div>
+
       <div class="confirm">
-        <button @click="login">
-          {{ $t('login.login') }}
+        <button type="submit" :disabled="submitting">
+          {{ submitting ? '正在登录…' : $t('login.login') }}
         </button>
       </div>
-      <label v-if="error" style="color: red">{{ error }}</label>
-    </div>
+      <label v-if="error" class="error-message" role="alert">{{ error }}</label>
+    </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useStreamMusicStore } from '../store/streamingMusic'
 import { storeToRefs } from 'pinia'
@@ -96,14 +109,20 @@ const inputFocus = ref('')
 const url = ref('')
 const user = ref('')
 const password = ref('')
+const hasSavedPassword = ref(false)
+const submitting = ref(false)
 const error = ref<string | null>(null)
+
+const passwordPlaceholder = computed(() =>
+  hasSavedPassword.value ? '已保存密码，留空继续使用' : '密码'
+)
 
 const getImagePath = (platform: serviceName) => {
   return new URL(`../assets/images/${platform}.png`, import.meta.url).href
 }
 
 const updateIndicatorPosition = () => {
-  const index = services.value.findIndex((s) => s.name === currentService.value)
+  const index = services.value.findIndex((service) => service.name === currentService.value)
   const wrapper = iconWrappers.value[index]
   const container = wrapper?.parentElement
 
@@ -118,63 +137,79 @@ const updateIndicatorPosition = () => {
   }
 }
 
+const loadAccountSummary = async (platform: serviceName) => {
+  error.value = null
+  password.value = ''
+
+  try {
+    const result = await window.mainApi?.invoke('get-stream-account', { platform })
+    url.value = result?.url || ''
+    user.value = result?.username || ''
+    hasSavedPassword.value = Boolean(result?.hasPassword)
+  } catch (reason) {
+    hasSavedPassword.value = false
+    error.value = reason instanceof Error ? reason.message : String(reason)
+  }
+}
+
 const selectPlatform = (platform: serviceName) => {
   currentService.value = platform
   nextTick(updateIndicatorPosition)
 }
 
-const login = () => {
-  const params = {
-    platform: currentService.value,
-    baseURL: url.value,
-    username: user.value,
-    password: password.value
+const login = async () => {
+  if (submitting.value) return
+  if (!url.value || !user.value || (!password.value && !hasSavedPassword.value)) {
+    error.value = '请完整填写主机地址、账号和密码。'
+    return
   }
-  window.mainApi?.invoke('stream-login', params).then((res: { code: number; message: any }) => {
-    if (res.code === 200) {
+
+  submitting.value = true
+  error.value = null
+
+  try {
+    const response = await window.mainApi?.invoke('stream-login', {
+      platform: currentService.value,
+      baseURL: url.value,
+      username: user.value,
+      password: password.value
+    })
+
+    if (response?.code === 200) {
       services.value = services.value.map((service) =>
         service.name === currentService.value ? { ...service, status: 'login' } : service
       )
-      nextTick(() => {
-        router.push('/stream')
-      })
+      password.value = ''
+      hasSavedPassword.value = true
+      await router.push('/stream')
     } else {
-      error.value = res.message
+      error.value = response?.message || '登录失败，请检查服务器地址和凭据。'
     }
-  })
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : String(reason)
+  } finally {
+    submitting.value = false
+  }
 }
 
-watch(currentService, (value) => {
-  const service = services.value.find((s) => s.name === value)!
-  if (service.status === 'login') {
-    router.push('/stream')
+watch(currentService, async (value) => {
+  const service = services.value.find((item) => item.name === value)
+  if (service?.status === 'login') {
+    await router.push('/stream')
     return
   }
-  window.mainApi?.invoke('get-stream-account', { platform: value }).then((result) => {
-    url.value = result?.url || ''
-    user.value = result?.username || ''
-    password.value = result?.password || ''
-  })
+  await loadAccountSummary(value)
 })
 
-onMounted(() => {
+onMounted(async () => {
   currentService.value = (route.params.service as serviceName) || 'jellyfin'
-
-  window.mainApi
-    ?.invoke('get-stream-account', { platform: currentService.value })
-    .then((result) => {
-      url.value = result?.url || ''
-      user.value = result?.username || ''
-      password.value = result?.password || ''
-    })
+  await loadAccountSummary(currentService.value)
   window.addEventListener('resize', updateIndicatorPosition)
-  nextTick(() => {
-    updateIndicatorPosition()
-    // 延迟100ms后启用过渡效果，确保首次渲染无动画
-    setTimeout(() => {
-      isIndicatorReady.value = true
-    }, 100)
-  })
+  await nextTick()
+  updateIndicatorPosition()
+  window.setTimeout(() => {
+    isIndicatorReady.value = true
+  }, 100)
 })
 
 onBeforeUnmount(() => {
@@ -201,6 +236,15 @@ onBeforeUnmount(() => {
   .icon-wrapper {
     position: relative;
     cursor: pointer;
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 4px;
+      border-radius: 10px;
+    }
   }
 
   img {
@@ -221,10 +265,10 @@ onBeforeUnmount(() => {
     height: 6px;
     background-color: var(--color-primary);
     border-radius: 2px;
-    transition: none; // 默认禁用过渡
+    transition: none;
 
     &.animated {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); // 后续启用过渡
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
   }
 }
@@ -253,7 +297,7 @@ onBeforeUnmount(() => {
       height: 46px;
       background: var(--color-secondary-bg);
       border-radius: 8px;
-      width: 400px;
+      width: min(400px, calc(100vw - 48px));
     }
 
     .svg-icon {
@@ -288,6 +332,14 @@ onBeforeUnmount(() => {
     }
   }
 
+  .credential-hint {
+    width: min(400px, calc(100vw - 48px));
+    margin-top: -6px;
+    color: color-mix(in srgb, var(--color-text), transparent 35%);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
   .confirm button {
     display: flex;
     align-items: center;
@@ -300,14 +352,24 @@ onBeforeUnmount(() => {
     margin: 20px 0;
     transition: 0.2s;
     padding: 8px;
-    width: 100%;
-    width: 400px;
-    &:hover {
+    width: min(400px, calc(100vw - 48px));
+
+    &:hover:not(:disabled) {
       transform: scale(1.02);
     }
-    &:active {
+    &:active:not(:disabled) {
       transform: scale(0.98);
     }
+    &:disabled {
+      cursor: wait;
+      opacity: 0.55;
+    }
+  }
+
+  .error-message {
+    width: min(400px, calc(100vw - 48px));
+    color: #d33;
+    line-height: 1.5;
   }
 }
 </style>
