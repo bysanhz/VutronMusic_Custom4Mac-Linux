@@ -1,5 +1,6 @@
 import '../security/runtimeSecurity'
 import '../security/networkFetchGuard'
+import '../security/frameIpcGuard'
 import '../security/pathIpcGuard'
 import '../security/localTrackIdentityGuard'
 import { app } from 'electron'
