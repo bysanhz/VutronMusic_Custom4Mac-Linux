@@ -1,0 +1,495 @@
+name: Apply Final Hardening
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-final-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Apply targeted hardening patches
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, found {count}: {old[:80]!r}')
+              file.write_text(text.replace(old, new, 1))
+
+          # IPC worker lifecycle, collision-free local IDs and credential cleanup.
+          replace_once(
+              'src/main/IPCs.ts',
+              """        if (autoCache) {
+          if (cacheWorker) return
+          cacheWorker = createWorker('cacheTrack')""",
+              """        if (autoCache) {
+          if (cacheWorker) continue
+          cacheWorker = createWorker('cacheTrack')""",
+          )
+
+          replace_once(
+              'src/main/IPCs.ts',
+              """      const newTracks: Track[] = []
+
+      const { songs } = cache.get(CacheAPIs.LocalMusic)
+      const existingPaths = songs.map((song: Track) => {""",
+              """      const newTracks: Track[] = []
+
+      const { songs } = cache.get(CacheAPIs.LocalMusic)
+      let nextLocalTrackId =
+        songs.reduce((maxId: number, song: Track) => {
+          const numericId = Number(song.id)
+          return Number.isSafeInteger(numericId) && numericId >= 0
+            ? Math.max(maxId, numericId)
+            : maxId
+        }, 0) + 1
+      const existingPaths = songs.map((song: Track) => {""",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              '            const id = existingTracks.size + 1',
+              '            const id = nextLocalTrackId++',
+          )
+
+          replace_once(
+              'src/main/IPCs.ts',
+              """  ipcMain.handle('get-stream-account', (event, data) => {
+    const url = (store.get(`accounts.${data.platform}.url`) as string) || ''
+    const username = (store.get(`accounts.${data.platform}.username`) as string) || ''
+    const password = (store.get(`accounts.${data.platform}.password`) as string) || ''
+    return { url, username, password }
+  })""",
+              """  ipcMain.handle('get-stream-account', (event, data) => {
+    const url = (store.get(`accounts.${data.platform}.url`) as string) || ''
+    const username = (store.get(`accounts.${data.platform}.username`) as string) || ''
+    const hasPassword = Boolean(store.get(`accounts.${data.platform}.password`))
+    return { url, username, password: '', hasPassword }
+  })""",
+          )
+
+          replace_once(
+              'src/main/IPCs.ts',
+              """      store.set('accounts.navidrome.salt', '')
+      store.set('accounts.navidrome.status', 'logout')""",
+              """      store.set('accounts.navidrome.salt', '')
+      store.set('accounts.navidrome.password', '')
+      store.set('accounts.navidrome.status', 'logout')""",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              """      store.set('accounts.emby.accessToken', '')
+      store.set('accounts.emby.status', 'logout')""",
+              """      store.set('accounts.emby.accessToken', '')
+      store.set('accounts.emby.password', '')
+      store.set('accounts.emby.status', 'logout')""",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              """      store.set('accounts.jellyfin.accessToken', '')
+      store.set('accounts.jellyfin.status', 'logout')""",
+              """      store.set('accounts.jellyfin.accessToken', '')
+      store.set('accounts.jellyfin.password', '')
+      store.set('accounts.jellyfin.status', 'logout')""",
+          )
+
+          # Extend credential migration and enforce per-resource extension/size policies.
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """const KNOWN_ATOM_HOSTS = new Set([
+  'get-default-pic',
+  'get-pic-path',
+  'get-color',
+  'local-asset',
+  'local-resource',
+  'get-online-music'
+])""",
+              """const KNOWN_ATOM_HOSTS = new Set([
+  'get-default-pic',
+  'get-pic-path',
+  'get-color',
+  'local-asset',
+  'local-resource',
+  'get-online-music'
+])
+const AUDIO_FILE_EXTENSIONS = new Set([
+  '.mp3',
+  '.aiff',
+  '.aif',
+  '.flac',
+  '.alac',
+  '.m4a',
+  '.aac',
+  '.wav',
+  '.opus',
+  '.ogg',
+  '.mp4'
+])
+const MEDIA_FILE_EXTENSIONS = new Set([
+  ...AUDIO_FILE_EXTENSIONS,
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.bmp',
+  '.avif',
+  '.webm',
+  '.mov',
+  '.m4v',
+  '.mkv'
+])
+const JSON_FILE_EXTENSIONS = new Set(['.json'])
+const MAX_LOCAL_JSON_BYTES = 2 * 1024 * 1024""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """const installCredentialProtection = (): void => {""",
+              """const containsUnencryptedSensitiveValue = (keyPath: string, value: unknown): boolean => {
+  if (isSensitivePath(keyPath)) {
+    return typeof value === 'string' && Boolean(value) && !value.startsWith(ENCRYPTED_PREFIX)
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item, index) =>
+      containsUnencryptedSensitiveValue(`${keyPath}.${index}`, item)
+    )
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value).some(([key, item]) =>
+      containsUnencryptedSensitiveValue(keyPath ? `${keyPath}.${key}` : key, item)
+    )
+  }
+
+  return false
+}
+
+const installCredentialProtection = (): void => {""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """    if (
+      isSensitivePath(key) &&
+      typeof stored === 'string' &&
+      stored &&
+      !stored.startsWith(ENCRYPTED_PREFIX) &&
+      canUseEncryption()
+    ) {
+      originalSet.call(this, key, encryptSecret(stored))
+    }""",
+              """    if (canUseEncryption() && containsUnencryptedSensitiveValue(key, stored)) {
+      originalSet.call(this, key, mapProtectedValue(key, stored, 'encrypt'))
+    }""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """    password: '',
+    hasPassword: Boolean(account.password)""",
+              """    password: '',
+    hasPassword: Boolean(account.hasPassword ?? account.password)""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """  const candidates = [
+    app.getPath('userData'),
+    app.getPath('music'),
+    app.getAppPath(),
+    process.resourcesPath
+  ]""",
+              """  const candidates = [
+    app.getPath('music'),
+    app.getAppPath(),
+    process.resourcesPath,
+    path.join(app.getPath('userData'), 'audioCache')
+  ]""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """const isAllowedLocalReadPath = async (value: string): Promise<boolean> => {
+  let candidate = value
+  if (process.platform === 'win32' && candidate.match(/^\\/[A-Za-z]:/)) {
+    candidate = candidate.slice(1)
+  }
+
+  const resolved = await realpathIfPresent(candidate)
+  if (!resolved) return false
+
+  const roots = [...(await getStaticAllowedRoots()), ...(await getLocalTrackDirectories())]
+  return roots.some((root) => isPathInside(resolved, root))
+}""",
+              """const isAllowedLocalReadPath = async (
+  value: string,
+  allowedExtensions: ReadonlySet<string>,
+  maxBytes = Number.POSITIVE_INFINITY
+): Promise<boolean> => {
+  let candidate = value
+  if (process.platform === 'win32' && candidate.match(/^\\/[A-Za-z]:/)) {
+    candidate = candidate.slice(1)
+  }
+
+  const resolved = await realpathIfPresent(candidate)
+  if (!resolved || !allowedExtensions.has(path.extname(resolved).toLowerCase())) return false
+
+  try {
+    const stat = await fs.promises.stat(resolved)
+    if (!stat.isFile() || stat.size > maxBytes) return false
+  } catch {
+    return false
+  }
+
+  const roots = [...(await getStaticAllowedRoots()), ...(await getLocalTrackDirectories())]
+  return roots.some((root) => isPathInside(resolved, root))
+}""",
+          )
+
+          replace_once(
+              'src/main/security/runtimeSecurity.ts',
+              """    if (!(await isAllowedLocalReadPath(filePath))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }
+
+  if (request.host === 'local-resource') {
+    const filePath = decodeURIComponent(request.pathname.slice(1))
+    if (!(await isAllowedLocalReadPath(filePath))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }
+
+  if (request.host === 'local-asset') {
+    const type = request.searchParams.get('type')
+    if (type === 'stream' || type === 'json') {
+      const filePath = decodeURIComponent(request.searchParams.get('path') || '')
+      if (!(await isAllowedLocalReadPath(filePath))) {
+        return new Response('Forbidden', { status: 403 })
+      }
+    }
+  }""",
+              """    if (!(await isAllowedLocalReadPath(filePath, MEDIA_FILE_EXTENSIONS))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }
+
+  if (request.host === 'local-resource') {
+    const filePath = decodeURIComponent(request.pathname.slice(1))
+    if (!(await isAllowedLocalReadPath(filePath, MEDIA_FILE_EXTENSIONS))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }
+
+  if (request.host === 'local-asset') {
+    const type = request.searchParams.get('type')
+    const filePath = decodeURIComponent(request.searchParams.get('path') || '')
+    if (type === 'stream' && !(await isAllowedLocalReadPath(filePath, AUDIO_FILE_EXTENSIONS))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    if (
+      type === 'json' &&
+      !(await isAllowedLocalReadPath(filePath, JSON_FILE_EXTENSIONS, MAX_LOCAL_JSON_BYTES))
+    ) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }""",
+          )
+
+          # Replace deprecated keyCode-based shortcut capture with KeyboardEvent.code.
+          replace_once(
+              'src/renderer/views/SystemSettings.vue',
+              """const recordedShortcut = ref<any[]>([])""",
+              """const recordedShortcut = ref<KeyboardEvent[]>([])""",
+          )
+
+          replace_once(
+              'src/renderer/views/SystemSettings.vue',
+              """const handleShortcutKeydown = (e: KeyboardEvent) => {
+  if (shortcutInput.value.recording === false) return
+  e.preventDefault()
+  if (recordedShortcut.value.find((s) => s.keyCode === e.keyCode)) return
+  recordedShortcut.value.push(e)
+  if (
+    (e.keyCode >= 65 && e.keyCode <= 90) || // A-Z
+    (e.keyCode >= 48 && e.keyCode <= 57) || // 0-9
+    (e.keyCode >= 112 && e.keyCode <= 123) || // F1-F12
+    e.keyCode === 32 || // Space
+    ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key) ||
+    ['=', '-', '~', '[', ']', ';', \"'\", ',', '.', '/'].includes(e.key)
+  ) {
+    saveShortcut()
+  }
+}
+
+const recordedShortcutComputed = computed(() => {
+  let shortcut: string[] = []
+  recordedShortcut.value.map((e) => {
+    if (e.keyCode >= 65 && e.keyCode <= 90) {
+      shortcut.push(e.code.replace('Key', ''))
+    } else if (e.key === 'Meta') {
+      shortcut.push('Command')
+    } else if (['Alt', 'Control', 'Shift'].includes(e.key)) {
+      shortcut.push(e.key)
+    } else if (e.keyCode >= 48 && e.keyCode <= 57) {
+      shortcut.push(e.code.replace('Digit', ''))
+    } else if (e.keyCode >= 112 && e.keyCode <= 123) {
+      shortcut.push(e.code)
+    } else if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      shortcut.push(e.code.replace('Arrow', ''))
+    } else if (e.keyCode === 32) {
+      shortcut.push('Space')
+    } else if (['=', '-', '~', '[', ']', ';', \"'\", ',', '.', '/'].includes(e.key)) {
+      shortcut.push(e.key)
+    }
+  })""",
+              """const shortcutPunctuationByCode: Record<string, string> = {
+  Equal: '=',
+  Minus: '-',
+  Backquote: '~',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Semicolon: ';',
+  Quote: \"'\",
+  Comma: ',',
+  Period: '.',
+  Slash: '/'
+}
+
+const isShortcutCompletionKey = (event: KeyboardEvent): boolean => {
+  return (
+    /^Key[A-Z]$/.test(event.code) ||
+    /^Digit[0-9]$/.test(event.code) ||
+    /^F(?:[1-9]|1[0-2])$/.test(event.code) ||
+    event.code === 'Space' ||
+    ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.code) ||
+    Object.prototype.hasOwnProperty.call(shortcutPunctuationByCode, event.code)
+  )
+}
+
+const handleShortcutKeydown = (event: KeyboardEvent) => {
+  if (!shortcutInput.value.recording) return
+  event.preventDefault()
+  if (event.repeat) return
+
+  const identity = event.code || event.key
+  if (recordedShortcut.value.some((item) => (item.code || item.key) === identity)) return
+  recordedShortcut.value.push(event)
+
+  if (isShortcutCompletionKey(event)) saveShortcut()
+}
+
+const recordedShortcutComputed = computed(() => {
+  let shortcut: string[] = []
+  recordedShortcut.value.forEach((event) => {
+    if (/^Key[A-Z]$/.test(event.code)) {
+      shortcut.push(event.code.replace('Key', ''))
+    } else if (event.key === 'Meta') {
+      shortcut.push('Command')
+    } else if (['Alt', 'Control', 'Shift'].includes(event.key)) {
+      shortcut.push(event.key)
+    } else if (/^Digit[0-9]$/.test(event.code)) {
+      shortcut.push(event.code.replace('Digit', ''))
+    } else if (/^F(?:[1-9]|1[0-2])$/.test(event.code)) {
+      shortcut.push(event.code)
+    } else if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.code)) {
+      shortcut.push(event.code.replace('Arrow', ''))
+    } else if (event.code === 'Space') {
+      shortcut.push('Space')
+    } else if (shortcutPunctuationByCode[event.code]) {
+      shortcut.push(shortcutPunctuationByCode[event.code])
+    }
+  })""",
+          )
+
+          # Add regression coverage for recursive merge sanitization and extra network ranges.
+          tests = Path('tests/security-hardening.spec.ts')
+          text = tests.read_text()
+          text = text.replace(
+              """} from '../src/main/security/validation'""",
+              """} from '../src/main/security/validation'
+import { deepMerge } from '../src/renderer/utils/v327FeatureShared'""",
+              1,
+          )
+          text = text.replace(
+              """    expect(isPrivateIpAddress('8.8.8.8')).toBe(false)
+    expect(isUnsafeHostname('localhost')).toBe(true)""",
+              """    expect(isPrivateIpAddress('8.8.8.8')).toBe(false)
+    expect(isPrivateIpAddress('::1')).toBe(true)
+    expect(isPrivateIpAddress('fc00::1')).toBe(true)
+    expect(isUnsafeHostname('localhost')).toBe(true)""",
+              1,
+          )
+          text = text.replace(
+              """  test('prevents path traversal outside an allowed root', () => {
+    expect(isPathInside('/music/album/song.flac', '/music')).toBe(true)
+    expect(isPathInside('/etc/passwd', '/music')).toBe(false)
+  })
+})""",
+              """  test('prevents path traversal outside an allowed root', () => {
+    expect(isPathInside('/music/album/song.flac', '/music')).toBe(true)
+    expect(isPathInside('/etc/passwd', '/music')).toBe(false)
+  })
+
+  test('removes unsafe keys recursively while importing settings', () => {
+    const patch = JSON.parse(
+      '{\"safe\":{\"value\":1,\"constructor\":{\"polluted\":true}},\"__proto__\":{\"polluted\":true}}'
+    )
+    expect(deepMerge({}, patch)).toEqual({ safe: { value: 1 } })
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+  })
+})""",
+              1,
+          )
+          tests.write_text(text)
+
+          # Keep the developer documentation aligned with the hardened runtime.
+          readme = Path('README.md')
+          text = readme.read_text().replace(
+              'yarn vite build',
+              'yarn vite --config vite.config.ts build',
+          )
+          marker = '## 上游功能\n'
+          section = """### 安全与稳定性加固
+
+- 主窗口与桌面歌词窗口启用 Electron 沙箱、严格 CSP、受信来源 IPC 校验和外部导航拦截；
+- `atom://` 本地资源读取限制到已登记音乐目录、缓存目录和应用资源，并按资源类型校验扩展名与文件大小；
+- 流媒体密码、访问令牌、Last.fm 会话密钥和第三方 Cookie 使用系统安全存储加密，渲染进程不再读取明文密码；
+- SQLite 迁移按语义版本排序并在事务中执行，迁移前创建备份；持久化数据库不可用时会明确记录内存回退状态；
+- 睡眠定时器直接接入播放器结束事件，弹窗、右键菜单和键盘焦点由统一的交互锁管理；
+- CI 固定使用唯一的 `vite.config.ts`，并执行安全回归测试、格式、Lint、类型检查和构建。
+
+"""
+          if section not in text:
+              if marker not in text:
+                  raise RuntimeError('README insertion marker not found')
+              text = text.replace(marker, section + marker, 1)
+          readme.write_text(text)
+          PY
+
+      - name: Commit patched files
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/main/IPCs.ts src/main/security/runtimeSecurity.ts \
+            src/renderer/views/SystemSettings.vue tests/security-hardening.spec.ts README.md
+          git diff --cached --check
+          git commit -m "完成剩余安全与交互加固"
+          git push origin HEAD:main
