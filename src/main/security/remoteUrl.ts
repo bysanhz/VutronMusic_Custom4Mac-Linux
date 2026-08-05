@@ -2,6 +2,45 @@ import dns from 'dns/promises'
 import { isPrivateIpAddress, isUnsafeHostname, parseSafeExternalUrl } from './validation'
 
 const MAX_REMOTE_URL_LENGTH = 8192
+const STREAMING_PLATFORMS = ['navidrome', 'emby', 'jellyfin'] as const
+
+const parseHttpUrl = (value: string | URL): URL => {
+  const rawValue = value instanceof URL ? value.toString() : value
+  if (!rawValue || rawValue.length > MAX_REMOTE_URL_LENGTH) {
+    throw new Error('远程请求地址为空或过长')
+  }
+
+  const url = new URL(rawValue)
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+    throw new Error('远程请求地址不是受允许的 HTTP(S) 地址')
+  }
+  return url
+}
+
+const isPathUnderBase = (targetPath: string, basePath: string): boolean => {
+  const normalizedBase = basePath.endsWith('/') ? basePath : `${basePath}/`
+  return targetPath === basePath || targetPath.startsWith(normalizedBase)
+}
+
+const getConfiguredStreamingBaseUrls = async (): Promise<URL[]> => {
+  try {
+    const { default: store } = await import('../store')
+    const urls: URL[] = []
+
+    for (const platform of STREAMING_PLATFORMS) {
+      const value = store.get(`accounts.${platform}.url`)
+      if (typeof value !== 'string' || !value) continue
+      try {
+        urls.push(parseHttpUrl(value))
+      } catch {
+        // Invalid persisted endpoints are ignored and must be configured again by the user.
+      }
+    }
+    return urls
+  } catch {
+    return []
+  }
+}
 
 /**
  * 验证由主进程访问的公网 HTTP(S) 地址。
@@ -11,10 +50,6 @@ const MAX_REMOTE_URL_LENGTH = 8192
  */
 export const assertPublicRemoteUrl = async (value: string | URL): Promise<URL> => {
   const rawValue = value instanceof URL ? value.toString() : value
-  if (!rawValue || rawValue.length > MAX_REMOTE_URL_LENGTH) {
-    throw new Error('远程请求地址为空或过长')
-  }
-
   const url = parseSafeExternalUrl(rawValue)
   if (!url || isUnsafeHostname(url.hostname)) {
     throw new Error('远程请求地址不是受允许的公网 HTTP(S) 地址')
@@ -26,6 +61,27 @@ export const assertPublicRemoteUrl = async (value: string | URL): Promise<URL> =
   }
 
   return url
+}
+
+/**
+ * 允许公网地址，或用户在流媒体设置中明确保存的服务地址。
+ *
+ * 局域网例外要求协议、主机、端口和基础路径同时匹配，不能借此访问同一主机上的
+ * 其他服务或越过用户配置的反向代理路径。
+ */
+export const assertConfiguredOrPublicRemoteUrl = async (
+  value: string | URL
+): Promise<URL> => {
+  const target = parseHttpUrl(value)
+  const configuredBaseUrls = await getConfiguredStreamingBaseUrls()
+
+  const explicitlyConfigured = configuredBaseUrls.some(
+    (base) =>
+      target.origin === base.origin && isPathUnderBase(target.pathname, base.pathname)
+  )
+  if (explicitlyConfigured) return target
+
+  return await assertPublicRemoteUrl(target)
 }
 
 export const isRedirectStatus = (status: number): boolean => {
