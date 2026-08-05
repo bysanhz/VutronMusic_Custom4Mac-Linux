@@ -1,4 +1,5 @@
 import '../security/runtimeSecurity'
+import '../security/networkFetchGuard'
 import '../security/localTrackIdentityGuard'
 import { app } from 'electron'
 import { join, dirname } from 'path'
