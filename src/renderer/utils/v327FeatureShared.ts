@@ -57,18 +57,18 @@ export const deepMerge = (base: JsonRecord, patch: JsonRecord, depth = 0): JsonR
 
   Object.entries(patch).forEach(([key, value]) => {
     if (UNSAFE_JSON_KEYS.has(key)) return
-    if (
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      result[key] &&
-      typeof result[key] === 'object' &&
-      !Array.isArray(result[key])
-    ) {
-      result[key] = deepMerge(result[key], value, depth + 1)
-    } else {
-      result[key] = cloneJson(value)
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const currentValue = result[key]
+      const safeBase =
+        currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue)
+          ? currentValue
+          : {}
+      result[key] = deepMerge(safeBase, value, depth + 1)
+      return
     }
+
+    result[key] = cloneJson(value)
   })
 
   return result
