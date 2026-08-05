@@ -22,6 +22,7 @@ import {
 const INSTALL_KEY = '__VUTRON_RUNTIME_SECURITY_INSTALLED__'
 const ENCRYPTED_PREFIX = 'vutron-secure:v1:'
 const LOCAL_TRACK_DIRECTORY_CACHE_MS = 5000
+const MAX_LOCAL_JSON_BYTES = 2 * 1024 * 1024
 const TRUSTED_ORIGINS = new Set([
   'http://localhost:41830',
   'http://127.0.0.1:41830',
@@ -49,6 +50,34 @@ const KNOWN_ATOM_HOSTS = new Set([
   'local-resource',
   'get-online-music'
 ])
+const AUDIO_FILE_EXTENSIONS = new Set([
+  '.mp3',
+  '.aiff',
+  '.aif',
+  '.flac',
+  '.alac',
+  '.m4a',
+  '.aac',
+  '.wav',
+  '.opus',
+  '.ogg',
+  '.mp4'
+])
+const MEDIA_FILE_EXTENSIONS = new Set([
+  ...AUDIO_FILE_EXTENSIONS,
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.bmp',
+  '.avif',
+  '.webm',
+  '.mov',
+  '.m4v',
+  '.mkv'
+])
+const JSON_FILE_EXTENSIONS = new Set(['.json'])
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
@@ -143,6 +172,26 @@ const mapProtectedValue = (
   return value
 }
 
+const containsUnencryptedSensitiveValue = (keyPath: string, value: unknown): boolean => {
+  if (isSensitivePath(keyPath)) {
+    return typeof value === 'string' && Boolean(value) && !value.startsWith(ENCRYPTED_PREFIX)
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item, index) =>
+      containsUnencryptedSensitiveValue(`${keyPath}.${index}`, item)
+    )
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value).some(([key, item]) =>
+      containsUnencryptedSensitiveValue(keyPath ? `${keyPath}.${key}` : key, item)
+    )
+  }
+
+  return false
+}
+
 const installCredentialProtection = (): void => {
   const prototype = Store.prototype as any
   if (prototype.__vutronCredentialProtectionInstalled) return
@@ -155,14 +204,8 @@ const installCredentialProtection = (): void => {
     const stored = originalGet.call(this, key, defaultValue)
     const decrypted = mapProtectedValue(key, stored, 'decrypt')
 
-    if (
-      isSensitivePath(key) &&
-      typeof stored === 'string' &&
-      stored &&
-      !stored.startsWith(ENCRYPTED_PREFIX) &&
-      canUseEncryption()
-    ) {
-      originalSet.call(this, key, encryptSecret(stored))
+    if (canUseEncryption() && containsUnencryptedSensitiveValue(key, stored)) {
+      originalSet.call(this, key, mapProtectedValue(key, stored, 'encrypt'))
     }
 
     return decrypted
@@ -187,6 +230,12 @@ const getStoredStreamPassword = async (platform: string): Promise<string> => {
   if (!['navidrome', 'emby', 'jellyfin'].includes(platform)) return ''
   const { default: store } = await import('../store')
   return (store.get(`accounts.${platform}.password`) as string) || ''
+}
+
+const clearStoredStreamPassword = async (platform: string): Promise<void> => {
+  if (!['navidrome', 'emby', 'jellyfin'].includes(platform)) return
+  const { default: store } = await import('../store')
+  store.set(`accounts.${platform}.password`, '')
 }
 
 const prepareIpcArguments = async (channel: string, args: unknown[]): Promise<unknown[]> => {
@@ -222,8 +271,23 @@ const sanitizeIpcResult = (channel: string, result: unknown): unknown => {
   return {
     ...account,
     password: '',
-    hasPassword: Boolean(account.password)
+    hasPassword: Boolean(account.hasPassword ?? account.password)
   }
+}
+
+const finalizeIpcInvocation = async (
+  channel: string,
+  args: unknown[],
+  result: unknown
+): Promise<unknown> => {
+  if (channel === 'logoutStreamMusic') {
+    const data = args[0]
+    const platform =
+      data && typeof data === 'object' ? String((data as Record<string, unknown>).platform || '') : ''
+    await clearStoredStreamPassword(platform)
+  }
+
+  return sanitizeIpcResult(channel, result)
 }
 
 const installIpcGuards = (): void => {
@@ -244,6 +308,20 @@ const installIpcGuards = (): void => {
 
       try {
         const nextArgs = await prepareIpcArguments(channel, args)
+        const settingsBatch = nextArgs[0]
+        if (
+          channel === 'setStoreSettings' &&
+          settingsBatch &&
+          typeof settingsBatch === 'object' &&
+          !Array.isArray(settingsBatch) &&
+          Object.keys(settingsBatch).length > 1
+        ) {
+          for (const [key, value] of Object.entries(settingsBatch)) {
+            await listener(event, { [key]: value }, ...nextArgs.slice(1))
+          }
+          return
+        }
+
         return await listener(event, ...nextArgs)
       } catch (error) {
         reportBlockedAction(`拒绝 IPC 调用: ${channel}`, error)
@@ -262,7 +340,7 @@ const installIpcGuards = (): void => {
       }
       const nextArgs = await prepareIpcArguments(channel, args)
       const result = await listener(event, ...nextArgs)
-      return sanitizeIpcResult(channel, result)
+      return await finalizeIpcInvocation(channel, nextArgs, result)
     })
 }
 
@@ -330,23 +408,34 @@ const getLocalTrackDirectories = async (): Promise<string[]> => {
 
 const getStaticAllowedRoots = async (): Promise<string[]> => {
   const candidates = [
-    app.getPath('userData'),
     app.getPath('music'),
     app.getAppPath(),
-    process.resourcesPath
+    process.resourcesPath,
+    path.join(app.getPath('userData'), 'audioCache')
   ]
   const roots = await Promise.all(candidates.map(realpathIfPresent))
   return roots.filter((item): item is string => Boolean(item))
 }
 
-const isAllowedLocalReadPath = async (value: string): Promise<boolean> => {
+const isAllowedLocalReadPath = async (
+  value: string,
+  allowedExtensions: ReadonlySet<string>,
+  maxBytes = Number.POSITIVE_INFINITY
+): Promise<boolean> => {
   let candidate = value
   if (process.platform === 'win32' && candidate.match(/^\/[A-Za-z]:/)) {
     candidate = candidate.slice(1)
   }
 
   const resolved = await realpathIfPresent(candidate)
-  if (!resolved) return false
+  if (!resolved || !allowedExtensions.has(path.extname(resolved).toLowerCase())) return false
+
+  try {
+    const stat = await fs.promises.stat(resolved)
+    if (!stat.isFile() || stat.size > maxBytes) return false
+  } catch {
+    return false
+  }
 
   const roots = [...(await getStaticAllowedRoots()), ...(await getLocalTrackDirectories())]
   return roots.some((root) => isPathInside(resolved, root))
@@ -381,25 +470,29 @@ const validateAtomRequest = async (requestUrl: string): Promise<Response | null>
 
   if (request.host === 'get-pic-path') {
     const filePath = decodeURIComponent(request.pathname.slice(1))
-    if (!(await isAllowedLocalReadPath(filePath))) {
+    if (!(await isAllowedLocalReadPath(filePath, MEDIA_FILE_EXTENSIONS))) {
       return new Response('Forbidden', { status: 403 })
     }
   }
 
   if (request.host === 'local-resource') {
     const filePath = decodeURIComponent(request.pathname.slice(1))
-    if (!(await isAllowedLocalReadPath(filePath))) {
+    if (!(await isAllowedLocalReadPath(filePath, MEDIA_FILE_EXTENSIONS))) {
       return new Response('Forbidden', { status: 403 })
     }
   }
 
   if (request.host === 'local-asset') {
     const type = request.searchParams.get('type')
-    if (type === 'stream' || type === 'json') {
-      const filePath = decodeURIComponent(request.searchParams.get('path') || '')
-      if (!(await isAllowedLocalReadPath(filePath))) {
-        return new Response('Forbidden', { status: 403 })
-      }
+    const filePath = decodeURIComponent(request.searchParams.get('path') || '')
+    if (type === 'stream' && !(await isAllowedLocalReadPath(filePath, AUDIO_FILE_EXTENSIONS))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    if (
+      type === 'json' &&
+      !(await isAllowedLocalReadPath(filePath, JSON_FILE_EXTENSIONS, MAX_LOCAL_JSON_BYTES))
+    ) {
+      return new Response('Forbidden', { status: 403 })
     }
   }
 
