@@ -3,8 +3,38 @@ import { assertPublicRemoteUrl, isRedirectStatus } from './remoteUrl'
 
 const INSTALL_KEY = '__vutronNetworkFetchGuardInstalled'
 const MAX_REDIRECTS = 5
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
 type GuardedNet = typeof net & Record<string, any>
+
+const enforceResponseSizeLimit = async (response: Response): Promise<Response> => {
+  const declaredLength = Number(response.headers.get('content-length') || 0)
+  if (declaredLength > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel().catch(() => undefined)
+    throw new Error('远程响应超过允许大小')
+  }
+  if (!response.body) return response
+
+  let receivedBytes = 0
+  const limitedBody = response.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        receivedBytes += chunk.byteLength
+        if (receivedBytes > MAX_RESPONSE_BYTES) {
+          controller.error(new Error('远程响应超过允许大小'))
+          return
+        }
+        controller.enqueue(chunk)
+      }
+    })
+  )
+
+  return new Response(limitedBody, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
+  })
+}
 
 const installNetworkFetchGuard = (): void => {
   const guardedNet = net as GuardedNet
@@ -29,7 +59,7 @@ const installNetworkFetchGuard = (): void => {
 
     for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
       const response = await originalFetch(currentUrl.toString(), requestInit)
-      if (!isRedirectStatus(response.status)) return response
+      if (!isRedirectStatus(response.status)) return await enforceResponseSizeLimit(response)
 
       if (redirectCount === MAX_REDIRECTS) {
         await response.body?.cancel().catch(() => undefined)
@@ -37,7 +67,7 @@ const installNetworkFetchGuard = (): void => {
       }
 
       const location = response.headers.get('location')
-      if (!location) return response
+      if (!location) return await enforceResponseSizeLimit(response)
 
       const nextUrl = await assertPublicRemoteUrl(new URL(location, currentUrl))
       const method = String(requestInit.method || 'GET').toUpperCase()
