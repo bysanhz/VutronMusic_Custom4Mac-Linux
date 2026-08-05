@@ -45,6 +45,34 @@
       "rules": {
         "@typescript-eslint/no-unused-vars": "off"
       }
+    },
+    {
+      "files": ["src/renderer/utils/osdWindowScaleSettings.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          {
+            "args": "none",
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^(?:_|WindowScaleBaseline|WindowScaleTarget)$",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/views/LoginAccount.vue"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          {
+            "args": "none",
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^(?:_|modeList)$",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ]
+      }
     }
   ]
 }
