@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="rootRef"
     class="compact-cover-controls"
     :class="{ 'controls-visible': isHover }"
     @mouseenter="isHover = true"
@@ -69,12 +70,14 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 
 const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
+const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 
+const rootRef = ref<HTMLElement | null>(null)
 const isHover = ref(false)
 const isPlaying = ref(false)
 const isLiked = ref(false)
@@ -84,6 +87,44 @@ const heartModeTitle = ref('根据我喜欢的音乐开启心动模式')
 let heartModeChannel: BroadcastChannel | null = null
 let heartModeRequestId = ''
 let heartModeTimeout: number | null = null
+let hitRegionObserver: ResizeObserver | null = null
+let hitRegionFrame: number | null = null
+
+/**
+ * 把左侧封面控制区转换为相对于桌面歌词视口的归一化矩形并上报主进程。
+ * 主进程据此在锁定时只让该区域接收鼠标，歌词区域保持穿透。
+ */
+const reportControlHitRegion = () => {
+  const element = rootRef.value
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const rect = element?.getBoundingClientRect()
+  const visible = Boolean(
+    element &&
+      rect &&
+      rect.width > 0 &&
+      rect.height > 0 &&
+      viewportWidth > 0 &&
+      viewportHeight > 0 &&
+      window.getComputedStyle(element).display !== 'none'
+  )
+
+  window.mainApi?.send('osd-control-hit-region', {
+    enabled: visible,
+    x: visible && rect ? rect.left / viewportWidth : 0,
+    y: visible && rect ? rect.top / viewportHeight : 0,
+    width: visible && rect ? rect.width / viewportWidth : 0,
+    height: visible && rect ? rect.height / viewportHeight : 0
+  })
+}
+
+const scheduleControlHitRegionReport = () => {
+  if (hitRegionFrame !== null) window.cancelAnimationFrame(hitRegionFrame)
+  hitRegionFrame = window.requestAnimationFrame(() => {
+    hitRegionFrame = null
+    reportControlHitRegion()
+  })
+}
 
 /**
  * 从共享播放器快照读取封面与播放状态。
@@ -175,6 +216,7 @@ const handleControlMessage = (event: MessageEvent) => {
 
 const handleStorage = (event: StorageEvent) => {
   if (event.key === 'player') updatePlayerSnapshot()
+  if (event.key === COVER_CONTROLS_STORAGE_KEY) scheduleControlHitRegionReport()
 }
 
 const handleOsdStatusMessage = (event: MessageEvent) => {
@@ -191,24 +233,44 @@ const handlePlayingStatus = (_event: unknown, value: boolean) => {
   isPlaying.value = value
 }
 
-onMounted(() => {
+onMounted(async () => {
   updatePlayerSnapshot()
   heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
   heartModeChannel.onmessage = handleControlMessage
   heartModeChannel.postMessage({ type: 'request-player-snapshot', timestamp: Date.now() })
   window.addEventListener('storage', handleStorage)
   window.addEventListener('message', handleOsdStatusMessage)
+  window.addEventListener('resize', scheduleControlHitRegionReport)
   window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
+
+  await nextTick()
+  if (rootRef.value) {
+    hitRegionObserver = new ResizeObserver(scheduleControlHitRegionReport)
+    hitRegionObserver.observe(rootRef.value)
+  }
+  scheduleControlHitRegionReport()
 })
 
 onBeforeUnmount(() => {
   if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
+  if (hitRegionFrame !== null) window.cancelAnimationFrame(hitRegionFrame)
   heartModeTimeout = null
+  hitRegionFrame = null
+  hitRegionObserver?.disconnect()
+  hitRegionObserver = null
   heartModeChannel?.close()
   heartModeChannel = null
   window.removeEventListener('storage', handleStorage)
   window.removeEventListener('message', handleOsdStatusMessage)
+  window.removeEventListener('resize', scheduleControlHitRegionReport)
   window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
+  window.mainApi?.send('osd-control-hit-region', {
+    enabled: false,
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  })
 })
 </script>
 
