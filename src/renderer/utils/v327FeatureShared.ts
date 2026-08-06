@@ -139,6 +139,84 @@ export const injectV327FeatureStyle = (): void => {
       font-weight: 600;
     }
 
+    .vutronmusic-osd-preset-transfer-preview {
+      display: grid;
+      flex-basis: 100%;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vutronmusic-osd-preset-preview {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      min-height: 58px;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      background-image:
+        linear-gradient(45deg, rgba(127, 127, 127, 0.08) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(127, 127, 127, 0.08) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(127, 127, 127, 0.08) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(127, 127, 127, 0.08) 75%);
+      background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+      background-size: 12px 12px;
+    }
+
+    .vutronmusic-osd-preset-preview.has-cover {
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .vutronmusic-osd-preset-preview-cover {
+      width: 38px;
+      height: 38px;
+      border-radius: 7px;
+      background:
+        radial-gradient(circle at 58% 40%, rgba(255, 255, 255, 0.78) 0 9%, transparent 10%),
+        linear-gradient(135deg, var(--color-primary), rgba(40, 40, 40, 0.82));
+      box-shadow: 0 2px 7px rgba(0, 0, 0, 0.18);
+    }
+
+    .vutronmusic-osd-preset-preview-lyrics {
+      display: grid;
+      min-width: 0;
+      gap: 3px;
+    }
+
+    .vutronmusic-osd-preset-preview-lyrics strong,
+    .vutronmusic-osd-preset-preview-lyrics small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .vutronmusic-osd-preset-preview-lyrics strong {
+      font-size: 13px;
+    }
+
+    .vutronmusic-osd-preset-preview-lyrics small {
+      font-size: 10px;
+    }
+
+    .vutronmusic-osd-preset-preview.single-line {
+      min-height: 46px;
+    }
+
+    .vutronmusic-osd-preset-transfer-actions {
+      display: grid;
+      gap: 6px;
+    }
+
+    .vutronmusic-osd-preset-transfer-actions button {
+      min-height: 28px;
+      padding: 3px 9px;
+      border-radius: 7px;
+    }
+
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
       color: var(--color-primary);
       background: color-mix(in srgb, var(--color-primary), transparent 88%);
@@ -160,6 +238,14 @@ export const injectV327FeatureStyle = (): void => {
       .vutronmusic-osd-preset-draft-row {
         justify-content: flex-start;
         text-align: left;
+      }
+
+      .vutronmusic-osd-preset-transfer-preview {
+        grid-template-columns: 1fr;
+      }
+
+      .vutronmusic-osd-preset-transfer-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   `
