@@ -65,8 +65,8 @@ body {
  * 紧凑桌面歌词左侧封面与控制区。
  *
  * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
- * is-lock 绑定。锁定后控件可以继续显示，但由于窗口进入鼠标穿透状态，
- * 需要先解锁才能操作按钮。
+ * is-lock 绑定。锁定后由主进程按鼠标位置对窗口执行局部穿透：左侧控件区
+ * 恢复窗口交互，歌词区域继续穿透。
  */
 #main.compact-mode .compact-osd-layout {
   column-gap: 8px !important;
@@ -81,18 +81,14 @@ body {
 #main.compact-mode .compact-cover-controls {
   position: relative;
   z-index: 10004;
-  pointer-events: none;
+  pointer-events: auto;
   transform: translateX(4px);
 }
 
-/* 未锁定时恢复左侧按钮交互，并缩小边缘拉伸热区。 */
+/* 未锁定时缩小边缘拉伸热区。 */
 #main.compact-mode:not(.is-lock) {
   --resize-edge-size: 2px;
   --resize-corner-size: 7px;
-
-  .compact-cover-controls {
-    pointer-events: auto;
-  }
 }
 
 /*
