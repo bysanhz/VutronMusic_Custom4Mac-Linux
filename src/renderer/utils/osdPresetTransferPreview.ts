@@ -270,6 +270,10 @@ const installTransferAndPreview = (): boolean => {
   fileInput.hidden = true
   actionRow.append(exportButton, importButton, fileInput)
   wrapper.append(preview, actionRow)
+
+  const presetActionButtons = [...controls.children].filter(
+    (element): element is HTMLButtonElement => element instanceof HTMLButtonElement
+  )
   controls.prepend(wrapper)
 
   let selectedPreviewSettings: PresetSettings | null = null
@@ -306,14 +310,31 @@ const installTransferAndPreview = (): boolean => {
     renderPreview()
   }
 
+  const refreshPreviewAfterPresetAction = () => {
+    window.setTimeout(showSelectedPresetPreview, 0)
+  }
+
   select.addEventListener('change', showSelectedPresetPreview)
+  presetActionButtons.forEach((button) => {
+    button.addEventListener('click', refreshPreviewAfterPresetAction)
+  })
 
   const handleStorageChange = (event: StorageEvent) => {
+    if (event.key === PRESETS_STORAGE_KEY || event.key === BUILTIN_OVERRIDES_STORAGE_KEY) {
+      showSelectedPresetPreview()
+      return
+    }
+
     if (event.key === OSD_STORAGE_KEY || event.key === COVER_CONTROLS_STORAGE_KEY) {
       showCurrentSettingsPreview()
     }
   }
   window.addEventListener('storage', handleStorageChange)
+
+  const handlePresetCommitted = () => {
+    showSelectedPresetPreview()
+  }
+  window.addEventListener(PRESET_COMMITTED_EVENT, handlePresetCommitted)
 
   exportButton.addEventListener('click', () => {
     const name = nameInput.value.trim() || select.selectedOptions[0]?.textContent || 'preset'
@@ -392,7 +413,11 @@ const installTransferAndPreview = (): boolean => {
       disposed = true
       window.clearInterval(previewTimer)
       select.removeEventListener('change', showSelectedPresetPreview)
+      presetActionButtons.forEach((button) => {
+        button.removeEventListener('click', refreshPreviewAfterPresetAction)
+      })
       window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener(PRESET_COMMITTED_EVENT, handlePresetCommitted)
       return
     }
     renderPreview()
