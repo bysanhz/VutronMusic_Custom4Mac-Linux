@@ -64,6 +64,13 @@ const setIgnoreMouse = (state: OsdWindowState, ignore: boolean): void => {
   }
 }
 
+const invalidateMouseState = (): void => {
+  for (const state of states.values()) {
+    state.ignoringMouse = null
+  }
+  setTimeout(updateMousePassthrough, 0)
+}
+
 const isCursorInsideRegion = (state: OsdWindowState): boolean => {
   const region = state.region
   if (!region?.enabled || state.window.isDestroyed() || !state.window.isVisible()) return false
@@ -78,7 +85,7 @@ const isCursorInsideRegion = (state: OsdWindowState): boolean => {
   return cursor.x >= left && cursor.x <= right && cursor.y >= top && cursor.y <= bottom
 }
 
-const updateMousePassthrough = (): void => {
+function updateMousePassthrough(): void {
   for (const [webContentsId, state] of states) {
     if (state.window.isDestroyed()) {
       states.delete(webContentsId)
@@ -122,6 +129,7 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
   if (existing) {
     existing.region = region
     existing.window = window
+    existing.ignoringMouse = null
   } else {
     states.set(event.sender.id, {
       window,
@@ -148,9 +156,14 @@ ipcMain.on('updateOsdState', (_event, data: unknown) => {
   if (typeof value.isLock !== 'boolean') return
 
   globalLocked = value.isLock
-  // 原有 OSD 逻辑也会在同一 IPC 中调用 setIgnoreMouseEvents；放到下一个任务中覆盖为局部策略。
-  setTimeout(updateMousePassthrough, 0)
+  // 原有 OSD 逻辑也会在同一 IPC 中调用 setIgnoreMouseEvents；清除缓存后再覆盖为局部策略。
+  invalidateMouseState()
 })
+
+// 这些旧 IPC 会直接改写 BrowserWindow 的穿透状态；监听后清除缓存，避免局部策略被覆盖。
+ipcMain.on('set-ignore-mouse', invalidateMouseState)
+ipcMain.on('mouseleave', invalidateMouseState)
+ipcMain.on('windowMouseleave', invalidateMouseState)
 
 app.on('before-quit', () => {
   if (pollTimer) clearInterval(pollTimer)
