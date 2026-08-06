@@ -107,7 +107,10 @@ export default defineConfig(({ mode }) => {
     define: {
       __VUE_I18N_FULL_INSTALL__: true,
       __VUE_I18N_LEGACY_API__: false,
-      __INTLIFY_PROD_DEVTOOLS__: false
+      __INTLIFY_PROD_DEVTOOLS__: false,
+      // Vue I18n 9.3+ 的 JIT AST 模式不使用 new Function，可在严格 CSP 下运行。
+      __INTLIFY_JIT_COMPILATION__: true,
+      __INTLIFY_DROP_MESSAGE_COMPILER__: false
     },
     css: {
       devSourcemap: isDevEnv,
