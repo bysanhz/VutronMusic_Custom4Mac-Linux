@@ -31,21 +31,24 @@ window.addEventListener('unhandledrejection', (event) => pushError(event.reason)
 const TEXTS = {
   zh: {
     title: '一键诊断快照',
-    description: '复制版本、系统、播放状态、桌面歌词、定时器和最近错误；不会包含密码、Cookie 或完整本地路径',
+    description:
+      '复制版本、系统、播放状态、桌面歌词、定时器和最近错误；不会包含密码、Cookie 或完整本地路径',
     copy: '复制诊断快照',
     copied: '诊断信息已复制到剪贴板',
     failed: '生成诊断信息失败'
   },
   zht: {
     title: '一鍵診斷快照',
-    description: '複製版本、系統、播放狀態、桌面歌詞、定時器與最近錯誤；不包含密碼、Cookie 或完整本機路徑',
+    description:
+      '複製版本、系統、播放狀態、桌面歌詞、定時器與最近錯誤；不包含密碼、Cookie 或完整本機路徑',
     copy: '複製診斷快照',
     copied: '診斷資訊已複製到剪貼簿',
     failed: '產生診斷資訊失敗'
   },
   en: {
     title: 'One-click Diagnostics',
-    description: 'Copies version, system, playback, desktop lyric, timer and recent error data without passwords, cookies or full local paths.',
+    description:
+      'Copies version, system, playback, desktop lyric, timer and recent error data without passwords, cookies or full local paths.',
     copy: 'Copy diagnostics',
     copied: 'Diagnostics copied to the clipboard',
     failed: 'Could not generate diagnostics'
@@ -58,13 +61,20 @@ const redactPath = (value: unknown): string => {
   return segments.length ? `…/${segments.at(-1)}` : ''
 }
 
+const readJsonArray = (key: string): unknown[] => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
 const collectRendererDiagnostics = () => {
   const player = window.vutronmusic || ({} as NonNullable<typeof window.vutronmusic>)
   const osd = readJsonRecord('osdLyric')
   const settings = readJsonRecord('settings')
-  const queueSnapshots = JSON.parse(
-    localStorage.getItem('vutronmusic-queue-snapshots-v1') || '[]'
-  )
+  const queueSnapshots = readJsonArray('vutronmusic-queue-snapshots-v1')
 
   return {
     capturedAt: new Date().toISOString(),
@@ -103,7 +113,7 @@ const collectRendererDiagnostics = () => {
         : 0,
       cachePath: redactPath(settings?.autoCacheTrack?.cachePath)
     },
-    queueSnapshotCount: Array.isArray(queueSnapshots) ? queueSnapshots.length : 0,
+    queueSnapshotCount: queueSnapshots.length,
     recentErrors
   }
 }
