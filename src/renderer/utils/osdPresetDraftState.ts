@@ -10,6 +10,7 @@ const PRESET_CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const OSD_STORAGE_KEY = 'osdLyric'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const DRAFT_ROW_CLASS = 'vutronmusic-osd-preset-draft-row'
+const PRESET_COMMITTED_EVENT = 'vutronmusic-osd-preset-committed'
 
 const TEXTS = {
   zh: {
@@ -123,6 +124,9 @@ const installDraftState = (): boolean => {
     button.addEventListener('click', () => commitBaseline())
   })
 
+  const handleExternalCommit = () => commitBaseline()
+  window.addEventListener(PRESET_COMMITTED_EVENT, handleExternalCommit)
+
   undoButton.addEventListener('click', () => {
     applySnapshot(baseline)
     lastSerialized = ''
@@ -133,6 +137,7 @@ const installDraftState = (): boolean => {
   const pollTimer = window.setInterval(() => {
     if (disposed || !control.isConnected) {
       window.clearInterval(pollTimer)
+      window.removeEventListener(PRESET_COMMITTED_EVENT, handleExternalCommit)
       disposed = true
       return
     }
