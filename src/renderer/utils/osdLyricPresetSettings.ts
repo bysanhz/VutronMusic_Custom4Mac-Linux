@@ -42,29 +42,32 @@ type CommonPresetSettings = Pick<
 const CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const OSD_STORAGE_KEY = 'osdLyric'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
+const BUILTIN_OVERRIDES_STORAGE_KEY = 'vutronmusic-osd-builtin-preset-overrides'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const MAX_USER_PRESETS = 50
 
 const TEXTS = {
   zh: {
     title: '桌面歌词样式预设',
-    description: '选择预设后可继续修改当前设置；自定义预设可直接更新，内置预设会另存为可编辑副本',
+    description: '内置与自定义预设都可直接覆盖保存；内置预设可随时恢复初始样式',
     apply: '应用',
     saveCopy: '另存为',
     updateSelected: '更新所选',
     delete: '删除',
+    restoreDefault: '恢复默认',
     namePlaceholder: '输入预设名称',
     nameRequired: '请先输入预设名称',
-    saved: '已保存为新的可编辑预设',
-    updated: '所选预设已更新',
+    saved: '已另存为新的自定义预设',
+    updated: '所选预设已覆盖更新',
+    restored: '内置预设已恢复默认并应用',
     duplicateName: '该名称已被其他预设使用',
     saveFailed: '保存失败，请检查本地存储空间',
     limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
-    applied: '预设已应用，可继续修改设置',
+    applied: '预设已应用，可继续修改后覆盖保存',
     deleted: '预设已删除',
-    builtinHint: '内置预设不会被覆盖；修改后点击“另存为”创建可编辑副本',
+    builtinHint: '修改字体、颜色、排版等设置后，点击“更新所选”即可覆盖这个内置预设',
     customHint: '修改其他桌面歌词设置后，点击“更新所选”即可覆盖当前预设',
-    copySuffix: '（自定义）',
+    copySuffix: '副本',
     minimal: '极简透明双行',
     centered: '大字居中',
     left: '左对齐单行',
@@ -72,23 +75,25 @@ const TEXTS = {
   },
   zht: {
     title: '桌面歌詞樣式預設',
-    description: '選擇預設後可繼續修改目前設定；自訂預設可直接更新，內建預設會另存為可編輯副本',
+    description: '內建與自訂預設都可直接覆蓋儲存；內建預設可隨時恢復初始樣式',
     apply: '套用',
     saveCopy: '另存為',
     updateSelected: '更新所選',
     delete: '刪除',
+    restoreDefault: '恢復預設',
     namePlaceholder: '輸入預設名稱',
     nameRequired: '請先輸入預設名稱',
-    saved: '已儲存為新的可編輯預設',
-    updated: '所選預設已更新',
+    saved: '已另存為新的自訂預設',
+    updated: '所選預設已覆蓋更新',
+    restored: '內建預設已恢復並套用',
     duplicateName: '此名稱已被其他預設使用',
     saveFailed: '儲存失敗，請檢查本機儲存空間',
     limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
-    applied: '預設已套用，可繼續修改設定',
+    applied: '預設已套用，可繼續修改後覆蓋儲存',
     deleted: '預設已刪除',
-    builtinHint: '內建預設不會被覆蓋；修改後點擊「另存為」建立可編輯副本',
+    builtinHint: '修改字體、顏色、排版等設定後，點擊「更新所選」即可覆蓋這個內建預設',
     customHint: '修改其他桌面歌詞設定後，點擊「更新所選」即可覆蓋目前預設',
-    copySuffix: '（自訂）',
+    copySuffix: '副本',
     minimal: '極簡透明雙行',
     centered: '大字置中',
     left: '靠左單行',
@@ -96,23 +101,25 @@ const TEXTS = {
   },
   en: {
     title: 'Desktop Lyric Presets',
-    description: 'Apply a preset, keep editing the current settings, then update a custom preset or save an editable copy of a built-in preset.',
+    description: 'Built-in and custom presets can both be overwritten; built-in presets can be restored at any time.',
     apply: 'Apply',
     saveCopy: 'Save Copy',
     updateSelected: 'Update Selected',
     delete: 'Delete',
+    restoreDefault: 'Restore Default',
     namePlaceholder: 'Preset name',
     nameRequired: 'Enter a preset name first.',
-    saved: 'Saved as a new editable preset',
-    updated: 'Selected preset updated',
+    saved: 'Saved as a new custom preset',
+    updated: 'Selected preset overwritten',
+    restored: 'Built-in preset restored and applied',
     duplicateName: 'Another preset already uses this name.',
     saveFailed: 'Could not save the preset. Check local storage space.',
     limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
-    applied: 'Preset applied. You can continue editing the settings.',
+    applied: 'Preset applied. Continue editing, then overwrite it when ready.',
     deleted: 'Preset deleted',
-    builtinHint: 'Built-in presets stay unchanged. Edit the settings and choose “Save Copy”.',
+    builtinHint: 'Edit font, colors, layout or other settings, then choose “Update Selected” to overwrite this built-in preset.',
     customHint: 'Edit the desktop lyric settings, then choose “Update Selected” to overwrite this preset.',
-    copySuffix: ' (Custom)',
+    copySuffix: 'Copy',
     minimal: 'Minimal Transparent Two-line',
     centered: 'Large Centered',
     left: 'Left-aligned Single-line',
@@ -120,7 +127,7 @@ const TEXTS = {
   }
 } as const
 
-const getBuiltInPresets = (): OsdPreset[] => {
+const getDefaultBuiltInPresets = (): OsdPreset[] => {
   const text = TEXTS[resolveFeatureLanguage()]
   const common: CommonPresetSettings = {
     isWordByWord: true,
@@ -217,36 +224,58 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
   }
 }
 
-const loadUserPresets = (): OsdPreset[] => {
+const loadPresetArray = (storageKey: string): OsdPreset[] => {
   try {
-    const value = JSON.parse(localStorage.getItem(PRESETS_STORAGE_KEY) || '[]')
+    const value = JSON.parse(localStorage.getItem(storageKey) || '[]')
     return Array.isArray(value)
       ? value
           .map(normalizePreset)
           .filter((item): item is OsdPreset => item !== null && Boolean(item.name))
-          .slice(-MAX_USER_PRESETS)
       : []
   } catch {
     return []
   }
 }
 
-const saveUserPresets = (presets: OsdPreset[]): boolean => {
+const savePresetArray = (storageKey: string, presets: OsdPreset[]): boolean => {
   try {
     const normalized = presets
       .map(normalizePreset)
       .filter((item): item is OsdPreset => item !== null && Boolean(item.name))
-      .slice(-MAX_USER_PRESETS)
     const serialized = JSON.stringify(normalized)
-    writeStorageValue(PRESETS_STORAGE_KEY, serialized)
-    return localStorage.getItem(PRESETS_STORAGE_KEY) === serialized
+    writeStorageValue(storageKey, serialized)
+    return localStorage.getItem(storageKey) === serialized
   } catch (error) {
     console.warn('[OSD Presets] 保存预设失败：', error)
     return false
   }
 }
 
+const loadUserPresets = (): OsdPreset[] =>
+  loadPresetArray(PRESETS_STORAGE_KEY)
+    .filter((preset) => preset.id.startsWith('user-'))
+    .slice(-MAX_USER_PRESETS)
+
+const saveUserPresets = (presets: OsdPreset[]): boolean =>
+  savePresetArray(PRESETS_STORAGE_KEY, presets.slice(-MAX_USER_PRESETS))
+
+const loadBuiltInOverrides = (): OsdPreset[] => {
+  const allowedIds = new Set(getDefaultBuiltInPresets().map((preset) => preset.id))
+  return loadPresetArray(BUILTIN_OVERRIDES_STORAGE_KEY).filter((preset) => allowedIds.has(preset.id))
+}
+
+const saveBuiltInOverrides = (presets: OsdPreset[]): boolean =>
+  savePresetArray(BUILTIN_OVERRIDES_STORAGE_KEY, presets)
+
+const getBuiltInPresets = (): OsdPreset[] => {
+  const overrides = new Map(loadBuiltInOverrides().map((preset) => [preset.id, preset]))
+  return getDefaultBuiltInPresets().map((preset) => overrides.get(preset.id) || preset)
+}
+
 const getAllPresets = (): OsdPreset[] => [...getBuiltInPresets(), ...loadUserPresets()]
+
+const isBuiltInPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>
+  Boolean(preset?.id.startsWith('builtin-'))
 
 const isUserPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>
   Boolean(preset?.id.startsWith('user-'))
@@ -303,6 +332,25 @@ const refreshSelect = (select: HTMLSelectElement, preferredId?: string): void =>
   }
 }
 
+const createUniqueCopyName = (baseName: string, excludeId?: string): string => {
+  const text = TEXTS[resolveFeatureLanguage()]
+  const usedNames = new Set(
+    getAllPresets()
+      .filter((preset) => preset.id !== excludeId)
+      .map((preset) => preset.name.toLocaleLowerCase())
+  )
+
+  const initial = `${baseName} ${text.copySuffix}`.trim()
+  if (!usedNames.has(initial.toLocaleLowerCase())) return initial
+
+  for (let index = 2; index < 1000; index += 1) {
+    const candidate = `${baseName} ${text.copySuffix} ${index}`.trim()
+    if (!usedNames.has(candidate.toLocaleLowerCase())) return candidate
+  }
+
+  return `${baseName} ${Date.now()}`
+}
+
 const ensureControl = (): boolean => {
   const lockItem = document.getElementById('isLock')?.closest<HTMLElement>('.item')
   if (!lockItem?.parentElement) return false
@@ -314,8 +362,9 @@ const ensureControl = (): boolean => {
   const select = document.createElement('select')
   const nameInput = document.createElement('input')
   const applyButton = document.createElement('button')
-  const saveButton = document.createElement('button')
-  const deleteButton = document.createElement('button')
+  const updateButton = document.createElement('button')
+  const copyButton = document.createElement('button')
+  const removeButton = document.createElement('button')
   const status = document.createElement('div')
 
   nameInput.type = 'text'
@@ -325,10 +374,12 @@ const ensureControl = (): boolean => {
   nameInput.setAttribute('aria-label', text.namePlaceholder)
 
   applyButton.type = 'button'
-  saveButton.type = 'button'
-  deleteButton.type = 'button'
+  updateButton.type = 'button'
+  copyButton.type = 'button'
+  removeButton.type = 'button'
   applyButton.textContent = text.apply
-  deleteButton.textContent = text.delete
+  updateButton.textContent = text.updateSelected
+  copyButton.textContent = text.saveCopy
   status.className = 'vutronmusic-v327-status'
   status.setAttribute('aria-live', 'polite')
   refreshSelect(select)
@@ -338,21 +389,22 @@ const ensureControl = (): boolean => {
 
   const syncEditorWithSelection = (showHint = true) => {
     const selected = getSelectedPreset()
-    const editable = isUserPreset(selected)
+    if (!selected) return
 
-    if (editable && selected) {
-      nameInput.value = selected.name
-      saveButton.textContent = text.updateSelected
-      deleteButton.disabled = false
-      if (showHint) status.textContent = text.customHint
-      return
+    nameInput.value = selected.name
+    removeButton.textContent = isBuiltInPreset(selected) ? text.restoreDefault : text.delete
+    removeButton.disabled = false
+    if (showHint) {
+      status.textContent = isBuiltInPreset(selected) ? text.builtinHint : text.customHint
     }
-
-    nameInput.value = selected ? `${selected.name}${text.copySuffix}` : ''
-    saveButton.textContent = text.saveCopy
-    deleteButton.disabled = true
-    if (showHint) status.textContent = text.builtinHint
   }
+
+  const hasNameConflict = (name: string, selectedId: string): boolean =>
+    getAllPresets().some(
+      (preset) =>
+        preset.id !== selectedId &&
+        preset.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0
+    )
 
   select.addEventListener('change', () => {
     syncEditorWithSelection()
@@ -372,71 +424,121 @@ const ensureControl = (): boolean => {
     }
   })
 
-  const saveCurrentPreset = () => {
+  const updateSelectedPreset = () => {
     const selected = getSelectedPreset()
-    const existing = loadUserPresets()
-    const selectedIndex = selected ? existing.findIndex((preset) => preset.id === selected.id) : -1
-    const name = nameInput.value.trim().slice(0, 80)
+    if (!selected) return
 
+    const name = nameInput.value.trim().slice(0, 80)
     if (!name) {
       status.textContent = text.nameRequired
       nameInput.focus()
       return
     }
-
-    const conflictingIndex = existing.findIndex(
-      (preset, index) =>
-        index !== selectedIndex &&
-        preset.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0
-    )
-    if (conflictingIndex >= 0) {
+    if (hasNameConflict(name, selected.id)) {
       status.textContent = text.duplicateName
       nameInput.focus()
       nameInput.select()
       return
     }
 
-    if (selectedIndex < 0 && existing.length >= MAX_USER_PRESETS) {
+    const updatedPreset: OsdPreset = {
+      id: selected.id,
+      name,
+      settings: readCurrentSettings()
+    }
+
+    let saved = false
+    if (isBuiltInPreset(selected)) {
+      const overrides = loadBuiltInOverrides()
+      const existingIndex = overrides.findIndex((preset) => preset.id === selected.id)
+      const nextOverrides =
+        existingIndex >= 0
+          ? overrides.map((preset, index) => (index === existingIndex ? updatedPreset : preset))
+          : [...overrides, updatedPreset]
+      saved = saveBuiltInOverrides(nextOverrides)
+    } else if (isUserPreset(selected)) {
+      saved = saveUserPresets(
+        loadUserPresets().map((preset) => (preset.id === selected.id ? updatedPreset : preset))
+      )
+    }
+
+    if (!saved) {
+      status.textContent = text.saveFailed
+      return
+    }
+
+    refreshSelect(select, updatedPreset.id)
+    syncEditorWithSelection(false)
+    status.textContent = text.updated
+  }
+
+  const saveCurrentAsCopy = () => {
+    const selected = getSelectedPreset()
+    const existing = loadUserPresets()
+    if (existing.length >= MAX_USER_PRESETS) {
       status.textContent = text.limitReached
       return
     }
 
+    const enteredName = nameInput.value.trim().slice(0, 80)
+    const baseName = enteredName || selected?.name || text.title
+    const requestedNameConflicts = getAllPresets().some(
+      (preset) => preset.name.localeCompare(baseName, undefined, { sensitivity: 'accent' }) === 0
+    )
+    const name = requestedNameConflicts ? createUniqueCopyName(baseName) : baseName
+
     const preset: OsdPreset = {
-      id: selectedIndex >= 0 ? existing[selectedIndex].id : createUserPresetId(),
+      id: createUserPresetId(),
       name,
       settings: readCurrentSettings()
     }
-    const nextPresets =
-      selectedIndex >= 0
-        ? existing.map((item, index) => (index === selectedIndex ? preset : item))
-        : [...existing, preset]
-
-    if (!saveUserPresets(nextPresets)) {
+    if (!saveUserPresets([...existing, preset])) {
       status.textContent = text.saveFailed
       return
     }
 
     refreshSelect(select, preset.id)
     syncEditorWithSelection(false)
-    status.textContent = selectedIndex >= 0 ? text.updated : text.saved
+    status.textContent = text.saved
   }
 
-  saveButton.addEventListener('click', (event) => {
+  updateButton.addEventListener('click', (event) => {
     event.preventDefault()
-    saveCurrentPreset()
+    updateSelectedPreset()
+  })
+
+  copyButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    saveCurrentAsCopy()
   })
 
   nameInput.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return
     event.preventDefault()
-    saveCurrentPreset()
+    updateSelectedPreset()
   })
 
-  deleteButton.addEventListener('click', (event) => {
+  removeButton.addEventListener('click', (event) => {
     event.preventDefault()
     const selected = getSelectedPreset()
-    if (!isUserPreset(selected)) return
+    if (!selected) return
 
+    if (isBuiltInPreset(selected)) {
+      const nextOverrides = loadBuiltInOverrides().filter((preset) => preset.id !== selected.id)
+      if (!saveBuiltInOverrides(nextOverrides)) {
+        status.textContent = text.saveFailed
+        return
+      }
+
+      const restored = getDefaultBuiltInPresets().find((preset) => preset.id === selected.id)
+      refreshSelect(select, selected.id)
+      syncEditorWithSelection(false)
+      if (restored) applyPreset(restored)
+      status.textContent = text.restored
+      return
+    }
+
+    if (!isUserPreset(selected)) return
     const nextPresets = loadUserPresets().filter((preset) => preset.id !== selected.id)
     if (!saveUserPresets(nextPresets)) {
       status.textContent = text.saveFailed
@@ -448,7 +550,15 @@ const ensureControl = (): boolean => {
     status.textContent = text.deleted
   })
 
-  controls.append(select, nameInput, applyButton, saveButton, deleteButton, status)
+  controls.append(
+    select,
+    nameInput,
+    applyButton,
+    updateButton,
+    copyButton,
+    removeButton,
+    status
+  )
   syncEditorWithSelection()
   const coverControl = document.getElementById('osd-cover-controls-visibility-setting')
   ;(coverControl || lockItem).insertAdjacentElement('afterend', item)
