@@ -102,7 +102,13 @@ function updateMousePassthrough(): void {
       continue
     }
 
-    // 锁定时：鼠标位于左侧封面控制区则恢复窗口交互；其余歌词区域继续穿透。
+    if (!state.region?.enabled) {
+      // 普通模式或左侧控件被隐藏时，继续使用原项目的完整穿透/解锁按钮逻辑。
+      state.ignoringMouse = null
+      continue
+    }
+
+    // 紧凑模式锁定时：左侧封面控制区恢复交互，其余歌词区域继续穿透。
     setIgnoreMouse(state, !isCursorInsideRegion(state))
   }
 
