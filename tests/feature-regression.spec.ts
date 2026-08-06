@@ -55,15 +55,19 @@ test.describe('desktop feature integration', () => {
     expect(vite).toContain('__INTLIFY_DROP_MESSAGE_COMPILER__: false')
   })
 
-  test('includes queue-end sleep actions and preset draft recovery', () => {
+  test('includes queue-end sleep actions and preset editing tools', () => {
     const sleepTimer = readSource('src/renderer/utils/sleepTimerSettings.ts')
     const presetDraft = readSource('src/renderer/utils/osdPresetDraftState.ts')
+    const presetTransfer = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
 
     expect(sleepTimer).toContain("'queueEnd'")
     expect(sleepTimer).toContain("SleepTimerAction = 'pause' | 'quit'")
     expect(sleepTimer).toContain('completeSleepTimerAtQueueEnd')
     expect(presetDraft).toContain('未保存修改')
     expect(presetDraft).toContain('撤销本次修改')
+    expect(presetTransfer).toContain('vutronmusic-osd-preset')
+    expect(presetTransfer).toContain('导出当前')
+    expect(presetTransfer).toContain('导入预设')
   })
 
   test('registers diagnostics and playback-history integrations', () => {
