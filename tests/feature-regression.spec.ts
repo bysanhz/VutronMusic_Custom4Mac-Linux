@@ -85,6 +85,12 @@ test.describe('desktop feature integration', () => {
     expect(presetTransfer).toContain('导入预设')
     expect(presetTransfer).toContain("select.addEventListener('change', showSelectedPresetPreview)")
     expect(presetTransfer).toContain('resolveSelectedSettings(select.value)')
+    expect(presetTransfer).toContain(
+      'event.key === PRESETS_STORAGE_KEY || event.key === BUILTIN_OVERRIDES_STORAGE_KEY'
+    )
+    expect(presetTransfer).toContain(
+      "button.addEventListener('click', refreshPreviewAfterPresetAction)"
+    )
   })
 
   test('registers diagnostics and playback-history integrations', () => {
