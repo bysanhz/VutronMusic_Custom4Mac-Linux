@@ -11,6 +11,10 @@ type NormalizedRegion = {
   height: number
 }
 
+type RegionPayload = Partial<NormalizedRegion> & {
+  locked?: boolean
+}
+
 type OsdWindowState = {
   window: BrowserWindow
   region: NormalizedRegion | null
@@ -30,7 +34,7 @@ const clampUnit = (value: unknown): number => {
 
 const normalizeRegion = (value: unknown): NormalizedRegion | null => {
   if (!value || typeof value !== 'object') return null
-  const input = value as Partial<NormalizedRegion>
+  const input = value as RegionPayload
   const x = clampUnit(input.x)
   const y = clampUnit(input.y)
   const width = clampUnit(input.width)
@@ -107,6 +111,12 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
   const window = BrowserWindow.fromWebContents(event.sender)
   if (!window || window.isDestroyed()) return
 
+  const payload =
+    regionValue && typeof regionValue === 'object' ? (regionValue as RegionPayload) : null
+  if (typeof payload?.locked === 'boolean') {
+    globalLocked = payload.locked
+  }
+
   const region = normalizeRegion(regionValue)
   const existing = states.get(event.sender.id)
   if (existing) {
@@ -120,8 +130,9 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
       ignoringMouse: null
     })
 
+    const webContentsId = event.sender.id
     window.once('closed', () => {
-      states.delete(event.sender.id)
+      states.delete(webContentsId)
     })
   }
 
