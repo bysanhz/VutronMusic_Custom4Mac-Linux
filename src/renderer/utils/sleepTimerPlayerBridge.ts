@@ -2,7 +2,7 @@ import { watch, type WatchStopHandle } from 'vue'
 import type { usePlayerStore } from '../store/player'
 import {
   completeSleepTimerAtQueueEnd,
-  prepareSleepTimerTrackFade,
+  prepareSleepTimerEndFade,
   registerSleepTimerRuntimeHandlers,
   sleepTimerMode
 } from './sleepTimerSettings'
@@ -65,6 +65,13 @@ export const initializeSleepTimerPlayerBridge = (playerStore: PlayerStore): (() 
     window.mainApi?.send('quit-application')
   }
 
+  const queueWillContinue = (): boolean => {
+    const hasQueuedTrack = playerStore._playNextList.length > 0
+    const hasNaturalNext = playerStore.currentTrackIndex + 1 < playerStore.list.length
+    const loopsQueue = playerStore.repeatMode === 'on'
+    return playerStore.isPersonalFM || hasQueuedTrack || hasNaturalNext || loopsQueue
+  }
+
   registerSleepTimerRuntimeHandlers({
     fade: fadeToSilence,
     pause: pausePlayback,
@@ -76,9 +83,12 @@ export const initializeSleepTimerPlayerBridge = (playerStore: PlayerStore): (() 
     watch(
       () => [sleepTimerMode.value, Number(playerStore.seek), playerStore.currentTrackDuration],
       ([mode, position, duration]) => {
-        if (mode !== 'trackEnd') return
+        const isTrackEnd = mode === 'trackEnd'
+        const isFinalQueueTrack = mode === 'queueEnd' && !queueWillContinue()
+        if (!isTrackEnd && !isFinalQueueTrack) return
+
         const remaining = Number(duration) - Number(position)
-        if (Number.isFinite(remaining)) prepareSleepTimerTrackFade(remaining)
+        if (Number.isFinite(remaining)) prepareSleepTimerEndFade(remaining)
       },
       { flush: 'post' }
     )
@@ -88,10 +98,7 @@ export const initializeSleepTimerPlayerBridge = (playerStore: PlayerStore): (() 
     if (name !== '_playNextTrack' || sleepTimerMode.value !== 'queueEnd') return
 
     const isPersonalFm = args[0] === true
-    const hasQueuedTrack = playerStore._playNextList.length > 0
-    const hasNaturalNext = playerStore.currentTrackIndex + 1 < playerStore.list.length
-    const loopsQueue = playerStore.repeatMode === 'on'
-    const willContinue = isPersonalFm || hasQueuedTrack || hasNaturalNext || loopsQueue
+    const willContinue = isPersonalFm || queueWillContinue()
 
     after(() => {
       if (!willContinue && sleepTimerMode.value === 'queueEnd') {
