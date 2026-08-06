@@ -50,7 +50,7 @@ const stableSerialize = (value: unknown): string => {
       .map(([key, item]) => `${JSON.stringify(key)}:${stableSerialize(item)}`)
       .join(',')}}`
   }
-  return JSON.stringify(value)
+  return JSON.stringify(value) ?? 'undefined'
 }
 
 export const areOsdPresetSnapshotsEqual = (
@@ -91,7 +91,7 @@ const installDraftState = (): boolean => {
   const render = () => {
     const current = captureSnapshot()
     const serialized = stableSerialize(current)
-    if (serialized === lastSerialized && !undoButton.hidden) return
+    if (serialized === lastSerialized) return
     lastSerialized = serialized
 
     const dirty = !areOsdPresetSnapshotsEqual(current, baseline)
@@ -139,6 +139,7 @@ const installDraftState = (): boolean => {
     render()
   }, 250)
 
+  lastSerialized = ''
   render()
   return true
 }
