@@ -57,7 +57,11 @@ const setIgnoreMouse = (state: OsdWindowState, ignore: boolean): void => {
   if (state.window.isDestroyed() || state.ignoringMouse === ignore) return
 
   try {
-    state.window.setIgnoreMouseEvents(ignore, ignore ? { forward: true } : undefined)
+    if (ignore && process.platform === 'win32') {
+      state.window.setIgnoreMouseEvents(true, { forward: true })
+    } else {
+      state.window.setIgnoreMouseEvents(ignore)
+    }
     state.ignoringMouse = ignore
   } catch (error) {
     console.warn('[OSD Passthrough] 切换鼠标穿透状态失败：', error)
