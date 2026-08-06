@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 
-export type SleepTimerSelection = '15' | '30' | '60' | '90' | 'trackEnd'
+export type SleepTimerSelection = '15' | '30' | '60' | '90' | 'trackEnd' | number
 export type SleepTimerMode = 'off' | 'minutes' | 'trackEnd'
 export type SleepTimerNotice =
   | 'inactive'
@@ -99,7 +99,7 @@ export const startSleepTimer = (selection: SleepTimerSelection): boolean => {
   }
 
   const minutes = Number(selection)
-  if (!Number.isFinite(minutes) || minutes <= 0) {
+  if (!Number.isFinite(minutes) || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
     cancelSleepTimer()
     return false
   }
