@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { isPointInsideRectangle } from '../src/main/osdHitRegion'
 import {
   shouldResetPlaybackPosition,
   type PlaybackStartReason
@@ -41,6 +42,20 @@ test.describe('track lyric timing', () => {
     expect(normalizeTrackLyricOffset(99)).toBe(30)
     expect(normalizeTrackLyricOffset(-99)).toBe(-30)
     expect(normalizeTrackLyricOffset(Number.NaN)).toBe(0)
+  })
+})
+
+test.describe('desktop lyric partial passthrough', () => {
+  const region = { x: 100, y: 50, width: 45, height: 35 }
+
+  test('keeps the cover-control region interactive', () => {
+    expect(isPointInsideRectangle({ x: 110, y: 60 }, region, 2)).toBe(true)
+    expect(isPointInsideRectangle({ x: 98, y: 48 }, region, 2)).toBe(true)
+  })
+
+  test('keeps the lyric region outside the interactive hit target', () => {
+    expect(isPointInsideRectangle({ x: 200, y: 60 }, region, 2)).toBe(false)
+    expect(isPointInsideRectangle({ x: 110, y: 100 }, region, 2)).toBe(false)
   })
 })
 
