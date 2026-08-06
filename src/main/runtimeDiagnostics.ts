@@ -1,8 +1,11 @@
 import { app, ipcMain } from 'electron'
 import os from 'os'
-import Constants from './utils/Constants'
+import path from 'path'
+import { name, version } from '../../package.json'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
+const APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
+const IS_DEV_ENV = process.env.NODE_ENV === 'development'
 
 const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
@@ -11,13 +14,15 @@ const installRuntimeDiagnostics = (): void => {
 
   ipcMain.handle('get-runtime-diagnostics', async () => {
     const gpuStatus = app.isReady() ? app.getGPUFeatureStatus() : {}
+    const userDataPath = app.getPath('userData')
+
     return {
       app: {
-        name: Constants.APP_NAME,
-        version: Constants.APP_VERSION,
+        name: APP_NAME,
+        version,
         packaged: app.isPackaged,
-        userDataPath: app.getPath('userData'),
-        logPath: app.getPath('logs')
+        userDataPath,
+        logPath: path.join(userDataPath, 'logs')
       },
       runtime: {
         platform: process.platform,
@@ -30,7 +35,7 @@ const installRuntimeDiagnostics = (): void => {
         locale: app.getLocale(),
         hardwareAccelerationDisabled:
           process.env.VUTRON_DISABLE_HARDWARE_ACCELERATION === '1' ||
-          (Constants.IS_DEV_ENV && process.env.VUTRON_ENABLE_HARDWARE_ACCELERATION !== '1')
+          (IS_DEV_ENV && process.env.VUTRON_ENABLE_HARDWARE_ACCELERATION !== '1')
       },
       gpu: gpuStatus
     }
