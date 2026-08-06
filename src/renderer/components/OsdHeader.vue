@@ -1,31 +1,40 @@
 <template>
   <div id="titleBar" class="header">
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="showMain"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="showMain"
       ><svg-icon icon-class="logo"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="playPrev"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="playPrev"
       ><svg-icon icon-class="previous"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="playOrPause"
+    <button
+      type="button"
+      class="btn"
+      :style="{ color: unplayLrcColor }"
+      @click="playOrPause"
       ><svg-icon :icon-class="isPlaying ? 'pause' : 'play'"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="playNext"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="playNext"
       ><svg-icon icon-class="next"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="switchMode"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="switchMode"
       ><svg-icon :icon-class="type === 'small' ? 'normal-mode' : 'mini-mode'"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" tabindex="-1" @click="isLock = true"
+    <button
+      type="button"
+      class="btn"
+      :style="{ color: unplayLrcColor }"
+      tabindex="-1"
+      @click="isLock = true"
       ><svg-icon icon-class="lock"
     /></button>
-    <button class="btn" :style="{ color: unplayLrcColor }" @click="show = !show"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="show = !show"
       ><svg-icon icon-class="close"
     /></button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useOsdLyricStore } from '../store/osdLyric'
 import { storeToRefs } from 'pinia'
 import SvgIcon from './SvgIcon.vue'
@@ -42,8 +51,8 @@ const playPrev = () => {
   window.mainApi?.send('from-osd', 'playPrev')
 }
 const playOrPause = () => {
-  isPlaying.value = !isPlaying.value
-  window.mainApi?.send('from-osd', 'playOrPause')
+  // 等待主播放器回传真实播放状态，不在 OSD 端先行翻转图标。
+  window.mainApi?.send('from-osd', 'playOrPauseFromOsd')
 }
 const playNext = () => {
   window.mainApi?.send('from-osd', 'playNext')
@@ -53,13 +62,23 @@ const switchMode = () => {
   type.value = type.value === 'small' ? 'normal' : 'small'
 }
 
+const handlePlayingStatus = (_event: unknown, value: boolean) => {
+  isPlaying.value = value
+}
+
 onMounted(() => {
   isLock.value = window.env?.isLinux ? false : isLock.value
-  const player = JSON.parse(localStorage.getItem('player') || '{}')
-  isPlaying.value = player.playing
-  window.mainApi?.on('update-osd-playing-status', (event: any, res: boolean) => {
-    isPlaying.value = res
-  })
+  try {
+    const player = JSON.parse(localStorage.getItem('player') || '{}')
+    isPlaying.value = Boolean(player.playing)
+  } catch {
+    isPlaying.value = false
+  }
+  window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
+})
+
+onBeforeUnmount(() => {
+  window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
 })
 </script>
 
