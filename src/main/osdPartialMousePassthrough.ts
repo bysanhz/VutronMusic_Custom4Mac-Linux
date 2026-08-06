@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, screen, type IpcMainEvent } from 'electron'
+import { isPointInsideRectangle } from './osdHitRegion'
 
 const POLL_INTERVAL_MS = 16
 const REGION_PADDING_DIP = 2
@@ -81,12 +82,16 @@ const isCursorInsideRegion = (state: OsdWindowState): boolean => {
 
   const bounds = state.window.getBounds()
   const cursor = screen.getCursorScreenPoint()
-  const left = bounds.x + bounds.width * region.x - REGION_PADDING_DIP
-  const top = bounds.y + bounds.height * region.y - REGION_PADDING_DIP
-  const right = left + bounds.width * region.width + REGION_PADDING_DIP * 2
-  const bottom = top + bounds.height * region.height + REGION_PADDING_DIP * 2
-
-  return cursor.x >= left && cursor.x <= right && cursor.y >= top && cursor.y <= bottom
+  return isPointInsideRectangle(
+    cursor,
+    {
+      x: bounds.x + bounds.width * region.x,
+      y: bounds.y + bounds.height * region.y,
+      width: bounds.width * region.width,
+      height: bounds.height * region.height
+    },
+    REGION_PADDING_DIP
+  )
 }
 
 function updateMousePassthrough(): void {
