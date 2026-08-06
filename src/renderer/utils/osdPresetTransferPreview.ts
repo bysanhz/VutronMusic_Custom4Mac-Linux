@@ -8,6 +8,7 @@ import {
 
 const PRESET_CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
+const BUILTIN_OVERRIDES_STORAGE_KEY = 'vutronmusic-osd-builtin-preset-overrides'
 const OSD_STORAGE_KEY = 'osdLyric'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const FEATURE_CLASS = 'vutronmusic-osd-preset-transfer-preview'
@@ -30,7 +31,7 @@ type PresetSettings = {
   coverControlsVisible: boolean
 }
 
-type UserPreset = {
+type StoredPreset = {
   id: string
   name: string
   settings: PresetSettings
@@ -72,34 +73,61 @@ const TEXTS = {
   }
 } as const
 
-const sanitizeFileName = (value: string): string =>
-  value.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().slice(0, 80) || 'desktop-lyric-preset'
+const COMMON_BUILTIN_SETTINGS = {
+  isWordByWord: true,
+  backgroundColor: 'rgba(0, 0, 0, 0)',
+  playedLrcColor: '#37cf88',
+  unplayLrcColor: 'rgba(210, 210, 210, 1)',
+  textShadow: 'rgba(0, 0, 0, 0.2)',
+  font: 'system-ui',
+  showButtonWhenLock: true
+} as const
 
-const readCurrentSettings = (): PresetSettings => {
-  const state = readJsonRecord(OSD_STORAGE_KEY)
-  return {
-    type: state.type === 'normal' ? 'normal' : 'small',
-    mode: state.mode === 'oneLine' ? 'oneLine' : 'twoLines',
-    isWordByWord: state.isWordByWord !== false,
-    translationMode: ['none', 'tlyric', 'rlyric'].includes(String(state.translationMode))
-      ? state.translationMode
-      : 'tlyric',
-    backgroundColor: String(state.backgroundColor || 'rgba(0, 0, 0, 0)'),
-    playedLrcColor: String(state.playedLrcColor || '#37cf88'),
-    unplayLrcColor: String(state.unplayLrcColor || 'rgba(210, 210, 210, 1)'),
-    textShadow: String(state.textShadow || 'rgba(0, 0, 0, 0.2)'),
-    font: String(state.font || 'system-ui').slice(0, 200),
-    align: ['left', 'center', 'right'].includes(String(state.align))
-      ? state.align
-      : 'center',
-    showButtonWhenLock: state.showButtonWhenLock !== false,
-    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
+const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
+  'builtin-minimal': {
+    ...COMMON_BUILTIN_SETTINGS,
+    type: 'small',
+    mode: 'twoLines',
+    translationMode: 'tlyric',
+    align: 'center',
+    coverControlsVisible: false
+  },
+  'builtin-centered': {
+    ...COMMON_BUILTIN_SETTINGS,
+    type: 'normal',
+    mode: 'twoLines',
+    translationMode: 'tlyric',
+    align: 'center',
+    coverControlsVisible: false,
+    playedLrcColor: 'rgba(255, 255, 255, 1)',
+    unplayLrcColor: 'rgba(185, 185, 185, 1)',
+    textShadow: 'rgba(0, 0, 0, 0.5)'
+  },
+  'builtin-left': {
+    ...COMMON_BUILTIN_SETTINGS,
+    type: 'small',
+    mode: 'oneLine',
+    translationMode: 'none',
+    align: 'left',
+    coverControlsVisible: false
+  },
+  'builtin-cover': {
+    ...COMMON_BUILTIN_SETTINGS,
+    type: 'small',
+    mode: 'twoLines',
+    translationMode: 'tlyric',
+    align: 'center',
+    coverControlsVisible: true
   }
 }
 
-const normalizeImportedSettings = (value: unknown): PresetSettings | null => {
+const sanitizeFileName = (value: string): string =>
+  value.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().slice(0, 80) || 'desktop-lyric-preset'
+
+const normalizeSettings = (value: unknown): PresetSettings | null => {
   if (!value || typeof value !== 'object') return null
   const settings = value as Partial<PresetSettings>
+
   return {
     type: settings.type === 'normal' ? 'normal' : 'small',
     mode: settings.mode === 'oneLine' ? 'oneLine' : 'twoLines',
@@ -120,27 +148,57 @@ const normalizeImportedSettings = (value: unknown): PresetSettings | null => {
   }
 }
 
-const loadUserPresets = (): UserPreset[] => {
+const readCurrentSettings = (): PresetSettings => {
+  const state = readJsonRecord(OSD_STORAGE_KEY)
+  return normalizeSettings({
+    ...state,
+    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
+  })!
+}
+
+const loadPresetArray = (storageKey: string): StoredPreset[] => {
   try {
-    const value = JSON.parse(localStorage.getItem(PRESETS_STORAGE_KEY) || '[]')
-    return Array.isArray(value)
-      ? value.filter(
-          (preset): preset is UserPreset =>
-            Boolean(
-              preset &&
-                typeof preset.id === 'string' &&
-                preset.id.startsWith('user-') &&
-                typeof preset.name === 'string' &&
-                preset.settings
-            )
-        )
-      : []
+    const value = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    if (!Array.isArray(value)) return []
+
+    return value
+      .map((preset): StoredPreset | null => {
+        if (!preset || typeof preset !== 'object') return null
+        const settings = normalizeSettings(preset.settings)
+        const id = String(preset.id || '').slice(0, 120)
+        const name = String(preset.name || '').trim().slice(0, 80)
+        if (!id || !name || !settings) return null
+        return { id, name, settings }
+      })
+      .filter((preset): preset is StoredPreset => preset !== null)
   } catch {
     return []
   }
 }
 
-const saveUserPresets = (presets: UserPreset[]): boolean => {
+const loadUserPresets = (): StoredPreset[] =>
+  loadPresetArray(PRESETS_STORAGE_KEY)
+    .filter((preset) => preset.id.startsWith('user-'))
+    .slice(-MAX_USER_PRESETS)
+
+const loadBuiltInOverrides = (): StoredPreset[] =>
+  loadPresetArray(BUILTIN_OVERRIDES_STORAGE_KEY).filter((preset) =>
+    Object.prototype.hasOwnProperty.call(DEFAULT_BUILTIN_SETTINGS, preset.id)
+  )
+
+const resolveSelectedSettings = (presetId: string): PresetSettings | null => {
+  if (presetId.startsWith('user-')) {
+    return loadUserPresets().find((preset) => preset.id === presetId)?.settings || null
+  }
+
+  const override = loadBuiltInOverrides().find((preset) => preset.id === presetId)
+  if (override) return override.settings
+
+  const defaults = DEFAULT_BUILTIN_SETTINGS[presetId]
+  return defaults ? { ...defaults } : null
+}
+
+const saveUserPresets = (presets: StoredPreset[]): boolean => {
   try {
     const serialized = JSON.stringify(presets.slice(-MAX_USER_PRESETS))
     writeStorageValue(PRESETS_STORAGE_KEY, serialized)
@@ -157,7 +215,7 @@ const applySettings = (settings: PresetSettings): void => {
   writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(coverControlsVisible))
 }
 
-const createUniqueName = (requested: string, existing: UserPreset[]): string => {
+const createUniqueName = (requested: string, existing: StoredPreset[]): string => {
   const text = TEXTS[resolveFeatureLanguage()]
   const used = new Set(existing.map((preset) => preset.name.toLocaleLowerCase()))
   const base = requested.trim().slice(0, 80) || text.importedSuffix
@@ -214,9 +272,12 @@ const installTransferAndPreview = (): boolean => {
   wrapper.append(preview, actionRow)
   controls.prepend(wrapper)
 
+  let selectedPreviewSettings: PresetSettings | null = null
   let lastPreviewState = ''
+  let disposed = false
+
   const renderPreview = () => {
-    const settings = readCurrentSettings()
+    const settings = selectedPreviewSettings || readCurrentSettings()
     const serialized = JSON.stringify(settings)
     if (serialized === lastPreviewState) return
     lastPreviewState = serialized
@@ -232,6 +293,27 @@ const installTransferAndPreview = (): boolean => {
     waitingLine.style.color = settings.unplayLrcColor
     waitingLine.hidden = settings.mode === 'oneLine'
   }
+
+  const showSelectedPresetPreview = () => {
+    selectedPreviewSettings = resolveSelectedSettings(select.value)
+    lastPreviewState = ''
+    renderPreview()
+  }
+
+  const showCurrentSettingsPreview = () => {
+    selectedPreviewSettings = null
+    lastPreviewState = ''
+    renderPreview()
+  }
+
+  select.addEventListener('change', showSelectedPresetPreview)
+
+  const handleStorageChange = (event: StorageEvent) => {
+    if (event.key === OSD_STORAGE_KEY || event.key === COVER_CONTROLS_STORAGE_KEY) {
+      showCurrentSettingsPreview()
+    }
+  }
+  window.addEventListener('storage', handleStorageChange)
 
   exportButton.addEventListener('click', () => {
     const name = nameInput.value.trim() || select.selectedOptions[0]?.textContent || 'preset'
@@ -270,7 +352,7 @@ const installTransferAndPreview = (): boolean => {
       if (value?.schema !== 'vutronmusic-osd-preset' || Number(value?.version) !== 1) {
         throw new Error('Unsupported preset schema')
       }
-      const settings = normalizeImportedSettings(value?.preset?.settings)
+      const settings = normalizeSettings(value?.preset?.settings)
       if (!settings) throw new Error('Invalid preset settings')
 
       const existing = loadUserPresets()
@@ -279,7 +361,7 @@ const installTransferAndPreview = (): boolean => {
         return
       }
 
-      const preset: UserPreset = {
+      const preset: StoredPreset = {
         id:
           typeof crypto.randomUUID === 'function'
             ? `user-${crypto.randomUUID()}`
@@ -296,8 +378,7 @@ const installTransferAndPreview = (): boolean => {
       select.value = preset.id
       nameInput.value = preset.name
       applySettings(settings)
-      lastPreviewState = ''
-      renderPreview()
+      showCurrentSettingsPreview()
       window.dispatchEvent(new CustomEvent(PRESET_COMMITTED_EVENT))
       if (status) status.textContent = text.imported
     } catch (error) {
@@ -307,8 +388,11 @@ const installTransferAndPreview = (): boolean => {
   })
 
   const previewTimer = window.setInterval(() => {
-    if (!control.isConnected) {
+    if (disposed || !control.isConnected) {
+      disposed = true
       window.clearInterval(previewTimer)
+      select.removeEventListener('change', showSelectedPresetPreview)
+      window.removeEventListener('storage', handleStorageChange)
       return
     }
     renderPreview()
