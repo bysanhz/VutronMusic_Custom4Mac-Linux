@@ -2,29 +2,25 @@
   <BaseModal
     :show="sleepTimerModalVisible"
     :title="text.title"
-    width="24vw"
-    min-width="calc(min(22rem, 92vw))"
+    width="25vw"
+    min-width="calc(min(23rem, 92vw))"
     :close-fn="close"
   >
     <template #default>
-      <section class="sleep-timer-section" :aria-label="text.quickTimes">
-        <div class="section-label">{{ text.quickTimes }}</div>
+      <section class="timer-section">
+        <div class="section-label">{{ text.when }}</div>
         <div class="quick-time-grid">
           <button
             v-for="minutes in quickMinuteOptions"
             :key="minutes"
             type="button"
-            class="quick-time-button"
             :class="{ active: selectedOption === minutes }"
             @click="selectQuickTime(minutes)"
           >
-            <span class="quick-time-value">{{ minutes }}</span>
-            <span class="quick-time-unit">{{ text.minutes }}</span>
+            <strong>{{ minutes }}</strong><span>{{ text.minutes }}</span>
           </button>
         </div>
-      </section>
 
-      <section class="sleep-timer-section custom-section">
         <label
           class="custom-time-row"
           :class="{
@@ -32,7 +28,7 @@
             invalid: customMinutesInvalid && customMinutesTouched
           }"
         >
-          <span class="custom-time-label">{{ text.customTime }}</span>
+          <span>{{ text.customTime }}</span>
           <span class="custom-time-input-wrap">
             <input
               v-model.number="customMinutes"
@@ -52,29 +48,66 @@
         </label>
         <div
           v-if="selectedOption === 'custom' && customMinutesInvalid && customMinutesTouched"
-          class="custom-time-error"
+          class="inline-error"
           role="alert"
         >
           {{ text.customRange }}
         </div>
+
+        <div class="end-mode-grid">
+          <button
+            type="button"
+            :class="{ active: selectedOption === 'trackEnd' }"
+            @click="selectedOption = 'trackEnd'"
+          >
+            <strong>{{ text.trackTitle }}</strong>
+            <span>{{ text.trackDescription }}</span>
+          </button>
+          <button
+            type="button"
+            :class="{ active: selectedOption === 'queueEnd' }"
+            @click="selectedOption = 'queueEnd'"
+          >
+            <strong>{{ text.queueTitle }}</strong>
+            <span>{{ text.queueDescription }}</span>
+          </button>
+        </div>
       </section>
 
-      <button
-        type="button"
-        class="track-end-option"
-        :class="{ active: selectedOption === 'trackEnd' }"
-        @click="selectedOption = 'trackEnd'"
-      >
-        <span class="track-end-copy">
-          <span class="track-end-title">{{ text.trackTitle }}</span>
-          <span class="track-end-description">{{ text.trackDescription }}</span>
-        </span>
-        <span class="selection-indicator" aria-hidden="true"></span>
-      </button>
+      <section class="timer-section compact-settings">
+        <div class="section-label">{{ text.actionTitle }}</div>
+        <div class="action-row">
+          <div class="segmented-control" role="group" :aria-label="text.actionTitle">
+            <button
+              type="button"
+              :class="{ active: selectedAction === 'pause' }"
+              @click="selectedAction = 'pause'"
+            >
+              {{ text.pause }}
+            </button>
+            <button
+              type="button"
+              :class="{ active: selectedAction === 'quit' }"
+              @click="selectedAction = 'quit'"
+            >
+              {{ text.quit }}
+            </button>
+          </div>
+
+          <label class="fade-select">
+            <span>{{ text.fade }}</span>
+            <select v-model.number="selectedFadeSeconds">
+              <option v-for="seconds in fadeOptions" :key="seconds" :value="seconds">
+                {{ seconds === 0 ? text.noFade : `${seconds}s` }}
+              </option>
+            </select>
+          </label>
+        </div>
+      </section>
 
       <div class="sleep-timer-status" :class="{ active: sleepTimerActive }" role="status">
         <span class="status-dot" aria-hidden="true"></span>
-        <span class="status-value">{{ statusText }}</span>
+        <span>{{ statusText }}</span>
       </div>
     </template>
 
@@ -85,7 +118,7 @@
         </button>
         <button
           type="button"
-          class="primary start-button"
+          class="primary"
           :disabled="selectedOption === 'custom' && customMinutesInvalid"
           @click="start"
         >
@@ -101,17 +134,21 @@ import { computed, ref, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
 import {
   cancelSleepTimer,
+  saveSleepTimerPreferences,
+  sleepTimerAction,
   sleepTimerActive,
+  sleepTimerFadeSeconds,
   sleepTimerModalVisible,
   sleepTimerMode,
   sleepTimerNotice,
   sleepTimerRemainingSeconds,
   startSleepTimer,
+  type SleepTimerAction,
   type SleepTimerSelection
 } from '../utils/sleepTimerSettings'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 
-type SleepTimerChoice = '15' | '30' | '60' | '90' | 'custom' | 'trackEnd'
+type SleepTimerChoice = '15' | '30' | '60' | '90' | 'custom' | 'trackEnd' | 'queueEnd'
 
 const CUSTOM_MINUTES_STORAGE_KEY = 'vutronmusic-sleep-timer-custom-minutes'
 const MIN_CUSTOM_MINUTES = 1
@@ -120,57 +157,81 @@ const MAX_CUSTOM_MINUTES = 1440
 const TEXTS = {
   zh: {
     title: '睡眠定时器',
-    quickTimes: '快捷时间',
+    when: '结束时间',
     minutes: '分钟',
-    customTime: '自定义',
+    customTime: '自定义时间',
     customRange: '请输入 1–1440 分钟之间的整数',
+    actionTitle: '结束动作',
+    pause: '暂停播放',
+    quit: '退出应用',
+    fade: '淡出',
+    noFade: '不淡出',
     inactive: '未启用',
     countdown: '剩余 {time}',
-    waitingTrack: '当前歌曲结束后暂停',
-    completed: '已按计划暂停播放',
-    canceledByTrackChange: '手动切歌，定时已取消',
+    waitingTrack: '等待当前歌曲结束',
+    waitingQueue: '等待当前队列结束',
+    completed: '定时动作已完成',
+    canceledByTrackChange: '手动切歌，单曲结束定时已取消',
     noTrack: '当前没有可播放的歌曲',
     start: '启用',
     replace: '替换当前定时',
     cancel: '取消定时',
-    trackTitle: '当前歌曲结束后',
-    trackDescription: '播完即暂停，不继续下一首'
+    trackTitle: '本曲结束',
+    trackDescription: '当前歌曲播完',
+    queueTitle: '队列结束',
+    queueDescription: '当前队列全部播完'
   },
   zht: {
     title: '睡眠定時器',
-    quickTimes: '快速時間',
+    when: '結束時間',
     minutes: '分鐘',
-    customTime: '自訂',
+    customTime: '自訂時間',
     customRange: '請輸入 1–1440 分鐘之間的整數',
+    actionTitle: '結束動作',
+    pause: '暫停播放',
+    quit: '結束應用程式',
+    fade: '淡出',
+    noFade: '不淡出',
     inactive: '未啟用',
     countdown: '剩餘 {time}',
-    waitingTrack: '目前歌曲結束後暫停',
-    completed: '已依計畫暫停播放',
-    canceledByTrackChange: '手動切歌，定時已取消',
+    waitingTrack: '等待目前歌曲結束',
+    waitingQueue: '等待目前佇列結束',
+    completed: '定時動作已完成',
+    canceledByTrackChange: '手動切歌，單曲結束定時已取消',
     noTrack: '目前沒有可播放的歌曲',
     start: '啟用',
     replace: '取代目前定時',
     cancel: '取消定時',
-    trackTitle: '目前歌曲結束後',
-    trackDescription: '播完即暫停，不繼續下一首'
+    trackTitle: '本曲結束',
+    trackDescription: '目前歌曲播完',
+    queueTitle: '佇列結束',
+    queueDescription: '目前佇列全部播完'
   },
   en: {
     title: 'Sleep Timer',
-    quickTimes: 'Quick times',
+    when: 'End time',
     minutes: 'min',
-    customTime: 'Custom',
+    customTime: 'Custom time',
     customRange: 'Enter a whole number from 1 to 1440 minutes.',
+    actionTitle: 'End action',
+    pause: 'Pause',
+    quit: 'Quit app',
+    fade: 'Fade',
+    noFade: 'None',
     inactive: 'Inactive',
     countdown: '{time} remaining',
-    waitingTrack: 'Pause after the current track',
-    completed: 'Playback paused as scheduled',
-    canceledByTrackChange: 'Timer canceled after a manual track change',
+    waitingTrack: 'Waiting for the current track to end',
+    waitingQueue: 'Waiting for the current queue to end',
+    completed: 'Scheduled action completed',
+    canceledByTrackChange: 'Track-end timer canceled after a manual change',
     noTrack: 'No track is currently available',
     start: 'Start',
     replace: 'Replace timer',
     cancel: 'Cancel timer',
-    trackTitle: 'After current track',
-    trackDescription: 'Pause when this track ends'
+    trackTitle: 'Track end',
+    trackDescription: 'After the current track',
+    queueTitle: 'Queue end',
+    queueDescription: 'After the current queue'
   }
 } as const
 
@@ -182,9 +243,12 @@ const readStoredCustomMinutes = (): number => {
 }
 
 const quickMinuteOptions = ['15', '30', '60', '90'] as const
+const fadeOptions = [0, 5, 15, 30] as const
 const selectedOption = ref<SleepTimerChoice>('30')
 const customMinutes = ref(readStoredCustomMinutes())
 const customMinutesTouched = ref(false)
+const selectedAction = ref<SleepTimerAction>(sleepTimerAction.value)
+const selectedFadeSeconds = ref(sleepTimerFadeSeconds.value)
 const text = computed(() => TEXTS[resolveFeatureLanguage()])
 
 const customMinutesInvalid = computed(
@@ -202,9 +266,12 @@ watch(customMinutes, (value) => {
 watch(sleepTimerModalVisible, (visible) => {
   if (!visible) return
 
+  selectedAction.value = sleepTimerAction.value
+  selectedFadeSeconds.value = sleepTimerFadeSeconds.value
   customMinutesTouched.value = false
-  if (sleepTimerMode.value === 'trackEnd') {
-    selectedOption.value = 'trackEnd'
+
+  if (sleepTimerMode.value === 'trackEnd' || sleepTimerMode.value === 'queueEnd') {
+    selectedOption.value = sleepTimerMode.value
     return
   }
 
@@ -227,7 +294,6 @@ const formatDuration = (seconds: number): string => {
   const remainingSeconds = totalSeconds % 60
   const minuteText = minutes.toString().padStart(2, '0')
   const secondText = remainingSeconds.toString().padStart(2, '0')
-
   return hours > 0
     ? `${hours.toString().padStart(2, '0')}:${minuteText}:${secondText}`
     : `${minuteText}:${secondText}`
@@ -238,16 +304,17 @@ const statusText = computed(() => {
     return text.value.countdown.replace('{time}', formatDuration(sleepTimerRemainingSeconds.value))
   }
   if (sleepTimerMode.value === 'trackEnd') return text.value.waitingTrack
+  if (sleepTimerMode.value === 'queueEnd') return text.value.waitingQueue
 
-  const noticeMap = {
+  return {
     inactive: text.value.inactive,
     countdown: text.value.inactive,
     waitingTrack: text.value.inactive,
+    waitingQueue: text.value.inactive,
     completed: text.value.completed,
     canceledByTrackChange: text.value.canceledByTrackChange,
     noTrack: text.value.noTrack
-  }
-  return noticeMap[sleepTimerNotice.value]
+  }[sleepTimerNotice.value]
 })
 
 const selectQuickTime = (minutes: (typeof quickMinuteOptions)[number]) => {
@@ -265,7 +332,6 @@ const close = () => {
 
 const start = () => {
   let selection: SleepTimerSelection
-
   if (selectedOption.value === 'custom') {
     customMinutesTouched.value = true
     if (customMinutesInvalid.value) return
@@ -274,6 +340,7 @@ const start = () => {
     selection = selectedOption.value
   }
 
+  saveSleepTimerPreferences(selectedAction.value, selectedFadeSeconds.value)
   if (startSleepTimer(selection)) close()
 }
 
@@ -283,46 +350,31 @@ const cancel = () => {
 </script>
 
 <style scoped lang="scss">
-.sleep-timer-section {
+.timer-section {
   margin-bottom: 12px;
 }
 
 .section-label {
   margin-bottom: 7px;
-  color: color-mix(in srgb, var(--color-text), transparent 42%);
-  font-size: 12px;
-  font-weight: 600;
+  color: color-mix(in srgb, var(--color-text), transparent 46%);
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .quick-time-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
+  margin-bottom: 7px;
 }
 
-.quick-time-button {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 3px;
-  min-height: 42px;
-  padding: 7px 5px;
+.quick-time-grid button,
+.end-mode-grid button,
+.segmented-control button {
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
   border-radius: 9px;
   color: var(--color-text);
   background: var(--color-secondary-bg-for-transparent);
-  transition:
-    border-color 0.16s,
-    background-color 0.16s,
-    transform 0.16s;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--color-primary), transparent 42%);
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
 
   &.active {
     border-color: var(--color-primary);
@@ -330,36 +382,34 @@ const cancel = () => {
   }
 }
 
-.quick-time-value {
-  font-size: 15px;
-  font-weight: 650;
-}
+.quick-time-grid button {
+  min-height: 38px;
+  padding: 6px 4px;
 
-.quick-time-unit {
-  color: color-mix(in srgb, var(--color-text), transparent 43%);
-  font-size: 10px;
-}
+  strong {
+    margin-right: 2px;
+    font-size: 14px;
+  }
 
-.custom-section {
-  margin-bottom: 10px;
+  span {
+    color: color-mix(in srgb, var(--color-text), transparent 46%);
+    font-size: 9px;
+  }
 }
 
 .custom-time-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 44px;
-  padding: 0 11px;
+  min-height: 40px;
+  padding: 0 10px;
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
   border-radius: 9px;
   background: var(--color-secondary-bg-for-transparent);
-  transition:
-    border-color 0.16s,
-    background-color 0.16s;
+  font-size: 12px;
 
   &.active {
     border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary), transparent 91%);
   }
 
   &.invalid {
@@ -367,137 +417,127 @@ const cancel = () => {
   }
 }
 
-.custom-time-label {
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .custom-time-input-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: color-mix(in srgb, var(--color-text), transparent 38%);
-  font-size: 12px;
+  gap: 5px;
+  color: color-mix(in srgb, var(--color-text), transparent 44%);
 
   input {
-    width: 68px;
-    height: 30px;
+    width: 64px;
+    height: 28px;
     box-sizing: border-box;
-    padding: 0 8px;
+    padding: 0 7px;
     border: 0;
     border-radius: 7px;
-    outline: none;
+    outline: 0;
     color: var(--color-text);
     background: color-mix(in srgb, var(--color-text), transparent 93%);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 600;
     text-align: right;
-
-    &:focus {
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary), transparent 55%);
-    }
+    font: inherit;
+    font-weight: 650;
   }
 }
 
-.custom-time-error {
-  margin-top: 5px;
+.inline-error {
+  margin: 4px 2px 0;
   color: #d44;
-  font-size: 11px;
+  font-size: 10px;
 }
 
-.track-end-option {
+.end-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+
+  button {
+    display: grid;
+    gap: 2px;
+    min-height: 48px;
+    padding: 7px 9px;
+    text-align: left;
+  }
+
+  strong {
+    font-size: 12px;
+  }
+
+  span {
+    color: color-mix(in srgb, var(--color-text), transparent 48%);
+    font-size: 10px;
+  }
+}
+
+.compact-settings {
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+}
+
+.action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 9px 11px;
-  border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
-  border-radius: 9px;
-  text-align: left;
-  color: var(--color-text);
-  background: var(--color-secondary-bg-for-transparent);
-  transition:
-    border-color 0.16s,
-    background-color 0.16s;
+  gap: 8px;
+}
 
-  &:hover {
-    border-color: color-mix(in srgb, var(--color-primary), transparent 42%);
-  }
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  flex: 1;
 
-  &.active {
-    border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary), transparent 89%);
+  button {
+    min-height: 34px;
+    border-radius: 0;
+    font-size: 11px;
 
-    .selection-indicator {
-      border-color: var(--color-primary);
-      box-shadow: inset 0 0 0 4px var(--color-primary);
+    &:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    &:last-child {
+      margin-left: -1px;
+      border-radius: 0 8px 8px 0;
     }
   }
 }
 
-.track-end-copy,
-.track-end-title,
-.track-end-description {
-  display: block;
-}
+.fade-select {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--color-text), transparent 42%);
+  font-size: 10px;
 
-.track-end-title {
-  margin-bottom: 2px;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.track-end-description {
-  color: color-mix(in srgb, var(--color-text), transparent 43%);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.selection-indicator {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--color-text), transparent 62%);
-  border-radius: 50%;
-  transition:
-    border-color 0.16s,
-    box-shadow 0.16s;
+  select {
+    height: 34px;
+    padding: 0 7px;
+    border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
+    border-radius: 8px;
+    color: var(--color-text);
+    background: var(--color-secondary-bg-for-transparent);
+  }
 }
 
 .sleep-timer-status {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 20px;
-  margin-top: 11px;
-  color: color-mix(in srgb, var(--color-text), transparent 42%);
+  min-height: 28px;
+  padding: 0 2px;
+  color: color-mix(in srgb, var(--color-text), transparent 48%);
   font-size: 11px;
 
   &.active {
     color: var(--color-primary);
-
-    .status-dot {
-      background: var(--color-primary);
-    }
   }
 }
 
 .status-dot {
-  flex: 0 0 auto;
   width: 6px;
   height: 6px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--color-text), transparent 62%);
-}
-
-.status-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: currentColor;
 }
 
 .sleep-timer-footer {
@@ -507,19 +547,14 @@ const cancel = () => {
   width: 100%;
 }
 
-.cancel-button,
-.start-button {
-  min-width: 88px;
-}
+@media (max-width: 520px) {
+  .action-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-.start-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
-@media (max-width: 480px) {
-  .quick-time-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .fade-select {
+    justify-content: space-between;
   }
 }
 </style>
