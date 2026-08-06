@@ -83,6 +83,8 @@ test.describe('desktop feature integration', () => {
     expect(presetTransfer).toContain('vutronmusic-osd-preset')
     expect(presetTransfer).toContain('导出当前')
     expect(presetTransfer).toContain('导入预设')
+    expect(presetTransfer).toContain("select.addEventListener('change', showSelectedPresetPreview)")
+    expect(presetTransfer).toContain('resolveSelectedSettings(select.value)')
   })
 
   test('registers diagnostics and playback-history integrations', () => {
