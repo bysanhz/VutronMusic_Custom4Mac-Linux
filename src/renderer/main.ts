@@ -25,6 +25,7 @@ import vue3lottie from 'vue3-lottie'
 // 但不再加载，避免 700/520/460/390px 等断点造成布局模型突然变化。
 import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
 import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings'
+import { initializeHeartModePlaybackStartGuard } from './utils/playbackStartGuard'
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
@@ -103,6 +104,7 @@ initializeOsdWindowScaleSettings(router)
 
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const playerStore = usePlayerStore(pinia)
+initializeHeartModePlaybackStartGuard(playerStore)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
