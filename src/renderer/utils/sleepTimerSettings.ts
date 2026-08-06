@@ -220,13 +220,16 @@ export const cancelSleepTimerForTrackChange = (nextTrackId: number | string): vo
   }
 }
 
-export const prepareSleepTimerTrackFade = (remainingSeconds: number): void => {
-  if (sleepTimerMode.value !== 'trackEnd' || fadeStarted) return
+export const prepareSleepTimerEndFade = (remainingSeconds: number): void => {
+  if (!['trackEnd', 'queueEnd'].includes(sleepTimerMode.value) || fadeStarted) return
   const fadeSeconds = normalizeFadeSeconds(sleepTimerFadeSeconds.value)
   if (fadeSeconds > 0 && remainingSeconds <= fadeSeconds && remainingSeconds > 0) {
     void beginFade()
   }
 }
+
+/** @deprecated 使用 prepareSleepTimerEndFade。 */
+export const prepareSleepTimerTrackFade = prepareSleepTimerEndFade
 
 export const consumeSleepTimerAtTrackEnd = (
   trackId: number | string | undefined
@@ -247,7 +250,6 @@ export const consumeSleepTimerAtTrackEnd = (
 
 export const completeSleepTimerAtQueueEnd = async (): Promise<boolean> => {
   if (sleepTimerMode.value !== 'queueEnd') return false
-  await beginFade()
   await completeSleepTimer(false)
   return true
 }
