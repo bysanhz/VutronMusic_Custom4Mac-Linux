@@ -42,8 +42,11 @@ jobs:
       - name: Type check
         run: yarn run vue:type-check
 
-      - name: Run security regression tests
-        run: yarn playwright test tests/security-hardening.spec.ts
+      - name: Run security and feature regression tests
+        run: >-
+          yarn playwright test
+          tests/security-hardening.spec.ts
+          tests/feature-regression.spec.ts
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
