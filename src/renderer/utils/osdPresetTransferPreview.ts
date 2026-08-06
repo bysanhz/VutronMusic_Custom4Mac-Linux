@@ -11,6 +11,7 @@ const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const OSD_STORAGE_KEY = 'osdLyric'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const FEATURE_CLASS = 'vutronmusic-osd-preset-transfer-preview'
+const PRESET_COMMITTED_EVENT = 'vutronmusic-osd-preset-committed'
 const MAX_USER_PRESETS = 50
 const MAX_IMPORT_BYTES = 256 * 1024
 
@@ -220,7 +221,7 @@ const installTransferAndPreview = (): boolean => {
     if (serialized === lastPreviewState) return
     lastPreviewState = serialized
 
-    preview.style.background = settings.backgroundColor
+    preview.style.backgroundColor = settings.backgroundColor
     preview.style.fontFamily = settings.font
     preview.style.textAlign = settings.align
     preview.style.textShadow = `0 1px 2px ${settings.textShadow}`
@@ -248,7 +249,7 @@ const installTransferAndPreview = (): boolean => {
     link.href = url
     link.download = `${sanitizeFileName(name)}.json`
     link.click()
-    URL.revokeObjectURL(url)
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
     if (status) status.textContent = text.exported
   })
 
@@ -297,6 +298,7 @@ const installTransferAndPreview = (): boolean => {
       applySettings(settings)
       lastPreviewState = ''
       renderPreview()
+      window.dispatchEvent(new CustomEvent(PRESET_COMMITTED_EVENT))
       if (status) status.textContent = text.imported
     } catch (error) {
       console.warn('[OSD Presets] 导入预设失败：', error)
