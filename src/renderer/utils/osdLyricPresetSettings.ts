@@ -43,6 +43,7 @@ const CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const OSD_STORAGE_KEY = 'osdLyric'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
+const MAX_USER_PRESETS = 50
 
 const TEXTS = {
   zh: {
@@ -51,8 +52,12 @@ const TEXTS = {
     apply: '应用',
     save: '保存当前',
     delete: '删除',
-    namePrompt: '请输入预设名称',
+    namePlaceholder: '输入预设名称',
+    nameRequired: '请先输入预设名称',
     saved: '预设已保存',
+    updated: '同名预设已更新',
+    saveFailed: '保存失败，请检查本地存储空间',
+    limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
     applied: '预设已应用',
     deleted: '预设已删除',
     minimal: '极简透明双行',
@@ -66,8 +71,12 @@ const TEXTS = {
     apply: '套用',
     save: '儲存目前設定',
     delete: '刪除',
-    namePrompt: '請輸入預設名稱',
+    namePlaceholder: '輸入預設名稱',
+    nameRequired: '請先輸入預設名稱',
     saved: '預設已儲存',
+    updated: '同名預設已更新',
+    saveFailed: '儲存失敗，請檢查本機儲存空間',
+    limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
     applied: '預設已套用',
     deleted: '預設已刪除',
     minimal: '極簡透明雙行',
@@ -81,8 +90,12 @@ const TEXTS = {
     apply: 'Apply',
     save: 'Save Current',
     delete: 'Delete',
-    namePrompt: 'Preset name',
+    namePlaceholder: 'Preset name',
+    nameRequired: 'Enter a preset name first.',
     saved: 'Preset saved',
+    updated: 'Existing preset updated',
+    saveFailed: 'Could not save the preset. Check local storage space.',
+    limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
     applied: 'Preset applied',
     deleted: 'Preset deleted',
     minimal: 'Minimal Transparent Two-line',
@@ -167,7 +180,7 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
   const settings = preset.settings as Partial<OsdPresetSettings>
   return {
     id: String(preset.id).slice(0, 120),
-    name: String(preset.name).slice(0, 80),
+    name: String(preset.name).trim().slice(0, 80),
     settings: {
       type: settings.type === 'normal' ? 'normal' : 'small',
       mode: settings.mode === 'oneLine' ? 'oneLine' : 'twoLines',
@@ -193,15 +206,28 @@ const loadUserPresets = (): OsdPreset[] => {
   try {
     const value = JSON.parse(localStorage.getItem(PRESETS_STORAGE_KEY) || '[]')
     return Array.isArray(value)
-      ? value.map(normalizePreset).filter((item): item is OsdPreset => item !== null)
+      ? value
+          .map(normalizePreset)
+          .filter((item): item is OsdPreset => item !== null && Boolean(item.name))
+          .slice(-MAX_USER_PRESETS)
       : []
   } catch {
     return []
   }
 }
 
-const saveUserPresets = (presets: OsdPreset[]): void => {
-  writeStorageValue(PRESETS_STORAGE_KEY, JSON.stringify(presets))
+const saveUserPresets = (presets: OsdPreset[]): boolean => {
+  try {
+    const normalized = presets
+      .map(normalizePreset)
+      .filter((item): item is OsdPreset => item !== null && Boolean(item.name))
+      .slice(-MAX_USER_PRESETS)
+    writeStorageValue(PRESETS_STORAGE_KEY, JSON.stringify(normalized))
+    return localStorage.getItem(PRESETS_STORAGE_KEY) === JSON.stringify(normalized)
+  } catch (error) {
+    console.warn('[OSD Presets] 保存预设失败：', error)
+    return false
+  }
 }
 
 const readCurrentSettings = (): OsdPresetSettings => {
@@ -258,48 +284,117 @@ const ensureControl = (): boolean => {
   const item = createV327SettingsItem(CONTROL_ID, text.title, text.description)
   const controls = item.querySelector<HTMLElement>('.vutronmusic-v327-controls')!
   const select = document.createElement('select')
+  const nameInput = document.createElement('input')
   const applyButton = document.createElement('button')
   const saveButton = document.createElement('button')
   const deleteButton = document.createElement('button')
   const status = document.createElement('div')
 
+  nameInput.type = 'text'
+  nameInput.maxLength = 80
+  nameInput.autocomplete = 'off'
+  nameInput.placeholder = text.namePlaceholder
+  nameInput.setAttribute('aria-label', text.namePlaceholder)
+
+  applyButton.type = 'button'
+  saveButton.type = 'button'
+  deleteButton.type = 'button'
   applyButton.textContent = text.apply
   saveButton.textContent = text.save
   deleteButton.textContent = text.delete
   status.className = 'vutronmusic-v327-status'
+  status.setAttribute('aria-live', 'polite')
   refreshSelect(select)
 
-  applyButton.addEventListener('click', () => {
+  applyButton.addEventListener('click', (event) => {
+    event.preventDefault()
     const preset = [...getBuiltInPresets(), ...loadUserPresets()].find(
-      (item) => item.id === select.value
+      (candidate) => candidate.id === select.value
     )
     if (!preset) return
-    applyPreset(preset)
-    status.textContent = text.applied
-  })
 
-  saveButton.addEventListener('click', () => {
-    const name = window.prompt(text.namePrompt)?.trim()
-    if (!name) return
-
-    const preset: OsdPreset = {
-      id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name,
-      settings: readCurrentSettings()
+    try {
+      applyPreset(preset)
+      status.textContent = text.applied
+    } catch (error) {
+      console.warn('[OSD Presets] 应用预设失败：', error)
+      status.textContent = text.saveFailed
     }
-    saveUserPresets([...loadUserPresets(), preset])
-    refreshSelect(select, preset.id)
-    status.textContent = text.saved
   })
 
-  deleteButton.addEventListener('click', () => {
+  const saveCurrentPreset = () => {
+    const name = nameInput.value.trim().slice(0, 80)
+    if (!name) {
+      status.textContent = text.nameRequired
+      nameInput.focus()
+      return
+    }
+
+    const existing = loadUserPresets()
+    const duplicateIndex = existing.findIndex(
+      (preset) => preset.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0
+    )
+
+    if (duplicateIndex === -1 && existing.length >= MAX_USER_PRESETS) {
+      status.textContent = text.limitReached
+      return
+    }
+
+    let preset: OsdPreset
+    let nextPresets: OsdPreset[]
+    if (duplicateIndex >= 0) {
+      preset = {
+        ...existing[duplicateIndex],
+        name,
+        settings: readCurrentSettings()
+      }
+      nextPresets = existing.map((item, index) => (index === duplicateIndex ? preset : item))
+    } else {
+      preset = {
+        id:
+          typeof crypto.randomUUID === 'function'
+            ? `user-${crypto.randomUUID()}`
+            : `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        settings: readCurrentSettings()
+      }
+      nextPresets = [...existing, preset]
+    }
+
+    if (!saveUserPresets(nextPresets)) {
+      status.textContent = text.saveFailed
+      return
+    }
+
+    refreshSelect(select, preset.id)
+    nameInput.value = ''
+    status.textContent = duplicateIndex >= 0 ? text.updated : text.saved
+  }
+
+  saveButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    saveCurrentPreset()
+  })
+
+  nameInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    saveCurrentPreset()
+  })
+
+  deleteButton.addEventListener('click', (event) => {
+    event.preventDefault()
     if (!select.value.startsWith('user-')) return
-    saveUserPresets(loadUserPresets().filter((preset) => preset.id !== select.value))
+    const nextPresets = loadUserPresets().filter((preset) => preset.id !== select.value)
+    if (!saveUserPresets(nextPresets)) {
+      status.textContent = text.saveFailed
+      return
+    }
     refreshSelect(select)
     status.textContent = text.deleted
   })
 
-  controls.append(select, applyButton, saveButton, deleteButton, status)
+  controls.append(select, nameInput, applyButton, saveButton, deleteButton, status)
   const coverControl = document.getElementById('osd-cover-controls-visibility-setting')
   ;(coverControl || lockItem).insertAdjacentElement('afterend', item)
   return true
