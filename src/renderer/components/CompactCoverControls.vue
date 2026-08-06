@@ -7,16 +7,9 @@
   >
     <img class="compact-cover" :src="coverUrl" alt="当前歌曲封面" draggable="false" />
 
-    <!-- ======== newADD start====== -->
-    <!--
-      六个按钮固定为 2 × 3 网格：
-      第一排：上一首、播放/暂停、下一首；
-      第二排：主窗口、心动模式、喜欢。
-
-      爱心按钮始终显示，其余五个按钮只在鼠标进入封面控制区后显示。
-    -->
     <div class="compact-control-grid">
       <button
+        type="button"
         class="compact-control-button control-prev hover-control"
         title="上一首"
         @click.stop="playPrev"
@@ -25,6 +18,7 @@
       </button>
 
       <button
+        type="button"
         class="compact-control-button control-play hover-control"
         :title="isPlaying ? '暂停' : '播放'"
         @click.stop="playOrPause"
@@ -33,6 +27,7 @@
       </button>
 
       <button
+        type="button"
         class="compact-control-button control-next hover-control"
         title="下一首"
         @click.stop="playNext"
@@ -41,6 +36,7 @@
       </button>
 
       <button
+        type="button"
         class="compact-control-button control-main-window hover-control"
         title="显示或隐藏主窗口"
         @click.stop="toggleMainWindow"
@@ -49,6 +45,7 @@
       </button>
 
       <button
+        type="button"
         class="compact-control-button control-heart-mode hover-control"
         :class="{ loading: heartModeLoading }"
         :title="heartModeTitle"
@@ -59,6 +56,7 @@
       </button>
 
       <button
+        type="button"
         class="compact-control-button control-like"
         :class="{ liked: isLiked }"
         :title="isLiked ? '取消喜欢' : '加入喜欢'"
@@ -67,7 +65,6 @@
         <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
       </button>
     </div>
-    <!-- =========== newADD end ======== -->
   </div>
 </template>
 
@@ -111,7 +108,8 @@ const playPrev = () => {
 }
 
 const playOrPause = () => {
-  window.mainApi?.send('from-osd', 'playOrPause')
+  // 使用独立的 OSD 播放控制，避免主窗口设置页输入框焦点拦截暂停操作。
+  window.mainApi?.send('from-osd', 'playOrPauseFromOsd')
 }
 
 const playNext = () => {
@@ -126,14 +124,6 @@ const toggleMainWindow = () => {
   window.mainApi?.send('from-osd', 'toggleMainWin')
 }
 
-// ======== newADD start======
-/**
- * 根据“我喜欢的音乐”开始一次新的网易云心动模式播放。
- *
- * 使用 BroadcastChannel 直接通知主播放器 renderer，避免桌面歌词 MessagePort 尚未
- * 初始化或窗口重建后失效。主窗口会从喜欢歌单随机选择种子歌曲、请求真正的
- * `/playmode/intelligence/list`，随后立即替换播放队列并开始播放。
- */
 const startHeartMode = () => {
   if (heartModeLoading.value) return
   if (!heartModeChannel) {
@@ -159,7 +149,6 @@ const startHeartMode = () => {
     heartModeTimeout = null
   }, 15000)
 }
-// =========== newADD end ========
 
 const handleControlMessage = (event: MessageEvent) => {
   if (event.data?.type === 'player-snapshot') {
@@ -243,7 +232,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* ======== newADD start====== */
 .compact-control-grid {
   position: absolute;
   inset: 0;
@@ -348,7 +336,6 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.72));
 }
 
-/* 其余五个按钮默认隐藏，但继续占据固定网格位置，避免悬停时发生重排。 */
 .hover-control {
   opacity: 0;
   pointer-events: none;
@@ -359,7 +346,6 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 
-/* 爱心位于右下角并始终可见，不再绘制深色圆形底。 */
 .control-like {
   grid-column: 3;
   grid-row: 2;
@@ -406,5 +392,4 @@ onBeforeUnmount(() => {
   grid-column: 2;
   grid-row: 2;
 }
-/* =========== newADD end ======== */
 </style>
