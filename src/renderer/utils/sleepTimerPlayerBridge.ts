@@ -61,7 +61,7 @@ export const initializeSleepTimerPlayerBridge = (playerStore: PlayerStore): (() 
     }
   }
 
-  const quitApplication = async (): Promise<void> => {
+  const quitApplication = (): void => {
     window.mainApi?.send('quit-application')
   }
 
@@ -84,11 +84,17 @@ export const initializeSleepTimerPlayerBridge = (playerStore: PlayerStore): (() 
     )
   )
 
-  const unsubscribeActions = playerStore.$onAction(({ name, after }) => {
-    if (name !== 'playNext') return
+  const unsubscribeActions = playerStore.$onAction(({ name, args, after }) => {
+    if (name !== '_playNextTrack' || sleepTimerMode.value !== 'queueEnd') return
 
-    after((result) => {
-      if (result === false && sleepTimerMode.value === 'queueEnd') {
+    const isPersonalFm = args[0] === true
+    const hasQueuedTrack = playerStore._playNextList.length > 0
+    const hasNaturalNext = playerStore.currentTrackIndex + 1 < playerStore.list.length
+    const loopsQueue = playerStore.repeatMode === 'on'
+    const willContinue = isPersonalFm || hasQueuedTrack || hasNaturalNext || loopsQueue
+
+    after(() => {
+      if (!willContinue && sleepTimerMode.value === 'queueEnd') {
         void completeSleepTimerAtQueueEnd()
       }
     })
