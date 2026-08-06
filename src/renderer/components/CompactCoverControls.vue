@@ -76,6 +76,7 @@ import SvgIcon from './SvgIcon.vue'
 const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
+const OSD_STORAGE_KEY = 'osdLyric'
 
 const rootRef = ref<HTMLElement | null>(null)
 const isHover = ref(false)
@@ -89,6 +90,15 @@ let heartModeRequestId = ''
 let heartModeTimeout: number | null = null
 let hitRegionObserver: ResizeObserver | null = null
 let hitRegionFrame: number | null = null
+
+const readOsdLocked = (): boolean => {
+  try {
+    const value = JSON.parse(localStorage.getItem(OSD_STORAGE_KEY) || '{}')
+    return value?.isLock === true
+  } catch {
+    return false
+  }
+}
 
 /**
  * 把左侧封面控制区转换为相对于桌面歌词视口的归一化矩形并上报主进程。
@@ -111,6 +121,7 @@ const reportControlHitRegion = () => {
 
   window.mainApi?.send('osd-control-hit-region', {
     enabled: visible,
+    locked: readOsdLocked(),
     x: visible && rect ? rect.left / viewportWidth : 0,
     y: visible && rect ? rect.top / viewportHeight : 0,
     width: visible && rect ? rect.width / viewportWidth : 0,
@@ -216,7 +227,9 @@ const handleControlMessage = (event: MessageEvent) => {
 
 const handleStorage = (event: StorageEvent) => {
   if (event.key === 'player') updatePlayerSnapshot()
-  if (event.key === COVER_CONTROLS_STORAGE_KEY) scheduleControlHitRegionReport()
+  if (event.key === COVER_CONTROLS_STORAGE_KEY || event.key === OSD_STORAGE_KEY) {
+    scheduleControlHitRegionReport()
+  }
 }
 
 const handleOsdStatusMessage = (event: MessageEvent) => {
@@ -266,6 +279,7 @@ onBeforeUnmount(() => {
   window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
   window.mainApi?.send('osd-control-hit-region', {
     enabled: false,
+    locked: readOsdLocked(),
     x: 0,
     y: 0,
     width: 0,
