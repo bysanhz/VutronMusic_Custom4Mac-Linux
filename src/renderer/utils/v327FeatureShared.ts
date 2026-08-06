@@ -90,7 +90,8 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-v327-controls select,
-    .vutronmusic-v327-controls input[type='text'] {
+    .vutronmusic-v327-controls input[type='text'],
+    .vutronmusic-v327-controls input[type='number'] {
       min-width: 190px;
       height: 38px;
       box-sizing: border-box;
@@ -116,17 +117,48 @@ export const injectV327FeatureStyle = (): void => {
       text-align: right;
     }
 
+    .vutronmusic-osd-preset-draft-row {
+      display: flex;
+      flex-basis: 100%;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-height: 28px;
+      color: var(--color-text-secondary);
+      font-size: 12px;
+    }
+
+    .vutronmusic-osd-preset-draft-row button {
+      min-height: 28px;
+      padding: 3px 9px;
+      border-radius: 7px;
+    }
+
+    .vutronmusic-preset-dirty .vutronmusic-osd-preset-draft-indicator {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
+      color: var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary), transparent 88%);
+    }
+
     @media (max-width: 720px) {
       .vutronmusic-v327-controls {
         justify-content: flex-start;
         width: 100%;
       }
 
-      .vutronmusic-v327-controls select {
+      .vutronmusic-v327-controls select,
+      .vutronmusic-v327-controls input[type='text'],
+      .vutronmusic-v327-controls input[type='number'] {
         flex: 1 1 190px;
       }
 
-      .vutronmusic-v327-status {
+      .vutronmusic-v327-status,
+      .vutronmusic-osd-preset-draft-row {
+        justify-content: flex-start;
         text-align: left;
       }
     }
