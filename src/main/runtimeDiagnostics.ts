@@ -14,15 +14,15 @@ const installRuntimeDiagnostics = (): void => {
 
   ipcMain.handle('get-runtime-diagnostics', async () => {
     const gpuStatus = app.isReady() ? app.getGPUFeatureStatus() : {}
-    const userDataPath = app.getPath('userData')
+    const userDataDirectoryName = path.basename(app.getPath('userData'))
 
     return {
       app: {
         name: APP_NAME,
         version,
         packaged: app.isPackaged,
-        userDataPath,
-        logPath: path.join(userDataPath, 'logs')
+        userDataDirectory: userDataDirectoryName,
+        logDirectory: 'logs'
       },
       runtime: {
         platform: process.platform,
