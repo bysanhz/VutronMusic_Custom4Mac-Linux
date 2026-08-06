@@ -4,9 +4,10 @@ import type { usePlayerStore } from '../store/player'
 type PlayerStore = ReturnType<typeof usePlayerStore>
 type TrackID = number | string | null | undefined
 
+const HEART_MODE_PLAYLIST_TYPE = 'intelligence'
 const POSITION_EPSILON_SECONDS = 0.25
 const MAX_GUARD_DURATION_MS = 10_000
-const PLAYING_RELEASE_DELAY_MS = 250
+const PLAYING_RELEASE_DELAY_MS = 300
 
 const normalizeTrackID = (value: TrackID): string | null => {
   if (value === null || value === undefined || value === '') return null
@@ -14,18 +15,16 @@ const normalizeTrackID = (value: TrackID): string | null => {
 }
 
 /**
- * 防止普通切歌流程把上一首歌曲的持久化进度写入新歌曲。
+ * 保证从桌面歌词控件启动的心动模式种子歌曲从 0 秒开始播放。
  *
- * 播放器的音源请求和歌词请求并行执行。旧逻辑在歌词请求较早结束、HTMLAudioElement
- * 尚未进入 playing 状态时，会把上一首的 progress 当作暂停恢复位置写入新歌曲。
- * 本保护仅在歌曲 ID 发生变化或显式替换播放列表时启用，因此不会影响：
- *
- * - 暂停后继续播放当前歌曲；
- * - 应用启动时恢复上一次歌曲；
- * - 同一歌曲的过期 URL 刷新；
- * - 系统 resume 事件恢复当前进度。
+ * 心动模式通过 replacePlaylist('intelligence', ...) 替换队列。播放器同时加载音源
+ * 和歌词；当歌词请求先完成且新音源尚未进入 playing 状态时，旧进度可能被写回
+ * 新的种子歌曲。本保护仅在 intelligence 播放列表启动期间生效，不影响普通切歌、
+ * 暂停续播、应用重启恢复和同一歌曲的 URL 刷新。
  */
-export const initializePlaybackStartGuard = (playerStore: PlayerStore): (() => void) => {
+export const initializeHeartModePlaybackStartGuard = (
+  playerStore: PlayerStore
+): (() => void) => {
   let guardedTrackID: string | null = null
   let resettingPosition = false
   let releaseTimer: number | null = null
@@ -109,8 +108,11 @@ export const initializePlaybackStartGuard = (playerStore: PlayerStore): (() => v
   stopHandles.push(
     watch(
       () => normalizeTrackID(playerStore.currentTrack?.id),
-      (trackID, previousTrackID) => {
-        if (trackID && trackID !== previousTrackID) armGuard(trackID)
+      () => {
+        if (guardedTrackID) {
+          resetToTrackStart()
+          scheduleReset(0)
+        }
       },
       { flush: 'sync' }
     )
@@ -122,7 +124,6 @@ export const initializePlaybackStartGuard = (playerStore: PlayerStore): (() => v
       (position) => {
         if (
           isGuardedTrackCurrent() &&
-          !playerStore.playing &&
           !resettingPosition &&
           Number.isFinite(position) &&
           position > POSITION_EPSILON_SECONDS
@@ -155,7 +156,7 @@ export const initializePlaybackStartGuard = (playerStore: PlayerStore): (() => v
   )
 
   const unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {
-    if (name !== 'replacePlaylist') return
+    if (name !== 'replacePlaylist' || args[0] !== HEART_MODE_PLAYLIST_TYPE) return
 
     const trackIDs = Array.isArray(args[2]) ? (args[2] as TrackID[]) : []
     const requestedIndex = Number(args[3] ?? 0)
@@ -163,7 +164,11 @@ export const initializePlaybackStartGuard = (playerStore: PlayerStore): (() => v
     const requestedTrackID = trackIDs[index]
 
     armGuard(requestedTrackID)
-    after(() => resetToTrackStart())
+    after(() => {
+      resetToTrackStart()
+      scheduleReset(0)
+      scheduleReset(120)
+    })
     onError(() => releaseGuard())
   })
 
