@@ -55,6 +55,8 @@
     <PitchModal />
     <PlaybackModal />
     <SleepTimerModal />
+    <TrackLyricOffsetModal />
+    <PlaybackHistoryModal />
     <PlayerFontModal />
     <PlayerThemeModal />
     <SaveThemeModal />
@@ -72,6 +74,12 @@
       }}</div>
       <div class="item" @click="setPitchModal = true">{{ $t('contextMenu.pitch') }}</div>
       <div class="item" @click="setConvolverModal = true">{{ $t('contextMenu.setConvolver') }}</div>
+      <div class="item" @click="trackLyricOffsetModalVisible = true">
+        {{ toolMenuText.trackLyricOffset }}
+      </div>
+      <div class="item" @click="playbackHistoryModalVisible = true">
+        {{ toolMenuText.playbackHistory }}
+      </div>
       <div class="item sleep-timer-menu-item" @click="sleepTimerModalVisible = true">
         <span>{{ sleepTimerMenuText.title }}</span>
         <span v-if="sleepTimerActive" class="sleep-timer-active-label">{{
@@ -92,6 +100,8 @@ import ConvolverModal from '../components/ModalConvolver.vue'
 import PlaybackModal from '../components/ModalPlayback.vue'
 import PitchModal from '../components/ModalPitch.vue'
 import SleepTimerModal from '../components/ModalSleepTimer.vue'
+import TrackLyricOffsetModal from '../components/ModalTrackLyricOffset.vue'
+import PlaybackHistoryModal from '../components/ModalPlaybackHistory.vue'
 import PlayerThemeModal from '../components/ModalPlayerTheme.vue'
 import PlayerFontModal from '../components/ModalPlayerFont.vue'
 import SaveThemeModal from '../components/ModalSaveTheme.vue'
@@ -111,6 +121,8 @@ import {
   sleepTimerMode,
   sleepTimerRemainingSeconds
 } from '../utils/sleepTimerSettings'
+import { trackLyricOffsetModalVisible } from '../utils/trackLyricOffset'
+import { playbackHistoryModalVisible } from '../utils/playbackHistory'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 import { storeToRefs } from 'pinia'
 import { ref, provide, computed, watch } from 'vue'
@@ -144,6 +156,12 @@ const SLEEP_TIMER_MENU_TEXTS = {
   en: { title: 'Sleep Timer', active: 'Active', remaining: '{time} left' }
 } as const
 
+const TOOL_MENU_TEXTS = {
+  zh: { trackLyricOffset: '本曲歌词时间校正', playbackHistory: '播放历史与队列' },
+  zht: { trackLyricOffset: '本曲歌詞時間校正', playbackHistory: '播放歷史與佇列' },
+  en: { trackLyricOffset: 'Track lyric timing', playbackHistory: 'Playback history & queues' }
+} as const
+
 const formatSleepTimerDuration = (seconds: number): string => {
   const totalSeconds = Math.max(0, Math.ceil(seconds))
   const minutes = Math.floor(totalSeconds / 60)
@@ -152,6 +170,7 @@ const formatSleepTimerDuration = (seconds: number): string => {
 }
 
 const sleepTimerMenuText = computed(() => SLEEP_TIMER_MENU_TEXTS[resolveFeatureLanguage()])
+const toolMenuText = computed(() => TOOL_MENU_TEXTS[resolveFeatureLanguage()])
 const sleepTimerMenuStatus = computed(() => {
   if (sleepTimerMode.value === 'minutes') {
     return sleepTimerMenuText.value.remaining.replace(
