@@ -1,31 +1,61 @@
-import { nextTick, watch, type WatchStopHandle } from 'vue'
+import { nextTick, ref, watch, type WatchStopHandle } from 'vue'
 import type { usePlayerStore } from '../store/player'
 
 type PlayerStore = ReturnType<typeof usePlayerStore>
 type TrackID = number | string | null | undefined
 
-const HEART_MODE_PLAYLIST_TYPE = 'intelligence'
+export type PlaybackStartReason =
+  | 'manual-playlist'
+  | 'heart-mode'
+  | 'previous'
+  | 'next'
+  | 'play-next-now'
+  | 'personal-fm'
+  | 'automatic-track-change'
+  | 'session-restore'
+
 const POSITION_EPSILON_SECONDS = 0.25
 const MAX_GUARD_DURATION_MS = 10_000
 const PLAYING_RELEASE_DELAY_MS = 300
+
+export const playbackStartReason = ref<PlaybackStartReason>('session-restore')
+export const playbackStartGuardActive = ref(false)
 
 const normalizeTrackID = (value: TrackID): string | null => {
   if (value === null || value === undefined || value === '') return null
   return String(value)
 }
 
+export const shouldResetPlaybackPosition = (
+  previousTrackID: TrackID,
+  nextTrackID: TrackID,
+  reason: PlaybackStartReason
+): boolean => {
+  const previous = normalizeTrackID(previousTrackID)
+  const next = normalizeTrackID(nextTrackID)
+  if (!next || reason === 'session-restore') return false
+
+  // 播放列表显式替换时，即便种子歌曲与当前歌曲相同，也应从头开始。
+  if (reason === 'manual-playlist' || reason === 'heart-mode' || reason === 'personal-fm') {
+    return true
+  }
+
+  return previous !== next
+}
+
 /**
- * 保证从桌面歌词控件启动的心动模式种子歌曲从 0 秒开始播放。
+ * 统一播放器的起播位置语义：
  *
- * 心动模式通过 replacePlaylist('intelligence', ...) 替换队列。播放器同时加载音源
- * 和歌词；当歌词请求先完成且新音源尚未进入 playing 状态时，旧进度可能被写回
- * 新的种子歌曲。本保护仅在 intelligence 播放列表启动期间生效，不影响普通切歌、
- * 暂停续播、应用重启恢复和同一歌曲的 URL 刷新。
+ * - 手动选歌、上一首、下一首、心动模式、私人 FM：从 0 秒开始；
+ * - 暂停后继续、刷新同一歌曲音源：保留当前进度；
+ * - 应用启动恢复：保留持久化进度。
+ *
+ * 初始化时记录当前持久化歌曲 ID，不使用 immediate watch，因此不会破坏会话恢复。
  */
-export const initializeHeartModePlaybackStartGuard = (
-  playerStore: PlayerStore
-): (() => void) => {
+export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => void) => {
   let guardedTrackID: string | null = null
+  let previousTrackID = normalizeTrackID(playerStore.currentTrack?.id)
+  let pendingReason: PlaybackStartReason | null = null
   let resettingPosition = false
   let releaseTimer: number | null = null
   let maxGuardTimer: number | null = null
@@ -45,6 +75,7 @@ export const initializeHeartModePlaybackStartGuard = (
 
   const releaseGuard = (): void => {
     guardedTrackID = null
+    playbackStartGuardActive.value = false
     clearScheduledResets()
     clearTimer(releaseTimer)
     clearTimer(maxGuardTimer)
@@ -52,12 +83,8 @@ export const initializeHeartModePlaybackStartGuard = (
     maxGuardTimer = null
   }
 
-  const isGuardedTrackCurrent = (): boolean => {
-    return (
-      guardedTrackID !== null &&
-      normalizeTrackID(playerStore.currentTrack?.id) === guardedTrackID
-    )
-  }
+  const isGuardedTrackCurrent = (): boolean =>
+    guardedTrackID !== null && normalizeTrackID(playerStore.currentTrack?.id) === guardedTrackID
 
   const resetToTrackStart = (): void => {
     if (!isGuardedTrackCurrent() || resettingPosition) return
@@ -83,10 +110,12 @@ export const initializeHeartModePlaybackStartGuard = (
     scheduledTimers.add(timer)
   }
 
-  const armGuard = (trackID: TrackID): void => {
+  const armGuard = (trackID: TrackID, reason: PlaybackStartReason): void => {
     const normalizedTrackID = normalizeTrackID(trackID)
     if (!normalizedTrackID) return
 
+    playbackStartReason.value = reason
+    playbackStartGuardActive.value = true
     guardedTrackID = normalizedTrackID
     clearScheduledResets()
     clearTimer(releaseTimer)
@@ -105,14 +134,24 @@ export const initializeHeartModePlaybackStartGuard = (
     }, MAX_GUARD_DURATION_MS)
   }
 
+  const setPendingReason = (reason: PlaybackStartReason): void => {
+    pendingReason = reason
+    playbackStartReason.value = reason
+  }
+
   stopHandles.push(
     watch(
       () => normalizeTrackID(playerStore.currentTrack?.id),
-      () => {
-        if (guardedTrackID) {
-          resetToTrackStart()
-          scheduleReset(0)
+      (nextTrackID) => {
+        if (!nextTrackID) return
+
+        const reason = pendingReason || 'automatic-track-change'
+        if (shouldResetPlaybackPosition(previousTrackID, nextTrackID, reason)) {
+          armGuard(nextTrackID, reason)
         }
+
+        previousTrackID = nextTrackID
+        pendingReason = null
       },
       { flush: 'sync' }
     )
@@ -156,20 +195,42 @@ export const initializeHeartModePlaybackStartGuard = (
   )
 
   const unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {
-    if (name !== 'replacePlaylist' || args[0] !== HEART_MODE_PLAYLIST_TYPE) return
+    if (name === 'replacePlaylist') {
+      const type = String(args[0] || '')
+      const trackIDs = Array.isArray(args[2]) ? (args[2] as TrackID[]) : []
+      const requestedIndex = Number(args[3] ?? 0)
+      const index = Number.isInteger(requestedIndex) && requestedIndex >= 0 ? requestedIndex : 0
+      const requestedTrackID = trackIDs[index]
+      const reason: PlaybackStartReason =
+        type === 'intelligence'
+          ? 'heart-mode'
+          : type === 'personalFM'
+            ? 'personal-fm'
+            : 'manual-playlist'
 
-    const trackIDs = Array.isArray(args[2]) ? (args[2] as TrackID[]) : []
-    const requestedIndex = Number(args[3] ?? 0)
-    const index = Number.isInteger(requestedIndex) && requestedIndex >= 0 ? requestedIndex : 0
-    const requestedTrackID = trackIDs[index]
+      setPendingReason(reason)
+      if (shouldResetPlaybackPosition(previousTrackID, requestedTrackID, reason)) {
+        armGuard(requestedTrackID, reason)
+      }
+      after(() => {
+        resetToTrackStart()
+        scheduleReset(0)
+        scheduleReset(120)
+      })
+      onError(() => {
+        pendingReason = null
+        releaseGuard()
+      })
+      return
+    }
 
-    armGuard(requestedTrackID)
-    after(() => {
-      resetToTrackStart()
-      scheduleReset(0)
-      scheduleReset(120)
-    })
-    onError(() => releaseGuard())
+    if (name === 'playPrev') setPendingReason('previous')
+    else if (name === 'playNext' || name === '_playNextTrack') setPendingReason('next')
+    else if (name === 'playPersonalFM' || name === 'playNextFMTrack') {
+      setPendingReason('personal-fm')
+    } else if (name === 'addTrackToPlayNext' && args[1] === true) {
+      setPendingReason('play-next-now')
+    }
   })
 
   const cleanup = (): void => {
