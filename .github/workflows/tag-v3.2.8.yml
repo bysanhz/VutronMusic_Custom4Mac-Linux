@@ -1,0 +1,61 @@
+name: Gate v3.2.8 tag
+
+on:
+  push:
+    branches:
+      - automation/tag-v3.2.8
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_SHA: 34c3c4f0cad29ff0923b249873d224588a91dd4a
+      CODE_QUALITY_RUN_ID: '32012147287'
+      RELEASE_TAG: v3.2.8
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "${MAIN_SHA}" = "${RELEASE_SHA}"
+
+          PACKAGE_VERSION="$(gh api "repos/${GITHUB_REPOSITORY}/contents/package.json?ref=${RELEASE_SHA}" --jq -r '.content' | base64 -d | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).version))")"
+          test "${PACKAGE_VERSION}" = "3.2.8"
+
+          gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release-notes/v3.2.8.md?ref=${RELEASE_SHA}" >/dev/null
+
+      - name: Wait for Code Quality
+        shell: bash
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 90); do
+            STATUS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CODE_QUALITY_RUN_ID}" --jq '.status')"
+            CONCLUSION="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CODE_QUALITY_RUN_ID}" --jq '.conclusion // ""')"
+            echo "Code Quality: ${STATUS} ${CONCLUSION}"
+            if [[ "${STATUS}" == "completed" ]]; then
+              test "${CONCLUSION}" = "success"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for Code Quality" >&2
+          exit 1
+
+      - name: Create exact release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if EXISTING="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha' 2>/dev/null)"; then
+            test "${EXISTING}" = "${RELEASE_SHA}"
+            echo "${RELEASE_TAG} already points to validated SHA"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${RELEASE_TAG}" \
+              -f "sha=${RELEASE_SHA}"
+          fi
