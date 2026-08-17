@@ -2,8 +2,8 @@
   <BaseModal
     :show="trackLyricOffsetModalVisible"
     :title="text.title"
-    width="25vw"
-    min-width="calc(min(24rem, 92vw))"
+    width="min(30rem, 94vw)"
+    min-width="min(22rem, 94vw)"
     :close-fn="close"
   >
     <template #default>
@@ -15,19 +15,17 @@
       </div>
 
       <div class="offset-overview">
-        <div>
+        <div class="offset-card">
           <span>{{ text.trackOffset }}</span>
           <strong>{{ formatOffset(trackLyricOffset) }}</strong>
         </div>
-        <div>
+        <div class="offset-card">
           <span>{{ text.globalOffset }}</span>
           <strong>{{ formatOffset(globalLyricOffset) }}</strong>
         </div>
       </div>
 
       <div class="offset-controls" role="group" :aria-label="text.title">
-        <button type="button" @click="adjust(-0.5)">-0.5s</button>
-        <button type="button" @click="adjust(-0.1)">-0.1s</button>
         <label class="offset-input">
           <input
             v-model.number="draftOffset"
@@ -41,8 +39,13 @@
           />
           <span>s</span>
         </label>
-        <button type="button" @click="adjust(0.1)">+0.1s</button>
-        <button type="button" @click="adjust(0.5)">+0.5s</button>
+
+        <div class="step-controls">
+          <button type="button" @click="adjust(-0.5)">-0.5s</button>
+          <button type="button" @click="adjust(-0.1)">-0.1s</button>
+          <button type="button" @click="adjust(0.1)">+0.1s</button>
+          <button type="button" @click="adjust(0.5)">+0.5s</button>
+        </div>
       </div>
 
       <p class="offset-hint">{{ text.hint }}</p>
@@ -143,10 +146,10 @@ const close = () => {
 
 <style scoped lang="scss">
 .track-summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 14px;
   padding: 10px 12px;
   border-radius: 10px;
@@ -162,10 +165,13 @@ const close = () => {
 }
 
 .effective-offset {
-  flex-shrink: 0;
+  min-width: 0;
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .offset-overview {
@@ -173,60 +179,117 @@ const close = () => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 12px;
+}
 
-  div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 10px;
-    border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
-    border-radius: 9px;
-    font-size: 12px;
-  }
+.offset-card {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 9px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
+  border-radius: 9px;
+  text-align: center;
 
   span {
     color: color-mix(in srgb, var(--color-text), transparent 42%);
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  strong {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }
 
 .offset-controls {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(78px, 1.2fr) repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
+}
 
-  button,
-  .offset-input {
-    min-height: 38px;
-    border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
-    border-radius: 9px;
-    background: var(--color-secondary-bg-for-transparent);
-  }
-
-  button:hover {
-    border-color: color-mix(in srgb, var(--color-primary), transparent 35%);
-  }
+.offset-input,
+.step-controls button {
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
+  border-radius: 9px;
+  background: var(--color-secondary-bg-for-transparent);
 }
 
 .offset-input {
+  min-width: 0;
+  min-height: 42px;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 12px;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
 
   input {
+    width: 6ch;
     min-width: 0;
-    width: 100%;
+    flex: 0 1 6ch;
+    appearance: textfield;
     border: 0;
     outline: 0;
     color: var(--color-text);
     background: transparent;
     text-align: right;
-    font: inherit;
+    font-family: inherit;
+    font-size: 15px;
     font-weight: 650;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
+    }
   }
 
   span {
+    flex: 0 0 auto;
     color: color-mix(in srgb, var(--color-text), transparent 42%);
+    font-size: 11px;
+    line-height: 1;
+  }
+}
+
+.step-controls {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+
+  button {
+    min-width: 0;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0 4px;
+    color: var(--color-text);
+    font-family: inherit;
     font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--color-primary), transparent 35%);
+    }
   }
 }
 
@@ -245,6 +308,21 @@ const close = () => {
 
   button {
     min-width: 88px;
+  }
+}
+
+@media (max-width: 360px) {
+  .track-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .effective-offset {
+    justify-self: start;
+  }
+
+  .step-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
