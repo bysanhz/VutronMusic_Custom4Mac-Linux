@@ -6,6 +6,7 @@ const MAX_REDIRECTS = 5
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
 type GuardedNet = typeof net & Record<string, any>
+type NetFetchInit = NonNullable<Parameters<typeof net.fetch>[1]>
 
 const enforceResponseSizeLimit = async (response: Response): Promise<Response> => {
   const declaredLength = Number(response.headers.get('content-length') || 0)
@@ -47,12 +48,12 @@ const installNetworkFetchGuard = (): void => {
 
   guardedNet.fetch = async (
     input: string | URL | Request,
-    init: RequestInit = {}
+    init: NetFetchInit = {}
   ): Promise<Response> => {
     const initialUrl =
       input instanceof Request ? input.url : input instanceof URL ? input.toString() : input
     let currentUrl = await assertConfiguredOrPublicRemoteUrl(initialUrl)
-    let requestInit: RequestInit = {
+    let requestInit: NetFetchInit = {
       ...init,
       method: init.method || (input instanceof Request ? input.method : undefined),
       headers: init.headers || (input instanceof Request ? input.headers : undefined),
