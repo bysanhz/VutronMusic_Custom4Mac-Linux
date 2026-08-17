@@ -113,6 +113,16 @@ test.describe('desktop feature integration', () => {
     )
   })
 
+  test('allows context menus to be dismissed without choosing an action', () => {
+    const contextMenu = readSource('src/renderer/components/ContextMenu.vue')
+
+    expect(contextMenu).toContain("document.addEventListener('pointerdown'")
+    expect(contextMenu).toContain("document.addEventListener('keydown'")
+    expect(contextMenu).toContain("event.key !== 'Escape'")
+    expect(contextMenu).toContain('const shouldToggleClosed =')
+    expect(contextMenu).toContain('if (shouldToggleClosed) return')
+  })
+
   test('registers diagnostics and playback-history integrations', () => {
     const constants = readSource('src/main/utils/Constants.ts')
     const main = readSource('src/renderer/main.ts')
