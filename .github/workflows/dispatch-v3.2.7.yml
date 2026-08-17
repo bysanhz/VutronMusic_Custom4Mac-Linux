@@ -1,4 +1,4 @@
-name: Dispatch v3.2.7 release
+name: Promote validated v3.2.7 release
 
 on:
   push:
@@ -8,16 +8,88 @@ on:
       - '.github/workflows/dispatch-v3.2.7.yml'
 
 permissions:
-  actions: write
-  contents: read
+  contents: write
 
 jobs:
-  dispatch:
+  promote:
     runs-on: ubuntu-latest
+    env:
+      VALIDATED_SHA: fd538ab2b7b812f6c48b6618b9f2f2b50b2fb880
+      RELEASE_ID: '371608608'
+      RELEASE_TAG: v3.2.7
     steps:
-      - name: Dispatch release workflow on main
+      - name: Promote validated draft to v3.2.7
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
 
-# v3.2.7 release retry 3
+          main_sha="$(gh api "repos/$repo/commits/main" --jq '.sha')"
+          if [[ "$main_sha" != "$VALIDATED_SHA" ]]; then
+            echo "main moved: expected $VALIDATED_SHA, got $main_sha" >&2
+            exit 1
+          fi
+
+          release_json="$(gh api "repos/$repo/releases/$RELEASE_ID")"
+          if [[ "$(jq -r '.draft' <<<"$release_json")" != "true" ]]; then
+            echo "Release $RELEASE_ID is no longer a draft" >&2
+            exit 1
+          fi
+
+          old_tag="$(jq -r '.tag_name' <<<"$release_json")"
+          if [[ "$old_tag" != v-draft-* ]]; then
+            echo "Unexpected draft tag: $old_tag" >&2
+            exit 1
+          fi
+
+          required_assets=(
+            'VutronMusic-3.2.7_mac_arm64.dmg'
+            'VutronMusic-3.2.7_mac_x64.dmg'
+            'VutronMusic-3.2.7_win_x64.exe'
+            'VutronMusic-3.2.7_win_x64-Portable.exe'
+            'VutronMusic-3.2.7_win_arm64.exe'
+            'VutronMusic-3.2.7_linux_x86_64.AppImage'
+            'VutronMusic-3.2.7_linux_arm64.AppImage'
+            'VutronMusic-3.2.7_linux_amd64.deb'
+            'VutronMusic-3.2.7_linux_arm64.deb'
+          )
+          for asset in "${required_assets[@]}"; do
+            if ! jq -e --arg asset "$asset" '.assets[] | select(.name == $asset)' <<<"$release_json" >/dev/null; then
+              echo "Missing required release asset: $asset" >&2
+              exit 1
+            fi
+          done
+
+          if existing_ref="$(gh api "repos/$repo/git/ref/tags/$RELEASE_TAG" --jq '.object.sha' 2>/dev/null)"; then
+            if [[ "$existing_ref" != "$VALIDATED_SHA" ]]; then
+              echo "Existing $RELEASE_TAG points to $existing_ref, expected $VALIDATED_SHA" >&2
+              exit 1
+            fi
+          else
+            gh api --method POST "repos/$repo/git/refs" \
+              -f ref="refs/tags/$RELEASE_TAG" \
+              -f sha="$VALIDATED_SHA" >/dev/null
+          fi
+
+          gh api "repos/$repo/contents/.github/release-notes/v3.2.7.md?ref=$VALIDATED_SHA" \
+            --jq '.content' | base64 --decode > release-notes.md
+
+          gh api --method PATCH "repos/$repo/releases/$RELEASE_ID" \
+            -f tag_name="$RELEASE_TAG" \
+            -f target_commitish="$VALIDATED_SHA" \
+            -f name='VutronMusic v3.2.7' \
+            -F body=@release-notes.md \
+            -F draft=false \
+            -F prerelease=false >/dev/null
+
+          final_json="$(gh api "repos/$repo/releases/tags/$RELEASE_TAG")"
+          [[ "$(jq -r '.draft' <<<"$final_json")" == "false" ]]
+          [[ "$(jq -r '.prerelease' <<<"$final_json")" == "false" ]]
+          [[ "$(jq -r '.tag_name' <<<"$final_json")" == "$RELEASE_TAG" ]]
+
+          final_ref="$(gh api "repos/$repo/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+          [[ "$final_ref" == "$VALIDATED_SHA" ]]
+
+          echo "Published $RELEASE_TAG at $VALIDATED_SHA with validated assets."
