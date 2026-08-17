@@ -1,0 +1,74 @@
+name: Apply player control icon size hotfix
+
+on:
+  push:
+    branches:
+      - automation/fix-player-control-icon-size
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validated main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify expected main revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="bf0f3c50f1dcf8b1ad5c54f65f12dbd6eb7d587c"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected" || {
+            echo "main moved: expected $expected, got $actual" >&2
+            exit 1
+          }
+
+      - name: Enlarge full-player media control icons
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/renderer/components/CommonPlayer.vue')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  """        align-items: center;\n\n        .svg-icon {\n          opacity: 0.38;\n          height: 14px;\n          width: 14px;\n        }""",
+                  """        align-items: center;\n        --media-control-icon-size: 18px;\n        --media-control-primary-icon-size: 20px;\n\n        .svg-icon {\n          opacity: 0.38;\n          height: var(--media-control-icon-size);\n          width: var(--media-control-icon-size);\n        }""",
+              ),
+              (
+                  """          button#play .svg-icon {\n            height: 8px; //28\n            width: 8px; //28\n            padding: 2px;\n          }""",
+                  """          button#play .svg-icon {\n            height: var(--media-control-primary-icon-size);\n            width: var(--media-control-primary-icon-size);\n            padding: 1px;\n          }""",
+              ),
+              (
+                  """          .svg-icon {\n            opacity: 0.88;\n            height: 8px; // 22\n            width: 8px; // 22\n          }""",
+                  """          .svg-icon {\n            opacity: 0.88;\n            height: var(--media-control-icon-size);\n            width: var(--media-control-icon-size);\n          }""",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "bysanhz"
+          git config user.email "144031718+bysanhz@users.noreply.github.com"
+          git add src/renderer/components/CommonPlayer.vue
+          git commit -m "fix: enlarge full-player media controls"
+          git push origin HEAD:refs/heads/automation/fix-player-control-icon-size-result --force
