@@ -279,10 +279,10 @@ const getBuiltInPresets = (): OsdPreset[] => {
 
 const getAllPresets = (): OsdPreset[] => [...getBuiltInPresets(), ...loadUserPresets()]
 
-const isBuiltInPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>
+const isBuiltInPreset = (preset: OsdPreset | undefined): boolean =>
   Boolean(preset?.id.startsWith('builtin-'))
 
-const isUserPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>
+const isUserPreset = (preset: OsdPreset | undefined): boolean =>
   Boolean(preset?.id.startsWith('user-'))
 
 const createUserPresetId = (): string =>

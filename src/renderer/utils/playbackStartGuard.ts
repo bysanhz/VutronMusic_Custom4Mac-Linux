@@ -195,7 +195,8 @@ export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => 
   )
 
   const unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {
-    if (name === 'replacePlaylist') {
+    const actionName = String(name)
+    if (actionName === 'replacePlaylist') {
       const type = String(args[0] || '')
       const trackIDs = Array.isArray(args[2]) ? (args[2] as TrackID[]) : []
       const requestedIndex = Number(args[3] ?? 0)
@@ -224,11 +225,11 @@ export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => 
       return
     }
 
-    if (name === 'playPrev') setPendingReason('previous')
-    else if (name === 'playNext' || name === '_playNextTrack') setPendingReason('next')
-    else if (name === 'playPersonalFM' || name === 'playNextFMTrack') {
+    if (actionName === 'playPrev') setPendingReason('previous')
+    else if (actionName === 'playNext' || actionName === '_playNextTrack') setPendingReason('next')
+    else if (actionName === 'playPersonalFM' || actionName === 'playNextFMTrack') {
       setPendingReason('personal-fm')
-    } else if (name === 'addTrackToPlayNext' && args[1] === true) {
+    } else if (actionName === 'addTrackToPlayNext' && args[1] === true) {
       setPendingReason('play-next-now')
     }
   })
