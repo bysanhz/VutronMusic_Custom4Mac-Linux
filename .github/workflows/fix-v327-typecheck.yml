@@ -1,0 +1,70 @@
+name: Fix v3.2.7 type-check blockers
+
+on:
+  push:
+    branches:
+      - automation/v327-hardening-result-v2
+    paths:
+      - '.github/workflows/fix-v327-typecheck.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply type-only fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          preset_path = Path('src/renderer/utils/osdLyricPresetSettings.ts')
+          preset = preset_path.read_text()
+          preset = preset.replace(
+              "const isBuiltInPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>",
+              "const isBuiltInPreset = (preset: OsdPreset | undefined): boolean =>",
+          )
+          preset = preset.replace(
+              "const isUserPreset = (preset: OsdPreset | undefined): preset is OsdPreset =>",
+              "const isUserPreset = (preset: OsdPreset | undefined): boolean =>",
+          )
+          preset_path.write_text(preset)
+
+          guard_path = Path('src/renderer/utils/playbackStartGuard.ts')
+          guard = guard_path.read_text()
+          guard = guard.replace(
+              "  const unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {\n    if (name === 'replacePlaylist') {",
+              "  const unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {\n    const actionName = String(name)\n    if (actionName === 'replacePlaylist') {",
+          )
+          guard = guard.replace(
+              "    if (name === 'playPrev') setPendingReason('previous')\n    else if (name === 'playNext' || name === '_playNextTrack') setPendingReason('next')\n    else if (name === 'playPersonalFM' || name === 'playNextFMTrack') {\n      setPendingReason('personal-fm')\n    } else if (name === 'addTrackToPlayNext' && args[1] === true) {",
+              "    if (actionName === 'playPrev') setPendingReason('previous')\n    else if (actionName === 'playNext' || actionName === '_playNextTrack') setPendingReason('next')\n    else if (actionName === 'playPersonalFM' || actionName === 'playNextFMTrack') {\n      setPendingReason('personal-fm')\n    } else if (actionName === 'addTrackToPlayNext' && args[1] === true) {",
+          )
+          guard_path.write_text(guard)
+          PY
+
+      - name: Verify intended diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff -- src/renderer/utils/osdLyricPresetSettings.ts src/renderer/utils/playbackStartGuard.ts
+          test -n "$(git status --porcelain)"
+
+      - name: Commit and push main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/renderer/utils/osdLyricPresetSettings.ts src/renderer/utils/playbackStartGuard.ts
+          git commit -m 'fix: resolve v3.2.7 type-check blockers'
+          git push origin HEAD:main
