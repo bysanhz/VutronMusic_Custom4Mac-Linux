@@ -20,4 +20,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main
 
-# v3.2.7 release retry 2
+# v3.2.7 release retry 3
