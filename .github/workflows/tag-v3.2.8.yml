@@ -25,7 +25,7 @@ jobs:
           MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           test "${MAIN_SHA}" = "${RELEASE_SHA}"
 
-          PACKAGE_VERSION="$(gh api "repos/${GITHUB_REPOSITORY}/contents/package.json?ref=${RELEASE_SHA}" --jq -r '.content' | base64 -d | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).version))")"
+          PACKAGE_VERSION="$(gh api -H 'Accept: application/vnd.github.raw+json' "repos/${GITHUB_REPOSITORY}/contents/package.json?ref=${RELEASE_SHA}" | jq -r '.version')"
           test "${PACKAGE_VERSION}" = "3.2.8"
 
           gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release-notes/v3.2.8.md?ref=${RELEASE_SHA}" >/dev/null
