@@ -53,6 +53,16 @@ test.describe('track lyric timing', () => {
     expect(normalizeTrackLyricOffset(-99)).toBe(-30)
     expect(normalizeTrackLyricOffset(Number.NaN)).toBe(0)
   })
+
+  test('keeps offset controls responsive instead of squeezing five numeric controls', () => {
+    const modal = readSource('src/renderer/components/ModalTrackLyricOffset.vue')
+
+    expect(modal).toContain('<div class="step-controls">')
+    expect(modal).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));')
+    expect(modal).not.toContain('minmax(78px, 1.2fr)')
+    expect(modal).toContain('font-variant-numeric: tabular-nums;')
+    expect(modal).toContain('white-space: nowrap;')
+  })
 })
 
 test.describe('desktop lyric partial passthrough', () => {
