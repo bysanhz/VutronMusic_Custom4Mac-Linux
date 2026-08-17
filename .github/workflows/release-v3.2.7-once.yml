@@ -27,19 +27,32 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Apply Prettier
-        run: yarn prettier . --write
-
-      - name: Commit formatting and remove helper
+      - name: Apply Prettier and expose workflow results
         shell: bash
         run: |
           set -euo pipefail
+          yarn prettier . --write
+          echo 'FORMATTED_BUILD_YML_BEGIN'
+          base64 -w0 .github/workflows/build.yml
+          echo
+          echo 'FORMATTED_BUILD_YML_END'
+          echo 'FORMATTED_CI_YML_BEGIN'
+          base64 -w0 .github/workflows/ci.yml
+          echo
+          echo 'FORMATTED_CI_YML_END'
+
+      - name: Restore workflow files and push source formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout HEAD -- \
+            .github/workflows/build.yml \
+            .github/workflows/ci.yml \
+            .github/workflows/release-v3.2.7-once.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m 'style: apply Prettier before v3.2.7 release'
+            git push origin HEAD:main
           fi
-          git rm .github/workflows/release-v3.2.7-once.yml
-          git commit -m 'chore(release): remove one-shot formatter'
-          git push origin HEAD:main
