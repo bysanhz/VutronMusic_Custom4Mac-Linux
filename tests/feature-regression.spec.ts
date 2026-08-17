@@ -123,6 +123,20 @@ test.describe('desktop feature integration', () => {
     expect(contextMenu).toContain('if (shouldToggleClosed) return')
   })
 
+  test('keeps speed and pitch presets separated from the fine-adjust sliders', () => {
+    const playback = readSource('src/renderer/components/ModalPlayback.vue')
+    const pitch = readSource('src/renderer/components/ModalPitch.vue')
+
+    expect(playback).toContain('title="倍速播放"')
+    expect(playback).toContain('当前倍速:')
+    expect(playback).toContain('class="preset-grid"')
+    expect(playback).toContain('playbackRatePresets')
+    expect(playback).not.toContain(':marks="marks"')
+    expect(pitch).toContain('class="preset-grid"')
+    expect(pitch).toContain('pitchPresets')
+    expect(pitch).not.toContain(':marks="marks"')
+  })
+
   test('registers diagnostics and playback-history integrations', () => {
     const constants = readSource('src/main/utils/Constants.ts')
     const main = readSource('src/renderer/main.ts')
