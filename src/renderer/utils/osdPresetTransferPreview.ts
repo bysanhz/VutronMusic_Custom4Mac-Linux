@@ -122,7 +122,10 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
 }
 
 const sanitizeFileName = (value: string): string =>
-  value.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().slice(0, 80) || 'desktop-lyric-preset'
+  value
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .trim()
+    .slice(0, 80) || 'desktop-lyric-preset'
 
 const normalizeSettings = (value: unknown): PresetSettings | null => {
   if (!value || typeof value !== 'object') return null
@@ -166,7 +169,9 @@ const loadPresetArray = (storageKey: string): StoredPreset[] => {
         if (!preset || typeof preset !== 'object') return null
         const settings = normalizeSettings(preset.settings)
         const id = String(preset.id || '').slice(0, 120)
-        const name = String(preset.name || '').trim().slice(0, 80)
+        const name = String(preset.name || '')
+          .trim()
+          .slice(0, 80)
         if (!id || !name || !settings) return null
         return { id, name, settings }
       })

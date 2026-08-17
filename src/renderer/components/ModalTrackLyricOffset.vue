@@ -9,7 +9,9 @@
     <template #default>
       <div class="track-summary">
         <span class="track-name">{{ trackLyricOffsetTrackName || text.noTrack }}</span>
-        <span class="effective-offset">{{ text.effective }} {{ formatOffset(effectiveTrackLyricOffset) }}</span>
+        <span class="effective-offset"
+          >{{ text.effective }} {{ formatOffset(effectiveTrackLyricOffset) }}</span
+        >
       </div>
 
       <div class="offset-overview">

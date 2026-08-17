@@ -1,13 +1,6 @@
 import { computed, ref } from 'vue'
 
-export type SleepTimerSelection =
-  | '15'
-  | '30'
-  | '60'
-  | '90'
-  | 'trackEnd'
-  | 'queueEnd'
-  | number
+export type SleepTimerSelection = '15' | '30' | '60' | '90' | 'trackEnd' | 'queueEnd' | number
 export type SleepTimerMode = 'off' | 'minutes' | 'trackEnd' | 'queueEnd'
 export type SleepTimerAction = 'pause' | 'quit'
 export type SleepTimerNotice =
@@ -61,10 +54,7 @@ const loadPreferences = (): void => {
   }
 }
 
-export const saveSleepTimerPreferences = (
-  action: SleepTimerAction,
-  fadeSeconds: number
-): void => {
+export const saveSleepTimerPreferences = (action: SleepTimerAction, fadeSeconds: number): void => {
   sleepTimerAction.value = action === 'quit' ? 'quit' : 'pause'
   sleepTimerFadeSeconds.value = normalizeFadeSeconds(fadeSeconds)
 
@@ -231,9 +221,7 @@ export const prepareSleepTimerEndFade = (remainingSeconds: number): void => {
 /** @deprecated 使用 prepareSleepTimerEndFade。 */
 export const prepareSleepTimerTrackFade = prepareSleepTimerEndFade
 
-export const consumeSleepTimerAtTrackEnd = (
-  trackId: number | string | undefined
-): boolean => {
+export const consumeSleepTimerAtTrackEnd = (trackId: number | string | undefined): boolean => {
   if (
     sleepTimerMode.value !== 'trackEnd' ||
     sleepTimerTrackId.value === null ||

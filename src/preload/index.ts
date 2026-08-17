@@ -134,7 +134,10 @@ const getWrappedListener = (channel: string, listener: RendererListener): Wrappe
   return wrapped
 }
 
-const removeWrappedListener = (channel: string, listener: RendererListener): WrappedListener | null => {
+const removeWrappedListener = (
+  channel: string,
+  listener: RendererListener
+): WrappedListener | null => {
   const channelMap = wrappedListeners.get(listener)
   const wrapped = channelMap?.get(channel) || null
   if (wrapped) {

@@ -52,13 +52,10 @@ const getStoredGrants = async (): Promise<LocalResourceGrant[]> => {
   const value = store.get(LOCAL_RESOURCE_GRANTS_KEY)
   if (!Array.isArray(value)) return []
 
-  return value.filter(
-    (item): item is LocalResourceGrant =>
-      Boolean(
-        item &&
-          typeof item.path === 'string' &&
-          (item.type === 'file' || item.type === 'directory')
-      )
+  return value.filter((item): item is LocalResourceGrant =>
+    Boolean(
+      item && typeof item.path === 'string' && (item.type === 'file' || item.type === 'directory')
+    )
   )
 }
 

@@ -16,10 +16,7 @@ const checkEmbeddedExist = async (filePath: string) => {
   return Boolean(picture)
 }
 
-const writeCoverToEmbedded = async (
-  filePath: string,
-  image: { pic: Buffer; format: string }
-) => {
+const writeCoverToEmbedded = async (filePath: string, image: { pic: Buffer; format: string }) => {
   const { replacePictureByType } = await import('taglib-wasm')
   const decodedPath = decodeURI(filePath)
   const modifiedBuffer = await replacePictureByType(decodedPath, {

@@ -28,9 +28,7 @@ test.describe('playback start policy', () => {
 
   for (const item of resetCases) {
     test(`${item.reason}: ${item.previous} -> ${item.next}`, () => {
-      expect(shouldResetPlaybackPosition(item.previous, item.next, item.reason)).toBe(
-        item.expected
-      )
+      expect(shouldResetPlaybackPosition(item.previous, item.next, item.reason)).toBe(item.expected)
     })
   }
 })

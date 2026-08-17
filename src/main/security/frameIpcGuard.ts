@@ -1,10 +1,7 @@
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
 
 const INSTALL_KEY = '__vutronFrameIpcGuardInstalled'
-const TRUSTED_RENDERER_ORIGINS = new Set([
-  'http://localhost:41830',
-  'http://127.0.0.1:41830'
-])
+const TRUSTED_RENDERER_ORIGINS = new Set(['http://localhost:41830', 'http://127.0.0.1:41830'])
 
 const getEventOrigin = (event: IpcMainEvent | IpcMainInvokeEvent): string | null => {
   const rawUrl = event.senderFrame?.url || event.sender.getURL()

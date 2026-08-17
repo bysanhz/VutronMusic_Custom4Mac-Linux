@@ -101,7 +101,8 @@ const TEXTS = {
   },
   en: {
     title: 'Desktop Lyric Presets',
-    description: 'Built-in and custom presets can both be overwritten; built-in presets can be restored at any time.',
+    description:
+      'Built-in and custom presets can both be overwritten; built-in presets can be restored at any time.',
     apply: 'Apply',
     saveCopy: 'Save Copy',
     updateSelected: 'Update Selected',
@@ -117,8 +118,10 @@ const TEXTS = {
     limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
     applied: 'Preset applied. Continue editing, then overwrite it when ready.',
     deleted: 'Preset deleted',
-    builtinHint: 'Edit font, colors, layout or other settings, then choose “Update Selected” to overwrite this built-in preset.',
-    customHint: 'Edit the desktop lyric settings, then choose “Update Selected” to overwrite this preset.',
+    builtinHint:
+      'Edit font, colors, layout or other settings, then choose “Update Selected” to overwrite this built-in preset.',
+    customHint:
+      'Edit the desktop lyric settings, then choose “Update Selected” to overwrite this preset.',
     copySuffix: 'Copy',
     minimal: 'Minimal Transparent Two-line',
     centered: 'Large Centered',
@@ -261,7 +264,9 @@ const saveUserPresets = (presets: OsdPreset[]): boolean =>
 
 const loadBuiltInOverrides = (): OsdPreset[] => {
   const allowedIds = new Set(getDefaultBuiltInPresets().map((preset) => preset.id))
-  return loadPresetArray(BUILTIN_OVERRIDES_STORAGE_KEY).filter((preset) => allowedIds.has(preset.id))
+  return loadPresetArray(BUILTIN_OVERRIDES_STORAGE_KEY).filter((preset) =>
+    allowedIds.has(preset.id)
+  )
 }
 
 const saveBuiltInOverrides = (presets: OsdPreset[]): boolean =>
@@ -550,15 +555,7 @@ const ensureControl = (): boolean => {
     status.textContent = text.deleted
   })
 
-  controls.append(
-    select,
-    nameInput,
-    applyButton,
-    updateButton,
-    copyButton,
-    removeButton,
-    status
-  )
+  controls.append(select, nameInput, applyButton, updateButton, copyButton, removeButton, status)
   syncEditorWithSelection()
   const coverControl = document.getElementById('osd-cover-controls-visibility-setting')
   ;(coverControl || lockItem).insertAdjacentElement('afterend', item)

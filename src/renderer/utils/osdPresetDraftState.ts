@@ -54,10 +54,8 @@ const stableSerialize = (value: unknown): string => {
   return JSON.stringify(value) ?? 'undefined'
 }
 
-export const areOsdPresetSnapshotsEqual = (
-  left: DraftSnapshot,
-  right: DraftSnapshot
-): boolean => stableSerialize(left) === stableSerialize(right)
+export const areOsdPresetSnapshotsEqual = (left: DraftSnapshot, right: DraftSnapshot): boolean =>
+  stableSerialize(left) === stableSerialize(right)
 
 const applySnapshot = (snapshot: DraftSnapshot): void => {
   writeJsonRecord(OSD_STORAGE_KEY, snapshot.osd)

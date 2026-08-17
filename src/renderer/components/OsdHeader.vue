@@ -6,11 +6,7 @@
     <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="playPrev"
       ><svg-icon icon-class="previous"
     /></button>
-    <button
-      type="button"
-      class="btn"
-      :style="{ color: unplayLrcColor }"
-      @click="playOrPause"
+    <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="playOrPause"
       ><svg-icon :icon-class="isPlaying ? 'pause' : 'play'"
     /></button>
     <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="playNext"

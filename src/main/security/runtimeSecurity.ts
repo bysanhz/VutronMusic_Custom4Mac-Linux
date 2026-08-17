@@ -260,11 +260,7 @@ const extractDialogPaths = (channel: string, result: unknown): string[] => {
     return result.filter((item): item is string => typeof item === 'string')
   }
 
-  if (
-    ['showOpenDialog', 'msgOpenFile'].includes(channel) &&
-    result &&
-    typeof result === 'object'
-  ) {
+  if (['showOpenDialog', 'msgOpenFile'].includes(channel) && result && typeof result === 'object') {
     const filePaths = (result as Record<string, unknown>).filePaths
     if (Array.isArray(filePaths)) {
       return filePaths.filter((item): item is string => typeof item === 'string')
@@ -390,7 +386,9 @@ const finalizeIpcInvocation = async (
   if (channel === 'logoutStreamMusic') {
     const data = args[0]
     const platform =
-      data && typeof data === 'object' ? String((data as Record<string, unknown>).platform || '') : ''
+      data && typeof data === 'object'
+        ? String((data as Record<string, unknown>).platform || '')
+        : ''
     await clearStoredStreamPassword(platform)
   }
 

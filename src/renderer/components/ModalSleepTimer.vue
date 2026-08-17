@@ -17,7 +17,8 @@
             :class="{ active: selectedOption === minutes }"
             @click="selectQuickTime(minutes)"
           >
-            <strong>{{ minutes }}</strong><span>{{ text.minutes }}</span>
+            <strong>{{ minutes }}</strong
+            ><span>{{ text.minutes }}</span>
           </button>
         </div>
 

@@ -108,8 +108,8 @@ export const resetTrackLyricOffset = (): void => {
   setTrackLyricOffset(0)
 }
 
-export const effectiveTrackLyricOffset = computed(() =>
-  Math.round((trackLyricOffset.value + globalLyricOffset.value) * 10) / 10
+export const effectiveTrackLyricOffset = computed(
+  () => Math.round((trackLyricOffset.value + globalLyricOffset.value) * 10) / 10
 )
 
 export const initializeTrackLyricOffset = (playerStore: PlayerStore): (() => void) => {

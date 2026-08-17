@@ -38,10 +38,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
-import {
-  acquireOverlayScrollLock,
-  releaseOverlayScrollLock
-} from '../utils/overlayScrollLock'
+import { acquireOverlayScrollLock, releaseOverlayScrollLock } from '../utils/overlayScrollLock'
 import SvgIcon from './SvgIcon.vue'
 
 const props = defineProps({

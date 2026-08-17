@@ -90,9 +90,7 @@ export const captureCurrentQueueSnapshot = (label?: string): QueueSnapshot | nul
   const store = activePlayerStore
   if (!store) return null
 
-  const trackIds = store._list
-    .map((id) => Number(id))
-    .filter((id) => Number.isFinite(id) && id > 0)
+  const trackIds = store._list.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
   if (!trackIds.length) return null
 
   const snapshot: QueueSnapshot = {
@@ -158,10 +156,7 @@ export const clearPlaybackHistory = (): void => {
 export const initializePlaybackHistory = (playerStore: PlayerStore): (() => void) => {
   activePlayerStore = playerStore
   recentTracks.value = readArray<RecentTrackEntry>(RECENT_TRACKS_KEY).slice(0, MAX_RECENT_TRACKS)
-  queueSnapshots.value = readArray<QueueSnapshot>(QUEUE_SNAPSHOTS_KEY).slice(
-    0,
-    MAX_QUEUE_SNAPSHOTS
-  )
+  queueSnapshots.value = readArray<QueueSnapshot>(QUEUE_SNAPSHOTS_KEY).slice(0, MAX_QUEUE_SNAPSHOTS)
 
   stopTrackWatch?.()
   stopTrackWatch = watch(

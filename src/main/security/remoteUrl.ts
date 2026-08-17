@@ -69,15 +69,12 @@ export const assertPublicRemoteUrl = async (value: string | URL): Promise<URL> =
  * 局域网例外要求协议、主机、端口和基础路径同时匹配，不能借此访问同一主机上的
  * 其他服务或越过用户配置的反向代理路径。
  */
-export const assertConfiguredOrPublicRemoteUrl = async (
-  value: string | URL
-): Promise<URL> => {
+export const assertConfiguredOrPublicRemoteUrl = async (value: string | URL): Promise<URL> => {
   const target = parseHttpUrl(value)
   const configuredBaseUrls = await getConfiguredStreamingBaseUrls()
 
   const explicitlyConfigured = configuredBaseUrls.some(
-    (base) =>
-      target.origin === base.origin && isPathUnderBase(target.pathname, base.pathname)
+    (base) => target.origin === base.origin && isPathUnderBase(target.pathname, base.pathname)
   )
   if (explicitlyConfigured) return target
 

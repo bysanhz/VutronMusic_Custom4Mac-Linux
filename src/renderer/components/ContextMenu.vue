@@ -20,10 +20,7 @@
 import { nextTick, onBeforeUnmount, ref } from 'vue'
 import { usePlayerStore } from '../store/player'
 import { storeToRefs } from 'pinia'
-import {
-  acquireOverlayScrollLock,
-  releaseOverlayScrollLock
-} from '../utils/overlayScrollLock'
+import { acquireOverlayScrollLock, releaseOverlayScrollLock } from '../utils/overlayScrollLock'
 
 const showMenu = ref(false)
 const menu = ref<HTMLElement | null>(null)
@@ -76,7 +73,10 @@ const focusItem = (index: number) => {
 const activateFocusedItem = (): void => {
   const activeElement = document.activeElement
   if (!(activeElement instanceof HTMLElement) || !menu.value?.contains(activeElement)) return
-  if (!activeElement.classList.contains('item') || activeElement.getAttribute('aria-disabled') === 'true') {
+  if (
+    !activeElement.classList.contains('item') ||
+    activeElement.getAttribute('aria-disabled') === 'true'
+  ) {
     return
   }
   activeElement.click()
