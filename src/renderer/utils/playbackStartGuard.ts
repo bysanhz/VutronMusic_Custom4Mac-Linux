@@ -122,11 +122,12 @@ export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => 
     clearTimer(maxGuardTimer)
     releaseTimer = null
 
+    // Only normalize the position during the synchronous track switch. Once the media
+    // element starts advancing, its progress is legitimate and must never be clamped.
     resetToTrackStart()
     queueMicrotask(resetToTrackStart)
     void nextTick(resetToTrackStart)
-    window.requestAnimationFrame(resetToTrackStart)
-    ;[0, 50, 180, 500, 1200, 2500].forEach(scheduleReset)
+    scheduleReset(0)
 
     maxGuardTimer = window.setTimeout(() => {
       maxGuardTimer = null
@@ -159,30 +160,9 @@ export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => 
 
   stopHandles.push(
     watch(
-      () => Number(playerStore.seek),
-      (position) => {
-        if (
-          isGuardedTrackCurrent() &&
-          !resettingPosition &&
-          Number.isFinite(position) &&
-          position > POSITION_EPSILON_SECONDS
-        ) {
-          resetToTrackStart()
-        }
-      },
-      { flush: 'sync' }
-    )
-  )
-
-  stopHandles.push(
-    watch(
       () => playerStore.playing,
       (isPlaying) => {
         if (!isPlaying || !isGuardedTrackCurrent()) return
-
-        resetToTrackStart()
-        scheduleReset(0)
-        scheduleReset(80)
 
         clearTimer(releaseTimer)
         releaseTimer = window.setTimeout(() => {
@@ -215,8 +195,6 @@ export const initializePlaybackStartPolicy = (playerStore: PlayerStore): (() => 
       }
       after(() => {
         resetToTrackStart()
-        scheduleReset(0)
-        scheduleReset(120)
       })
       onError(() => {
         pendingReason = null

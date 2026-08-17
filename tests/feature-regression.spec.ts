@@ -31,6 +31,18 @@ test.describe('playback start policy', () => {
       expect(shouldResetPlaybackPosition(item.previous, item.next, item.reason)).toBe(item.expected)
     })
   }
+
+  test('does not clamp legitimate first-playback progress while media buffers', () => {
+    const guard = readSource('src/renderer/utils/playbackStartGuard.ts')
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(guard).not.toContain('() => Number(playerStore.seek)')
+    expect(guard).not.toContain('requestAnimationFrame(resetToTrackStart)')
+    expect(guard).not.toContain('[0, 50, 180, 500, 1200, 2500]')
+    expect(player).not.toContain('seek.value = playing.value ? 0 : progress.value')
+    expect(player).toContain('const resumePosition =')
+    expect(player).toContain('seek.value = resumePosition')
+  })
 })
 
 test.describe('track lyric timing', () => {

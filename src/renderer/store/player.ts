@@ -779,7 +779,6 @@ export const usePlayerStore = defineStore(
       if (!track) return
       void loadCurrentTrackChorus(track)
       await getLyric(track)
-      seek.value = playing.value ? 0 : progress.value
       currentIndex.value = getLyricIndex(lyrics.value, 0, 1)
     }
 
@@ -887,7 +886,14 @@ export const usePlayerStore = defineStore(
           nextTrackCallback()
           return false
         }
+        const resumePosition =
+          !autoPlay &&
+          currentTrack.value?.id !== undefined &&
+          String(currentTrack.value.id) === String(trackID)
+            ? seek.value
+            : 0
         currentTrack.value = track
+        seek.value = resumePosition
         searchMatchForLocal(track!)
         const source = await getTrackSource(track!)
         let replaced = false
