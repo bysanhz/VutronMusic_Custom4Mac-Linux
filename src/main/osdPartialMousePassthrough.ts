@@ -24,7 +24,7 @@ type OsdWindowState = {
 }
 
 const states = new Map<number, OsdWindowState>()
-let pollTimer: NodeJS.Timeout | null = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
 let globalLocked = false
 
 const clampUnit = (value: unknown): number => {
