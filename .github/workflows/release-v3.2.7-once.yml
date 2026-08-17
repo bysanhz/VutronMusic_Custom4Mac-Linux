@@ -1,0 +1,129 @@
+name: One-shot v3.2.7 release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/release-v3.2.7-once.yml
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  prepare-and-release:
+    if: github.event.head_commit.message == 'chore(release): prepare v3.2.7'
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Apply repository formatting
+        run: yarn prettier . --write
+
+      - name: Commit formatting changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m 'style: apply Prettier before v3.2.7 release'
+          fi
+
+      - name: Remove one-shot helper from release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/release-v3.2.7-once.yml
+          git commit -m 'chore(release): remove one-shot v3.2.7 helper'
+          git push origin HEAD:main
+          echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Dispatch existing release workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DISPATCHED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+          gh workflow run build.yml --ref main
+
+      - name: Resolve dispatched workflow run
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID=''
+          for _ in $(seq 1 120); do
+            RUN_ID="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?event=workflow_dispatch&branch=main&per_page=20" \
+              --jq ".workflow_runs[] | select(.head_sha == \"${RELEASE_SHA}\") | .id" \
+              | head -n 1)"
+            if [[ -n "$RUN_ID" ]]; then
+              break
+            fi
+            sleep 5
+          done
+          test -n "$RUN_ID"
+          echo "RELEASE_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          echo "Dispatched release run: $RUN_ID"
+
+      - name: Wait for packaging workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          while true; do
+            STATUS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}" --jq '.status')"
+            CONCLUSION="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}" --jq '.conclusion // ""')"
+            echo "Release workflow status=${STATUS} conclusion=${CONCLUSION}"
+            if [[ "$STATUS" == 'completed' ]]; then
+              test "$CONCLUSION" = 'success'
+              break
+            fi
+            sleep 15
+          done
+
+      - name: Promote generated draft to v3.2.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_ROW="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=30" \
+            | jq -r --arg since "$DISPATCHED_AT" \
+              '.[] | select(.draft == true and (.tag_name | startswith("v-draft-")) and .created_at >= $since) | [.id, .tag_name] | @tsv' \
+            | head -n 1)"
+          test -n "$RELEASE_ROW"
+          RELEASE_ID="${RELEASE_ROW%%$'\t'*}"
+          DRAFT_TAG="${RELEASE_ROW#*$'\t'}"
+
+          if ! gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v3.2.7" >/dev/null 2>&1; then
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref='refs/tags/v3.2.7' \
+              -f sha="$RELEASE_SHA" >/dev/null
+          fi
+
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f tag_name='v3.2.7' \
+            -f name='v3.2.7' \
+            -F draft=false \
+            -F prerelease=false \
+            --raw-field body="$(cat .github/release-notes/v3.2.7.md)" >/dev/null
+
+          if [[ "$DRAFT_TAG" != 'v3.2.7' ]]; then
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${DRAFT_TAG}" >/dev/null 2>&1 || true
+          fi
+
+          echo "Published v3.2.7 from ${RELEASE_SHA}"
