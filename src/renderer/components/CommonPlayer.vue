@@ -576,11 +576,13 @@ onBeforeUnmount(() => {
         justify-content: center;
         margin: 1.9vh 0 1.1vh 0;
         align-items: center;
+        --media-control-icon-size: 18px;
+        --media-control-primary-icon-size: 20px;
 
         .svg-icon {
           opacity: 0.38;
-          height: 14px;
-          width: 14px;
+          height: var(--media-control-icon-size);
+          width: var(--media-control-icon-size);
         }
 
         .active .svg-icon {
@@ -597,15 +599,15 @@ onBeforeUnmount(() => {
           }
 
           button#play .svg-icon {
-            height: 8px; //28
-            width: 8px; //28
-            padding: 2px;
+            height: var(--media-control-primary-icon-size);
+            width: var(--media-control-primary-icon-size);
+            padding: 1px;
           }
 
           .svg-icon {
             opacity: 0.88;
-            height: 8px; // 22
-            width: 8px; // 22
+            height: var(--media-control-icon-size);
+            width: var(--media-control-icon-size);
           }
         }
       }
