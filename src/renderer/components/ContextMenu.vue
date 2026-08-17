@@ -28,6 +28,7 @@ const topValue = ref('0px')
 const leftValue = ref('0px')
 const player = storeToRefs(usePlayerStore())
 let previouslyFocusedElement: HTMLElement | null = null
+let openerElement: HTMLElement | null = null
 let scrollLockToken: symbol | null = null
 
 const emit = defineEmits(['closeMenu'])
@@ -37,14 +38,44 @@ const getItems = (): HTMLElement[] => {
   return [...menu.value.querySelectorAll<HTMLElement>('.item:not([aria-disabled="true"])')]
 }
 
+const removeDocumentListeners = () => {
+  document.removeEventListener('pointerdown', handleDocumentPointerDown, true)
+  document.removeEventListener('keydown', handleDocumentKeydown, true)
+}
+
 const closeMenu = () => {
   if (!showMenu.value) return
   showMenu.value = false
+  removeDocumentListeners()
   releaseOverlayScrollLock(scrollLockToken)
   scrollLockToken = null
   emit('closeMenu')
-  previouslyFocusedElement?.focus()
+
+  const focusTarget = previouslyFocusedElement
   previouslyFocusedElement = null
+  openerElement = null
+  focusTarget?.focus()
+}
+
+const handleDocumentPointerDown = (event: PointerEvent) => {
+  if (!showMenu.value) return
+  const target = event.target
+  if (!(target instanceof Node)) return
+  if (menu.value?.contains(target)) return
+  if (openerElement?.contains(target)) return
+  closeMenu()
+}
+
+const handleDocumentKeydown = (event: KeyboardEvent) => {
+  if (!showMenu.value || event.key !== 'Escape') return
+  event.preventDefault()
+  event.stopPropagation()
+  closeMenu()
+}
+
+const addDocumentListeners = () => {
+  document.addEventListener('pointerdown', handleDocumentPointerDown, true)
+  document.addEventListener('keydown', handleDocumentKeydown, true)
 }
 
 const setMenu = (top: number, left: number) => {
@@ -86,10 +117,7 @@ const handleKeydown = (event: KeyboardEvent) => {
   const items = getItems()
   const currentIndex = items.findIndex((item) => item === document.activeElement)
 
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    closeMenu()
-  } else if (event.key === 'ArrowDown') {
+  if (event.key === 'ArrowDown') {
     event.preventDefault()
     focusItem(currentIndex + 1)
   } else if (event.key === 'ArrowUp') {
@@ -118,11 +146,20 @@ const handleMenuClick = (event: MouseEvent) => {
 }
 
 const openMenu = (event: MouseEvent) => {
-  if (showMenu.value) closeMenu()
+  event.preventDefault()
+  const nextOpener = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+
+  if (showMenu.value) {
+    const shouldToggleClosed = nextOpener !== null && nextOpener === openerElement
+    closeMenu()
+    if (shouldToggleClosed) return
+  }
+
   previouslyFocusedElement = document.activeElement as HTMLElement | null
+  openerElement = nextOpener
   scrollLockToken = acquireOverlayScrollLock()
   showMenu.value = true
-  event.preventDefault()
+  addDocumentListeners()
 
   nextTick(() => {
     setMenu(event.clientY, event.clientX)
@@ -137,6 +174,7 @@ const openMenu = (event: MouseEvent) => {
 }
 
 onBeforeUnmount(() => {
+  removeDocumentListeners()
   releaseOverlayScrollLock(scrollLockToken)
   scrollLockToken = null
 })
