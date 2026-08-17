@@ -1,0 +1,62 @@
+name: Promote v3.2.7 release
+
+on:
+  push:
+    branches:
+      - automation/v327-hardening-result-v2
+    paths:
+      - '.github/workflows/promote-v3.2.7.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    if: github.event.head_commit.message == 'chore(release): promote v3.2.7'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout final release source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Promote exact draft to v3.2.7
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: '371608608'
+          DRAFT_TAG: 'v-draft-202608170814'
+          RELEASE_TAG: 'v3.2.7'
+          RELEASE_SHA: 'fd538ab2b7b812f6c48b6618b9f2f2b50b2fb880'
+        run: |
+          set -euo pipefail
+
+          current_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" --jq '.tag_name')"
+          current_draft="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" --jq '.draft')"
+          test "$current_tag" = "$DRAFT_TAG"
+          test "$current_draft" = 'true'
+
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')"
+            test "$tag_sha" = "$RELEASE_SHA"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${RELEASE_TAG}" \
+              -f sha="$RELEASE_SHA" >/dev/null
+          fi
+
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f tag_name="$RELEASE_TAG" \
+            -f target_commitish="$RELEASE_SHA" \
+            -f name="$RELEASE_TAG" \
+            -F draft=false \
+            -F prerelease=false \
+            --raw-field body="$(cat .github/release-notes/v3.2.7.md)" >/dev/null
+
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${DRAFT_TAG}" >/dev/null 2>&1; then
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${DRAFT_TAG}" >/dev/null
+          fi
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            --jq '{tag_name, name, draft, prerelease, published_at, assets: [.assets[].name]}'
