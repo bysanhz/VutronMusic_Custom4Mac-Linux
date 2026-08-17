@@ -1,4 +1,4 @@
-name: Dispatch v3.2.8 build
+name: Promote validated v3.2.8 release
 
 on:
   push:
@@ -6,33 +6,97 @@ on:
       - automation/tag-v3.2.8
 
 permissions:
-  actions: write
-  contents: read
+  actions: read
+  contents: write
 
 jobs:
-  dispatch:
+  promote:
     runs-on: ubuntu-latest
     env:
       RELEASE_SHA: 34c3c4f0cad29ff0923b249873d224588a91dd4a
+      BUILD_RUN_ID: '32012360615'
+      DRAFT_RELEASE_ID: '371634115'
       RELEASE_TAG: v3.2.8
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Verify exact tag
+      - name: Verify validated build and tag
         shell: bash
         run: |
           set -euo pipefail
+
+          for _ in $(seq 1 120); do
+            RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BUILD_RUN_ID}")"
+            STATUS="$(jq -r '.status' <<<"${RUN}")"
+            CONCLUSION="$(jq -r '.conclusion // ""' <<<"${RUN}")"
+            echo "Release run: ${STATUS} ${CONCLUSION}"
+
+            if [[ "${STATUS}" == "completed" ]]; then
+              test "${CONCLUSION}" = "success"
+              test "$(jq -r '.head_sha' <<<"${RUN}")" = "${RELEASE_SHA}"
+              test "$(jq -r '.head_branch' <<<"${RUN}")" = "${RELEASE_TAG}"
+              break
+            fi
+            sleep 10
+          done
+
+          test "${STATUS}" = "completed"
           TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')"
           test "${TAG_SHA}" = "${RELEASE_SHA}"
 
-      - name: Dispatch release workflow
+      - name: Verify draft assets
         shell: bash
         run: |
           set -euo pipefail
-          EXISTING="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?event=workflow_dispatch&per_page=20" --jq ".workflow_runs[] | select(.head_sha == \"${RELEASE_SHA}\") | .id" | head -n1 || true)"
-          if [[ -n "${EXISTING}" ]]; then
-            echo "Release workflow already exists: ${EXISTING}"
-            exit 0
-          fi
+          RELEASE="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_RELEASE_ID}")"
+          test "$(jq -r '.draft' <<<"${RELEASE}")" = "true"
 
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
-            -f "ref=${RELEASE_TAG}"
+          ASSETS="$(jq -r '.assets[].name' <<<"${RELEASE}")"
+          for name in \
+            VutronMusic-3.2.8_mac_arm64.dmg \
+            VutronMusic-3.2.8_mac_x64.dmg \
+            VutronMusic-3.2.8_linux_arm64.AppImage \
+            VutronMusic-3.2.8_linux_arm64.deb \
+            VutronMusic-3.2.8_linux_x86_64.AppImage \
+            VutronMusic-3.2.8_linux_amd64.deb \
+            VutronMusic-3.2.8_win_arm64.exe \
+            VutronMusic-3.2.8_win_x64.exe \
+            VutronMusic-3.2.8_win_x64-Portable.exe \
+            latest-linux-arm64.yml \
+            latest-linux.yml \
+            latest-mac.yml \
+            latest.yml
+          do
+            grep -Fxq "${name}" <<<"${ASSETS}"
+          done
+
+      - name: Promote exact draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES="$(gh api -H 'Accept: application/vnd.github.raw+json' "repos/${GITHUB_REPOSITORY}/contents/.github/release-notes/v3.2.8.md?ref=${RELEASE_SHA}")"
+
+          jq -n \
+            --arg tag "${RELEASE_TAG}" \
+            --arg sha "${RELEASE_SHA}" \
+            --arg name "VutronMusic v3.2.8" \
+            --arg body "${NOTES}" \
+            '{tag_name:$tag,target_commitish:$sha,name:$name,body:$body,draft:false,prerelease:false,make_latest:"true"}' \
+            > /tmp/release-payload.json
+
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_RELEASE_ID}" \
+            --input /tmp/release-payload.json >/dev/null
+
+      - name: Verify formal release
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          test "$(jq -r '.id' <<<"${RELEASE}")" = "${DRAFT_RELEASE_ID}"
+          test "$(jq -r '.draft' <<<"${RELEASE}")" = "false"
+          test "$(jq -r '.prerelease' <<<"${RELEASE}")" = "false"
+          test "$(jq -r '.tag_name' <<<"${RELEASE}")" = "${RELEASE_TAG}"
+          test "$(jq -r '.target_commitish' <<<"${RELEASE}")" = "${RELEASE_SHA}"
+
+          LATEST="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          test "${LATEST}" = "${RELEASE_TAG}"
