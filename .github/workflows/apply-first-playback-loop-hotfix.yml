@@ -1,0 +1,129 @@
+name: Apply first-playback loop hotfix
+
+on:
+  push:
+    branches:
+      - automation/fix-first-playback-loop
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_MAIN_SHA: fd538ab2b7b812f6c48b6618b9f2f2b50b2fb880
+      RESULT_BRANCH: automation/fix-first-playback-loop-result
+
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify and checkout validated main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          actual_sha="$(git rev-parse origin/main)"
+          if [[ "$actual_sha" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "main moved: expected $EXPECTED_MAIN_SHA, got $actual_sha" >&2
+            exit 1
+          fi
+          git checkout -B hotfix-base origin/main
+
+      - name: Patch playback startup handling
+        shell: bash
+        run: |
+          python - <<'PY'
+          """Apply the first-playback startup-loop hotfix with exact source guards."""
+
+          from pathlib import Path
+
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Expected exactly one match in {path}, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+
+          player = Path("src/renderer/store/player.ts")
+          replace_once(
+              player,
+              """    const getCurrentTrackInfo = async (track: Track) => {\n      if (!track) return\n      void loadCurrentTrackChorus(track)\n      await getLyric(track)\n      seek.value = playing.value ? 0 : progress.value\n      currentIndex.value = getLyricIndex(lyrics.value, 0, 1)\n    }\n""",
+              """    const getCurrentTrackInfo = async (track: Track) => {\n      if (!track) return\n      void loadCurrentTrackChorus(track)\n      await getLyric(track)\n      currentIndex.value = getLyricIndex(lyrics.value, 0, 1)\n    }\n""",
+          )
+          replace_once(
+              player,
+              """        currentTrack.value = track\n        searchMatchForLocal(track!)\n""",
+              """        const resumePosition =\n          !autoPlay &&\n          currentTrack.value?.id !== undefined &&\n          String(currentTrack.value.id) === String(trackID)\n            ? seek.value\n            : 0\n        currentTrack.value = track\n        seek.value = resumePosition\n        searchMatchForLocal(track!)\n""",
+          )
+
+          guard = Path("src/renderer/utils/playbackStartGuard.ts")
+          replace_once(
+              guard,
+              """    resetToTrackStart()\n    queueMicrotask(resetToTrackStart)\n    void nextTick(resetToTrackStart)\n    window.requestAnimationFrame(resetToTrackStart)\n    ;[0, 50, 180, 500, 1200, 2500].forEach(scheduleReset)\n""",
+              """    // Only normalize the position during the synchronous track switch. Once the media\n    // element starts advancing, its progress is legitimate and must never be clamped.\n    resetToTrackStart()\n    queueMicrotask(resetToTrackStart)\n    void nextTick(resetToTrackStart)\n    scheduleReset(0)\n""",
+          )
+          replace_once(
+              guard,
+              """  stopHandles.push(\n    watch(\n      () => Number(playerStore.seek),\n      (position) => {\n        if (\n          isGuardedTrackCurrent() &&\n          !resettingPosition &&\n          Number.isFinite(position) &&\n          position > POSITION_EPSILON_SECONDS\n        ) {\n          resetToTrackStart()\n        }\n      },\n      { flush: 'sync' }\n    )\n  )\n\n""",
+              "",
+          )
+          replace_once(
+              guard,
+              """        resetToTrackStart()\n        scheduleReset(0)\n        scheduleReset(80)\n\n        clearTimer(releaseTimer)\n""",
+              """        clearTimer(releaseTimer)\n""",
+          )
+          replace_once(
+              guard,
+              """      after(() => {\n        resetToTrackStart()\n        scheduleReset(0)\n        scheduleReset(120)\n      })\n""",
+              """      after(() => {\n        resetToTrackStart()\n      })\n""",
+          )
+
+          tests = Path("tests/feature-regression.spec.ts")
+          marker = """  }\n})\n\ntest.describe('track lyric timing', () => {\n"""
+          addition = """  }\n\n  test('does not clamp legitimate first-playback progress while media buffers', () => {\n    const guard = readSource('src/renderer/utils/playbackStartGuard.ts')\n    const player = readSource('src/renderer/store/player.ts')\n\n    expect(guard).not.toContain('() => Number(playerStore.seek)')\n    expect(guard).not.toContain('requestAnimationFrame(resetToTrackStart)')\n    expect(guard).not.toContain('[0, 50, 180, 500, 1200, 2500]')\n    expect(player).not.toContain('seek.value = playing.value ? 0 : progress.value')\n    expect(player).toContain('const resumePosition =')\n    expect(player).toContain('seek.value = resumePosition')\n  })\n})\n\ntest.describe('track lyric timing', () => {\n"""
+          replace_once(tests, marker, addition)
+          PY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        run: >-
+          yarn prettier --write
+          src/renderer/store/player.ts
+          src/renderer/utils/playbackStartGuard.ts
+          tests/feature-regression.spec.ts
+
+      - name: Verify source
+        run: |
+          set -euo pipefail
+          yarn run format:check
+          yarn lint
+          yarn run vue:type-check
+          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+          yarn vite --config vite.config.ts build
+
+      - name: Commit verified hotfix to result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git diff --check
+          git diff --exit-code -- . ':!src/renderer/store/player.ts' ':!src/renderer/utils/playbackStartGuard.ts' ':!tests/feature-regression.spec.ts'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/store/player.ts src/renderer/utils/playbackStartGuard.ts tests/feature-regression.spec.ts
+          git commit -m "fix: prevent first-playback startup loop"
+          git push --force origin HEAD:"refs/heads/$RESULT_BRANCH"
