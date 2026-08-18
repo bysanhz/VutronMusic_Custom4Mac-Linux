@@ -1,0 +1,86 @@
+name: Apply toggle alignment fix
+
+on:
+  push:
+    branches:
+      - automation/fix-toggle-alignment
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      RESULT_BRANCH: automation/fix-toggle-alignment-result
+      EXPECTED_MAIN: a2a339e76f0d8954ac8718ca6a2142a14529c084
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN}"
+      - name: Apply focused alignment patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "${EXPECTED_MAIN}"
+          python - <<'PY'
+          from pathlib import Path
+
+          css = Path('src/renderer/assets/css/settings-fluid-layout.scss')
+          text = css.read_text()
+          needle = """#app .system-settings .item:not(.no-flex) > .right {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  justify-self: stretch;\n  flex-wrap: wrap;\n  gap: 8px;\n  min-width: 0;\n  max-width: 100%;\n}\n"""
+          replacement = needle + """\n#app .system-settings .item:not(.no-flex) > .right > .toggle {\n  margin: 0 !important;\n  flex: 0 0 auto;\n}\n"""
+          if needle not in text:
+              raise SystemExit('settings right-column anchor not found')
+          css.write_text(text.replace(needle, replacement, 1))
+
+          test_file = Path('tests/feature-regression.spec.ts')
+          tests = test_file.read_text()
+          anchor = "  test('uses the same pill toggle geometry across settings controls', () => {"
+          if anchor not in tests:
+              raise SystemExit('toggle geometry regression anchor not found')
+          new_test = """  test('aligns native settings toggles to the injected right-edge baseline', () => {\n    const layout = readSource('src/renderer/assets/css/settings-fluid-layout.scss')\n\n    expect(layout).toContain(\n      '#app .system-settings .item:not(.no-flex) > .right > .toggle {'\n    )\n    expect(layout).toContain('margin: 0 !important;')\n    expect(layout).toContain('flex: 0 0 auto;')\n  })\n\n"""
+          test_file.write_text(tests.replace(anchor, new_test + anchor, 1))
+          PY
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+      - name: Format touched files
+        run: yarn prettier src/renderer/assets/css/settings-fluid-layout.scss tests/feature-regression.spec.ts --write
+      - name: Check formatting
+        run: yarn run format:check
+      - name: Lint source
+        run: yarn lint
+      - name: Type check
+        run: yarn run vue:type-check
+      - name: Run regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+      - name: Verify focused diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git diff --name-only "${EXPECTED_MAIN}")
+          test "${#files[@]}" -eq 2
+          printf '%s\n' "${files[@]}" | grep -Fx 'src/renderer/assets/css/settings-fluid-layout.scss'
+          printf '%s\n' "${files[@]}" | grep -Fx 'tests/feature-regression.spec.ts'
+      - name: Commit verified result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RESULT_BRANCH}"
+          git add src/renderer/assets/css/settings-fluid-layout.scss tests/feature-regression.spec.ts
+          git commit -m 'fix: align settings toggle positions'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
