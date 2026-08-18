@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sleep 5
+          sleep 10
           DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs" -f per_page=100)"
           ROW="$(jq -c --arg sha "${TARGET_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
           if [[ -z "${ROW}" ]]; then
