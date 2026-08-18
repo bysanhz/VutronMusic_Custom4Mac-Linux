@@ -189,6 +189,14 @@ test.describe('desktop feature integration', () => {
     expect(latestVersion).not.toContain('v-same-html="latestVersion?.updateInfo?.releaseNotes')
   })
 
+  test('aligns native settings toggles to the injected right-edge baseline', () => {
+    const layout = readSource('src/renderer/assets/css/settings-fluid-layout.scss')
+
+    expect(layout).toContain('#app .system-settings .item:not(.no-flex) > .right > .toggle {')
+    expect(layout).toContain('margin: 0 !important;')
+    expect(layout).toContain('flex: 0 0 auto;')
+  })
+
   test('uses the same pill toggle geometry across settings controls', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
     const coverControls = readSource('src/renderer/utils/osdCoverControlsSettings.ts')
