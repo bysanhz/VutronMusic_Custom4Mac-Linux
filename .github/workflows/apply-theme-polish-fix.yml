@@ -1,0 +1,185 @@
+name: Apply theme polish fix
+
+on:
+  push:
+    branches:
+      - automation/fix-mute-and-slider-dots
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v6
+        with:
+          ref: automation/fix-mute-and-slider-dots
+          fetch-depth: 0
+
+      - name: Apply dark-theme and custom-accent fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          """Apply the one-time theme polish changes with exact source guards."""
+
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file_path = Path(path)
+              source = file_path.read_text()
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one guarded match, found {count}')
+              file_path.write_text(source.replace(old, new, 1))
+
+          replace_once(
+              'src/renderer/views/SystemSettings.vue',
+              '''                <pick-colors
+                  v-model:value="customizeColor.color"
+                  :width="60"
+                  :height="60"
+                  :theme="currentTheme ?? 'light'"
+                  format="rgb"
+                />''',
+              '''                <pick-colors
+                  v-model:value="customizeColor.color"
+                  :width="60"
+                  :height="60"
+                  :theme="currentTheme ?? 'light'"
+                  format="rgb"
+                  @update:value="selectCustomizeColor"
+                />'''
+          )
+
+          replace_once(
+              'src/renderer/views/SystemSettings.vue',
+              '''const changeColor = (color: { name: string }) => {
+  colors.value.forEach((c) => {
+    c.selected = false
+  })
+  const colorObj = colors.value.find((c) => c.name === color.name)!
+  colorObj.selected = true
+}
+
+onMounted(() => {''',
+              '''const changeColor = (color: { name: string }) => {
+  colors.value.forEach((c) => {
+    c.selected = false
+  })
+  const colorObj = colors.value.find((c) => c.name === color.name)!
+  colorObj.selected = true
+}
+
+const selectCustomizeColor = () => {
+  changeColor(customizeColor.value)
+}
+
+onMounted(() => {'''
+          )
+
+          replace_once(
+              'src/renderer/utils/v327FeatureShared.ts',
+              '''    .vutronmusic-v327-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: min(430px, 100%);
+    }''',
+              '''    .vutronmusic-v327-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: min(430px, 100%);
+      color: var(--color-text);
+    }'''
+          )
+
+          replace_once(
+              'src/renderer/utils/v327FeatureShared.ts',
+              '''    .vutronmusic-v327-controls button {
+      min-height: 36px;
+      white-space: nowrap;
+    }''',
+              '''    .vutronmusic-v327-controls button {
+      min-height: 36px;
+      color: var(--color-text);
+      background: var(--color-secondary-bg);
+      font: inherit;
+      font-weight: 600;
+      white-space: nowrap;
+    }'''
+          )
+
+          replace_once(
+              'tests/feature-regression.spec.ts',
+              '''  test('makes Classic volume step icons functional and self-describing', () => {''',
+              '''  test('keeps injected settings controls theme-aware and activates custom accent colors', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
+
+    expect(settings).toContain('@update:value="selectCustomizeColor"')
+    expect(settings).toContain('const selectCustomizeColor = () => {')
+    expect(settings).toContain('changeColor(customizeColor.value)')
+    expect(sharedFeatures).toContain('color: var(--color-text);')
+    expect(sharedFeatures).toContain('background: var(--color-secondary-bg);')
+    expect(sharedFeatures).toContain('.vutronmusic-v327-controls button {')
+  })
+
+  test('makes Classic volume step icons functional and self-describing', () => {'''
+          )
+          PY
+
+      - name: Remove one-time helper before validation
+        run: rm .github/workflows/apply-theme-polish-fix.yml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format changed source
+        run: >-
+          yarn prettier --write
+          src/renderer/views/SystemSettings.vue
+          src/renderer/utils/v327FeatureShared.ts
+          tests/feature-regression.spec.ts
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: >-
+          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Commit verified fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: polish dark theme and custom accent"
+          git push origin HEAD:automation/fix-mute-and-slider-dots
