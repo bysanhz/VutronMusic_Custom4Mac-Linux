@@ -1,0 +1,82 @@
+name: Prepare v3.2.9 release
+
+on:
+  push:
+    branches:
+      - automation/prepare-v329
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validated main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify expected main revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "dda34101b82ed594e3e410b50a08d7f2e43a3895"
+          test "$(node -p "require('./package.json').version")" = "3.2.8"
+
+      - name: Prepare release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs')
+          const path = 'package.json'
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'))
+          pkg.version = '3.2.9'
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n')
+          NODE
+
+          mkdir -p .github/release-notes
+          cat > .github/release-notes/v3.2.9.md <<'EOF'
+          ## VutronMusic v3.2.9
+
+          本版本集中优化播放器界面与交互细节。
+
+          ### 播放界面
+          - 调整全屏播放页的循环、随机、上一曲、播放/暂停和下一曲图标尺寸，使其与爱心、添加等操作按钮的视觉权重更协调。
+          - 优化“倍速播放”弹窗，将原“倍率播放 / 当前倍率”统一改为“倍速播放 / 当前倍速”。
+          - 倍速预设改为独立按钮并保留连续滑杆精细调节，预设节点更易区分，当前选中状态更明确。
+          - 音调调节采用与倍速一致的独立预设按钮布局，同时保留连续滑杆精细调节。
+
+          ### 菜单与歌词校正
+          - 优化本曲歌词时间校正弹窗布局，避免偏移数字在较窄窗口或缩放状态下溢出按钮区域。
+          - 优化本曲 / 全局偏移值及微调按钮的排版和数字对齐。
+          - 补全播放器更多菜单的退出交互：点击菜单外区域、按 Esc 或再次点击“更多”按钮均可关闭菜单。
+
+          ### 验证
+          - 为歌词时间校正、菜单关闭行为、倍速与音调预设布局补充回归测试。
+          - 通过 Prettier、ESLint、Vue/TypeScript type-check、安全与功能回归测试以及 Vite 构建验证。
+
+          **完整变更记录：** v3.2.8...v3.2.9
+          EOF
+
+          git diff --check
+          test "$(node -p "require('./package.json').version")" = "3.2.9"
+          test -f .github/release-notes/v3.2.9.md
+
+          mapfile -t changed < <(git status --short | awk '{print $2}' | sort)
+          printf 'Changed files:\n%s\n' "${changed[*]}"
+          test "${#changed[@]}" -eq 2
+          test "${changed[0]}" = ".github/release-notes/v3.2.9.md"
+          test "${changed[1]}" = "package.json"
+
+      - name: Commit result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json .github/release-notes/v3.2.9.md
+          git commit -m "chore(release): prepare v3.2.9"
+          git push --force origin HEAD:refs/heads/automation/prepare-v329-result
