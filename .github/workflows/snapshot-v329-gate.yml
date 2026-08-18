@@ -1,0 +1,43 @@
+name: Snapshot v3.2.9 gate
+
+on:
+  push:
+    branches:
+      - automation/snapshot-v329-gate
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Capture gate status
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs" -f event=push -f branch=automation/release-v329 -f per_page=20)"
+          ROW="$(jq -c '[.workflow_runs[] | select(.name == "Release v3.2.9 gate")] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+          if [[ -z "${ROW}" ]]; then
+            echo "status=not_found" > .release-v329-gate.txt
+          else
+            RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+            echo "run_id=${RUN_ID}" > .release-v329-gate.txt
+            echo "status=$(jq -r '.status' <<<"${ROW}")" >> .release-v329-gate.txt
+            echo "conclusion=$(jq -r '.conclusion // ""' <<<"${ROW}")" >> .release-v329-gate.txt
+            echo "html_url=$(jq -r '.html_url' <<<"${ROW}")" >> .release-v329-gate.txt
+            JOBS="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs" -f per_page=100)"
+            jq -r '.jobs[] | "job=\(.id)|\(.name)|\(.status)|\(.conclusion // "")"' <<<"${JOBS}" >> .release-v329-gate.txt
+          fi
+          cat .release-v329-gate.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .release-v329-gate.txt
+          git commit -m "chore: record v3.2.9 gate snapshot"
+          git push --force origin HEAD:refs/heads/automation/snapshot-v329-gate-result
