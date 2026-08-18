@@ -230,6 +230,22 @@ function initTrayIpcMain(win: BrowserWindow, tray: YPMTray): void {
   })
 }
 
+const revealMainWindowFromOsd = (win: BrowserWindow): void => {
+  if (win.isDestroyed()) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+const toggleMainWindowFromOsd = (win: BrowserWindow): void => {
+  if (win.isDestroyed()) return
+  if (win.isMinimized() || !win.isVisible() || !win.isFocused()) {
+    revealMainWindowFromOsd(win)
+    return
+  }
+  win.hide()
+}
+
 function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function }): void {
   ipcMain.on('updateOsdState', (event, data) => {
     const [key, value] = Object.entries(data)[0] as [string, any]
@@ -245,24 +261,21 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
   })
   ipcMain.on('from-osd', (event, message: string) => {
     if (message === 'showMainWin') {
-      win.show()
+      revealMainWindowFromOsd(win)
     }
     // ======== newADD start======
     // 桌面歌词窗口控制主窗口显隐。
     // 复用菜单栏播放器图标中已有的判断逻辑。
     else if (message === 'toggleMainWin') {
-      if (win.isVisible()) {
-        win.hide()
-      } else {
-        win.show()
-        win.focus()
-      }
+      toggleMainWindowFromOsd(win)
     }
     // =========== newADD end ========
     else if (message === 'playPrev') {
       win.webContents.send('previous')
     } else if (message === 'playNext') {
       win.webContents.send('next')
+    } else if (message === 'playOrPauseFromOsd') {
+      win.webContents.send('play-from-osd')
     } else if (message === 'playOrPause') {
       win.webContents.send('play')
     }

@@ -78,6 +78,7 @@ const rendererAvailChannels: string[] = [
   'scanLocalMusicDone',
   'handleTrayClick',
   'play',
+  'play-from-osd',
   'previous',
   'next',
   'repeat',

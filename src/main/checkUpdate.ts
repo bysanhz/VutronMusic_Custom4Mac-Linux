@@ -1,6 +1,6 @@
 import { autoUpdater } from 'electron-updater'
 import { parse } from 'node-html-parser'
-import { BrowserWindow, app, dialog, shell } from 'electron'
+import { BrowserWindow, app, dialog, session, shell } from 'electron'
 import Constants from './utils/Constants'
 
 // ======== newADD start======
@@ -60,7 +60,9 @@ const releaseNotesToText = (releaseNotes: unknown) => {
  * `result.updateInfo.version`，同时附带 manualDownload 和 releaseUrl 供后续界面扩展。
  */
 const checkGitHubRelease = async () => {
-  const response = await fetch(RELEASE_API_URL, {
+  // Use Electron's Chromium network stack so Linux update checks honor the
+  // application's configured proxy and the system proxy instead of bypassing them.
+  const response = await session.defaultSession.fetch(RELEASE_API_URL, {
     headers: {
       Accept: 'application/vnd.github+json',
       'User-Agent': `${RELEASE_REPOSITORY}/${app.getVersion()}`

@@ -1581,6 +1581,10 @@ export const usePlayerStore = defineStore(
         seek.value = t
       })
 
+      window.mainApi?.on('play-from-osd', () => {
+        playOrPause()
+      })
+
       window.mainApi?.on('play', () => {
         if (
           document.activeElement?.tagName === 'INPUT' ||

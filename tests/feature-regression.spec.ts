@@ -137,6 +137,37 @@ test.describe('desktop feature integration', () => {
     expect(pitch).not.toContain(':marks="marks"')
   })
 
+  test('routes Linux update checks through the Electron session network stack', () => {
+    const updater = readSource('src/main/checkUpdate.ts')
+
+    expect(updater).toContain(
+      "import { BrowserWindow, app, dialog, session, shell } from 'electron'"
+    )
+    expect(updater).toContain('session.defaultSession.fetch(RELEASE_API_URL')
+    expect(updater).not.toContain('await fetch(RELEASE_API_URL')
+  })
+
+  test('keeps desktop lyric playback independent from main-window input focus', () => {
+    const ipcs = readSource('src/main/IPCs.ts')
+    const preload = readSource('src/preload/index.ts')
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(ipcs).toContain("message === 'playOrPauseFromOsd'")
+    expect(ipcs).toContain("win.webContents.send('play-from-osd')")
+    expect(preload).toContain("'play-from-osd'")
+    expect(player).toContain("window.mainApi?.on('play-from-osd'")
+    expect(player).toContain("window.mainApi?.on('play', () => {")
+  })
+
+  test('restores or raises the main window from desktop lyrics before hiding it', () => {
+    const ipcs = readSource('src/main/IPCs.ts')
+
+    expect(ipcs).toContain('const revealMainWindowFromOsd =')
+    expect(ipcs).toContain('if (win.isMinimized()) win.restore()')
+    expect(ipcs).toContain('win.isMinimized() || !win.isVisible() || !win.isFocused()')
+    expect(ipcs).toContain('revealMainWindowFromOsd(win)')
+  })
+
   test('registers diagnostics and playback-history integrations', () => {
     const constants = readSource('src/main/utils/Constants.ts')
     const main = readSource('src/renderer/main.ts')
