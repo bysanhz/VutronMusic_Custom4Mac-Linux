@@ -13,7 +13,7 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     env:
-      TARGET_SHA: b8c44a2fe6d8d0a24124d83da40dbb6a485d8aeb
+      TARGET_SHA: 334a60846f638ecac2fcb998fb17bb2fe036d00d
       RESULT_BRANCH: automation/snapshot-linux-hotfix-result
     steps:
       - uses: actions/checkout@v6
@@ -49,5 +49,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B "${RESULT_BRANCH}"
           git add .hotfix-run.txt
-          git commit -m 'chore: snapshot Linux hotfix run'
+          git commit -m 'chore: snapshot OSD UI hotfix run'
           git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
