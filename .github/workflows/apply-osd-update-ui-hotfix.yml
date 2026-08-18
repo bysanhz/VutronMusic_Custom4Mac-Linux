@@ -1,0 +1,115 @@
+name: Apply OSD state and update UI hotfix
+
+on:
+  push:
+    branches:
+      - automation/fix-osd-update-ui
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-22.04
+    env:
+      EXPECTED_MAIN_SHA: b8c44a2fe6d8d0a24124d83da40dbb6a485d8aeb
+      RESULT_BRANCH: automation/fix-osd-update-ui-result
+
+    steps:
+      - name: Checkout exact main source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          path: source
+
+      - name: Checkout helper patcher
+        uses: actions/checkout@v6
+        with:
+          ref: automation/fix-osd-update-ui
+          fetch-depth: 1
+          path: helper
+
+      - name: Verify exact main SHA
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "main=${ACTUAL_SHA}"
+          test "${ACTUAL_SHA}" = "${EXPECTED_MAIN_SHA}"
+
+      - name: Apply focused hotfix
+        working-directory: source
+        run: python3 ../helper/.github/scripts/apply_osd_update_ui_hotfix.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+          cache-dependency-path: source/yarn.lock
+
+      - name: Install dependencies without native rebuild
+        working-directory: source
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        working-directory: source
+        run: >-
+          yarn prettier
+          src/main/utils/Constants.ts
+          src/renderer/components/LatestVersion.vue
+          src/renderer/utils/v327FeatureShared.ts
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Check formatting
+        working-directory: source
+        run: yarn run format:check
+
+      - name: Lint source
+        working-directory: source
+        run: yarn lint
+
+      - name: Type check
+        working-directory: source
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        working-directory: source
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        working-directory: source
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused diff
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t FILES < <(git diff --name-only)
+          printf '%s\n' "${FILES[@]}"
+          test "${#FILES[@]}" -eq 4
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/utils/Constants.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/renderer/components/LatestVersion.vue'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/renderer/utils/v327FeatureShared.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'tests/feature-regression.spec.ts'
+
+      - name: Commit verified result branch
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RESULT_BRANCH}"
+          git add \
+            src/main/utils/Constants.ts \
+            src/renderer/components/LatestVersion.vue \
+            src/renderer/utils/v327FeatureShared.ts \
+            tests/feature-regression.spec.ts
+          git commit -m 'fix: sync OSD controls and polish update settings'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
