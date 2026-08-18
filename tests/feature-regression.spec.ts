@@ -168,6 +168,38 @@ test.describe('desktop feature integration', () => {
     expect(ipcs).toContain('revealMainWindowFromOsd(win)')
   })
 
+  test('uses exactly one desktop-lyric play toggle route', () => {
+    const constants = readSource('src/main/utils/Constants.ts')
+    const ipcs = readSource('src/main/IPCs.ts')
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(constants).not.toContain("import '../osdPlaybackBridge'")
+    expect(ipcs).toContain("message === 'playOrPauseFromOsd'")
+    expect(ipcs).toContain("win.webContents.send('play-from-osd')")
+    expect(player).toContain("window.mainApi?.on('play-from-osd'")
+    expect(player).toContain('watch(playing, (value) => {')
+  })
+
+  test('renders concise release notes as cleaned bullet points', () => {
+    const latestVersion = readSource('src/renderer/components/LatestVersion.vue')
+
+    expect(latestVersion).toContain('v-if="releaseNoteItems.length"')
+    expect(latestVersion).toContain('MAX_RELEASE_NOTE_ITEMS = 8')
+    expect(latestVersion).toContain('buildReleaseNoteItems')
+    expect(latestVersion).not.toContain('v-same-html="latestVersion?.updateInfo?.releaseNotes')
+  })
+
+  test('keeps injected settings action buttons consistent with native settings buttons', () => {
+    const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
+
+    expect(shared).toContain('.vutronmusic-v327-controls button {')
+    expect(shared).toContain('border: none;')
+    expect(shared).toContain('border-radius: 8px;')
+    expect(shared).toContain('background: var(--color-secondary-bg);')
+    expect(shared).toContain('.vutronmusic-osd-preset-transfer-actions button {')
+    expect(shared).toContain('min-height: 36px;')
+  })
+
   test('registers diagnostics and playback-history integrations', () => {
     const constants = readSource('src/main/utils/Constants.ts')
     const main = readSource('src/renderer/main.ts')

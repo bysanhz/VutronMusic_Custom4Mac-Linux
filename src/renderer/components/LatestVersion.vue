@@ -1,9 +1,9 @@
 <template>
-  <div
-    v-if="latestVersion?.updateInfo?.releaseNotes"
-    v-same-html="latestVersion?.updateInfo?.releaseNotes || ''"
-    class="update-release"
-  ></div>
+  <ul v-if="releaseNoteItems.length" class="update-release" aria-label="版本变化">
+    <li v-for="(item, index) in releaseNoteItems" :key="`${index}-${item}`">
+      {{ item }}
+    </li>
+  </ul>
 
   <!-- ======== newADD start====== -->
   <section class="diagnostic-panel">
@@ -79,6 +79,53 @@ const platformLabel = computed(() => {
 })
 
 const releaseUrl = computed(() => latestVersion.value?.releaseUrl || '')
+
+const MAX_RELEASE_NOTE_ITEMS = 8
+const MAX_RELEASE_NOTE_LENGTH = 120
+
+const cleanReleaseNoteText = (value: string): string =>
+  value
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/^[-+*]\s+/, '')
+    .replace(/^#{1,6}\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const buildReleaseNoteItems = (releaseNotes: unknown): string[] => {
+  const raw = String(releaseNotes || '')
+    .replace(/\r/g, '')
+    .trim()
+  if (!raw) return []
+
+  const normalized = raw
+    .replace(/(^|\n)\s*#{1,6}\s*/g, '\n')
+    .replace(/\s+#{1,6}\s+/g, '\n')
+    .replace(/(^|\n)\s*[-+*]\s+/g, '\n')
+    .replace(/\s+-\s+(?=[\p{L}\p{N}“"'《（])/gu, '\n')
+
+  return normalized
+    .split('\n')
+    .map(cleanReleaseNoteText)
+    .filter(Boolean)
+    .filter((item) => !/^VutronMusic\s+v?\d/i.test(item))
+    .filter((item) => !/^完整变更记录[:：]?/i.test(item))
+    .filter((item) => !/^v?\d+\.\d+\.\d+\s*(?:\.{2,}|…)/i.test(item))
+    .filter((item) => !(item.length <= 14 && !/[，。,:：；!?！？]/.test(item)))
+    .map((item) =>
+      item.length > MAX_RELEASE_NOTE_LENGTH
+        ? `${item.slice(0, MAX_RELEASE_NOTE_LENGTH - 1).trimEnd()}…`
+        : item
+    )
+    .slice(0, MAX_RELEASE_NOTE_ITEMS)
+}
+
+const releaseNoteItems = computed(() =>
+  buildReleaseNoteItems(latestVersion.value?.updateInfo?.releaseNotes)
+)
 
 const getZoomFactor = () => {
   try {
@@ -185,21 +232,20 @@ onMounted(async () => {
 <style lang="scss">
 .update-release {
   width: 100%;
-  display: table;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px 18px 14px 38px;
   border-radius: 12px;
-  padding: 10px 10px;
   background-color: var(--color-secondary-bg);
 
-  h1,
-  h2,
-  h3 {
-    padding: 0.3em 0;
-    border-bottom: 2px solid var(--color-secondary-bg-for-transparent);
+  li {
+    margin: 0 0 8px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
   }
 
-  ul,
-  ol {
-    padding: 0.5em 0 0.5em 2em;
+  li:last-child {
+    margin-bottom: 0;
   }
 }
 
