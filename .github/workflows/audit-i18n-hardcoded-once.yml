@@ -1,0 +1,54 @@
+name: Audit hardcoded renderer text once
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.head_ref == 'automation/audit-i18n-hardcoded'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: automation/audit-i18n-hardcoded
+          fetch-depth: 0
+      - name: Scan renderer UI literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('src/renderer')
+          chinese = re.compile(r'[\u3400-\u9fff]')
+          skip_dirs = {'locales'}
+          rows = []
+          for path in sorted(root.rglob('*')):
+              if not path.is_file() or path.suffix not in {'.ts', '.vue', '.html'}:
+                  continue
+              if any(part in skip_dirs for part in path.parts):
+                  continue
+              try:
+                  lines = path.read_text(encoding='utf-8').splitlines()
+              except UnicodeDecodeError:
+                  continue
+              for lineno, line in enumerate(lines, 1):
+                  if chinese.search(line):
+                      stripped = line.strip()
+                      if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*') or stripped.startswith('<!--'):
+                          continue
+                      rows.append(f'{path}:{lineno}: {stripped}')
+          Path('.i18n-hardcoded-report.txt').write_text('\n'.join(rows) + '\n', encoding='utf-8')
+          print(f'UI-ish Chinese lines: {len(rows)}')
+          PY
+          git add .i18n-hardcoded-report.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'chore: record renderer i18n audit'
+          git push origin HEAD:automation/audit-i18n-hardcoded
