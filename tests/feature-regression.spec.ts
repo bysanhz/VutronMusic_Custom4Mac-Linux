@@ -159,12 +159,14 @@ test.describe('desktop feature integration', () => {
     expect(player).toContain("window.mainApi?.on('play', () => {")
   })
 
-  test('restores or raises the main window from desktop lyrics before hiding it', () => {
+  test('toggles the main window by visibility rather than transient focus', () => {
     const ipcs = readSource('src/main/IPCs.ts')
 
     expect(ipcs).toContain('const revealMainWindowFromOsd =')
     expect(ipcs).toContain('if (win.isMinimized()) win.restore()')
-    expect(ipcs).toContain('win.isMinimized() || !win.isVisible() || !win.isFocused()')
+    expect(ipcs).toContain('win.isMinimized() || !win.isVisible()')
+    expect(ipcs).not.toContain('win.isMinimized() || !win.isVisible() || !win.isFocused()')
+    expect(ipcs).toContain('win.hide()')
     expect(ipcs).toContain('revealMainWindowFromOsd(win)')
   })
 
