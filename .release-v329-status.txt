@@ -1,0 +1,8 @@
+status=success
+run_id=32090348675
+conclusion=success
+release_id=372050259
+latest=true
+expected_sha=f082ae1692a5664007b49b6342ec19f8ca433fe0
+tag=v3.2.9
+checked_at=2026-08-18T02:18:55Z
