@@ -1,0 +1,53 @@
+name: Snapshot UI sync hotfix run
+
+on:
+  push:
+    branches:
+      - automation/snapshot-ui-sync-hotfix
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: f6f95922cbc07ef7047a2ad5e4cf33717d966e38
+      RESULT_BRANCH: automation/snapshot-ui-sync-hotfix-result
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Capture run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 5
+          DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs" -f per_page=100)"
+          ROW="$(jq -c --arg sha "${TARGET_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+          if [[ -z "${ROW}" ]]; then
+            printf 'status=not-found\nhead_sha=%s\n' "${TARGET_SHA}" > .ui-hotfix-run.txt
+          else
+            RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+            printf 'run_id=%s\nstatus=%s\nconclusion=%s\nhtml_url=%s\n' \
+              "${RUN_ID}" \
+              "$(jq -r '.status' <<<"${ROW}")" \
+              "$(jq -r '.conclusion // ""' <<<"${ROW}")" \
+              "$(jq -r '.html_url' <<<"${ROW}")" > .ui-hotfix-run.txt
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs" --paginate \
+              | jq -r '.jobs[] | "job=\(.id)|\(.name)|\(.status)|\(.conclusion // "")"' >> .ui-hotfix-run.txt
+          fi
+          cat .ui-hotfix-run.txt
+      - name: Push snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RESULT_BRANCH}"
+          git add .ui-hotfix-run.txt
+          git commit -m 'chore: snapshot UI sync hotfix run'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
