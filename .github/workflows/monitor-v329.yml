@@ -1,0 +1,85 @@
+name: Monitor v3.2.9 release
+
+on:
+  push:
+    branches:
+      - automation/monitor-v329
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SHA: f082ae1692a5664007b49b6342ec19f8ca433fe0
+      RELEASE_TAG: v3.2.9
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout monitor branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Monitor formal release
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATUS="timeout"
+          RUN_ID=""
+          CONCLUSION=""
+          RELEASE_ID=""
+          LATEST="false"
+
+          for attempt in $(seq 1 240); do
+            DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs" -f event=workflow_dispatch -f per_page=50)"
+            ROW="$(jq -c --arg sha "${EXPECTED_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+            if [[ -n "${ROW}" ]]; then
+              RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+              RUN_STATUS="$(jq -r '.status' <<<"${ROW}")"
+              CONCLUSION="$(jq -r '.conclusion // ""' <<<"${ROW}")"
+              echo "Release run ${RUN_ID}: status=${RUN_STATUS} conclusion=${CONCLUSION}"
+              if [[ "${RUN_STATUS}" == "completed" ]]; then
+                if [[ "${CONCLUSION}" != "success" ]]; then
+                  STATUS="build_failed"
+                  break
+                fi
+
+                if FORMAL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" 2>/dev/null)"; then
+                  RELEASE_ID="$(jq -r '.id' <<<"${FORMAL}")"
+                  DRAFT="$(jq -r '.draft' <<<"${FORMAL}")"
+                  PRERELEASE="$(jq -r '.prerelease' <<<"${FORMAL}")"
+                  LATEST_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.id')"
+                  if [[ "${DRAFT}" == "false" && "${PRERELEASE}" == "false" && "${LATEST_ID}" == "${RELEASE_ID}" ]]; then
+                    STATUS="success"
+                    LATEST="true"
+                    break
+                  fi
+                fi
+              fi
+            else
+              echo "Waiting for v3.2.9 release run"
+            fi
+            sleep 10
+          done
+
+          cat > .release-v329-status.txt <<EOF
+          status=${STATUS}
+          run_id=${RUN_ID}
+          conclusion=${CONCLUSION}
+          release_id=${RELEASE_ID}
+          latest=${LATEST}
+          expected_sha=${EXPECTED_SHA}
+          tag=${RELEASE_TAG}
+          checked_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          EOF
+          cat .release-v329-status.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .release-v329-status.txt
+          git commit -m "chore: record v3.2.9 release status"
+          git push --force origin HEAD:refs/heads/automation/monitor-v329-result
+
+          test "${STATUS}" = "success"
