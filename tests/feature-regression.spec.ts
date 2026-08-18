@@ -189,15 +189,34 @@ test.describe('desktop feature integration', () => {
     expect(latestVersion).not.toContain('v-same-html="latestVersion?.updateInfo?.releaseNotes')
   })
 
-  test('keeps injected settings action buttons consistent with native settings buttons', () => {
-    const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
+  test('uses the same pill toggle geometry across settings controls', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const coverControls = readSource('src/renderer/utils/osdCoverControlsSettings.ts')
 
-    expect(shared).toContain('.vutronmusic-v327-controls button {')
-    expect(shared).toContain('border: none;')
-    expect(shared).toContain('border-radius: 8px;')
-    expect(shared).toContain('background: var(--color-secondary-bg);')
-    expect(shared).toContain('.vutronmusic-osd-preset-transfer-actions button {')
-    expect(shared).toContain('min-height: 36px;')
+    expect(settings).toContain('.toggle input + label {')
+    expect(settings).toContain('height: 24px;')
+    expect(settings).toContain('width: 44px;')
+    expect(settings).toContain('border-radius: 999px;')
+    expect(settings).toContain('height: 18px;')
+    expect(settings).toContain('width: 18px;')
+    expect(settings).toContain('border-radius: 50%;')
+    expect(settings).toContain('left: 23px;')
+
+    expect(coverControls).toContain('width: 44px;')
+    expect(coverControls).toContain('height: 24px;')
+    expect(coverControls).toContain('border-radius: 999px;')
+    expect(coverControls).toContain('width: 18px;')
+    expect(coverControls).toContain('height: 18px;')
+    expect(coverControls).toContain('border-radius: 50%;')
+  })
+
+  test('keeps Linux runtime WM_CLASS aligned with the packaged desktop entry', () => {
+    const main = readSource('src/main/index.ts')
+    const builder = readSource('buildAssets/builder/config.js')
+
+    expect(main).toContain("app.commandLine.appendSwitch('class', 'vutron')")
+    expect(builder).toContain("StartupWMClass: 'vutron'")
+    expect(builder).toContain("executableName: 'vutron'")
   })
 
   test('registers diagnostics and playback-history integrations', () => {

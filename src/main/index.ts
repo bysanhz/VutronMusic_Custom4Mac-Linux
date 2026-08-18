@@ -116,6 +116,7 @@ class BackGround {
     }
 
     if (Constants.IS_LINUX) {
+      app.commandLine.appendSwitch('class', 'vutron')
       app.commandLine.appendSwitch(
         'disable-features',
         'HardwareMediaKeyHandling,MediaSessionService'

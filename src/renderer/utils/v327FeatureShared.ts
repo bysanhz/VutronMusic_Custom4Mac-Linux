@@ -106,23 +106,7 @@ export const injectV327FeatureStyle = (): void => {
 
     .vutronmusic-v327-controls button {
       min-height: 36px;
-      box-sizing: border-box;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 8px;
-      color: var(--color-text);
-      background: var(--color-secondary-bg);
-      font: inherit;
-      font-weight: 600;
-      line-height: 1.2;
       white-space: nowrap;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .vutronmusic-v327-controls button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
     }
 
     .vutronmusic-v327-status {
@@ -146,8 +130,8 @@ export const injectV327FeatureStyle = (): void => {
 
     .vutronmusic-osd-preset-draft-row button {
       min-height: 28px;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 3px 9px;
+      border-radius: 7px;
     }
 
     .vutronmusic-preset-dirty .vutronmusic-osd-preset-draft-indicator {
@@ -228,9 +212,9 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-transfer-actions button {
-      min-height: 36px;
-      padding: 8px 12px;
-      border-radius: 8px;
+      min-height: 28px;
+      padding: 3px 9px;
+      border-radius: 7px;
     }
 
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
