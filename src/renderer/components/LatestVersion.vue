@@ -268,6 +268,7 @@ onMounted(async () => {
   padding: 16px;
   border-radius: 12px;
   background-color: var(--color-secondary-bg);
+  color: var(--color-text);
 }
 
 .diagnostic-panel__header {
@@ -316,6 +317,8 @@ onMounted(async () => {
 
   button {
     min-width: 116px;
+    color: var(--color-text);
+    font: inherit;
   }
 }
 // =========== newADD end ========
