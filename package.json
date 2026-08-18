@@ -1,7 +1,7 @@
 {
   "name": "VutronMusic",
   "packageManager": "yarn@1.22.22",
-  "version": "3.2.8",
+  "version": "3.2.9",
   "description": "A cross-platform desktop music player with desktop lyrics.",
   "desktopName": "vutron.desktop",
   "homepage": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux",
@@ -122,7 +122,7 @@
     "eslint-friendly-formatter": "^4.0.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.6.2",
-    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-promise": "^6.1.0",
     "eslint-plugin-vue": "^9.22.0",
     "playwright": "^1.42.0",
     "prettier": "^3.2.5",
