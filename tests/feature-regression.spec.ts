@@ -198,6 +198,41 @@ test.describe('desktop feature integration', () => {
     expect(sharedFeatures).toContain('.vutronmusic-v327-controls button {')
   })
 
+  test('keeps update diagnostics actions readable in dark mode', () => {
+    const latestVersion = readSource('src/renderer/components/LatestVersion.vue')
+
+    expect(latestVersion).toContain('.diagnostic-panel {')
+    expect(latestVersion).toContain('.diagnostic-panel__actions {')
+    expect(latestVersion).toContain('color: var(--color-text);')
+    expect(latestVersion).toContain('font: inherit;')
+  })
+
+  test('applies fade-in only after audio playback has started', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const replacePlaylist = player.slice(
+      player.indexOf('const replacePlaylist = async'),
+      player.indexOf('const replaceCurrentTrack = async')
+    )
+    const replaceCurrentTrack = player.slice(
+      player.indexOf('const replaceCurrentTrack = async'),
+      player.indexOf('// const _scrobble')
+    )
+    const play = player.slice(
+      player.indexOf('const play = async'),
+      player.indexOf('const pause = async')
+    )
+
+    expect(replacePlaylist).not.toContain('await smoothGain(0, 0)')
+    expect(replaceCurrentTrack).not.toContain('await smoothGain(0, 0)')
+    expect(player).toContain('await smoothGain(0, fade)')
+    expect(play).toContain('await smoothGain(0, 0)')
+    expect(play).toContain('await audioNodes.audio.play()')
+    expect(play).toContain('void smoothGain(volume.value, fade)')
+    expect(play.indexOf('await audioNodes.audio.play()')).toBeLessThan(
+      play.indexOf('void smoothGain(volume.value, fade)')
+    )
+  })
+
   test('makes Classic volume step icons functional and self-describing', () => {
     const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
     const zhHans = readSource('src/renderer/locales/zh-hans.json')
