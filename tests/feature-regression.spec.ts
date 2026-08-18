@@ -212,13 +212,24 @@ test.describe('desktop feature integration', () => {
     expect(coverControls).toContain('border-radius: 50%;')
   })
 
-  test('keeps Linux runtime WM_CLASS aligned with the packaged desktop entry', () => {
+  test('matches the Linux desktop launcher to Electron actual WM_CLASS', () => {
     const main = readSource('src/main/index.ts')
     const builder = readSource('buildAssets/builder/config.js')
 
-    expect(main).toContain("app.commandLine.appendSwitch('class', 'vutron')")
-    expect(builder).toContain("StartupWMClass: 'vutron'")
+    expect(main).not.toContain("app.commandLine.appendSwitch('class', 'vutron')")
+    expect(builder).toContain("StartupWMClass: 'VutronMusic'")
     expect(builder).toContain("executableName: 'vutron'")
+  })
+
+  test('restores and explicitly reveals persisted desktop lyrics', () => {
+    const main = readSource('src/main/index.ts')
+
+    expect(main).toContain('this.initOSDWindow()')
+    expect(main).toContain('this.handleOSDWindowEvents()')
+    expect(main).toContain('await lyricWin.loadURL(Constants.APP_OSD_URL)')
+    expect(main).toContain('lyricWin.showInactive()')
+    expect(main).toContain("log.error('[OSD] Failed to load desktop lyric window:'")
+    expect(main).toContain('if (this.lyricWin?.isDestroyed()) this.lyricWin = null')
   })
 
   test('registers diagnostics and playback-history integrations', () => {

@@ -88,7 +88,7 @@ const baseConfig = {
     // vutron.desktop 文件名，并显式写入与 Electron desktopName 一致的 WM_CLASS。
     desktop: {
       entry: {
-        StartupWMClass: 'vutron'
+        StartupWMClass: 'VutronMusic'
       }
     },
     // =========== newADD end ========

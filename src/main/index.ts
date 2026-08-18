@@ -116,7 +116,6 @@ class BackGround {
     }
 
     if (Constants.IS_LINUX) {
-      app.commandLine.appendSwitch('class', 'vutron')
       app.commandLine.appendSwitch(
         'disable-features',
         'HardwareMediaKeyHandling,MediaSessionService'
@@ -302,8 +301,24 @@ class BackGround {
         option.y = y
       }
     }
-    this.lyricWin = new BrowserWindow(option)
-    await this.lyricWin.loadURL(Constants.APP_OSD_URL)
+    const lyricWin = new BrowserWindow(option)
+    this.lyricWin = lyricWin
+    this.handleOSDWindowEvents()
+
+    try {
+      await lyricWin.loadURL(Constants.APP_OSD_URL)
+      if (
+        this.lyricWin === lyricWin &&
+        !lyricWin.isDestroyed() &&
+        ((store.get('osdWin.show') as boolean) || false)
+      ) {
+        lyricWin.showInactive()
+      }
+    } catch (error) {
+      log.error('[OSD] Failed to load desktop lyric window:', error)
+      if (this.lyricWin === lyricWin) this.lyricWin = null
+      if (!lyricWin.isDestroyed()) lyricWin.destroy()
+    }
   }
 
   toggleMouseIgnore() {
@@ -562,9 +577,9 @@ class BackGround {
 
   showOSDWindow(type = 'small') {
     const osdLyric = (store.get('osdWin.show') as boolean) || false
+    if (this.lyricWin?.isDestroyed()) this.lyricWin = null
     if (!this.lyricWin && osdLyric) {
-      this.createOSDWindow(type)
-      this.handleOSDWindowEvents()
+      void this.createOSDWindow(type)
     }
   }
 
@@ -855,6 +870,7 @@ class BackGround {
         windowMouseleave: () => this.checkOsdMouseLeave()
       }
       IPCs.initialize(this.win, this.tray, this.mpris, lrc)
+      this.initOSDWindow()
 
       const proxy = (store.get('settings.proxy') || { type: 0, address: '', port: '' }) as {
         type: 0 | 1 | 2
