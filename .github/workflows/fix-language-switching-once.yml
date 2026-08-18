@@ -1,0 +1,65 @@
+name: Fix language switching once
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'automation/fix-language-switching'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v6
+        with:
+          ref: automation/fix-language-switching
+          fetch-depth: 0
+
+      - name: Apply language switching fixes
+        run: python tools/fix-i18n-switching-once.py
+
+      - name: Remove one-time helpers before validation
+        run: |
+          rm -f tools/fix-i18n-switching-once.py
+          rm -f .github/workflows/fix-language-switching-once.yml
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format changed source
+        run: yarn prettier --write src/renderer tests/feature-regression.spec.ts
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'fix: make language switching fully reactive'
+          git push origin HEAD:automation/fix-language-switching
