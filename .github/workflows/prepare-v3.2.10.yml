@@ -1,0 +1,94 @@
+name: Prepare v3.2.10 release source
+
+on:
+  push:
+    branches:
+      - automation/prepare-v3.2.10
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: e8d4b75e6c3e521911e972c947c620231b4c1a7f
+      RESULT_BRANCH: automation/prepare-v3.2.10-result
+      NOTES_B64: IyMgVnV0cm9uTXVzaWMgdjMuMi4xMAoK5pys54mI5pys5Li76KaB5L+u5aSNIFVidW50dS9MaW51eCDkuIvnmoTmoYzpnaLmrYzor43mjqfliLbjgIHova/ku7bmm7TmlrDkuI7orr7nva7pobXkuqTkupLpl67popjjgIIKCiMjIyDmoYzpnaLmrYzor43kuI7kuLvnqpflj6MKLSDkv67lpI3moYzpnaLmrYzor43mkq3mlL4v5pqC5YGc5YG25Y+R5peg5ZON5bqU5oiW54q25oCB5Zue5by555qE6Zeu6aKY77yM56e76Zmk6YeN5aSN55qE5pen5pKt5pS+5o6n5Yi26ZO+6Lev77yM57uf5LiA5L2/55So5LiT55SoIE9TRCBJUEPjgIIKLSDkv67lpI3moYzpnaLmrYzor43igJzmmL7npLrmiJbpmpDol4/kuLvnqpflj6PigJ3lnKjkuLvnqpflj6PlpLHnhKblkI7ml6Dms5XpmpDol4/nmoTpl67popjvvJvnjrDlnKjpmpDol48v5pyA5bCP5YyW5pe25Lya5oGi5aSN5pi+56S677yM5bey5pi+56S65pe25Y+v5q2j5bi46ZqQ6JeP44CCCi0g5LyY5YyW5Li756qX5Y+j5LuO5qGM6Z2i5q2M6K+N5ZSk6LW35pe255qEIHJlc3RvcmUgLyBzaG93IC8gZm9jdXMg6KGM5Li677yM5pS55ZaEIFVidW50dSDkuIvmnIDlsI/ljJbmiJbooqvpga7mjKHlkI7nmoTmgaLlpI3kvZPpqozjgIIKCiMjIyBMaW51eCDkuI7ova/ku7bmm7TmlrAKLSDmm7TmlrDmo4Dmn6XmlLnnlKggRWxlY3Ryb24gU2Vzc2lvbiDnvZHnu5zmoIjor7fmsYIgR2l0SHViIFJlbGVhc2XvvIzkvb/lhbbog73mm7Tlj6/pnaDlnLDnu6fmib/lupTnlKgv57O757uf5Luj55CG6YWN572u77yM5L+u5aSNIExpbnV4IOS4iyBgVHlwZUVycm9yOiBmZXRjaCBmYWlsZWRgIOS4juacgOaWsOeJiOacrOaYvuekuiBgdW5rbm93bmAg55qE6Zeu6aKY44CCCi0gTGludXgg6L+Q6KGM5pe25pi+5byP6K6+572uIGBXTV9DTEFTUz12dXRyb25g77yM5LiO5a6J6KOF5YyFIGBTdGFydHVwV01DbGFzcz12dXRyb25gIOS/neaMgeS4gOiHtO+8jOaUueWWhCBHTk9NRSDnqIvluo/lnZ7lsIbov5DooYznqpflj6PliIbmiJDnrKzkuozkuKrlm77moIfnmoTpl67popjjgIIKCiMjIyDorr7nva7pobXkuI7nlYzpnaIKLSDova/ku7bmm7TmlrDpobXnmoTniYjmnKzlj5jljJbor7TmmI7mlLnkuLrmuIXnkIYgTWFya2Rvd24g5ZCO55qE5YiG54K55YiX6KGo77yM5LiN5YaN55u05o6l5pi+56S65aSn6YePIGAjYOOAgWAqKmAg562J5qCH6K6w77yM5bm26ZmQ5Yi26L+H6ZW/5YaF5a6544CCCi0g6K6+572u6aG1IFRvZ2dsZSDlvIDlhbPnu5/kuIDkuLrog7blm4rovajpgZPkuI7lnIblvaLmu5HlnZfmoLflvI/jgIIKLSDml6forr7nva7pobkgVG9nZ2xlIOeahOS9jee9rue7n+S4gOWIsOWPs+S+p+WfuuWHhue6v++8jOS4juKAnOaYvuekuuW3puS+p+WwgemdouS4juaOp+WItuaMiemSruKAneS/neaMgeS4gOiHtOOAggotIOaSpOWbnuWvueaZrumAmuaWh+Wtl+aTjeS9nOaMiemSrueahOivr+e7n+S4gO+8jOS/neeVmeWFtuWOn+acieS6pOS6kuagt+W8j+OAggoKIyMjIOmqjOivgQotIOihpeWFheahjOmdouatjOivjeaSreaUvuOAgeS4u+eql+WPo+aYyumakOOAgUxpbnV4IFdNX0NMQVNT44CB5pu05paw5qOA5p+l44CB54mI5pys6K+05piO5LiOIFRvZ2dsZSDmoLflvI8v5a+56b2Q55qE5Zue5b2S5rWL6K+V44CCCi0g6YCa6L+HIFByZXR0aWVy44CBRVNMaW5044CBVnVlL1R5cGVTY3JpcHQgdHlwZS1jaGVja+OAgeWuieWFqOS4juWKn+iDveWbnuW9kua1i+ivleS7peWPiiBWaXRlIHByb2R1Y3Rpb24gYnVpbGQg6aqM6K+B44CCCgoqKuWujOaVtOWPmOabtOiusOW9le+8mioqIHYzLjIuOS4uLnYzLjIuMTAK
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${BASE_SHA}"
+          git checkout -B "${RESULT_BRANCH}" origin/main
+
+      - name: Prepare version and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('package.json')
+          text = path.read_text()
+          old = '"version": "3.2.9"'
+          new = '"version": "3.2.10"'
+          if text.count(old) != 1:
+              raise SystemExit(f'unexpected version occurrence count: {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          printf '%s' "${NOTES_B64}" | base64 --decode > .github/release-notes/v3.2.10.md
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format release files
+        run: yarn prettier --write package.json .github/release-notes/v3.2.10.md
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused release diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test "$(node -p "require('./package.json').version")" = '3.2.10'
+          test "$(git diff --name-only | sort)" = $'.github/release-notes/v3.2.10.md\npackage.json'
+          git diff -- package.json | grep -Fq -- '-  "version": "3.2.9"'
+          git diff -- package.json | grep -Fq -- '+  "version": "3.2.10"'
+          test "$(git diff --numstat -- package.json | awk '{print $1":"$2}')" = '1:1'
+
+      - name: Commit verified release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json .github/release-notes/v3.2.10.md
+          git commit -m 'chore: prepare v3.2.10 release'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
