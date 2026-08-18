@@ -208,6 +208,7 @@
     "volumeDown": "Volume down",
     "volumeUp": "Volume up",
     "mute": "Mute",
+    "unmute": "Unmute",
     "shuffle": "Shuffle",
     "singleLoop": "Single Loop",
     "sequence": "Sequential Play",

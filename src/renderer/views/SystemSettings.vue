@@ -176,6 +176,7 @@
                   :height="60"
                   :theme="currentTheme ?? 'light'"
                   format="rgb"
+                  @update:value="selectCustomizeColor"
                 />
                 {{ $t(`settings.theme.${customizeColor.name}`) }}
               </div>
@@ -1698,6 +1699,11 @@ const changeColor = (color: { name: string }) => {
   })
   const colorObj = colors.value.find((c) => c.name === color.name)!
   colorObj.selected = true
+}
+
+const selectCustomizeColor = (value: string) => {
+  customizeColor.value.color = value
+  changeColor(customizeColor.value)
 }
 
 onMounted(() => {

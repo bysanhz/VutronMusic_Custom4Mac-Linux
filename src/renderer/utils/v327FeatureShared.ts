@@ -115,6 +115,7 @@ export const injectV327FeatureStyle = (): void => {
       justify-content: flex-end;
       gap: 8px;
       width: min(430px, 100%);
+      color: var(--color-text);
     }
 
     .vutronmusic-v327-controls select,
@@ -134,6 +135,10 @@ export const injectV327FeatureStyle = (): void => {
 
     .vutronmusic-v327-controls button {
       min-height: 36px;
+      color: var(--color-text);
+      background: var(--color-secondary-bg);
+      font: inherit;
+      font-weight: 600;
       white-space: nowrap;
     }
 
