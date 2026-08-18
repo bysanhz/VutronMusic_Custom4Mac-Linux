@@ -239,7 +239,7 @@ const revealMainWindowFromOsd = (win: BrowserWindow): void => {
 
 const toggleMainWindowFromOsd = (win: BrowserWindow): void => {
   if (win.isDestroyed()) return
-  if (win.isMinimized() || !win.isVisible() || !win.isFocused()) {
+  if (win.isMinimized() || !win.isVisible()) {
     revealMainWindowFromOsd(win)
     return
   }
