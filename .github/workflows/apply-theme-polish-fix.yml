@@ -20,121 +20,11 @@ jobs:
           fetch-depth: 0
 
       - name: Apply dark-theme and custom-accent fixes
-        shell: bash
+        env:
+          PATCH_SCRIPT_B64: IiIiQXBwbHkgdGhlbWUtYXdhcmUgaW5qZWN0ZWQgY29udHJvbHMgYW5kIGN1c3RvbSBhY2NlbnQgc2VsZWN0aW9uIHdpdGggZXhhY3Qgc291cmNlIGd1YXJkcy4iIiIKCmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKCmRlZiByZXBsYWNlX29uY2UocGF0aDogc3RyLCBvbGQ6IHN0ciwgbmV3OiBzdHIpIC0+IE5vbmU6CiAgICBmaWxlX3BhdGggPSBQYXRoKHBhdGgpCiAgICBzb3VyY2UgPSBmaWxlX3BhdGgucmVhZF90ZXh0KCkKICAgIGNvdW50ID0gc291cmNlLmNvdW50KG9sZCkKICAgIGlmIGNvdW50ICE9IDE6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdChmIntwYXRofTogZXhwZWN0ZWQgZXhhY3RseSBvbmUgZ3VhcmRlZCBtYXRjaCwgZm91bmQge2NvdW50fSIpCiAgICBmaWxlX3BhdGgud3JpdGVfdGV4dChzb3VyY2UucmVwbGFjZShvbGQsIG5ldywgMSkpCgoKcmVwbGFjZV9vbmNlKAogICAgInNyYy9yZW5kZXJlci92aWV3cy9TeXN0ZW1TZXR0aW5ncy52dWUiLAogICAgIiIiICAgICAgICAgICAgICAgIDxwaWNrLWNvbG9ycwogICAgICAgICAgICAgICAgICB2LW1vZGVsOnZhbHVlPSJjdXN0b21pemVDb2xvci5jb2xvciIKICAgICAgICAgICAgICAgICAgOndpZHRoPSI2MCIKICAgICAgICAgICAgICAgICAgOmhlaWdodD0iNjAiCiAgICAgICAgICAgICAgICAgIDp0aGVtZT0iY3VycmVudFRoZW1lID8/ICdsaWdodCciCiAgICAgICAgICAgICAgICAgIGZvcm1hdD0icmdiIgogICAgICAgICAgICAgICAgLz4iIiIsCiAgICAiIiIgICAgICAgICAgICAgICAgPHBpY2stY29sb3JzCiAgICAgICAgICAgICAgICAgIHYtbW9kZWw6dmFsdWU9ImN1c3RvbWl6ZUNvbG9yLmNvbG9yIgogICAgICAgICAgICAgICAgICA6d2lkdGg9IjYwIgogICAgICAgICAgICAgICAgICA6aGVpZ2h0PSI2MCIKICAgICAgICAgICAgICAgICAgOnRoZW1lPSJjdXJyZW50VGhlbWUgPz8gJ2xpZ2h0JyIKICAgICAgICAgICAgICAgICAgZm9ybWF0PSJyZ2IiCiAgICAgICAgICAgICAgICAgIEB1cGRhdGU6dmFsdWU9InNlbGVjdEN1c3RvbWl6ZUNvbG9yIgogICAgICAgICAgICAgICAgLz4iIiIsCikKCnJlcGxhY2Vfb25jZSgKICAgICJzcmMvcmVuZGVyZXIvdmlld3MvU3lzdGVtU2V0dGluZ3MudnVlIiwKICAgICIiImNvbnN0IGNoYW5nZUNvbG9yID0gKGNvbG9yOiB7IG5hbWU6IHN0cmluZyB9KSA9PiB7CiAgY29sb3JzLnZhbHVlLmZvckVhY2goKGMpID0+IHsKICAgIGMuc2VsZWN0ZWQgPSBmYWxzZQogIH0pCiAgY29uc3QgY29sb3JPYmogPSBjb2xvcnMudmFsdWUuZmluZCgoYykgPT4gYy5uYW1lID09PSBjb2xvci5uYW1lKSEKICBjb2xvck9iai5zZWxlY3RlZCA9IHRydWUKfQoKb25Nb3VudGVkKCgpID0+IHsiIiIsCiAgICAiIiJjb25zdCBjaGFuZ2VDb2xvciA9IChjb2xvcjogeyBuYW1lOiBzdHJpbmcgfSkgPT4gewogIGNvbG9ycy52YWx1ZS5mb3JFYWNoKChjKSA9PiB7CiAgICBjLnNlbGVjdGVkID0gZmFsc2UKICB9KQogIGNvbnN0IGNvbG9yT2JqID0gY29sb3JzLnZhbHVlLmZpbmQoKGMpID0+IGMubmFtZSA9PT0gY29sb3IubmFtZSkhCiAgY29sb3JPYmouc2VsZWN0ZWQgPSB0cnVlCn0KCmNvbnN0IHNlbGVjdEN1c3RvbWl6ZUNvbG9yID0gKHZhbHVlOiBzdHJpbmcpID0+IHsKICBjdXN0b21pemVDb2xvci52YWx1ZS5jb2xvciA9IHZhbHVlCiAgY2hhbmdlQ29sb3IoY3VzdG9taXplQ29sb3IudmFsdWUpCn0KCm9uTW91bnRlZCgoKSA9PiB7IiIiLAopCgpyZXBsYWNlX29uY2UoCiAgICAic3JjL3JlbmRlcmVyL3V0aWxzL3YzMjdGZWF0dXJlU2hhcmVkLnRzIiwKICAgICIiIiAgICAudnV0cm9ubXVzaWMtdjMyNy1jb250cm9scyB7CiAgICAgIGRpc3BsYXk6IGZsZXg7CiAgICAgIGZsZXgtd3JhcDogd3JhcDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBmbGV4LWVuZDsKICAgICAgZ2FwOiA4cHg7CiAgICAgIHdpZHRoOiBtaW4oNDMwcHgsIDEwMCUpOwogICAgfSIiIiwKICAgICIiIiAgICAudnV0cm9ubXVzaWMtdjMyNy1jb250cm9scyB7CiAgICAgIGRpc3BsYXk6IGZsZXg7CiAgICAgIGZsZXgtd3JhcDogd3JhcDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBmbGV4LWVuZDsKICAgICAgZ2FwOiA4cHg7CiAgICAgIHdpZHRoOiBtaW4oNDMwcHgsIDEwMCUpOwogICAgICBjb2xvcjogdmFyKC0tY29sb3ItdGV4dCk7CiAgICB9IiIiLAopCgpyZXBsYWNlX29uY2UoCiAgICAic3JjL3JlbmRlcmVyL3V0aWxzL3YzMjdGZWF0dXJlU2hhcmVkLnRzIiwKICAgICIiIiAgICAudnV0cm9ubXVzaWMtdjMyNy1jb250cm9scyBidXR0b24gewogICAgICBtaW4taGVpZ2h0OiAzNnB4OwogICAgICB3aGl0ZS1zcGFjZTogbm93cmFwOwogICAgfSIiIiwKICAgICIiIiAgICAudnV0cm9ubXVzaWMtdjMyNy1jb250cm9scyBidXR0b24gewogICAgICBtaW4taGVpZ2h0OiAzNnB4OwogICAgICBjb2xvcjogdmFyKC0tY29sb3ItdGV4dCk7CiAgICAgIGJhY2tncm91bmQ6IHZhcigtLWNvbG9yLXNlY29uZGFyeS1iZyk7CiAgICAgIGZvbnQ6IGluaGVyaXQ7CiAgICAgIGZvbnQtd2VpZ2h0OiA2MDA7CiAgICAgIHdoaXRlLXNwYWNlOiBub3dyYXA7CiAgICB9IiIiLAopCgpyZXBsYWNlX29uY2UoCiAgICAidGVzdHMvZmVhdHVyZS1yZWdyZXNzaW9uLnNwZWMudHMiLAogICAgIiIiICB0ZXN0KCdtYWtlcyBDbGFzc2ljIHZvbHVtZSBzdGVwIGljb25zIGZ1bmN0aW9uYWwgYW5kIHNlbGYtZGVzY3JpYmluZycsICgpID0+IHsiIiIsCiAgICAiIiIgIHRlc3QoJ2tlZXBzIGluamVjdGVkIHNldHRpbmdzIGNvbnRyb2xzIHRoZW1lLWF3YXJlIGFuZCBhY3RpdmF0ZXMgY3VzdG9tIGFjY2VudCBjb2xvcnMnLCAoKSA9PiB7CiAgICBjb25zdCBzZXR0aW5ncyA9IHJlYWRTb3VyY2UoJ3NyYy9yZW5kZXJlci92aWV3cy9TeXN0ZW1TZXR0aW5ncy52dWUnKQogICAgY29uc3Qgc2hhcmVkRmVhdHVyZXMgPSByZWFkU291cmNlKCdzcmMvcmVuZGVyZXIvdXRpbHMvdjMyN0ZlYXR1cmVTaGFyZWQudHMnKQoKICAgIGV4cGVjdChzZXR0aW5ncykudG9Db250YWluKCdAdXBkYXRlOnZhbHVlPSJzZWxlY3RDdXN0b21pemVDb2xvciInKQogICAgZXhwZWN0KHNldHRpbmdzKS50b0NvbnRhaW4oJ2NvbnN0IHNlbGVjdEN1c3RvbWl6ZUNvbG9yID0gKHZhbHVlOiBzdHJpbmcpID0+IHsnKQogICAgZXhwZWN0KHNldHRpbmdzKS50b0NvbnRhaW4oJ2N1c3RvbWl6ZUNvbG9yLnZhbHVlLmNvbG9yID0gdmFsdWUnKQogICAgZXhwZWN0KHNldHRpbmdzKS50b0NvbnRhaW4oJ2NoYW5nZUNvbG9yKGN1c3RvbWl6ZUNvbG9yLnZhbHVlKScpCiAgICBleHBlY3Qoc2hhcmVkRmVhdHVyZXMpLnRvQ29udGFpbignY29sb3I6IHZhcigtLWNvbG9yLXRleHQpOycpCiAgICBleHBlY3Qoc2hhcmVkRmVhdHVyZXMpLnRvQ29udGFpbignYmFja2dyb3VuZDogdmFyKC0tY29sb3Itc2Vjb25kYXJ5LWJnKTsnKQogICAgZXhwZWN0KHNoYXJlZEZlYXR1cmVzKS50b0NvbnRhaW4oJy52dXRyb25tdXNpYy12MzI3LWNvbnRyb2xzIGJ1dHRvbiB7JykKICB9KQoKICB0ZXN0KCdtYWtlcyBDbGFzc2ljIHZvbHVtZSBzdGVwIGljb25zIGZ1bmN0aW9uYWwgYW5kIHNlbGYtZGVzY3JpYmluZycsICgpID0+IHsiIiIsCikK
         run: |
-          python - <<'PY'
-          """Apply the one-time theme polish changes with exact source guards."""
-
-          from pathlib import Path
-
-          def replace_once(path: str, old: str, new: str) -> None:
-              file_path = Path(path)
-              source = file_path.read_text()
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected exactly one guarded match, found {count}')
-              file_path.write_text(source.replace(old, new, 1))
-
-          replace_once(
-              'src/renderer/views/SystemSettings.vue',
-              '''                <pick-colors
-                  v-model:value="customizeColor.color"
-                  :width="60"
-                  :height="60"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                />''',
-              '''                <pick-colors
-                  v-model:value="customizeColor.color"
-                  :width="60"
-                  :height="60"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  @update:value="selectCustomizeColor"
-                />'''
-          )
-
-          replace_once(
-              'src/renderer/views/SystemSettings.vue',
-              '''const changeColor = (color: { name: string }) => {
-  colors.value.forEach((c) => {
-    c.selected = false
-  })
-  const colorObj = colors.value.find((c) => c.name === color.name)!
-  colorObj.selected = true
-}
-
-onMounted(() => {''',
-              '''const changeColor = (color: { name: string }) => {
-  colors.value.forEach((c) => {
-    c.selected = false
-  })
-  const colorObj = colors.value.find((c) => c.name === color.name)!
-  colorObj.selected = true
-}
-
-const selectCustomizeColor = () => {
-  changeColor(customizeColor.value)
-}
-
-onMounted(() => {'''
-          )
-
-          replace_once(
-              'src/renderer/utils/v327FeatureShared.ts',
-              '''    .vutronmusic-v327-controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      width: min(430px, 100%);
-    }''',
-              '''    .vutronmusic-v327-controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      width: min(430px, 100%);
-      color: var(--color-text);
-    }'''
-          )
-
-          replace_once(
-              'src/renderer/utils/v327FeatureShared.ts',
-              '''    .vutronmusic-v327-controls button {
-      min-height: 36px;
-      white-space: nowrap;
-    }''',
-              '''    .vutronmusic-v327-controls button {
-      min-height: 36px;
-      color: var(--color-text);
-      background: var(--color-secondary-bg);
-      font: inherit;
-      font-weight: 600;
-      white-space: nowrap;
-    }'''
-          )
-
-          replace_once(
-              'tests/feature-regression.spec.ts',
-              '''  test('makes Classic volume step icons functional and self-describing', () => {''',
-              '''  test('keeps injected settings controls theme-aware and activates custom accent colors', () => {
-    const settings = readSource('src/renderer/views/SystemSettings.vue')
-    const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
-
-    expect(settings).toContain('@update:value="selectCustomizeColor"')
-    expect(settings).toContain('const selectCustomizeColor = () => {')
-    expect(settings).toContain('changeColor(customizeColor.value)')
-    expect(sharedFeatures).toContain('color: var(--color-text);')
-    expect(sharedFeatures).toContain('background: var(--color-secondary-bg);')
-    expect(sharedFeatures).toContain('.vutronmusic-v327-controls button {')
-  })
-
-  test('makes Classic volume step icons functional and self-describing', () => {'''
-          )
-          PY
+          printf '%s' "$PATCH_SCRIPT_B64" | base64 -d > /tmp/apply_theme_polish.py
+          python /tmp/apply_theme_polish.py
 
       - name: Remove one-time helper before validation
         run: rm .github/workflows/apply-theme-polish-fix.yml
@@ -172,7 +62,6 @@ onMounted(() => {'''
         run: yarn vite --config vite.config.ts build
 
       - name: Commit verified fixes
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
