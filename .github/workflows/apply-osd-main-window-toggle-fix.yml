@@ -1,0 +1,105 @@
+name: Apply OSD main-window toggle fix
+
+on:
+  push:
+    branches:
+      - automation/fix-osd-main-window-toggle
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: 4ebc3d537d24b5cc03a69116b8599dc0afcb483a
+      RESULT_BRANCH: automation/fix-osd-main-window-toggle-result
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${BASE_SHA}"
+          git checkout -B "${RESULT_BRANCH}" origin/main
+
+      - name: Apply focused fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          ipcs_path = Path('src/main/IPCs.ts')
+          ipcs = ipcs_path.read_text()
+          old_condition = "if (win.isMinimized() || !win.isVisible() || !win.isFocused()) {"
+          new_condition = "if (win.isMinimized() || !win.isVisible()) {"
+          if ipcs.count(old_condition) != 1:
+              raise SystemExit(f'unexpected toggle condition count: {ipcs.count(old_condition)}')
+          ipcs = ipcs.replace(old_condition, new_condition)
+          ipcs_path.write_text(ipcs)
+
+          tests_path = Path('tests/feature-regression.spec.ts')
+          tests = tests_path.read_text()
+          old_name = "test('restores or raises the main window from desktop lyrics before hiding it', () => {"
+          new_name = "test('toggles the main window by visibility rather than transient focus', () => {"
+          old_expect = "expect(ipcs).toContain('win.isMinimized() || !win.isVisible() || !win.isFocused()')"
+          new_expect = "expect(ipcs).toContain('win.isMinimized() || !win.isVisible()')\n    expect(ipcs).not.toContain('win.isMinimized() || !win.isVisible() || !win.isFocused()')\n    expect(ipcs).toContain('win.hide()')"
+          if tests.count(old_name) != 1:
+              raise SystemExit(f'unexpected regression test name count: {tests.count(old_name)}')
+          if tests.count(old_expect) != 1:
+              raise SystemExit(f'unexpected regression expectation count: {tests.count(old_expect)}')
+          tests = tests.replace(old_name, new_name).replace(old_expect, new_expect)
+          tests_path.write_text(tests)
+          PY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        run: yarn prettier --write src/main/IPCs.ts tests/feature-regression.spec.ts
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test "$(git diff --name-only | sort)" = $'src/main/IPCs.ts\ntests/feature-regression.spec.ts'
+          grep -Fq "if (win.isMinimized() || !win.isVisible())" src/main/IPCs.ts
+          ! grep -Fq "if (win.isMinimized() || !win.isVisible() || !win.isFocused())" src/main/IPCs.ts
+
+      - name: Commit verified result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/main/IPCs.ts tests/feature-regression.spec.ts
+          git commit -m 'fix: restore OSD main-window hide toggle'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
