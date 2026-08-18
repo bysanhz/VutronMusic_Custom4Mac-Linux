@@ -165,6 +165,31 @@ test.describe('desktop feature integration', () => {
     expect(writeComment).toContain('height: 44px')
   })
 
+  test('keeps Classic track metadata readable and player actions self-describing', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const playPage = readSource('src/renderer/views/PlayPage.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+    const zhHant = readSource('src/renderer/locales/zh-hant.json')
+    const en = readSource('src/renderer/locales/en.json')
+
+    expect(commonPlayer).toContain(':title="currentTrack?.name || \'\'"')
+    expect(commonPlayer).toContain(':title="trackDetailsTitle"')
+    expect(commonPlayer).toContain("$t('player.switchTranslation')")
+    expect(commonPlayer).toContain("$t('player.addToPlaylist')")
+    expect(commonPlayer).toContain("$t('player.moreActions')")
+    expect(commonPlayer).toContain("$t(playing ? 'player.pause' : 'player.play')")
+    expect(commonPlayer).toContain("$t('player.shuffle')")
+    expect(commonPlayer).toContain('-webkit-line-clamp: 2')
+    expect(playPage).toContain("$t('player.playerTheme')")
+    expect(playPage).toContain("$t('player.collapsePlayer')")
+    expect(playPage).toContain("t('player.showComments')")
+    for (const locale of [zhHans, zhHant, en]) {
+      expect(locale).toContain('\"switchTranslation\"')
+      expect(locale).toContain('\"collapsePlayer\"')
+      expect(locale).toContain('\"showFullLyrics\"')
+    }
+  })
+
   test('routes Linux update checks through the Electron session network stack', () => {
     const updater = readSource('src/main/checkUpdate.ts')
 

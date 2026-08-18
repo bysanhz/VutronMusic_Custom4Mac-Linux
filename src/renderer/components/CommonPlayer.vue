@@ -19,7 +19,11 @@
           <div class="top-part">
             <div class="top-right">
               <div class="buttons">
-                <div class="transPro" @click="switchTransitionMode">
+                <div
+                  class="transPro"
+                  :title="$t('player.switchTranslation')"
+                  @click="switchTransitionMode"
+                >
                   <label v-show="hasTLyric" :class="{ active: nTranslationMode === 'tlyric' }"
                     >译</label
                   >
@@ -42,10 +46,18 @@
                 >
                   <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
                 </button-icon>
-                <button-icon class="button" @click="addTrackToPlaylist"
+                <button-icon
+                  class="button"
+                  :title="$t('player.addToPlaylist')"
+                  @click="addTrackToPlaylist"
                   ><SvgIcon icon-class="plus"
                 /></button-icon>
-                <button-icon class="button" :prevent-blur="true" @click="showContextMenu">
+                <button-icon
+                  class="button"
+                  :title="$t('player.moreActions')"
+                  :prevent-blur="true"
+                  @click="showContextMenu"
+                >
                   <SvgIcon icon-class="options" />
                 </button-icon>
               </div>
@@ -97,7 +109,7 @@
               /></button-icon>
               <button-icon
                 id="play"
-                :title="$t(playing ? 'player.play' : 'player.pause')"
+                :title="$t(playing ? 'player.pause' : 'player.play')"
                 @click="playOrPause"
                 ><svg-icon :icon-class="playing ? 'pause' : 'play'"
               /></button-icon>
@@ -105,13 +117,17 @@
                 ><svg-icon icon-class="next"
               /></button-icon>
             </div>
-            <button-icon :class="{ active: shuffle }" @click="shuffle = !shuffle"
+            <button-icon
+              :class="{ active: shuffle }"
+              :title="$t('player.shuffle')"
+              @click="shuffle = !shuffle"
               ><svg-icon icon-class="shuffle"
             /></button-icon>
           </div>
           <div class="progress-bar">
             <div class="time"
-              ><button-icon> <svg-icon icon-class="volume-half" /></button-icon
+              ><button-icon :title="$t('player.volume')">
+                <svg-icon icon-class="volume-half" /></button-icon
             ></div>
             <div class="slider">
               <VueSlider
@@ -126,19 +142,20 @@
               />
             </div>
             <div class="time">
-              <button-icon> <svg-icon icon-class="volume" /></button-icon
+              <button-icon :title="$t('player.volume')">
+                <svg-icon icon-class="volume" /></button-icon
             ></div>
           </div>
           <!-- ======== newADD start====== -->
           <div class="bottom-track-info">
             <div
               :class="['title', { haslist: hasListSource() }]"
-              :title="source"
+              :title="currentTrack?.name || ''"
               @click="hasListSource() && goToList()"
             >
               <span>{{ currentTrack?.name }}</span>
             </div>
-            <div class="subtitle">
+            <div class="subtitle" :title="trackDetailsTitle">
               <router-link
                 v-if="artist.matched !== false"
                 :to="`/artist/${artist.id}`"
@@ -226,7 +243,6 @@ const {
   playing,
   shuffle,
   isLiked,
-  source,
   chorus,
   repeatMode,
   pic
@@ -277,6 +293,10 @@ const artist = computed(() => {
 const album = computed(() => {
   return currentTrack.value?.album ?? currentTrack.value?.al
 })
+
+const trackDetailsTitle = computed(() =>
+  [artist.value?.name, album.value?.name].filter(Boolean).join(' - ')
+)
 
 const marks = computed(() => {
   const result: Record<string, any> = {}
@@ -474,9 +494,11 @@ onBeforeUnmount(() => {
           opacity: 0.88;
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          line-height: 1.28;
           overflow: hidden;
+          overflow-wrap: anywhere;
         }
 
         .haslist {
@@ -619,7 +641,7 @@ onBeforeUnmount(() => {
       // 对应截图中的红框区域。
       .bottom-track-info {
         width: 100%;
-        min-height: 64px;
+        min-height: 76px;
         margin-top: 22px;
         padding: 10px 14px;
         box-sizing: border-box;
@@ -659,9 +681,11 @@ onBeforeUnmount(() => {
 
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          line-height: 1.35;
           overflow: hidden;
+          overflow-wrap: anywhere;
         }
       }
       // =========== newADD end ========
