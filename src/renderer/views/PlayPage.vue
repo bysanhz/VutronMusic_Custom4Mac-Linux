@@ -15,22 +15,27 @@
           <button-icon
             v-show="tabs[tabIdx] !== 'comment'"
             class="player-button theme-button"
+            :title="$t('player.fullPlayer.theme')"
             @click="setThemeModal = !setThemeModal"
           >
             <SvgIcon icon-class="theme" />
           </button-icon>
-          <button-icon class="player-button close-button" @click="showLyrics = !showLyrics">
+          <button-icon
+            class="player-button close-button"
+            :title="$t('player.fullPlayer.collapse')"
+            @click="showLyrics = !showLyrics"
+          >
             <SvgIcon icon-class="arrow-down" />
           </button-icon>
           <button-icon
-            title="重置播放器主题"
+            :title="$t('player.fullPlayer.resetTheme')"
             class="player-button reset-button"
             @click="resetTheme"
           >
             <SvgIcon icon-class="reset-theme" />
           </button-icon>
           <button-icon
-            title="换场景"
+            :title="$t('player.fullPlayer.changeScene')"
             class="player-button sense-button"
             @click="showSenseSelector = true"
           >
@@ -127,7 +132,9 @@ import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 import { storeToRefs } from 'pinia'
 import { ref, provide, computed, watch } from 'vue'
 import { TrackSourceType } from '@/types/music.d'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const playPageContextMenu = ref<InstanceType<typeof ContextMenu>>()
 
 const stateStore = useNormalStateStore()
@@ -228,9 +235,11 @@ const nextTab = computed(() => {
 })
 
 const nextTabTitle = computed(() => {
-  if (nextTab.value === 'comment') return '查看评论'
-  if (tabs.value[tabIdx.value] === 'comment') return '返回歌词'
-  return nextTab.value === 'pickLyric' ? '显示精选歌词' : '显示完整歌词'
+  if (nextTab.value === 'comment') return t('player.fullPlayer.viewComments')
+  if (tabs.value[tabIdx.value] === 'comment') return t('player.fullPlayer.backToLyrics')
+  return nextTab.value === 'pickLyric'
+    ? t('player.fullPlayer.showSelectedLyrics')
+    : t('player.fullPlayer.showFullLyrics')
 })
 
 const switchCurrentTab = () => {

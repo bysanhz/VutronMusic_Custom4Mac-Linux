@@ -219,6 +219,23 @@
     "repeatTrack": "单曲循环",
     "resetPlayer": "重置播放器状态",
     "like": "喜欢",
+    "fullPlayer": {
+      "translationMode": "切换歌词翻译/音译",
+      "moreOptions": "更多操作",
+      "theme": "播放器主题",
+      "collapse": "收起播放器",
+      "resetTheme": "重置播放器主题",
+      "changeScene": "换场景",
+      "viewComments": "查看评论",
+      "backToLyrics": "返回歌词",
+      "showSelectedLyrics": "显示精选歌词",
+      "showFullLyrics": "显示完整歌词",
+      "lyricOffsetAdvance": "提前 0.5 秒；按住 Shift 精调 0.1 秒（应用于所有歌曲）",
+      "lyricOffsetDelay": "延后 0.5 秒；按住 Shift 精调 0.1 秒（应用于所有歌曲）",
+      "lyricOffsetNone": "所有歌曲：未调整",
+      "lyricOffsetAhead": "所有歌曲：提前 {seconds}s",
+      "lyricOffsetBehind": "所有歌曲：延后 {seconds}s"
+    },
     "getFMTimeout": "获取私人FM超时",
     "getFMOverCount": "获取私人FM时重试次数过多，请手动切换下一首",
     "converlution": {
