@@ -1,0 +1,105 @@
+name: Fix Linux dock and OSD once
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'automation/fix-linux-dock-osd-v3210'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v6
+        with:
+          ref: automation/fix-linux-dock-osd-v3210
+          fetch-depth: 0
+
+      - name: Apply targeted fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              'buildAssets/builder/config.js',
+              "StartupWMClass: 'vutron'",
+              "StartupWMClass: 'VutronMusic'",
+          )
+
+          replace_once(
+              'src/main/index.ts',
+              "    if (Constants.IS_LINUX) {\n      app.commandLine.appendSwitch('class', 'vutron')\n      app.commandLine.appendSwitch(\n",
+              "    if (Constants.IS_LINUX) {\n      app.commandLine.appendSwitch(\n",
+          )
+
+          replace_once(
+              'src/main/index.ts',
+              "    this.lyricWin = new BrowserWindow(option)\n    await this.lyricWin.loadURL(Constants.APP_OSD_URL)\n",
+              "    const lyricWin = new BrowserWindow(option)\n    this.lyricWin = lyricWin\n    this.handleOSDWindowEvents()\n\n    try {\n      await lyricWin.loadURL(Constants.APP_OSD_URL)\n      if (\n        this.lyricWin === lyricWin &&\n        !lyricWin.isDestroyed() &&\n        ((store.get('osdWin.show') as boolean) || false)\n      ) {\n        lyricWin.showInactive()\n      }\n    } catch (error) {\n      log.error('[OSD] Failed to load desktop lyric window:', error)\n      if (this.lyricWin === lyricWin) this.lyricWin = null\n      if (!lyricWin.isDestroyed()) lyricWin.destroy()\n    }\n",
+          )
+
+          replace_once(
+              'src/main/index.ts',
+              "    if (!this.lyricWin && osdLyric) {\n      this.createOSDWindow(type)\n      this.handleOSDWindowEvents()\n    }\n",
+              "    if (this.lyricWin?.isDestroyed()) this.lyricWin = null\n    if (!this.lyricWin && osdLyric) {\n      void this.createOSDWindow(type)\n    }\n",
+          )
+
+          replace_once(
+              'src/main/index.ts',
+              "      IPCs.initialize(this.win, this.tray, this.mpris, lrc)\n\n      const proxy =",
+              "      IPCs.initialize(this.win, this.tray, this.mpris, lrc)\n      this.initOSDWindow()\n\n      const proxy =",
+          )
+
+          old_test = """  test('keeps Linux runtime WM_CLASS aligned with the packaged desktop entry', () => {\n    const main = readSource('src/main/index.ts')\n    const builder = readSource('buildAssets/builder/config.js')\n\n    expect(main).toContain(\"app.commandLine.appendSwitch('class', 'vutron')\")\n    expect(builder).toContain(\"StartupWMClass: 'vutron'\")\n    expect(builder).toContain(\"executableName: 'vutron'\")\n  })\n"""
+          new_test = """  test('matches the Linux desktop launcher to Electron actual WM_CLASS', () => {\n    const main = readSource('src/main/index.ts')\n    const builder = readSource('buildAssets/builder/config.js')\n\n    expect(main).not.toContain(\"app.commandLine.appendSwitch('class', 'vutron')\")\n    expect(builder).toContain(\"StartupWMClass: 'VutronMusic'\")\n    expect(builder).toContain(\"executableName: 'vutron'\")\n  })\n\n  test('restores and explicitly reveals persisted desktop lyrics', () => {\n    const main = readSource('src/main/index.ts')\n\n    expect(main).toContain('this.initOSDWindow()')\n    expect(main).toContain('this.handleOSDWindowEvents()')\n    expect(main).toContain('await lyricWin.loadURL(Constants.APP_OSD_URL)')\n    expect(main).toContain('lyricWin.showInactive()')\n    expect(main).toContain(\"log.error('[OSD] Failed to load desktop lyric window:'\")\n    expect(main).toContain('if (this.lyricWin?.isDestroyed()) this.lyricWin = null')\n  })\n"""
+          replace_once('tests/feature-regression.spec.ts', old_test, new_test)
+          PY
+
+          rm .github/workflows/fix-linux-dock-osd-v3210.yml
+          git diff --check
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add buildAssets/builder/config.js src/main/index.ts tests/feature-regression.spec.ts .github/workflows/fix-linux-dock-osd-v3210.yml
+          git commit -m 'fix: repair Linux dock grouping and desktop lyrics'
+          git push origin HEAD:automation/fix-linux-dock-osd-v3210
