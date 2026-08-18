@@ -37,7 +37,7 @@ defineExpose({ comment })
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
+  height: 44px;
 
   .comment-input {
     color: var(--text-color);

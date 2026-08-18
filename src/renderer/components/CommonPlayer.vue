@@ -177,7 +177,7 @@
           type="music"
           :style="{
             width: isMobile ? '50vw' : '100%',
-            padding: isMobile ? '0' : '40px 0 10px 4vh'
+            padding: isMobile ? '0' : '40px 72px 10px 4vh'
           }"
         />
       </div>
@@ -396,7 +396,7 @@ onBeforeUnmount(() => {
   height: 100vh;
   display: flex;
   box-sizing: border-box;
-  padding: 0 clamp(20px, 3vw, 44px);
+  padding: 0 0 0 clamp(20px, 3vw, 44px);
 
   .left-side {
     flex: 0 1 45%;

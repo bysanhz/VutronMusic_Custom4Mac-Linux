@@ -152,6 +152,19 @@ test.describe('desktop feature integration', () => {
     expect(lyricPage).toContain('height: 22px')
   })
 
+  test('keeps the Classic lyric toolbar and comments inside the viewport tool lane', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const commentList = readSource('src/renderer/components/CommentList.vue')
+    const writeComment = readSource('src/renderer/components/WriteComment.vue')
+
+    expect(commonPlayer).toContain('padding: 0 0 0 clamp(20px, 3vw, 44px)')
+    expect(commonPlayer).toContain("'40px 72px 10px 4vh'")
+    expect(commentList).toContain('flex: 1 1 auto')
+    expect(commentList).toContain('min-height: 0')
+    expect(commentList).toContain('flex: 0 0 auto')
+    expect(writeComment).toContain('height: 44px')
+  })
+
   test('routes Linux update checks through the Electron session network stack', () => {
     const updater = readSource('src/main/checkUpdate.ts')
 

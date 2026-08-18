@@ -393,7 +393,8 @@ onBeforeUnmount(() => {
 
 .comment-main {
   width: 100%;
-  height: calc(100% - 108px);
+  flex: 1 1 auto;
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -472,7 +473,8 @@ onBeforeUnmount(() => {
   }
 }
 .write-comment {
-  padding: 8px 0;
+  flex: 0 0 auto;
+  padding: 8px 0 0;
   box-sizing: border-box;
 }
 </style>
