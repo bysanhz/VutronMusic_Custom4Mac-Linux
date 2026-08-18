@@ -105,8 +105,30 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-v327-controls button {
-      min-height: 36px;
+      min-height: 38px;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--color-secondary-bg);
+      color: var(--color-text);
+      font: inherit;
+      font-weight: 600;
       white-space: nowrap;
+      cursor: pointer;
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.12s ease;
+    }
+
+    .vutronmusic-v327-controls button:hover {
+      background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
+      color: var(--color-primary);
+    }
+
+    .vutronmusic-v327-controls button:active {
+      transform: scale(0.96);
     }
 
     .vutronmusic-v327-status {
@@ -129,9 +151,9 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-draft-row button {
-      min-height: 28px;
-      padding: 3px 9px;
-      border-radius: 7px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 10px;
     }
 
     .vutronmusic-preset-dirty .vutronmusic-osd-preset-draft-indicator {
@@ -212,9 +234,9 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-transfer-actions button {
-      min-height: 28px;
-      padding: 3px 9px;
-      border-radius: 7px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 10px;
     }
 
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {

@@ -1,9 +1,14 @@
 <template>
-  <div
-    v-if="latestVersion?.updateInfo?.releaseNotes"
-    v-same-html="latestVersion?.updateInfo?.releaseNotes || ''"
-    class="update-release"
-  ></div>
+  <div v-if="releaseNoteItems.length" class="update-release">
+    <ul class="update-release__list">
+      <li v-for="(item, index) in releaseNoteItems" :key="`${index}-${item}`">
+        {{ item }}
+      </li>
+    </ul>
+    <div v-if="hasMoreReleaseNotes" class="update-release__more">
+      更多更新内容可在发布页面查看
+    </div>
+  </div>
 
   <!-- ======== newADD start====== -->
   <section class="diagnostic-panel">
@@ -79,6 +84,69 @@ const platformLabel = computed(() => {
 })
 
 const releaseUrl = computed(() => latestVersion.value?.releaseUrl || '')
+
+const MAX_RELEASE_NOTE_ITEMS = 8
+const MAX_RELEASE_NOTE_ITEM_LENGTH = 120
+
+const markdownToPlainText = (value: string): string =>
+  value
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[`*_~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const allReleaseNoteItems = computed(() => {
+  const releaseNotes = latestVersion.value?.updateInfo?.releaseNotes
+  const source = Array.isArray(releaseNotes)
+    ? releaseNotes
+        .map((entry: any) =>
+          typeof entry === 'string' ? entry : String(entry?.note || entry?.version || '')
+        )
+        .join('\n')
+    : typeof releaseNotes === 'string'
+      ? releaseNotes
+      : ''
+
+  const items: string[] = []
+  let section = ''
+
+  source.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim()
+    if (!line || /^```/.test(line) || /^-{3,}$/.test(line)) return
+
+    const heading = line.match(/^#{1,6}\s+(.+)$/)
+    if (heading) {
+      const title = markdownToPlainText(heading[1] || '')
+      if (/^VutronMusic\b/i.test(title) || /^v?\d+\.\d+/i.test(title)) {
+        section = ''
+      } else {
+        section = title
+      }
+      return
+    }
+
+    const isBullet = /^[-*+]\s+/.test(line) || /^\d+[.)]\s+/.test(line)
+    const body = markdownToPlainText(line.replace(/^[-*+]\s+/, '').replace(/^\d+[.)]\s+/, ''))
+    if (!body) return
+
+    const combined = isBullet && section ? `${section}：${body}` : body
+    const concise =
+      combined.length > MAX_RELEASE_NOTE_ITEM_LENGTH
+        ? `${combined.slice(0, MAX_RELEASE_NOTE_ITEM_LENGTH - 1)}…`
+        : combined
+
+    if (!items.includes(concise)) items.push(concise)
+  })
+
+  return items
+})
+
+const releaseNoteItems = computed(() => allReleaseNoteItems.value.slice(0, MAX_RELEASE_NOTE_ITEMS))
+const hasMoreReleaseNotes = computed(
+  () => allReleaseNoteItems.value.length > MAX_RELEASE_NOTE_ITEMS
+)
 
 const getZoomFactor = () => {
   try {
@@ -185,22 +253,28 @@ onMounted(async () => {
 <style lang="scss">
 .update-release {
   width: 100%;
-  display: table;
+  box-sizing: border-box;
   border-radius: 12px;
-  padding: 10px 10px;
+  padding: 14px 16px;
   background-color: var(--color-secondary-bg);
+}
 
-  h1,
-  h2,
-  h3 {
-    padding: 0.3em 0;
-    border-bottom: 2px solid var(--color-secondary-bg-for-transparent);
-  }
+.update-release__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.25em;
+}
 
-  ul,
-  ol {
-    padding: 0.5em 0 0.5em 2em;
-  }
+.update-release__list li {
+  line-height: 1.55;
+  opacity: 0.88;
+}
+
+.update-release__more {
+  margin-top: 10px;
+  font-size: 0.86em;
+  opacity: 0.62;
 }
 
 // ======== newADD start======
@@ -259,6 +333,28 @@ onMounted(async () => {
 
   button {
     min-width: 116px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--color-secondary-bg);
+    color: var(--color-text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.12s ease;
+
+    &:hover {
+      background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
+      color: var(--color-primary);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
   }
 }
 // =========== newADD end ========
