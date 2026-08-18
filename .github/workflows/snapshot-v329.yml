@@ -1,0 +1,47 @@
+name: Snapshot v3.2.9 release
+
+on:
+  push:
+    branches:
+      - automation/snapshot-v329
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SHA: f082ae1692a5664007b49b6342ec19f8ca433fe0
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Capture release status
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs" -f event=workflow_dispatch -f per_page=50)"
+          ROW="$(jq -c --arg sha "${EXPECTED_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+          if [[ -z "${ROW}" ]]; then
+            echo "run_id=" > .release-v329-snapshot.txt
+            echo "status=not_found" >> .release-v329-snapshot.txt
+          else
+            RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+            echo "run_id=${RUN_ID}" > .release-v329-snapshot.txt
+            echo "status=$(jq -r '.status' <<<"${ROW}")" >> .release-v329-snapshot.txt
+            echo "conclusion=$(jq -r '.conclusion // ""' <<<"${ROW}")" >> .release-v329-snapshot.txt
+            echo "created_at=$(jq -r '.created_at' <<<"${ROW}")" >> .release-v329-snapshot.txt
+            echo "html_url=$(jq -r '.html_url' <<<"${ROW}")" >> .release-v329-snapshot.txt
+            echo >> .release-v329-snapshot.txt
+            JOBS="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/jobs" -f per_page=100)"
+            jq -r '.jobs[] | "job=\(.id)|\(.name)|\(.status)|\(.conclusion // "")"' <<<"${JOBS}" >> .release-v329-snapshot.txt
+          fi
+          cat .release-v329-snapshot.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .release-v329-snapshot.txt
+          git commit -m "chore: record v3.2.9 release snapshot"
+          git push --force origin HEAD:refs/heads/automation/snapshot-v329-result
