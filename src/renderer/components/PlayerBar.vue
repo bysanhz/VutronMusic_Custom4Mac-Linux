@@ -128,13 +128,19 @@
               }"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
               :process-style="{ background: 'var(--color-primary)' }"
-              :dot-style="{ display: 'none' }"
+              :dot-style="{
+                backgroundColor: 'var(--color-primary)',
+                border: '2px solid var(--color-body-bg)',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.18)'
+              }"
               :height="130"
               :dot-size="12"
               :silent="true"
             ></slider-vue>
           </div>
           <button-icon
+            :title="volume === 0 ? $t('player.unmute') : $t('player.mute')"
+            @click.stop="toggleMute"
             ><svg-icon v-show="volume > 0.5" icon-class="volume" />
             <svg-icon v-show="volume === 0" icon-class="volume-mute" />
             <svg-icon v-show="volume <= 0.5 && volume !== 0" icon-class="volume-half"
@@ -183,6 +189,7 @@ const {
   seek,
   pic,
   volume,
+  volumeBeforeMuted,
   isLiked,
   lyrics,
   chorus,
@@ -283,6 +290,17 @@ const updateVolume = (e: WheelEvent) => {
   e.preventDefault()
   const delta = e.deltaY < 0 ? 0.02 : -0.02
   volume.value = Math.min(Math.max(volume.value + delta, 0), 1)
+}
+
+const toggleMute = () => {
+  if (volume.value > 0) {
+    volumeBeforeMuted.value = volume.value
+    volume.value = 0
+    return
+  }
+
+  const restoreVolume = Math.min(1, Math.max(0, Number(volumeBeforeMuted.value) || 1))
+  volume.value = restoreVolume
 }
 
 const handleHover = (position: number) => {

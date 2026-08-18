@@ -208,6 +208,7 @@
     "volumeDown": "降低音量",
     "volumeUp": "提高音量",
     "mute": "靜音",
+    "unmute": "取消靜音",
     "shuffle": "隨機播放",
     "singleLoop": "單曲循環",
     "sequence": "順序播放",

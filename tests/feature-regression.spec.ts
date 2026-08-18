@@ -165,6 +165,26 @@ test.describe('desktop feature integration', () => {
     expect(writeComment).toContain('height: 44px')
   })
 
+  test('toggles PlayerBar mute and keeps continuous sliders position-aware', () => {
+    const playerBar = readSource('src/renderer/components/PlayerBar.vue')
+    const slider = readSource('src/renderer/components/VueSlider.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+    const zhHant = readSource('src/renderer/locales/zh-hant.json')
+    const en = readSource('src/renderer/locales/en.json')
+
+    expect(playerBar).toContain('@click.stop="toggleMute"')
+    expect(playerBar).toContain('volumeBeforeMuted.value = volume.value')
+    expect(playerBar).toContain('volume.value = restoreVolume')
+    expect(playerBar).toContain("$t('player.unmute')")
+    expect(playerBar).not.toContain(':dot-style="{ display: \'none\' }"')
+    expect(slider).toContain('class="vue-slider-dot"')
+    expect(slider).toContain('const dotStyle = computed')
+    expect(slider).toContain('normalizedValue.value * 100')
+    for (const locale of [zhHans, zhHant, en]) {
+      expect(locale).toContain('\"unmute\"')
+    }
+  })
+
   test('makes Classic volume step icons functional and self-describing', () => {
     const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
     const zhHans = readSource('src/renderer/locales/zh-hans.json')

@@ -22,6 +22,7 @@
           <div class="vue-slider-mark-label" :style="mark.labelStyle">{{ mark.label }}</div>
         </div>
       </div>
+      <div class="vue-slider-dot" :style="dotStyle"></div>
     </div>
     <div v-show="hover" class="vue-slider-tooltip" :data-tip="tooltip" :style="tooltipStyle"></div>
   </div>
@@ -126,6 +127,42 @@ const containerStyle = computed(() => {
   const padding = props.dotSize / 2
   result.padding = isVertical.value ? ` 0px ${padding}px` : `${padding}px 0px`
   result.width = isVertical.value ? `${DEFAULT_SLIDER_SIZE}px` : 'auto'
+  return result
+})
+
+const normalizedValue = computed(() => {
+  const range = props.max - props.min
+  if (!Number.isFinite(range) || range <= 0) return 0
+  return Math.max(0, Math.min(1, (modelValue.value - props.min) / range))
+})
+
+const dotStyle = computed(() => {
+  const pos = `${normalizedValue.value * 100}%`
+  const result: Style = {
+    width: `${props.dotSize}px`,
+    height: `${props.dotSize}px`,
+    background:
+      props.processStyle.background ?? props.processStyle.backgroundColor ?? 'var(--color-primary)'
+  }
+
+  if (props.direction === 'ltr') {
+    result.left = pos
+    result.top = '50%'
+    result.transform = 'translate(-50%, -50%)'
+  } else if (props.direction === 'rtl') {
+    result.right = pos
+    result.top = '50%'
+    result.transform = 'translate(50%, -50%)'
+  } else if (props.direction === 'btt') {
+    result.bottom = pos
+    result.left = '50%'
+    result.transform = 'translate(-50%, 50%)'
+  } else {
+    result.top = pos
+    result.left = '50%'
+    result.transform = 'translate(-50%, -50%)'
+  }
+
   return result
 })
 
@@ -299,6 +336,17 @@ const handleMounse = (event: MouseEvent, type: 'enter' | 'move' | 'leave') => {
 
 .vue-slider-process {
   position: absolute;
+  transition: all 0.3s;
+}
+
+.vue-slider-dot {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid var(--color-body-bg);
+  border-radius: 50%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
   transition: all 0.3s;
 }
 
