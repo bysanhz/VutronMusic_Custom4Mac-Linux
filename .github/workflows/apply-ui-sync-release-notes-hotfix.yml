@@ -136,8 +136,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check
-          mapfile -t FILES < <(git diff --name-only)
+          git diff HEAD --check
+          mapfile -t FILES < <(git diff HEAD --name-only)
           printf '%s\n' "${FILES[@]}"
           test "${#FILES[@]}" -eq 5
           printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/osdPlaybackBridge.ts'
