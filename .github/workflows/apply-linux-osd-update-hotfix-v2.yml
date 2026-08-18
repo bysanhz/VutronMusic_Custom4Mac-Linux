@@ -1,0 +1,205 @@
+name: Apply Linux OSD and update hotfix v2
+
+on:
+  push:
+    branches:
+      - automation/fix-linux-osd-update-v2
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-22.04
+    env:
+      EXPECTED_MAIN_SHA: f3b03b0f325a516a5619b46bb7b89ec5499740e5
+      RESULT_BRANCH: automation/fix-linux-osd-update-result-v2
+
+    steps:
+      - name: Checkout exact main source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "main=${ACTUAL_SHA}"
+          test "${ACTUAL_SHA}" = "${EXPECTED_MAIN_SHA}"
+
+      - name: Apply source and regression-test hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file_path = Path(path)
+              text = file_path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one match, found {count}")
+              file_path.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              'src/main/checkUpdate.ts',
+              "import { BrowserWindow, app, dialog, shell } from 'electron'",
+              "import { BrowserWindow, app, dialog, session, shell } from 'electron'",
+          )
+          replace_once(
+              'src/main/checkUpdate.ts',
+              "  const response = await fetch(RELEASE_API_URL, {\n",
+              "  // Use Electron's Chromium network stack so Linux update checks honor the\n"
+              "  // application's configured proxy and the system proxy instead of bypassing them.\n"
+              "  const response = await session.defaultSession.fetch(RELEASE_API_URL, {\n",
+          )
+
+          replace_once(
+              'src/main/IPCs.ts',
+              "function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function }): void {\n",
+              "const revealMainWindowFromOsd = (win: BrowserWindow): void => {\n"
+              "  if (win.isDestroyed()) return\n"
+              "  if (win.isMinimized()) win.restore()\n"
+              "  win.show()\n"
+              "  win.focus()\n"
+              "}\n\n"
+              "const toggleMainWindowFromOsd = (win: BrowserWindow): void => {\n"
+              "  if (win.isDestroyed()) return\n"
+              "  if (win.isMinimized() || !win.isVisible() || !win.isFocused()) {\n"
+              "    revealMainWindowFromOsd(win)\n"
+              "    return\n"
+              "  }\n"
+              "  win.hide()\n"
+              "}\n\n"
+              "function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function }): void {\n",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              "    if (message === 'showMainWin') {\n      win.show()\n    }\n",
+              "    if (message === 'showMainWin') {\n      revealMainWindowFromOsd(win)\n    }\n",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              "    else if (message === 'toggleMainWin') {\n      if (win.isVisible()) {\n        win.hide()\n      } else {\n        win.show()\n        win.focus()\n      }\n    }\n",
+              "    else if (message === 'toggleMainWin') {\n      toggleMainWindowFromOsd(win)\n    }\n",
+          )
+          replace_once(
+              'src/main/IPCs.ts',
+              "    } else if (message === 'playOrPause') {\n      win.webContents.send('play')\n    }\n",
+              "    } else if (message === 'playOrPauseFromOsd') {\n      win.webContents.send('play-from-osd')\n    } else if (message === 'playOrPause') {\n      win.webContents.send('play')\n    }\n",
+          )
+
+          replace_once(
+              'src/preload/index.ts',
+              "  'play',\n  'previous',\n",
+              "  'play',\n  'play-from-osd',\n  'previous',\n",
+          )
+          replace_once(
+              'src/renderer/store/player.ts',
+              "      window.mainApi?.on('play', () => {\n",
+              "      window.mainApi?.on('play-from-osd', () => {\n"
+              "        playOrPause()\n"
+              "      })\n\n"
+              "      window.mainApi?.on('play', () => {\n",
+          )
+
+          test_path = Path('tests/feature-regression.spec.ts')
+          test_text = test_path.read_text()
+          marker = "  test('registers diagnostics and playback-history integrations', () => {\n"
+          if test_text.count(marker) != 1:
+              raise SystemExit('feature regression insertion marker mismatch')
+          new_tests = (
+              "  test('routes Linux update checks through the Electron session network stack', () => {\n"
+              "    const updater = readSource('src/main/checkUpdate.ts')\n\n"
+              "    expect(updater).toContain(\"import { BrowserWindow, app, dialog, session, shell } from 'electron'\")\n"
+              "    expect(updater).toContain('session.defaultSession.fetch(RELEASE_API_URL')\n"
+              "    expect(updater).not.toContain('await fetch(RELEASE_API_URL')\n"
+              "  })\n\n"
+              "  test('keeps desktop lyric playback independent from main-window input focus', () => {\n"
+              "    const ipcs = readSource('src/main/IPCs.ts')\n"
+              "    const preload = readSource('src/preload/index.ts')\n"
+              "    const player = readSource('src/renderer/store/player.ts')\n\n"
+              "    expect(ipcs).toContain(\"message === 'playOrPauseFromOsd'\")\n"
+              "    expect(ipcs).toContain(\"win.webContents.send('play-from-osd')\")\n"
+              "    expect(preload).toContain(\"'play-from-osd'\")\n"
+              "    expect(player).toContain(\"window.mainApi?.on('play-from-osd'\")\n"
+              "    expect(player).toContain(\"window.mainApi?.on('play', () => {\")\n"
+              "  })\n\n"
+              "  test('restores or raises the main window from desktop lyrics before hiding it', () => {\n"
+              "    const ipcs = readSource('src/main/IPCs.ts')\n\n"
+              "    expect(ipcs).toContain('const revealMainWindowFromOsd =')\n"
+              "    expect(ipcs).toContain('if (win.isMinimized()) win.restore()')\n"
+              "    expect(ipcs).toContain(\"win.isMinimized() || !win.isVisible() || !win.isFocused()\")\n"
+              "    expect(ipcs).toContain('revealMainWindowFromOsd(win)')\n"
+              "  })\n\n"
+          )
+          test_path.write_text(test_text.replace(marker, new_tests + marker, 1))
+          PY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        run: >-
+          yarn prettier
+          src/main/checkUpdate.ts
+          src/main/IPCs.ts
+          src/preload/index.ts
+          src/renderer/store/player.ts
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t FILES < <(git diff --name-only)
+          printf '%s\n' "${FILES[@]}"
+          test "${#FILES[@]}" -eq 5
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/checkUpdate.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/IPCs.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/preload/index.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/renderer/store/player.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'tests/feature-regression.spec.ts'
+
+      - name: Commit verified result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RESULT_BRANCH}"
+          git add \
+            src/main/checkUpdate.ts \
+            src/main/IPCs.ts \
+            src/preload/index.ts \
+            src/renderer/store/player.ts \
+            tests/feature-regression.spec.ts
+          git commit -m 'fix: stabilize Linux desktop controls and update checks'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
