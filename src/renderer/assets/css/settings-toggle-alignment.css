@@ -1,0 +1,12 @@
+/*
+ * Align every legacy SystemSettings toggle to the same right-edge baseline used by
+ * the injected “显示左侧封面与控制按钮” switch.
+ *
+ * SystemSettings.vue still carries a historical `.toggle { margin: auto; }` rule,
+ * which centers native toggles inside the right grid column. The injected switch
+ * has no auto margin and therefore follows `.right { justify-content: flex-end; }`.
+ */
+#app .system-settings .item:not(.no-flex) > .right > .toggle {
+  margin: 0 !important;
+  flex: 0 0 auto;
+}
