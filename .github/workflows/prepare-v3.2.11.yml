@@ -1,0 +1,84 @@
+name: Prepare v3.2.11 release source
+
+on:
+  push:
+    branches:
+      - release/v3.2.11-prep
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release prep branch
+        uses: actions/checkout@v6
+        with:
+          ref: release/v3.2.11-prep
+          fetch-depth: 0
+
+      - name: Prepare version and release notes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          package_path = Path('package.json')
+          package = package_path.read_text()
+          old = '"version": "3.2.10"'
+          new = '"version": "3.2.11"'
+          if package.count(old) != 1:
+              raise SystemExit('Expected package.json version 3.2.10 exactly once')
+          package_path.write_text(package.replace(old, new, 1))
+
+          notes = '''## VutronMusic v3.2.11
+
+本版本集中修复 Linux/Ubuntu 桌面体验、全屏播放器布局与控制、语言切换、主题设置以及音频淡入淡出等问题。
+
+### Linux 与桌面歌词
+- 根据 Ubuntu X11 实机 `WM_CLASS = "vutronmusic", "VutronMusic"` 修正 Linux 安装包的 `StartupWMClass=VutronMusic`，解决 GNOME 程序坞运行窗口被分成第二个图标的问题。
+- 加固桌面歌词窗口创建与恢复：启动时按持久化状态恢复，页面加载完成后显式显示，并在加载失败时清理失效窗口引用。
+- 保持桌面歌词播放/暂停与主窗口显示/隐藏使用独立、单一的 IPC 链路，避免重复切换或主窗口无法隐藏。
+
+### 全屏播放器与歌词/评论布局
+- 优化 Classic 播放器左右区域比例和歌词区宽度，减少封面与歌词之间的大块空白。
+- 统一右侧歌词时延与其他工具按钮的尺寸、间距和 viewport 右侧坐标轴。
+- 修复评论页“最新”与收起按钮重叠，并压缩评论输入区域的无效留白。
+- 歌曲信息卡支持最多两行歌名和两行歌手/专辑，并补充完整信息悬浮提示。
+- 为翻译/音译、添加歌单、更多、随机、主题、收起播放器等操作补齐多语言悬浮说明，并修正播放/暂停提示方向。
+
+### 音量、滑条与音频
+- Classic 播放器左右音量按钮支持每次 ±5% 调节，并分别显示“降低音量 / 提高音量”。
+- 底部播放器音量按钮支持静音/恢复静音前音量。
+- 连续滑条统一显示当前值圆点，包括播放器进度、音量及复用的精细调节滑条。
+- 修复“音频淡入淡出时长”听感失效：移除切歌前的过早立即静音，新音频先以 0 增益开始播放，再按设置时长淡入；暂停和切歌前继续按设置时长淡出。
+
+### 设置、主题与语言
+- 修复语言切换后部分下拉项和运行时注入设置仍停留在旧语言的问题；简体、繁体和 English 可在不重启的情况下来回切换并即时恢复。
+- 补齐近期新增设置、播放器提示和桌面歌词控制的三语文案。
+- 设置页 Toggle 统一为胶囊轨道、圆形滑块及右侧对齐基准。
+- 修复自定义强调色只改变颜色值但没有激活 Customize 的问题，现在选色后会立即应用到主题强调色。
+- 修复深色模式下“导出当前”等运行时设置按钮以及“更新与诊断”操作按钮仍显示黑色文字的问题。
+- 软件更新说明保持为清理 Markdown 后的简洁分点展示。
+
+### 验证
+- 补充 Linux Dock/桌面歌词、语言切换、Classic 布局、评论区、音量/滑条、主题、深色模式和淡入淡出调用顺序等回归测试。
+- 通过 Prettier、ESLint、Vue/TypeScript type-check、安全与功能回归测试以及 Vite production build 验证。
+
+**完整变更记录：** v3.2.10...v3.2.11
+'''
+          notes_path = Path('.github/release-notes/v3.2.11.md')
+          notes_path.parent.mkdir(parents=True, exist_ok=True)
+          notes_path.write_text(notes)
+
+      - name: Remove one-time workflow and commit release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/prepare-v3.2.11.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json .github/release-notes/v3.2.11.md
+          git commit -m "chore(release): prepare v3.2.11"
+          git push origin HEAD:release/v3.2.11-prep
