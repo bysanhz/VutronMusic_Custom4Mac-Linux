@@ -1,0 +1,179 @@
+name: Release v3.2.9 gate
+
+on:
+  push:
+    branches:
+      - automation/release-v329
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SHA: f082ae1692a5664007b49b6342ec19f8ca433fe0
+      RELEASE_TAG: v3.2.9
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout gate branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify final main source
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" | jq -r '.sha')"
+          echo "main=${MAIN_SHA}"
+          test "${MAIN_SHA}" = "${EXPECTED_SHA}"
+          PACKAGE_VERSION="$(git show "${EXPECTED_SHA}:package.json" | node -e "let s=''; process.stdin.on('data',d=>s+=d); process.stdin.on('end',()=>console.log(JSON.parse(s).version))")"
+          echo "package=${PACKAGE_VERSION}"
+          test "${PACKAGE_VERSION}" = "3.2.9"
+          git cat-file -e "${EXPECTED_SHA}:.github/release-notes/v3.2.9.md"
+
+      - name: Wait for final main CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 180); do
+            DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" -f event=push -f branch=main -f per_page=30)"
+            ROW="$(jq -c --arg sha "${EXPECTED_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+            if [[ -n "${ROW}" ]]; then
+              STATUS="$(jq -r '.status' <<<"${ROW}")"
+              CONCLUSION="$(jq -r '.conclusion // ""' <<<"${ROW}")"
+              RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+              echo "CI run ${RUN_ID}: status=${STATUS} conclusion=${CONCLUSION}"
+              if [[ "${STATUS}" == "completed" ]]; then
+                test "${CONCLUSION}" = "success"
+                echo "CI_RUN_ID=${RUN_ID}" >> "${GITHUB_ENV}"
+                exit 0
+              fi
+            else
+              echo "Waiting for Code Quality run for ${EXPECTED_SHA}"
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for final main CI" >&2
+          exit 1
+
+      - name: Create verified release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" > /tmp/tag.json 2>/dev/null; then
+            EXISTING_SHA="$(jq -r '.object.sha' /tmp/tag.json)"
+            echo "Existing ${RELEASE_TAG} -> ${EXISTING_SHA}"
+            test "${EXISTING_SHA}" = "${EXPECTED_SHA}"
+          else
+            git tag "${RELEASE_TAG}" "${EXPECTED_SHA}"
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" | jq -r '.object.sha')"
+          test "${TAG_SHA}" = "${EXPECTED_SHA}"
+
+      - name: Dispatch six-platform release build
+        shell: bash
+        run: |
+          set -euo pipefail
+          DISPATCHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "DISPATCHED_AT=${DISPATCHED_AT}" >> "${GITHUB_ENV}"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" -f ref="${RELEASE_TAG}"
+          echo "Release workflow dispatched at ${DISPATCHED_AT}"
+
+      - name: Wait for release build
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_RUN_ID=""
+          for attempt in $(seq 1 240); do
+            if [[ -z "${RELEASE_RUN_ID}" ]]; then
+              DATA="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs" -f event=workflow_dispatch -f per_page=30)"
+              ROW="$(jq -c --arg sha "${EXPECTED_SHA}" --arg start "${DISPATCHED_AT}" '[.workflow_runs[] | select(.head_sha == $sha and .created_at >= $start)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+              if [[ -n "${ROW}" ]]; then
+                RELEASE_RUN_ID="$(jq -r '.id' <<<"${ROW}")"
+                echo "Detected release run ${RELEASE_RUN_ID}"
+                echo "RELEASE_RUN_ID=${RELEASE_RUN_ID}" >> "${GITHUB_ENV}"
+              fi
+            fi
+
+            if [[ -n "${RELEASE_RUN_ID}" ]]; then
+              RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}")"
+              STATUS="$(jq -r '.status' <<<"${RUN}")"
+              CONCLUSION="$(jq -r '.conclusion // ""' <<<"${RUN}")"
+              echo "Release run ${RELEASE_RUN_ID}: status=${STATUS} conclusion=${CONCLUSION}"
+              if [[ "${STATUS}" == "completed" ]]; then
+                test "${CONCLUSION}" = "success"
+                exit 0
+              fi
+            else
+              echo "Waiting for release workflow run to appear"
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for release build" >&2
+          exit 1
+
+      - name: Verify draft assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASES="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/releases" -f per_page=30)"
+          DRAFT="$(jq -c --arg start "${DISPATCHED_AT}" '[.[] | select(.draft == true and .created_at >= $start)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${RELEASES}")"
+          test -n "${DRAFT}"
+          DRAFT_ID="$(jq -r '.id' <<<"${DRAFT}")"
+          DRAFT_TAG="$(jq -r '.tag_name' <<<"${DRAFT}")"
+          echo "Draft release ${DRAFT_ID}, tag ${DRAFT_TAG}"
+          echo "DRAFT_ID=${DRAFT_ID}" >> "${GITHUB_ENV}"
+          echo "DRAFT_TAG=${DRAFT_TAG}" >> "${GITHUB_ENV}"
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_ID}/assets" --paginate | jq -r '.[].name' > /tmp/assets.txt
+          cat /tmp/assets.txt
+
+          grep -Eq 'VutronMusic-3\.2\.9.*mac_arm64\.dmg$' /tmp/assets.txt
+          grep -Eq 'VutronMusic-3\.2\.9.*mac_x64\.dmg$' /tmp/assets.txt
+          grep -Eq 'VutronMusic-3\.2\.9.*win_arm64\.exe$' /tmp/assets.txt
+          grep -Eq 'VutronMusic-3\.2\.9.*win_x64\.exe$' /tmp/assets.txt
+          grep -Eq 'VutronMusic-3\.2\.9.*arm64\.AppImage$' /tmp/assets.txt
+          grep -Eq 'VutronMusic-3\.2\.9.*x64\.AppImage$' /tmp/assets.txt
+          grep -Fxq 'latest.yml' /tmp/assets.txt
+          grep -Fxq 'latest-mac.yml' /tmp/assets.txt
+          grep -Fxq 'latest-linux.yml' /tmp/assets.txt
+          grep -Fxq 'latest-linux-arm64.yml' /tmp/assets.txt
+
+      - name: Promote verified artifacts to v3.2.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(git show "${EXPECTED_SHA}:.github/release-notes/v3.2.9.md")"
+          jq -n \
+            --arg tag "${RELEASE_TAG}" \
+            --arg target "${EXPECTED_SHA}" \
+            --arg name "VutronMusic v3.2.9" \
+            --arg body "${BODY}" \
+            '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:false,make_latest:"true"}' \
+            > /tmp/promote.json
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_ID}" --input /tmp/promote.json > /tmp/formal.json
+          test "$(jq -r '.tag_name' /tmp/formal.json)" = "${RELEASE_TAG}"
+          test "$(jq -r '.draft' /tmp/formal.json)" = "false"
+          test "$(jq -r '.prerelease' /tmp/formal.json)" = "false"
+
+          if [[ "${DRAFT_TAG}" != "${RELEASE_TAG}" ]]; then
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${DRAFT_TAG}" || true
+          fi
+
+      - name: Verify formal latest release
+        shell: bash
+        run: |
+          set -euo pipefail
+          FORMAL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          LATEST="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+          test "$(jq -r '.draft' <<<"${FORMAL}")" = "false"
+          test "$(jq -r '.prerelease' <<<"${FORMAL}")" = "false"
+          test "$(jq -r '.id' <<<"${FORMAL}")" = "$(jq -r '.id' <<<"${LATEST}")"
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" | jq -r '.object.sha')"
+          test "${TAG_SHA}" = "${EXPECTED_SHA}"
+          echo "Release URL: $(jq -r '.html_url' <<<"${FORMAL}")"
+          echo "Release ID: $(jq -r '.id' <<<"${FORMAL}")"
