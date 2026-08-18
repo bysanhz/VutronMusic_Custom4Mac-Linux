@@ -1,0 +1,866 @@
+src/renderer/App.vue:239: showToast('更新本地歌曲成功')
+src/renderer/App.vue:246: console.log(`扫描本地歌曲 ${data.filePath} 出错： ${data.err}`)
+src/renderer/App.vue:247: showToast(`扫描本地歌曲出错, 详情见：开发者工具-控制台`)
+src/renderer/App.vue:273: showToast(`下载更新：${parseFloat(data.percent.toFixed(2))}%`)
+src/renderer/App.vue:278: showToast('下载错误')
+src/renderer/components/AlbumList.vue:48: >听听
+src/renderer/components/AlbumList.vue:52: 的其他歌曲</span
+src/renderer/components/AlbumListItem.vue:11: - 共 {{ tracks.length }} 首歌
+src/renderer/components/ArtistList.vue:50: >听听<router-link :to="`/artist/${artistsArray[selectedIdx].id}`">{{
+src/renderer/components/ArtistList.vue:53: >的其他歌曲</span
+src/renderer/components/ArtistListItem.vue:7: <div class="artist">共 {{ trackProp.length }} 首歌 </div>
+src/renderer/components/CommentFloor.vue:4: <label>回复({{ floorCommentInfo.totalCount }})</label>
+src/renderer/components/CommentFloor.vue:6: <button class="btn" @click="switchToCommentPage">关闭</button>
+src/renderer/components/CommentFloor.vue:44: <label>{{ item.beReplied[0].content ?? '该评论已删除' }}</label>
+src/renderer/components/CommentFloor.vue:48: <span class="time">{{ formatDate(item.time, 'YYYY年MM月DD日 H:mm') }}</span>
+src/renderer/components/CommentFloor.vue:49: <span v-if="item.ipLocation?.location">来自{{ item.ipLocation.location }}</span>
+src/renderer/components/CommentFloor.vue:55: >删除</button
+src/renderer/components/CommentFloor.vue:126: return `回复${selectedComment.value.user.nickname}:`
+src/renderer/components/CommentFloor.vue:231: if (confirm(`确定要删除评论'${comment.content}'吗？`)) {
+src/renderer/components/CommentList.vue:4: <label>评论({{ commentInfo.totalCount }})</label>
+src/renderer/components/CommentList.vue:10: >推荐</button
+src/renderer/components/CommentList.vue:16: >最热</button
+src/renderer/components/CommentList.vue:22: >最新</button
+src/renderer/components/CommentList.vue:61: <label>{{ item.beReplied[0].content ?? '该评论已删除' }}</label>
+src/renderer/components/CommentList.vue:65: <span class="time">{{ formatDate(item.time, 'YYYY年MM月DD日 H:mm') }}</span>
+src/renderer/components/CommentList.vue:66: <span v-if="item.ipLocation?.location">来自{{ item.ipLocation.location }}</span>
+src/renderer/components/CommentList.vue:70: >删除</button
+src/renderer/components/CommentList.vue:92: placeholder="随乐而起，有感而发"
+src/renderer/components/CommentList.vue:263: if (confirm(`确定要删除评论'${comment.content}'吗？`)) {
+src/renderer/components/CommonPlayer.vue:24: >译</label
+src/renderer/components/CommonPlayer.vue:28: >音</label
+src/renderer/components/CompactCoverControls.vue:9: <img class="compact-cover" :src="coverUrl" alt="当前歌曲封面" draggable="false" />
+src/renderer/components/CompactCoverControls.vue:15: title="上一首"
+src/renderer/components/CompactCoverControls.vue:24: :title="isPlaying ? '暂停' : '播放'"
+src/renderer/components/CompactCoverControls.vue:33: title="下一首"
+src/renderer/components/CompactCoverControls.vue:42: title="显示或隐藏主窗口"
+src/renderer/components/CompactCoverControls.vue:63: :title="isLiked ? '取消喜欢' : '加入喜欢'"
+src/renderer/components/CompactCoverControls.vue:87: const heartModeTitle = ref('根据我喜欢的音乐开启心动模式')
+src/renderer/components/CompactCoverControls.vue:154: console.warn('[CompactCoverControls] 读取播放器状态失败：', error)
+src/renderer/components/CompactCoverControls.vue:189: heartModeTitle.value = '正在生成心动模式…'
+src/renderer/components/CompactCoverControls.vue:200: heartModeTitle.value = '心动模式响应超时，请重试'
+src/renderer/components/CompactCoverControls.vue:218: heartModeTitle.value = String(event.data?.message || '心动模式状态已更新')
+src/renderer/components/CoverRow.vue:120: } else if (item.type === '专辑') {
+src/renderer/components/CustomSelect.vue:24: 可搜索下拉框使用独立搜索栏。
+src/renderer/components/CustomSelect.vue:26: 旧实现会在展开时直接把当前选中值替换成输入框，搜索入口不明显，
+src/renderer/components/CustomSelect.vue:27: 用户也难以区分“当前字体”和“搜索关键字”。独立搜索栏可以始终保留
+src/renderer/components/CustomSelect.vue:28: 当前选中项显示，同时明确提示可输入字体名称。
+src/renderer/components/CustomSelect.vue:64: <span lang="zh-CN">中文</span>
+src/renderer/components/CustomSelect.vue:65: <span lang="ja">日本語</span>
+src/renderer/components/CustomSelect.vue:105: placeholder: '请选择',
+src/renderer/components/CustomSelect.vue:106: noDataText: '暂无数据',
+src/renderer/components/CustomSelect.vue:108: searchPlaceholder: '搜索...',
+src/renderer/components/DailyTracksCard.vue:7: <span>每</span>
+src/renderer/components/DailyTracksCard.vue:8: <span>日</span>
+src/renderer/components/DailyTracksCard.vue:9: <span>推</span>
+src/renderer/components/DailyTracksCard.vue:10: <span>荐</span>
+src/renderer/components/FMCard.vue:11: <button-icon title="不喜欢" @click="moveToFMTrash">
+src/renderer/components/FMCard.vue:25: <div class="card-name"><svg-icon icon-class="fm" />私人FM</div>
+src/renderer/components/FMCard.vue:75: console.log('未找到 DarkMuted 颜色')
+src/renderer/components/FMCard.vue:79: console.warn('[FMCard] 提取封面颜色失败', error)
+src/renderer/components/LatestVersion.vue:2: <ul v-if="releaseNoteItems.length" class="update-release" aria-label="版本变化">
+src/renderer/components/LatestVersion.vue:12: <div class="diagnostic-panel__title">更新与诊断</div>
+src/renderer/components/LatestVersion.vue:21: 最近一次更新检查失败：{{ updateError }}
+src/renderer/components/LatestVersion.vue:25: <button @click="copyDiagnostics">复制诊断信息</button>
+src/renderer/components/LatestVersion.vue:26: <button @click="downloadDiagnostics">导出诊断文件</button>
+src/renderer/components/LatestVersion.vue:27: <button v-if="isElectron" @click="openLogFile">打开日志文件</button>
+src/renderer/components/LatestVersion.vue:28: <button v-if="releaseUrl" @click="openReleasePage">打开发布页面</button>
+src/renderer/components/LatestVersion.vue:62: development: '开发环境',
+src/renderer/components/LatestVersion.vue:64: 'linux-package': 'Linux 安装包',
+src/renderer/components/LatestVersion.vue:65: 'macos-unsigned': 'macOS 未签名构建',
+src/renderer/components/LatestVersion.vue:66: 'windows-package': 'Windows 安装包',
+src/renderer/components/LatestVersion.vue:67: package: '桌面安装包',
+src/renderer/components/LatestVersion.vue:68: browser: '浏览器环境'
+src/renderer/components/LatestVersion.vue:115: .filter((item) => !/^完整变更记录[:：]?/i.test(item))
+src/renderer/components/LatestVersion.vue:144: 'VutronMusic Custom 诊断信息',
+src/renderer/components/LatestVersion.vue:145: `生成时间: ${new Date().toISOString()}`,
+src/renderer/components/LatestVersion.vue:146: `应用版本: ${appVersion.value}`,
+src/renderer/components/LatestVersion.vue:147: `最新版本: ${latest}`,
+src/renderer/components/LatestVersion.vue:148: `安装格式: ${installFormatLabel.value}`,
+src/renderer/components/LatestVersion.vue:149: `运行平台: ${platformLabel.value}`,
+src/renderer/components/LatestVersion.vue:150: `开发环境: ${window.env?.isDev ? '是' : '否'}`,
+src/renderer/components/LatestVersion.vue:151: `系统语言: ${navigator.language}`,
+src/renderer/components/LatestVersion.vue:152: `屏幕尺寸: ${screenSize}`,
+src/renderer/components/LatestVersion.vue:153: `窗口尺寸: ${viewportSize}`,
+src/renderer/components/LatestVersion.vue:154: `设备像素比: ${window.devicePixelRatio}`,
+src/renderer/components/LatestVersion.vue:155: `页面缩放: ${getZoomFactor().toFixed(3)}`,
+src/renderer/components/LatestVersion.vue:157: `更新检查错误: ${updateError.value || '无'}`
+src/renderer/components/LatestVersion.vue:175: setActionMessage('诊断信息已复制到剪贴板')
+src/renderer/components/LatestVersion.vue:185: setActionMessage('诊断信息已复制到剪贴板')
+src/renderer/components/LatestVersion.vue:201: setActionMessage('诊断文件已导出')
+src/renderer/components/LatestVersion.vue:206: setActionMessage('已在文件管理器中定位日志文件')
+src/renderer/components/LyricPage.vue:6: title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+src/renderer/components/LyricPage.vue:15: title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+src/renderer/components/LyricPage.vue:112: return '所有歌曲：未调整'
+src/renderer/components/LyricPage.vue:114: return `所有歌曲：提前${lrcOffset}s`
+src/renderer/components/LyricPage.vue:116: return `所有歌曲：延后${Math.abs(lrcOffset)}s`
+src/renderer/components/LyricPage.vue:142: showToast('已重置所有歌曲的全局歌词偏移')
+src/renderer/components/LyricPage.vue:147: `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '提前' : '延后'}${Math.abs(nextOffset)}s`
+src/renderer/components/ModalAccurateMatch.vue:6: title="本地歌曲精确匹配"
+src/renderer/components/ModalAccurateMatch.vue:13: <button class="primary block" @click="accurateMatchTrack">匹配</button>
+src/renderer/components/ModalAddTrackToPlaylist.vue:23: <div class="track-count">{{ playlist?.trackCount || 0 }} 首</div>
+src/renderer/components/ModalAddTrackToPlaylist.vue:151: showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+src/renderer/components/ModalBackground.vue:2: <BaseModal title="背景设置" :show="show" :show-footer="false" :close-fn="close">
+src/renderer/components/ModalBackground.vue:34: <button @click="activeBG.src = 'snow'">纯净雪域</button>
+src/renderer/components/ModalBackground.vue:35: <button @click="activeBG.src = 'sunshine'">落日余晖</button>
+src/renderer/components/ModalBackground.vue:173: 'letter-image': '模糊小图',
+src/renderer/components/ModalBackground.vue:176: lottie: 'lottie动画',
+src/renderer/components/ModalBackground.vue:207: return 'lottie路径，默认可选择：snow和sunshine'
+src/renderer/components/ModalConvolver.vue:120: placeholder="新预设.."
+src/renderer/components/ModalEditPlaylist.vue:24: <button class="primary block" @click="updatePlaylist">修改</button>
+src/renderer/components/ModalEditPlaylist.vue:70: showToast(`更新歌单信息${result ? '成功' : '失败'}`)
+src/renderer/components/ModalEditPlaylist.vue:81: showToast(`更新歌单信息${result.code === 200 ? '成功' : '失败'}`)
+src/renderer/components/ModalEditPlaylist.vue:90: showToast(`更新歌单信息${result ? '成功' : '失败'}`)
+src/renderer/components/ModalFilePaths.vue:18: <button class="primary block" @click="updateDir">更新</button>
+src/renderer/components/ModalNewPlaylist.vue:25: <button class="primary block" @click="createAPlaylist">创建</button>
+src/renderer/components/ModalPitch.vue:4: title="音调调节"
+src/renderer/components/ModalPitch.vue:10: <div class="preset-grid" aria-label="音调预设">
+src/renderer/components/ModalPitch.vue:52: <span class="current-value">当前音调: {{ `${pitch.toFixed(2)}x` }}</span>
+src/renderer/components/ModalPlayback.vue:4: title="倍速播放"
+src/renderer/components/ModalPlayback.vue:10: <div class="preset-grid" aria-label="倍速预设">
+src/renderer/components/ModalPlayback.vue:52: <span class="current-value">当前倍速: {{ formatCurrentRate(playbackRate) }}</span>
+src/renderer/components/ModalPlaybackHistory.vue:110: title: '播放历史与队列',
+src/renderer/components/ModalPlaybackHistory.vue:111: queues: '队列快照',
+src/renderer/components/ModalPlaybackHistory.vue:112: recent: '最近播放',
+src/renderer/components/ModalPlaybackHistory.vue:113: restore: '恢复',
+src/renderer/components/ModalPlaybackHistory.vue:114: delete: '删除',
+src/renderer/components/ModalPlaybackHistory.vue:115: clear: '清空记录',
+src/renderer/components/ModalPlaybackHistory.vue:116: done: '完成',
+src/renderer/components/ModalPlaybackHistory.vue:117: saveCurrent: '保存当前队列',
+src/renderer/components/ModalPlaybackHistory.vue:118: playlistName: '本地歌单名称',
+src/renderer/components/ModalPlaybackHistory.vue:119: noQueues: '还没有可恢复的队列快照',
+src/renderer/components/ModalPlaybackHistory.vue:120: noRecent: '还没有最近播放记录',
+src/renderer/components/ModalPlaybackHistory.vue:121: unknownArtist: '未知歌手',
+src/renderer/components/ModalPlaybackHistory.vue:122: restored: '已恢复播放队列',
+src/renderer/components/ModalPlaybackHistory.vue:123: saved: '当前队列已保存为本地歌单',
+src/renderer/components/ModalPlaybackHistory.vue:124: saveFailed: '保存本地歌单失败',
+src/renderer/components/ModalPlaybackHistory.vue:125: cleared: '播放历史已清空'
+src/renderer/components/ModalPlaybackHistory.vue:128: title: '播放歷史與佇列',
+src/renderer/components/ModalPlaybackHistory.vue:129: queues: '佇列快照',
+src/renderer/components/ModalPlaybackHistory.vue:130: recent: '最近播放',
+src/renderer/components/ModalPlaybackHistory.vue:131: restore: '恢復',
+src/renderer/components/ModalPlaybackHistory.vue:132: delete: '刪除',
+src/renderer/components/ModalPlaybackHistory.vue:133: clear: '清空記錄',
+src/renderer/components/ModalPlaybackHistory.vue:134: done: '完成',
+src/renderer/components/ModalPlaybackHistory.vue:135: saveCurrent: '儲存目前佇列',
+src/renderer/components/ModalPlaybackHistory.vue:136: playlistName: '本機歌單名稱',
+src/renderer/components/ModalPlaybackHistory.vue:137: noQueues: '還沒有可恢復的佇列快照',
+src/renderer/components/ModalPlaybackHistory.vue:138: noRecent: '還沒有最近播放記錄',
+src/renderer/components/ModalPlaybackHistory.vue:139: unknownArtist: '未知歌手',
+src/renderer/components/ModalPlaybackHistory.vue:140: restored: '已恢復播放佇列',
+src/renderer/components/ModalPlaybackHistory.vue:141: saved: '目前佇列已儲存為本機歌單',
+src/renderer/components/ModalPlaybackHistory.vue:142: saveFailed: '儲存本機歌單失敗',
+src/renderer/components/ModalPlaybackHistory.vue:143: cleared: '播放歷史已清空'
+src/renderer/components/ModalPlaybackHistory.vue:172: return `${snapshot.trackIds.length} 首 · ${date}`
+src/renderer/components/ModalPlayerFont.vue:5: title="歌词设置"
+src/renderer/components/ModalPlayerFont.vue:142: <span :style="{ fontWeight: 600 }">区域设置</span>
+src/renderer/components/ModalPlayerFont.vue:384: { name: '歌名(上):', key: 'titleTop', type: 'slide', dw: 'vh', min: 0, max: 110 },
+src/renderer/components/ModalPlayerFont.vue:386: { name: '歌词(上):', key: 'top', type: 'slide', dw: 'vh', min: 0, max: 100 },
+src/renderer/components/ModalPlayerFont.vue:387: { name: '歌词(下):', key: 'bottom', type: 'slide', dw: 'vh', min: 0, max: 100 },
+src/renderer/components/ModalPlayerFont.vue:388: { name: '歌词(左):', key: 'left', type: 'slide', dw: 'vw', min: 0, max: 50 },
+src/renderer/components/ModalPlayerFont.vue:389: { name: '歌词(右):', key: 'right', type: 'slide', dw: 'vw', min: 0, max: 50 }
+src/renderer/components/ModalPlayerTheme.vue:19: :title="type === 'Customize' ? '单击选择，右击删除' : ''"
+src/renderer/components/ModalPlayerTheme.vue:79: showToast('自定义主题删除成功')
+src/renderer/components/ModalSaveTheme.vue:5: title="保存播放器主题"
+src/renderer/components/ModalSaveTheme.vue:10: <input v-model="name" type="text" placeholder="填写播放器主题名称" />
+src/renderer/components/ModalSaveTheme.vue:13: <button class="primary block" @click="save">创建</button>
+src/renderer/components/ModalSaveTheme.vue:47: showToast('主题名称重复')
+src/renderer/components/ModalSleepTimer.vue:160: title: '睡眠定时器',
+src/renderer/components/ModalSleepTimer.vue:161: when: '结束时间',
+src/renderer/components/ModalSleepTimer.vue:162: minutes: '分钟',
+src/renderer/components/ModalSleepTimer.vue:163: customTime: '自定义时间',
+src/renderer/components/ModalSleepTimer.vue:164: customRange: '请输入 1–1440 分钟之间的整数',
+src/renderer/components/ModalSleepTimer.vue:165: actionTitle: '结束动作',
+src/renderer/components/ModalSleepTimer.vue:166: pause: '暂停播放',
+src/renderer/components/ModalSleepTimer.vue:167: quit: '退出应用',
+src/renderer/components/ModalSleepTimer.vue:168: fade: '淡出',
+src/renderer/components/ModalSleepTimer.vue:169: noFade: '不淡出',
+src/renderer/components/ModalSleepTimer.vue:170: inactive: '未启用',
+src/renderer/components/ModalSleepTimer.vue:171: countdown: '剩余 {time}',
+src/renderer/components/ModalSleepTimer.vue:172: waitingTrack: '等待当前歌曲结束',
+src/renderer/components/ModalSleepTimer.vue:173: waitingQueue: '等待当前队列结束',
+src/renderer/components/ModalSleepTimer.vue:174: completed: '定时动作已完成',
+src/renderer/components/ModalSleepTimer.vue:175: canceledByTrackChange: '手动切歌，单曲结束定时已取消',
+src/renderer/components/ModalSleepTimer.vue:176: noTrack: '当前没有可播放的歌曲',
+src/renderer/components/ModalSleepTimer.vue:177: start: '启用',
+src/renderer/components/ModalSleepTimer.vue:178: replace: '替换当前定时',
+src/renderer/components/ModalSleepTimer.vue:179: cancel: '取消定时',
+src/renderer/components/ModalSleepTimer.vue:180: trackTitle: '本曲结束',
+src/renderer/components/ModalSleepTimer.vue:181: trackDescription: '当前歌曲播完',
+src/renderer/components/ModalSleepTimer.vue:182: queueTitle: '队列结束',
+src/renderer/components/ModalSleepTimer.vue:183: queueDescription: '当前队列全部播完'
+src/renderer/components/ModalSleepTimer.vue:186: title: '睡眠定時器',
+src/renderer/components/ModalSleepTimer.vue:187: when: '結束時間',
+src/renderer/components/ModalSleepTimer.vue:188: minutes: '分鐘',
+src/renderer/components/ModalSleepTimer.vue:189: customTime: '自訂時間',
+src/renderer/components/ModalSleepTimer.vue:190: customRange: '請輸入 1–1440 分鐘之間的整數',
+src/renderer/components/ModalSleepTimer.vue:191: actionTitle: '結束動作',
+src/renderer/components/ModalSleepTimer.vue:192: pause: '暫停播放',
+src/renderer/components/ModalSleepTimer.vue:193: quit: '結束應用程式',
+src/renderer/components/ModalSleepTimer.vue:194: fade: '淡出',
+src/renderer/components/ModalSleepTimer.vue:195: noFade: '不淡出',
+src/renderer/components/ModalSleepTimer.vue:196: inactive: '未啟用',
+src/renderer/components/ModalSleepTimer.vue:197: countdown: '剩餘 {time}',
+src/renderer/components/ModalSleepTimer.vue:198: waitingTrack: '等待目前歌曲結束',
+src/renderer/components/ModalSleepTimer.vue:199: waitingQueue: '等待目前佇列結束',
+src/renderer/components/ModalSleepTimer.vue:200: completed: '定時動作已完成',
+src/renderer/components/ModalSleepTimer.vue:201: canceledByTrackChange: '手動切歌，單曲結束定時已取消',
+src/renderer/components/ModalSleepTimer.vue:202: noTrack: '目前沒有可播放的歌曲',
+src/renderer/components/ModalSleepTimer.vue:203: start: '啟用',
+src/renderer/components/ModalSleepTimer.vue:204: replace: '取代目前定時',
+src/renderer/components/ModalSleepTimer.vue:205: cancel: '取消定時',
+src/renderer/components/ModalSleepTimer.vue:206: trackTitle: '本曲結束',
+src/renderer/components/ModalSleepTimer.vue:207: trackDescription: '目前歌曲播完',
+src/renderer/components/ModalSleepTimer.vue:208: queueTitle: '佇列結束',
+src/renderer/components/ModalSleepTimer.vue:209: queueDescription: '目前佇列全部播完'
+src/renderer/components/ModalTrackLyricOffset.vue:81: title: '本曲歌词时间校正',
+src/renderer/components/ModalTrackLyricOffset.vue:82: trackOffset: '本曲',
+src/renderer/components/ModalTrackLyricOffset.vue:83: globalOffset: '全局',
+src/renderer/components/ModalTrackLyricOffset.vue:84: effective: '实际偏移',
+src/renderer/components/ModalTrackLyricOffset.vue:85: resetTrack: '重置本曲',
+src/renderer/components/ModalTrackLyricOffset.vue:86: done: '完成',
+src/renderer/components/ModalTrackLyricOffset.vue:87: noTrack: '当前没有歌曲',
+src/renderer/components/ModalTrackLyricOffset.vue:88: hint: '正值表示歌词提前，负值表示歌词延后；本曲校正会与全局校正相加。'
+src/renderer/components/ModalTrackLyricOffset.vue:91: title: '本曲歌詞時間校正',
+src/renderer/components/ModalTrackLyricOffset.vue:92: trackOffset: '本曲',
+src/renderer/components/ModalTrackLyricOffset.vue:93: globalOffset: '全域',
+src/renderer/components/ModalTrackLyricOffset.vue:94: effective: '實際偏移',
+src/renderer/components/ModalTrackLyricOffset.vue:95: resetTrack: '重設本曲',
+src/renderer/components/ModalTrackLyricOffset.vue:96: done: '完成',
+src/renderer/components/ModalTrackLyricOffset.vue:97: noTrack: '目前沒有歌曲',
+src/renderer/components/ModalTrackLyricOffset.vue:98: hint: '正值表示歌詞提前，負值表示歌詞延後；本曲校正會與全域校正相加。'
+src/renderer/components/NavBar.vue:158: chart: '排行榜',
+src/renderer/components/NavBar.vue:159: artist: '歌手'
+src/renderer/components/NavBar.vue:164: const cat = ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'
+src/renderer/components/NavBar.vue:169: if (!confirm('确定要退出登录吗？')) return
+src/renderer/components/OsdLyricContainer.vue:314: lyricOffset: [number, number] // 当前的歌词 offset，当前播放进度
+src/renderer/components/OsdLyricContainer.vue:315: line: [number, number] // 当前行，当前播放进度
+src/renderer/components/OsdLyricContainer.vue:317: seek: number // 目前这一项的触发是在当单双行切换、翻译切换时更新播放进度
+src/renderer/components/OsdLyricContainer.vue:367: console.warn('[OsdLyricContainer] 读取播放器持久化状态失败：', error)
+src/renderer/components/OsdLyricContainer.vue:390: text: `${artists[0]?.name || '未知歌手'} - ${player.currentTrack.name || '听你想听的音乐'}`
+src/renderer/components/PlayerBar.vue:145: title="歌词"
+src/renderer/components/SearchBox.vue:34: default: '搜索'
+src/renderer/components/SenseSwitch.vue:26: <div class="sense-active">使用中</div>
+src/renderer/components/SenseSwitch.vue:78: const lyricArray = ref('不见桐花万里路，故园外，拂去怀中一缕芳'.split(''))
+src/renderer/components/SenseSwitch.vue:87: title: ['封面类型'],
+src/renderer/components/SenseSwitch.vue:89: { name: '默认', img: 'common' },
+src/renderer/components/SenseSwitch.vue:90: { name: '圆形封面', img: 'circle' },
+src/renderer/components/SenseSwitch.vue:91: { name: '旋转封面', img: 'rotate' }
+src/renderer/components/SenseSwitch.vue:95: title: ['切换动画'],
+src/renderer/components/SenseSwitch.vue:97: { name: '靠左', img: 'creative_snow' },
+src/renderer/components/SenseSwitch.vue:98: { name: '居中', img: 'sunshine' },
+src/renderer/components/SenseSwitch.vue:99: { name: '靠右', img: 'sunshine' }
+src/renderer/components/SenseSwitch.vue:103: title: ['切换动画'],
+src/renderer/components/SenseSwitch.vue:115: { name: '铰链翻入', ani: 'hingeFlyIn' },
+src/renderer/components/SenseSwitch.vue:116: { name: '聚焦上浮', ani: 'focusRise' },
+src/renderer/components/SenseSwitch.vue:117: { name: '抛散离场', ani: 'scatterThrow' },
+src/renderer/components/SenseSwitch.vue:118: { name: '翻转显现', ani: 'flipReveal' },
+src/renderer/components/SenseSwitch.vue:119: { name: '波浪浮现', ani: 'waveDrift' },
+src/renderer/components/SenseSwitch.vue:120: { name: '双向聚拢', ani: 'splitAndMerge' }
+src/renderer/components/TrackListItem.vue:52: :title="album.name || '未知专辑'"
+src/renderer/components/TrackListItem.vue:55: <div v-else :title="album.name || '未知专辑'"> {{ album.name || '未知专辑' }}</div>
+src/renderer/components/TrackListItem.vue:197: artist.name = '未知歌手'
+src/renderer/components/VirtualCoverRow.vue:187: } else if (item.type === '专辑') {
+src/renderer/components/VirtualTrackList.vue:346: if (confirm(`确定要从歌单删除 ${rightClickedTrack.value.name}？`)) {
+src/renderer/components/VirtualTrackList.vue:362: if (confirm(`确定要从歌单删除 ${rightClickedTrackComputed.value.name}？`)) {
+src/renderer/components/VirtualTrackList.vue:379: showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+src/renderer/components/VirtualTrackList.vue:382: if (confirm(`确定要从${props.groupBy}歌单删除 ${rightClickedTrackComputed.value.name}？`)) {
+src/renderer/components/VirtualTrackList.vue:428: showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+src/renderer/components/VueSlider.vue:62: marks?: number[] | Record<number, MarksOption> // 进度条上需要标记的点
+src/renderer/components/VueSlider.vue:65: stepStyle?: Style // 标记点的样式
+src/renderer/components/WriteComment.vue:9: <button class="comment-button" @click="submitComment">发送</button>
+src/renderer/components/WriteComment.vue:17: placeholder: { type: String, default: '请输入评论' }
+src/renderer/main.ts:189: publishHeartModeResult(requestId, 'error', '心动模式正在加载，请稍候')
+src/renderer/main.ts:194: const message = '心动模式需要先登录网易云音乐'
+src/renderer/main.ts:201: stateStore.showToast('正在根据我喜欢的音乐生成心动模式…')
+src/renderer/main.ts:202: publishHeartModeResult(requestId, 'loading', '正在生成心动模式…')
+src/renderer/main.ts:207: const message = '未找到“我喜欢的音乐”歌单'
+src/renderer/main.ts:223: console.warn('[HeartMode] 带 sid 的请求失败，准备使用兼容参数重试：', error)
+src/renderer/main.ts:228: console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+src/renderer/main.ts:236: console.error('[HeartMode] 兼容参数请求仍然失败：', error)
+src/renderer/main.ts:250: const message = '未获取到心动模式推荐歌曲'
+src/renderer/main.ts:262: const message = `已开启心动模式，共 ${heartModeTrackIDs.length} 首`
+src/renderer/main.ts:266: console.error('[HeartMode] 根据喜欢歌单启动失败：', error)
+src/renderer/main.ts:269: ? '“我喜欢的音乐”歌单为空'
+src/renderer/main.ts:270: : '心动模式加载失败，请稍后重试'
+src/renderer/main.ts:287: console.error('[HeartMode] 未处理的启动异常：', error)
+src/renderer/store/data.ts:53: songsWithDetails: [], // 只有前12首
+src/renderer/store/localMusic.ts:204: showToast('扫描歌曲开始')
+src/renderer/store/osdLyric.ts:68: console.warn('[OsdLyricStore] 同步桌面歌词设置失败：', error)
+src/renderer/store/player.ts:170: console.warn('[Player] 获取副歌时间失败：', error)
+src/renderer/store/player.ts:349: localTrack: '本地音乐',
+src/renderer/store/player.ts:352: netease: '网易云音乐',
+src/renderer/store/player.ts:353: qq: 'QQ音乐',
+src/renderer/store/player.ts:354: kugou: '酷狗音乐',
+src/renderer/store/player.ts:355: kuwo: '酷我音乐',
+src/renderer/store/player.ts:356: bodian: '波点音乐',
+src/renderer/store/player.ts:357: bilibili: '哔哩哔哩',
+src/renderer/store/player.ts:358: pyncmd: '第三方网易云音乐',
+src/renderer/store/player.ts:359: migu: '咪咕音乐',
+src/renderer/store/player.ts:360: cache: '缓存'
+src/renderer/store/player.ts:370: return `${currentTrack.value.name}, 音源：${source ?? currentTrack.value.source}`
+src/renderer/store/player.ts:548: if (!line) return { content: currentTrack.value?.name || '听你想听的音乐', time: 0, start: 0 }
+src/renderer/store/player.ts:801: data = data.filter((l) => !/^作(词|曲)\s*(:|：)\s*无$/.exec(l.lyric.text))
+src/renderer/store/player.ts:807: data.length <= 10 && data.map((l) => l.lyric.text).includes('纯音乐，请欣赏')
+src/renderer/store/player.ts:809: const reg = /^作(词|曲)\s*(:|：)\s*/
+src/renderer/store/player.ts:931: artist: (track.artists || track.ar)[0]?.name || '未知歌手',
+src/renderer/store/player.ts:934: album: track.album?.name || (track.al?.name as string) || '未知专辑',
+src/renderer/store/player.ts:946: artist: (track.artists || track.ar)[0]?.name || '未知歌手',
+src/renderer/store/player.ts:948: album: track.album?.name || (track.al?.name as string) || '未知专辑',
+src/renderer/store/player.ts:972: showToast(`使用本地文件播放`)
+src/renderer/store/player.ts:1132: throw new Error('刷新后 URL 仍然无效')
+src/renderer/store/player.ts:1167: showToast(`歌曲 ${currentTrack.value?.name} 播放错误，正在切换下一首...`)
+src/renderer/store/player.ts:1172: showToast(`歌曲 ${currentTrack.value?.name} 的音乐链接已过期，正在重新获取...`)
+src/renderer/store/player.ts:1498: ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+src/renderer/store/player.ts:1499: : '听你想听的音乐'
+src/renderer/store/player.ts:1514: ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+src/renderer/store/player.ts:1515: : '听你想听的音乐',
+src/renderer/store/player.ts:1555: text: `${(currentTrack.value?.artists || currentTrack.value?.ar || [])[0]?.name || '未知歌手'} - ${currentTrack.value?.name || '听你想听的音乐'}`
+src/renderer/store/playerTheme.ts:187: Classic: [{ name: '经典布局', img: 'common', theme: createTheme('default') }],
+src/renderer/store/playerTheme.ts:189: { name: '歌词环游', img: 'creative_snow', theme: createTheme('snow') },
+src/renderer/store/playerTheme.ts:190: { name: '信笺歌词', img: 'letter', theme: createTheme('letter') }
+src/renderer/store/settings.ts:35: embedCoverArt: 0, // 0: 不嵌入, 1: 内嵌, 2: 歌曲路径下, 3: 两者都嵌入
+src/renderer/store/settings.ts:36: embedStyle: 0, // 0: 跳过，1：覆盖
+src/renderer/store/settings.ts:52: fadeDuration: 0.2, // 音频淡入淡出时长（秒）
+src/renderer/store/settings.ts:56: trayColor: 0, // 0: 彩色, 1: 白色, 2: 黑色, 3: 跟随系统
+src/renderer/store/settings.ts:57: showChorus: true, // 进度条显示副歌时间
+src/renderer/store/settings.ts:58: clickToLyric: false, // 点击播放栏打开歌词页
+src/renderer/store/state.ts:47: label: '系统默认',
+src/renderer/store/state.ts:50: searchText: '系统默认 system-ui'
+src/renderer/store/state.ts:229: throw new Error('更新服务未返回版本信息')
+src/renderer/store/state.ts:234: showToast(`检查更新失败：${message}`)
+src/renderer/utils/canvas.ts:86: text: '听你想听的音乐',
+src/renderer/utils/common.ts:68: name: '全部',
+src/renderer/utils/common.ts:73: name: '推荐歌单',
+src/renderer/utils/common.ts:78: name: '精品歌单',
+src/renderer/utils/common.ts:83: name: '官方',
+src/renderer/utils/common.ts:88: name: '华语',
+src/renderer/utils/common.ts:90: bigCat: '语种'
+src/renderer/utils/common.ts:93: name: '欧美',
+src/renderer/utils/common.ts:95: bigCat: '语种'
+src/renderer/utils/common.ts:98: name: '日语',
+src/renderer/utils/common.ts:100: bigCat: '语种'
+src/renderer/utils/common.ts:103: name: '韩语',
+src/renderer/utils/common.ts:105: bigCat: '语种'
+src/renderer/utils/common.ts:108: name: '粤语',
+src/renderer/utils/common.ts:110: bigCat: '语种'
+src/renderer/utils/common.ts:113: name: '流行',
+src/renderer/utils/common.ts:115: bigCat: '风格'
+src/renderer/utils/common.ts:118: name: '摇滚',
+src/renderer/utils/common.ts:120: bigCat: '风格'
+src/renderer/utils/common.ts:123: name: '民谣',
+src/renderer/utils/common.ts:125: bigCat: '风格'
+src/renderer/utils/common.ts:128: name: '电子',
+src/renderer/utils/common.ts:130: bigCat: '风格'
+src/renderer/utils/common.ts:133: name: '舞曲',
+src/renderer/utils/common.ts:135: bigCat: '风格'
+src/renderer/utils/common.ts:138: name: '说唱',
+src/renderer/utils/common.ts:140: bigCat: '风格'
+src/renderer/utils/common.ts:143: name: '轻音乐',
+src/renderer/utils/common.ts:145: bigCat: '风格'
+src/renderer/utils/common.ts:148: name: '爵士',
+src/renderer/utils/common.ts:150: bigCat: '风格'
+src/renderer/utils/common.ts:153: name: '乡村',
+src/renderer/utils/common.ts:155: bigCat: '风格'
+src/renderer/utils/common.ts:160: bigCat: '风格'
+src/renderer/utils/common.ts:163: name: '古典',
+src/renderer/utils/common.ts:165: bigCat: '风格'
+src/renderer/utils/common.ts:168: name: '民族',
+src/renderer/utils/common.ts:170: bigCat: '风格'
+src/renderer/utils/common.ts:173: name: '英伦',
+src/renderer/utils/common.ts:175: bigCat: '风格'
+src/renderer/utils/common.ts:178: name: '金属',
+src/renderer/utils/common.ts:180: bigCat: '风格'
+src/renderer/utils/common.ts:183: name: '朋克',
+src/renderer/utils/common.ts:185: bigCat: '风格'
+src/renderer/utils/common.ts:188: name: '蓝调',
+src/renderer/utils/common.ts:190: bigCat: '风格'
+src/renderer/utils/common.ts:193: name: '雷鬼',
+src/renderer/utils/common.ts:195: bigCat: '风格'
+src/renderer/utils/common.ts:198: name: '世界音乐',
+src/renderer/utils/common.ts:200: bigCat: '风格'
+src/renderer/utils/common.ts:203: name: '拉丁',
+src/renderer/utils/common.ts:205: bigCat: '风格'
+src/renderer/utils/common.ts:210: bigCat: '风格'
+src/renderer/utils/common.ts:213: name: '古风',
+src/renderer/utils/common.ts:215: bigCat: '风格'
+src/renderer/utils/common.ts:218: name: '后摇',
+src/renderer/utils/common.ts:220: bigCat: '风格'
+src/renderer/utils/common.ts:225: bigCat: '风格'
+src/renderer/utils/common.ts:228: name: '清晨',
+src/renderer/utils/common.ts:230: bigCat: '场景'
+src/renderer/utils/common.ts:233: name: '夜晚',
+src/renderer/utils/common.ts:235: bigCat: '场景'
+src/renderer/utils/common.ts:238: name: '学习',
+src/renderer/utils/common.ts:240: bigCat: '场景'
+src/renderer/utils/common.ts:243: name: '工作',
+src/renderer/utils/common.ts:245: bigCat: '场景'
+src/renderer/utils/common.ts:248: name: '午休',
+src/renderer/utils/common.ts:250: bigCat: '场景'
+src/renderer/utils/common.ts:253: name: '下午茶',
+src/renderer/utils/common.ts:255: bigCat: '场景'
+src/renderer/utils/common.ts:258: name: '地铁',
+src/renderer/utils/common.ts:260: bigCat: '场景'
+src/renderer/utils/common.ts:263: name: '驾车',
+src/renderer/utils/common.ts:265: bigCat: '场景'
+src/renderer/utils/common.ts:268: name: '运动',
+src/renderer/utils/common.ts:270: bigCat: '场景'
+src/renderer/utils/common.ts:273: name: '旅行',
+src/renderer/utils/common.ts:275: bigCat: '场景'
+src/renderer/utils/common.ts:278: name: '散步',
+src/renderer/utils/common.ts:280: bigCat: '场景'
+src/renderer/utils/common.ts:283: name: '酒吧',
+src/renderer/utils/common.ts:285: bigCat: '场景'
+src/renderer/utils/common.ts:288: name: '怀旧',
+src/renderer/utils/common.ts:290: bigCat: '情感'
+src/renderer/utils/common.ts:293: name: '清新',
+src/renderer/utils/common.ts:295: bigCat: '情感'
+src/renderer/utils/common.ts:298: name: '浪漫',
+src/renderer/utils/common.ts:300: bigCat: '情感'
+src/renderer/utils/common.ts:303: name: '伤感',
+src/renderer/utils/common.ts:305: bigCat: '情感'
+src/renderer/utils/common.ts:308: name: '治愈',
+src/renderer/utils/common.ts:310: bigCat: '情感'
+src/renderer/utils/common.ts:313: name: '放松',
+src/renderer/utils/common.ts:315: bigCat: '情感'
+src/renderer/utils/common.ts:318: name: '孤独',
+src/renderer/utils/common.ts:320: bigCat: '情感'
+src/renderer/utils/common.ts:323: name: '感动',
+src/renderer/utils/common.ts:325: bigCat: '情感'
+src/renderer/utils/common.ts:328: name: '兴奋',
+src/renderer/utils/common.ts:330: bigCat: '情感'
+src/renderer/utils/common.ts:333: name: '快乐',
+src/renderer/utils/common.ts:335: bigCat: '情感'
+src/renderer/utils/common.ts:338: name: '安静',
+src/renderer/utils/common.ts:340: bigCat: '情感'
+src/renderer/utils/common.ts:343: name: '思念',
+src/renderer/utils/common.ts:345: bigCat: '情感'
+src/renderer/utils/common.ts:348: name: '综艺',
+src/renderer/utils/common.ts:350: bigCat: '主题'
+src/renderer/utils/common.ts:353: name: '影视原声',
+src/renderer/utils/common.ts:355: bigCat: '主题'
+src/renderer/utils/common.ts:360: bigCat: '主题'
+src/renderer/utils/common.ts:363: name: '儿童',
+src/renderer/utils/common.ts:365: bigCat: '主题'
+src/renderer/utils/common.ts:368: name: '校园',
+src/renderer/utils/common.ts:370: bigCat: '主题'
+src/renderer/utils/common.ts:373: name: '游戏',
+src/renderer/utils/common.ts:375: bigCat: '主题'
+src/renderer/utils/common.ts:378: name: '70后',
+src/renderer/utils/common.ts:380: bigCat: '主题'
+src/renderer/utils/common.ts:383: name: '80后',
+src/renderer/utils/common.ts:385: bigCat: '主题'
+src/renderer/utils/common.ts:388: name: '90后',
+src/renderer/utils/common.ts:390: bigCat: '主题'
+src/renderer/utils/common.ts:393: name: '网络歌曲',
+src/renderer/utils/common.ts:395: bigCat: '主题'
+src/renderer/utils/common.ts:400: bigCat: '主题'
+src/renderer/utils/common.ts:403: name: '经典',
+src/renderer/utils/common.ts:405: bigCat: '主题'
+src/renderer/utils/common.ts:408: name: '翻唱',
+src/renderer/utils/common.ts:410: bigCat: '主题'
+src/renderer/utils/common.ts:413: name: '吉他',
+src/renderer/utils/common.ts:415: bigCat: '主题'
+src/renderer/utils/common.ts:418: name: '钢琴',
+src/renderer/utils/common.ts:420: bigCat: '主题'
+src/renderer/utils/common.ts:423: name: '器乐',
+src/renderer/utils/common.ts:425: bigCat: '主题'
+src/renderer/utils/common.ts:428: name: '榜单',
+src/renderer/utils/common.ts:430: bigCat: '主题'
+src/renderer/utils/common.ts:433: name: '00后',
+src/renderer/utils/common.ts:435: bigCat: '主题'
+src/renderer/utils/common.ts:441: name: '全部',
+src/renderer/utils/common.ts:444: bigCat: '语种'
+src/renderer/utils/common.ts:447: name: '华语',
+src/renderer/utils/common.ts:450: bigCat: '语种'
+src/renderer/utils/common.ts:453: name: '欧美',
+src/renderer/utils/common.ts:456: bigCat: '语种'
+src/renderer/utils/common.ts:459: name: '日本',
+src/renderer/utils/common.ts:462: bigCat: '语种'
+src/renderer/utils/common.ts:465: name: '韩国',
+src/renderer/utils/common.ts:468: bigCat: '语种'
+src/renderer/utils/common.ts:471: name: '其他',
+src/renderer/utils/common.ts:474: bigCat: '语种'
+src/renderer/utils/common.ts:477: name: '全部',
+src/renderer/utils/common.ts:480: bigCat: '分类'
+src/renderer/utils/common.ts:483: name: '男歌手',
+src/renderer/utils/common.ts:486: bigCat: '分类'
+src/renderer/utils/common.ts:489: name: '女歌手',
+src/renderer/utils/common.ts:492: bigCat: '分类'
+src/renderer/utils/common.ts:495: name: '乐队组合',
+src/renderer/utils/common.ts:498: bigCat: '分类'
+src/renderer/utils/common.ts:501: name: '热门',
+src/renderer/utils/common.ts:504: bigCat: '筛选'
+src/renderer/utils/common.ts:510: bigCat: '筛选'
+src/renderer/utils/common.ts:515: bigCat: '筛选'
+src/renderer/utils/common.ts:520: bigCat: '筛选'
+src/renderer/utils/common.ts:525: bigCat: '筛选'
+src/renderer/utils/common.ts:530: bigCat: '筛选'
+src/renderer/utils/common.ts:535: bigCat: '筛选'
+src/renderer/utils/common.ts:540: bigCat: '筛选'
+src/renderer/utils/common.ts:545: bigCat: '筛选'
+src/renderer/utils/common.ts:550: bigCat: '筛选'
+src/renderer/utils/common.ts:555: bigCat: '筛选'
+src/renderer/utils/common.ts:560: bigCat: '筛选'
+src/renderer/utils/common.ts:565: bigCat: '筛选'
+src/renderer/utils/common.ts:570: bigCat: '筛选'
+src/renderer/utils/common.ts:575: bigCat: '筛选'
+src/renderer/utils/common.ts:580: bigCat: '筛选'
+src/renderer/utils/common.ts:585: bigCat: '筛选'
+src/renderer/utils/common.ts:590: bigCat: '筛选'
+src/renderer/utils/common.ts:595: bigCat: '筛选'
+src/renderer/utils/common.ts:600: bigCat: '筛选'
+src/renderer/utils/common.ts:605: bigCat: '筛选'
+src/renderer/utils/common.ts:610: bigCat: '筛选'
+src/renderer/utils/common.ts:615: bigCat: '筛选'
+src/renderer/utils/common.ts:620: bigCat: '筛选'
+src/renderer/utils/common.ts:625: bigCat: '筛选'
+src/renderer/utils/common.ts:630: bigCat: '筛选'
+src/renderer/utils/common.ts:635: bigCat: '筛选'
+src/renderer/utils/common.ts:640: bigCat: '筛选'
+src/renderer/utils/convolver.ts:8: }, // 电话
+src/renderer/utils/convolver.ts:9: { name: 's2_r4_bd', mainGain: 1.8, sendGain: 0.9, source: 's2_r4_bd.wav' }, // 教堂
+src/renderer/utils/debounceRef.ts:8: track() // 通知Vue追踪value的变化
+src/renderer/utils/debounceRef.ts:15: trigger() // 通知Vue去重新解析模板
+src/renderer/utils/diagnosticsSnapshotSettings.ts:33: title: '一键诊断快照',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:35: '复制版本、系统、播放状态、桌面歌词、定时器和最近错误；不会包含密码、Cookie 或完整本地路径',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:36: copy: '复制诊断快照',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:37: copied: '诊断信息已复制到剪贴板',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:38: failed: '生成诊断信息失败'
+src/renderer/utils/diagnosticsSnapshotSettings.ts:41: title: '一鍵診斷快照',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:43: '複製版本、系統、播放狀態、桌面歌詞、定時器與最近錯誤；不包含密碼、Cookie 或完整本機路徑',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:44: copy: '複製診斷快照',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:45: copied: '診斷資訊已複製到剪貼簿',
+src/renderer/utils/diagnosticsSnapshotSettings.ts:46: failed: '產生診斷資訊失敗'
+src/renderer/utils/diagnosticsSnapshotSettings.ts:165: console.warn('[Diagnostics] 生成诊断快照失败：', error)
+src/renderer/utils/globalLyricOffset.ts:28: console.warn('[GlobalLyricOffset] 读取全局歌词偏移失败：', error)
+src/renderer/utils/globalLyricOffset.ts:51: console.warn('[GlobalLyricOffset] 保存全局歌词偏移失败：', error)
+src/renderer/utils/index.ts:41: return 0 // 返回0
+src/renderer/utils/index.ts:62: hoursUnit = '小时'
+src/renderer/utils/index.ts:63: minitesUnit = '分钟'
+src/renderer/utils/index.ts:66: hoursUnit = '小時'
+src/renderer/utils/index.ts:67: minitesUnit = '分鐘'
+src/renderer/utils/index.ts:85: format = 'YYYY年MM月DD日'
+src/renderer/utils/index.ts:99: } else if (type === '专辑') {
+src/renderer/utils/index.ts:111: return `${Math.floor((count / 100000000) * 100) / 100}亿` // 2.32 亿
+src/renderer/utils/index.ts:114: return `${Math.floor((count / 10000) * 10) / 10}万` // 232.1 万
+src/renderer/utils/index.ts:117: return `${Math.floor((count / 10000) * 100) / 100}万` // 2.3 万
+src/renderer/utils/index.ts:141: console.debug('[debug][common.js] 刷新cookie')
+src/renderer/utils/index.ts:145: console.debug(`[debug][common.js] 手机端重复签到: ${e}`)
+src/renderer/utils/index.ts:148: console.debug(`[debug][common.js] PC端重复签到: ${e}`)
+src/renderer/utils/index.ts:171: if (year < 2000 || year > 2100) return null // 年份合理范围
+src/renderer/utils/index.ts:194: console.error('解析 URL 时间戳失败:', error)
+src/renderer/utils/index.ts:203: /(作词|作曲|编曲|和声|混音|录音|词：|曲：|统筹：|OP|SP|MV|吉他|二胡|古筝|曲编|键盘|贝斯|鼓|弦乐|打击乐|混音|制作人|配唱|提琴|海报|特别鸣谢)/i
+src/renderer/utils/osdCoverControlsSettings.ts:12: title: '显示左侧封面与控制按钮',
+src/renderer/utils/osdCoverControlsSettings.ts:13: description: '该设置独立于锁定状态；关闭后无论是否锁定都会隐藏左侧封面与控制按钮'
+src/renderer/utils/osdCoverControlsSettings.ts:16: title: '顯示左側封面與控制按鈕',
+src/renderer/utils/osdCoverControlsSettings.ts:17: description: '此設定獨立於鎖定狀態；關閉後無論是否鎖定都會隱藏左側封面與控制按鈕'
+src/renderer/utils/osdCoverControlsVisibility.ts:18: console.warn('[OsdCoverControls] 读取封面控件可见性失败：', error)
+src/renderer/utils/osdCoverControlsVisibility.ts:39: console.warn('[OsdCoverControls] 保存封面控件可见性失败：', error)
+src/renderer/utils/osdFontRendering.ts:115: console.warn('[OsdFontRendering] 获取系统字体信息失败：', error)
+src/renderer/utils/osdLyricPresetSettings.ts:51: title: '桌面歌词样式预设',
+src/renderer/utils/osdLyricPresetSettings.ts:52: description: '内置与自定义预设都可直接覆盖保存；内置预设可随时恢复初始样式',
+src/renderer/utils/osdLyricPresetSettings.ts:53: apply: '应用',
+src/renderer/utils/osdLyricPresetSettings.ts:54: saveCopy: '另存为',
+src/renderer/utils/osdLyricPresetSettings.ts:55: updateSelected: '更新所选',
+src/renderer/utils/osdLyricPresetSettings.ts:56: delete: '删除',
+src/renderer/utils/osdLyricPresetSettings.ts:57: restoreDefault: '恢复默认',
+src/renderer/utils/osdLyricPresetSettings.ts:58: namePlaceholder: '输入预设名称',
+src/renderer/utils/osdLyricPresetSettings.ts:59: nameRequired: '请先输入预设名称',
+src/renderer/utils/osdLyricPresetSettings.ts:60: saved: '已另存为新的自定义预设',
+src/renderer/utils/osdLyricPresetSettings.ts:61: updated: '所选预设已覆盖更新',
+src/renderer/utils/osdLyricPresetSettings.ts:62: restored: '内置预设已恢复默认并应用',
+src/renderer/utils/osdLyricPresetSettings.ts:63: duplicateName: '该名称已被其他预设使用',
+src/renderer/utils/osdLyricPresetSettings.ts:64: saveFailed: '保存失败，请检查本地存储空间',
+src/renderer/utils/osdLyricPresetSettings.ts:65: limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
+src/renderer/utils/osdLyricPresetSettings.ts:66: applied: '预设已应用，可继续修改后覆盖保存',
+src/renderer/utils/osdLyricPresetSettings.ts:67: deleted: '预设已删除',
+src/renderer/utils/osdLyricPresetSettings.ts:68: builtinHint: '修改字体、颜色、排版等设置后，点击“更新所选”即可覆盖这个内置预设',
+src/renderer/utils/osdLyricPresetSettings.ts:69: customHint: '修改其他桌面歌词设置后，点击“更新所选”即可覆盖当前预设',
+src/renderer/utils/osdLyricPresetSettings.ts:70: copySuffix: '副本',
+src/renderer/utils/osdLyricPresetSettings.ts:71: minimal: '极简透明双行',
+src/renderer/utils/osdLyricPresetSettings.ts:72: centered: '大字居中',
+src/renderer/utils/osdLyricPresetSettings.ts:73: left: '左对齐单行',
+src/renderer/utils/osdLyricPresetSettings.ts:74: cover: '封面控制模式'
+src/renderer/utils/osdLyricPresetSettings.ts:77: title: '桌面歌詞樣式預設',
+src/renderer/utils/osdLyricPresetSettings.ts:78: description: '內建與自訂預設都可直接覆蓋儲存；內建預設可隨時恢復初始樣式',
+src/renderer/utils/osdLyricPresetSettings.ts:79: apply: '套用',
+src/renderer/utils/osdLyricPresetSettings.ts:80: saveCopy: '另存為',
+src/renderer/utils/osdLyricPresetSettings.ts:81: updateSelected: '更新所選',
+src/renderer/utils/osdLyricPresetSettings.ts:82: delete: '刪除',
+src/renderer/utils/osdLyricPresetSettings.ts:83: restoreDefault: '恢復預設',
+src/renderer/utils/osdLyricPresetSettings.ts:84: namePlaceholder: '輸入預設名稱',
+src/renderer/utils/osdLyricPresetSettings.ts:85: nameRequired: '請先輸入預設名稱',
+src/renderer/utils/osdLyricPresetSettings.ts:86: saved: '已另存為新的自訂預設',
+src/renderer/utils/osdLyricPresetSettings.ts:87: updated: '所選預設已覆蓋更新',
+src/renderer/utils/osdLyricPresetSettings.ts:88: restored: '內建預設已恢復並套用',
+src/renderer/utils/osdLyricPresetSettings.ts:89: duplicateName: '此名稱已被其他預設使用',
+src/renderer/utils/osdLyricPresetSettings.ts:90: saveFailed: '儲存失敗，請檢查本機儲存空間',
+src/renderer/utils/osdLyricPresetSettings.ts:91: limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
+src/renderer/utils/osdLyricPresetSettings.ts:92: applied: '預設已套用，可繼續修改後覆蓋儲存',
+src/renderer/utils/osdLyricPresetSettings.ts:93: deleted: '預設已刪除',
+src/renderer/utils/osdLyricPresetSettings.ts:94: builtinHint: '修改字體、顏色、排版等設定後，點擊「更新所選」即可覆蓋這個內建預設',
+src/renderer/utils/osdLyricPresetSettings.ts:95: customHint: '修改其他桌面歌詞設定後，點擊「更新所選」即可覆蓋目前預設',
+src/renderer/utils/osdLyricPresetSettings.ts:96: copySuffix: '副本',
+src/renderer/utils/osdLyricPresetSettings.ts:97: minimal: '極簡透明雙行',
+src/renderer/utils/osdLyricPresetSettings.ts:98: centered: '大字置中',
+src/renderer/utils/osdLyricPresetSettings.ts:99: left: '靠左單行',
+src/renderer/utils/osdLyricPresetSettings.ts:100: cover: '封面控制模式'
+src/renderer/utils/osdLyricPresetSettings.ts:252: console.warn('[OSD Presets] 保存预设失败：', error)
+src/renderer/utils/osdLyricPresetSettings.ts:427: console.warn('[OSD Presets] 应用预设失败：', error)
+src/renderer/utils/osdPresetDraftState.ts:17: saved: '当前设置已保存',
+src/renderer/utils/osdPresetDraftState.ts:18: dirty: '当前设置有未保存修改',
+src/renderer/utils/osdPresetDraftState.ts:19: undo: '撤销本次修改',
+src/renderer/utils/osdPresetDraftState.ts:20: reverted: '已恢复到最近一次应用或保存的状态'
+src/renderer/utils/osdPresetDraftState.ts:23: saved: '目前設定已儲存',
+src/renderer/utils/osdPresetDraftState.ts:24: dirty: '目前設定有未儲存修改',
+src/renderer/utils/osdPresetDraftState.ts:25: undo: '復原本次修改',
+src/renderer/utils/osdPresetDraftState.ts:26: reverted: '已恢復到最近一次套用或儲存的狀態'
+src/renderer/utils/osdPresetTransferPreview.ts:42: previewPlayed: '正在播放的歌词',
+src/renderer/utils/osdPresetTransferPreview.ts:43: previewWaiting: '下一行歌词预览',
+src/renderer/utils/osdPresetTransferPreview.ts:44: export: '导出当前',
+src/renderer/utils/osdPresetTransferPreview.ts:45: import: '导入预设',
+src/renderer/utils/osdPresetTransferPreview.ts:46: exported: '当前样式预设已导出',
+src/renderer/utils/osdPresetTransferPreview.ts:47: imported: '预设已导入、应用并可继续修改',
+src/renderer/utils/osdPresetTransferPreview.ts:48: importFailed: '预设文件无效或超过 256 KB',
+src/renderer/utils/osdPresetTransferPreview.ts:49: limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
+src/renderer/utils/osdPresetTransferPreview.ts:50: importedSuffix: '导入'
+src/renderer/utils/osdPresetTransferPreview.ts:53: previewPlayed: '正在播放的歌詞',
+src/renderer/utils/osdPresetTransferPreview.ts:54: previewWaiting: '下一行歌詞預覽',
+src/renderer/utils/osdPresetTransferPreview.ts:55: export: '匯出目前',
+src/renderer/utils/osdPresetTransferPreview.ts:56: import: '匯入預設',
+src/renderer/utils/osdPresetTransferPreview.ts:57: exported: '目前樣式預設已匯出',
+src/renderer/utils/osdPresetTransferPreview.ts:58: imported: '預設已匯入、套用並可繼續修改',
+src/renderer/utils/osdPresetTransferPreview.ts:59: importFailed: '預設檔案無效或超過 256 KB',
+src/renderer/utils/osdPresetTransferPreview.ts:60: limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
+src/renderer/utils/osdPresetTransferPreview.ts:61: importedSuffix: '匯入'
+src/renderer/utils/osdPresetTransferPreview.ts:411: console.warn('[OSD Presets] 导入预设失败：', error)
+src/renderer/utils/playbackHistory.ts:51: console.warn('[PlaybackHistory] 保存播放历史失败：', error)
+src/renderer/utils/playbackHistory.ts:84: if (sourceType === 'intelligence') return '心动模式前的队列'
+src/renderer/utils/playbackHistory.ts:85: if (sourceType.includes('local')) return '本地音乐队列'
+src/renderer/utils/playbackHistory.ts:86: return store.currentTrack?.name ? `${store.currentTrack.name} 所在队列` : '播放队列'
+src/renderer/utils/request.ts:37: if (data?.code === 301 && data?.message === '未登录') {
+src/renderer/utils/request.ts:38: console.log('未登录')
+src/renderer/utils/settingsBackupSettings.ts:45: title: '设置备份与恢复',
+src/renderer/utils/settingsBackupSettings.ts:47: '导出界面、桌面歌词、快捷键和播放偏好；不会导出登录凭据、Cookie、代理信息和本地目录',
+src/renderer/utils/settingsBackupSettings.ts:48: export: '导出配置',
+src/renderer/utils/settingsBackupSettings.ts:49: import: '导入配置',
+src/renderer/utils/settingsBackupSettings.ts:50: exporting: '正在导出…',
+src/renderer/utils/settingsBackupSettings.ts:51: exported: '配置已导出到下载目录',
+src/renderer/utils/settingsBackupSettings.ts:52: confirm: '导入会覆盖当前可迁移设置，并在完成后重新加载应用。确定继续吗？',
+src/renderer/utils/settingsBackupSettings.ts:53: imported: '配置导入完成，应用将重新加载',
+src/renderer/utils/settingsBackupSettings.ts:54: invalid: '配置文件无效或版本不受支持',
+src/renderer/utils/settingsBackupSettings.ts:55: failed: '配置导入失败'
+src/renderer/utils/settingsBackupSettings.ts:58: title: '設定備份與還原',
+src/renderer/utils/settingsBackupSettings.ts:60: '匯出介面、桌面歌詞、快捷鍵和播放偏好；不會匯出登入憑證、Cookie、代理資訊和本機目錄',
+src/renderer/utils/settingsBackupSettings.ts:61: export: '匯出設定',
+src/renderer/utils/settingsBackupSettings.ts:62: import: '匯入設定',
+src/renderer/utils/settingsBackupSettings.ts:63: exporting: '正在匯出…',
+src/renderer/utils/settingsBackupSettings.ts:64: exported: '設定已匯出到下載目錄',
+src/renderer/utils/settingsBackupSettings.ts:65: confirm: '匯入會覆蓋目前可遷移設定，完成後重新載入應用程式。確定繼續嗎？',
+src/renderer/utils/settingsBackupSettings.ts:66: imported: '設定匯入完成，應用程式將重新載入',
+src/renderer/utils/settingsBackupSettings.ts:67: invalid: '設定檔無效或版本不支援',
+src/renderer/utils/settingsBackupSettings.ts:68: failed: '設定匯入失敗'
+src/renderer/utils/settingsBackupSettings.ts:307: console.error('[SettingsBackup] 导出失败：', error)
+src/renderer/utils/settingsBackupSettings.ts:320: console.error('[SettingsBackup] 导入失败：', error)
+src/renderer/utils/shortcuts.ts:4: name: '播放/暂停',
+src/renderer/utils/shortcuts.ts:10: name: '下一首',
+src/renderer/utils/shortcuts.ts:16: name: '上一首',
+src/renderer/utils/shortcuts.ts:22: name: '增加音量',
+src/renderer/utils/shortcuts.ts:28: name: '减少音量',
+src/renderer/utils/shortcuts.ts:34: name: '喜欢歌曲',
+src/renderer/utils/shortcuts.ts:40: name: '隐藏/显示播放器',
+src/renderer/utils/sleepTimerSettings.ts:70: console.warn('[SleepTimer] 保存结束动作设置失败：', error)
+src/renderer/utils/trackLyricOffset.ts:48: console.warn('[TrackLyricOffset] 读取单曲歌词校正失败：', error)
+src/renderer/utils/trackLyricOffset.ts:63: console.warn('[TrackLyricOffset] 保存单曲歌词校正失败：', error)
+src/renderer/utils/v327FeatureShared.ts:55: if (depth > MAX_MERGE_DEPTH) throw new Error('设置对象层级过深')
+src/renderer/utils/v327FeatureShared.ts:296: console.warn('[V327Features] 挂载设置项失败：', error)
+src/renderer/views/AlbumPage.vue:42: {{ '评论' }}
+src/renderer/views/AlbumPage.vue:209: const realAlbums = mAlbums.filter((a) => a.type === '专辑')
+src/renderer/views/AlbumPage.vue:258: showToast(dynamicDetail.value.isSub ? '已保存到音乐库' : '已从音乐库删除')
+src/renderer/views/ArtistMv.vue:3: <h1> <img class="avatar" :src="image" loading="lazy" />{{ artist.name }}的 MV </h1>
+src/renderer/views/ArtistPage.vue:238: const albums = computed(() => albumsData.value.filter((a) => a.type === '专辑'))
+src/renderer/views/DailyTracks.vue:4: <div class="title gradient"> 每日歌曲推荐 </div>
+src/renderer/views/DailyTracks.vue:5: <div class="subtitle">根据你的音乐口味生成 · 每天6:00更新</div>
+src/renderer/views/ExplorePage.vue:125: <div v-if="albumType === '热门' && newAlbumInfo.topAlbum.weekData.length !== 0">
+src/renderer/views/ExplorePage.vue:126: <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">本周新碟</div>
+src/renderer/views/ExplorePage.vue:141: <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">本月新碟</div>
+src/renderer/views/ExplorePage.vue:145: albumType === '热门' ? newAlbumInfo.topAlbum.monthData : newAlbumInfo.newAlbums.albums
+src/renderer/views/ExplorePage.vue:169: :show-play-count="activeCategory !== '排行榜' && exploreTab !== 'artist' ? true : false"
+src/renderer/views/ExplorePage.vue:205: activeCategory: '全部',
+src/renderer/views/ExplorePage.vue:206: allBigCats: ['语种', '风格', '场景', '情感', '主题'],
+src/renderer/views/ExplorePage.vue:221: const activeCategory = ref('全部')
+src/renderer/views/ExplorePage.vue:222: const saveCategory = ref('全部')
+src/renderer/views/ExplorePage.vue:224: const allBigCats = ref(['语种', '风格', '场景', '情感', '主题'])
+src/renderer/views/ExplorePage.vue:225: const artistBigCats = ref(['语种', '分类', '筛选'])
+src/renderer/views/ExplorePage.vue:232: const newTrackBtn = ref(['全部', '华语', '欧美', '日本', '韩国'])
+src/renderer/views/ExplorePage.vue:233: const albumTypeBtn = ref(['热门', '全部'])
+src/renderer/views/ExplorePage.vue:234: const albumType = ref('热门')
+src/renderer/views/ExplorePage.vue:237: if (activeCategory.value === '排行榜') return 'updateFrequency'
+src/renderer/views/ExplorePage.vue:238: if (activeCategory.value === '推荐歌单') return 'copywriter'
+src/renderer/views/ExplorePage.vue:295: if (['推荐歌单', '排行榜'].includes(activeCategory.value) === false) {
+src/renderer/views/ExplorePage.vue:302: showList.value.push(data.list.find((item) => item.name === '飙升榜')!)
+src/renderer/views/ExplorePage.vue:303: showList.value.push(data.list.find((item) => item.name === '新歌榜')!)
+src/renderer/views/ExplorePage.vue:304: showList.value.push(data.list.find((item) => item.name === '原创榜')!)
+src/renderer/views/ExplorePage.vue:305: showList.value.push(data.list.find((item) => item.name === '热歌榜')!)
+src/renderer/views/ExplorePage.vue:316: 全部: 0,
+src/renderer/views/ExplorePage.vue:317: 华语: 7,
+src/renderer/views/ExplorePage.vue:318: 欧美: 96,
+src/renderer/views/ExplorePage.vue:319: 日本: 8,
+src/renderer/views/ExplorePage.vue:320: 韩国: 16
+src/renderer/views/ExplorePage.vue:332: 全部: 'ALL',
+src/renderer/views/ExplorePage.vue:333: 华语: 'ZH',
+src/renderer/views/ExplorePage.vue:334: 欧美: 'EA',
+src/renderer/views/ExplorePage.vue:335: 日本: 'JP',
+src/renderer/views/ExplorePage.vue:336: 韩国: 'KR'
+src/renderer/views/ExplorePage.vue:338: if (albumType.value === '热门') {
+src/renderer/views/ExplorePage.vue:371: if (activeCategory.value === '推荐歌单') {
+src/renderer/views/ExplorePage.vue:376: } else if (activeCategory.value === '精品歌单') {
+src/renderer/views/HomePage.vue:14: <a @click="toExplore('playlist', '推荐歌单')">{{ $t('home.seeMore') }}</a>
+src/renderer/views/HomePage.vue:103: const toExplore = (tab: string, Category = '全部') => {
+src/renderer/views/HomePage.vue:105: router.push({ name: 'explore', query: { category: Category, tab, type: '全部' } })
+src/renderer/views/HomePage.vue:135: if (['新歌首发', '热歌推荐'].includes(banner.typeTitle)) {
+src/renderer/views/HomePage.vue:137: } else if (banner.typeTitle === '新碟首发') {
+src/renderer/views/HomePage.vue:139: } else if (banner.typeTitle === '数字专辑') {
+src/renderer/views/HomePage.vue:144: } else if (banner.typeTitle === '歌单推荐') {
+src/renderer/views/HomePage.vue:146: } else if (banner.typeTitle === 'MV首发') {
+src/renderer/views/HomePage.vue:163: banner.value = res.banners.filter((item: any) => item.typeTitle !== '广告')
+src/renderer/views/LibraryMusic.vue:335: const isInstrumental = data.map((l) => l.lyric.text).filter((l) => l.includes('纯音乐，请欣赏'))
+src/renderer/views/LocalMusic.vue:7: <label class="left-title">本地歌曲</label>
+src/renderer/views/LocalMusic.vue:10: <div class="subtitle">全部歌曲</div>
+src/renderer/views/LocalMusic.vue:11: <div class="text">{{ defaultTracks.length }}首</div>
+src/renderer/views/LocalMusic.vue:14: <div class="subtitle">歌曲总时长</div>
+src/renderer/views/LocalMusic.vue:18: <div class="subtitle">离线歌单</div>
+src/renderer/views/LocalMusic.vue:19: <div class="text">{{ playlists.length }}个</div>
+src/renderer/views/LocalMusic.vue:22: <div class="subtitle">歌曲占用</div>
+src/renderer/views/LocalMusic.vue:90: :placeholder="`搜索${placeHolderMap(idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string))}`"
+src/renderer/views/LocalMusic.vue:458: const isInstrumental = data.map((l) => l.lyric.text).filter((l) => l.includes('纯音乐，请欣赏'))
+src/renderer/views/LoginAccount.vue:57: placeholder="请输入cookie"
+src/renderer/views/LoginAccount.vue:152: const qrCodeInformation = ref('打开网易云音乐APP扫码登录')
+src/renderer/views/LoginAccount.vue:201: qrCodeInformation.value = '二维码已失效，请重新获取'
+src/renderer/views/LoginAccount.vue:203: qrCodeInformation.value = '扫描成功，请在手机上确认登录'
+src/renderer/views/LoginAccount.vue:205: qrCodeInformation.value = '打开网易云音乐APP扫码登录'
+src/renderer/views/LoginAccount.vue:208: qrCodeInformation.value = '登录成功，请稍等...'
+src/renderer/views/MvPage.vue:17: <span>发布时间：{{ mv.data.publishTime }}</span>
+src/renderer/views/MvPage.vue:19: >播放次数：{{ formatPlayCount(mv.data.playCount) }}</span
+src/renderer/views/NextUp.vue:17: <button @click="clearPlayNextList">清除队列</button>
+src/renderer/views/OSDLyric.vue:15: 普通桌面歌词模式继续使用原来的顶部控制栏。
+src/renderer/views/OSDLyric.vue:17: 紧凑模式不再显示顶部控制栏：
+src/renderer/views/OSDLyric.vue:18: 1. 节省顶部空间；
+src/renderer/views/OSDLyric.vue:19: 2. 播放控制移动到封面悬停区域；
+src/renderer/views/OSDLyric.vue:20: 3. 允许桌面歌词窗口压缩到较小尺寸。
+src/renderer/views/OSDLyric.vue:42: 解锁
+src/renderer/views/OSDLyric.vue:64: 底部自定义移动条。
+src/renderer/views/OSDLyric.vue:66: 实际鼠标命中区域高于视觉细条，方便鼠标定位。
+src/renderer/views/OSDLyric.vue:67: 移动使用 mousemove + IPC，不使用 -webkit-app-region: drag。
+src/renderer/views/OSDLyric.vue:72: title="拖动桌面歌词窗口"
+src/renderer/views/OSDLyric.vue:77: 无边框窗口四边透明命中区域。
+src/renderer/views/OSDLyric.vue:79: 这些元素不显示任何内容，只负责显示相应的缩放鼠标样式。
+src/renderer/views/OSDLyric.vue:117: const title = ref('听你想听的音乐')
+src/renderer/views/PlayPage.vue:26: title="重置播放器主题"
+src/renderer/views/PlayPage.vue:33: title="换场景"
+src/renderer/views/PlayPage.vue:90: <div class="item" @click="backgroundModal.show = true">背景设置</div>
+src/renderer/views/PlayPage.vue:91: <div class="item" @click="setFontModal = true">歌词设置</div>
+src/renderer/views/PlayPage.vue:92: <div class="item" @click="setSaveThemeModal = true">保存播放器主题</div>
+src/renderer/views/PlayPage.vue:154: zh: { title: '睡眠定时器', active: '已启用', remaining: '剩余 {time}' },
+src/renderer/views/PlayPage.vue:155: zht: { title: '睡眠定時器', active: '已啟用', remaining: '剩餘 {time}' },
+src/renderer/views/PlayPage.vue:160: zh: { trackLyricOffset: '本曲歌词时间校正', playbackHistory: '播放历史与队列' },
+src/renderer/views/PlayPage.vue:161: zht: { trackLyricOffset: '本曲歌詞時間校正', playbackHistory: '播放歷史與佇列' },
+src/renderer/views/PlayPage.vue:231: if (nextTab.value === 'comment') return '查看评论'
+src/renderer/views/PlayPage.vue:232: if (tabs.value[tabIdx.value] === 'comment') return '返回歌词'
+src/renderer/views/PlayPage.vue:233: return nextTab.value === 'pickLyric' ? '显示精选歌词' : '显示完整歌词'
+src/renderer/views/PlaylistPage.vue:22: 离线歌单 {{ user.nickname ? `by ${user.nickname}` : `` }}
+src/renderer/views/PlaylistPage.vue:25: {{ currentService + ' 歌单 by ' + playlist.creator.nickname }}
+src/renderer/views/PlaylistPage.vue:28: 歌单 by
+src/renderer/views/PlaylistPage.vue:57: {{ '评论' }}
+src/renderer/views/PlaylistPage.vue:95: {{ '评论' }}
+src/renderer/views/PlaylistPage.vue:113: <div v-show="playlistType === 'online'" class="title gradient-red">我喜欢的音乐</div>
+src/renderer/views/PlaylistPage.vue:115: >我收藏的流媒体</div
+src/renderer/views/PlaylistPage.vue:127: >心动模式</ButtonTwoTone
+src/renderer/views/PlaylistPage.vue:135: {{ '评论' }}
+src/renderer/views/PlaylistPage.vue:161: title="歌单介绍"
+src/renderer/views/PlaylistPage.vue:233: name: '欧美私人订制',
+src/renderer/views/PlaylistPage.vue:237: name: '助眠鸟鸣声',
+src/renderer/views/PlaylistPage.vue:241: name: '夜的胡思乱想',
+src/renderer/views/PlaylistPage.vue:245: name: '全球百大DJ',
+src/renderer/views/PlaylistPage.vue:249: name: '睡眠伴侣',
+src/renderer/views/PlaylistPage.vue:253: name: '洗澡时听的歌',
+src/renderer/views/PlaylistPage.vue:257: name: '还是会想你',
+src/renderer/views/PlaylistPage.vue:261: name: '助眠白噪声',
+src/renderer/views/PlaylistPage.vue:265: name: '摇滚唱片行',
+src/renderer/views/PlaylistPage.vue:269: name: '古风音乐大赏',
+src/renderer/views/PlaylistPage.vue:277: name: '欧美点唱机',
+src/renderer/views/PlaylistPage.vue:281: name: '甜蜜少女心',
+src/renderer/views/PlaylistPage.vue:285: name: '日系私人订制',
+src/renderer/views/PlaylistPage.vue:289: name: '运动随身听',
+src/renderer/views/PlaylistPage.vue:293: name: '独立女声精选',
+src/renderer/views/PlaylistPage.vue:297: name: '浪漫婚礼专用',
+src/renderer/views/PlaylistPage.vue:301: name: '牛奶泡泡浴',
+src/renderer/views/PlaylistPage.vue:305: name: '后朋克精选',
+src/renderer/views/PlaylistPage.vue:309: name: '一周原创发现',
+src/renderer/views/PlaylistPage.vue:313: name: '华语私人雷达',
+src/renderer/views/PlaylistPage.vue:317: name: '私人雷达',
+src/renderer/views/PlaylistPage.vue:502: showToast(playlist.value.subscribed ? '已保存到音乐库' : '已从音乐库删除')
+src/renderer/views/PlaylistPage.vue:542: if (confirm(`确定要删除歌单 ${playlist.value.name}？`)) {
+src/renderer/views/SearchPage.vue:5: <span class="sub-title">找到 {{ result[`${searchTab}Count`] }} {{ tagMap[searchTab] }}</span>
+src/renderer/views/SearchPage.vue:55: track: '首歌曲',
+src/renderer/views/SearchPage.vue:56: album: '张专辑',
+src/renderer/views/SearchPage.vue:57: artist: '位歌手',
+src/renderer/views/SearchPage.vue:58: playlist: '个歌单',
+src/renderer/views/SearchPage.vue:59: user: '位用户',
+src/renderer/views/SearchPage.vue:60: lyric: '个歌词'
+src/renderer/views/StreamLogin.vue:32: placeholder="主机地址，例如 http://192.168.1.10:4533"
+src/renderer/views/StreamLogin.vue:49: placeholder="账号"
+src/renderer/views/StreamLogin.vue:76: 已保存的密码由系统安全存储保护；留空会继续使用该密码。
+src/renderer/views/StreamLogin.vue:81: {{ submitting ? '正在登录…' : $t('login.login') }}
+src/renderer/views/StreamLogin.vue:117: hasSavedPassword.value ? '已保存密码，留空继续使用' : '密码'
+src/renderer/views/StreamLogin.vue:163: error.value = '请完整填写主机地址、账号和密码。'
+src/renderer/views/StreamLogin.vue:186: error.value = response?.message || '登录失败，请检查服务器地址和凭据。'
+src/renderer/views/StreamPage.vue:8: >流媒体歌曲 - {{ defaultGroupBy === 'all' ? '聚合' : defaultGroupBy }}</label
+src/renderer/views/StreamPage.vue:12: <div class="subtitle">全部歌曲</div>
+src/renderer/views/StreamPage.vue:13: <div class="text">{{ defaultTracks.length }}首</div>
+src/renderer/views/StreamPage.vue:16: <div class="subtitle">歌曲总时长</div>
+src/renderer/views/StreamPage.vue:20: <div class="subtitle">流媒体歌单</div>
+src/renderer/views/StreamPage.vue:21: <div class="text">{{ defaultPlaylists.length }}个</div>
+src/renderer/views/StreamPage.vue:24: <div class="subtitle">歌曲占用</div>
+src/renderer/views/StreamPage.vue:92: :placeholder="`搜索${placeHolderMap(idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string))}`"
+src/renderer/views/StreamPage.vue:133: <div class="item" :class="{ active: groundBy === 'all' }" @click="groundBy = 'all'">聚合</div>
+src/renderer/views/StreamPage.vue:240: return loginedServices.value.length === 0 ? message.value : '当前服务离线，请稍后再试'
+src/renderer/views/StreamPage.vue:368: showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+src/renderer/views/StreamPage.vue:389: .filter((l) => l.text.includes('纯音乐，请欣赏'))
+src/renderer/views/SystemSettings.vue:11: <span class="text">黑胶VIP</span>
+src/renderer/views/SystemSettings.vue:107: <div class="title">主界面字体大小</div>
+src/renderer/views/SystemSettings.vue:108: <div class="description">调节主窗口整体字号，不影响桌面歌词和菜单栏歌词</div>
+src/renderer/views/SystemSettings.vue:332: <div class="text">背景色</div>
+src/renderer/views/SystemSettings.vue:343: <div class="text">已播放颜色</div>
+src/renderer/views/SystemSettings.vue:354: <div class="text">未播放颜色</div>
+src/renderer/views/SystemSettings.vue:365: <div class="text">阴影颜色</div>
+src/renderer/views/SystemSettings.vue:421: extensionCheckResult ? '已开启' : '已停用'
+src/renderer/views/SystemSettings.vue:425: >如果未安装插件，可点击
+src/renderer/views/SystemSettings.vue:426: <a @click="openOnBrowser('https://github.com/stark81/media-controls')">此处</a>
+src/renderer/views/SystemSettings.vue:427: 下载</div
+src/renderer/views/SystemSettings.vue:500: >重置</button
+src/renderer/views/SystemSettings.vue:503: autoCacheTrack.path ? '更改' : '选择'
+src/renderer/views/SystemSettings.vue:565: <button class="input-btn" @click="selectDirModal = true">输入</button>
+src/renderer/views/SystemSettings.vue:566: <button @click="chooseDir(true)">选择</button>
+src/renderer/views/SystemSettings.vue:575: <button @click="deleteLocalMusic">确定</button>
+src/renderer/views/SystemSettings.vue:676: <button @click="resetPlayer()">确定</button>
+src/renderer/views/SystemSettings.vue:809: placeholder="例 bodian, bilibili, kuwo"
+src/renderer/views/SystemSettings.vue:992: <div>代理协议：</div>
+src/renderer/views/SystemSettings.vue:1011: <button @click="updateProxy">更新代理</button>
+src/renderer/views/SystemSettings.vue:1238: const title = platform.status === 'logout' ? '登录' : '登出'
+src/renderer/views/SystemSettings.vue:1239: return `单击选择，右击选择并${title}`
+src/renderer/views/SystemSettings.vue:1260: if (confirm(`确定登出${platform.name}吗？`)) {
+src/renderer/views/SystemSettings.vue:1510: showToast('清除缓存成功')
+src/renderer/views/SystemSettings.vue:1561: showToast(proxyType.value === ProxyType.Disable ? '已关闭代理' : '已更新代理设置')
+src/renderer/views/SystemSettings.vue:1670: shortcut = shortcut.replace('Space', '空格')
+src/renderer/views/UserPage.vue:12: <span>{{ user.follows }} 关注</span>
+src/renderer/views/UserPage.vue:14: <span>{{ user.followeds }} 粉丝</span>
+src/renderer/views/UserPage.vue:16: <span>Lv.{{ user.level }} 等级</span>
+src/renderer/views/UserPage.vue:21: <span>聊天</span>
+src/renderer/views/UserPage.vue:55: >TA的听歌排行</div
+src/renderer/views/UserPage.vue:61: >动态</div
+src/renderer/views/UserPage.vue:67: >播客</div
+src/renderer/views/UserPage.vue:159: let status = '关注'
+src/renderer/views/UserPage.vue:163: status = '回关'
+src/renderer/views/UserPage.vue:165: status = '已关注'
