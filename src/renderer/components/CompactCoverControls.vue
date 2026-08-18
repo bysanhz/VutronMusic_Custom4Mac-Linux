@@ -6,13 +6,13 @@
     @mouseenter="isHover = true"
     @mouseleave="isHover = false"
   >
-    <img class="compact-cover" :src="coverUrl" alt="当前歌曲封面" draggable="false" />
+    <img class="compact-cover" :src="coverUrl" :alt="text.coverAlt" draggable="false" />
 
     <div class="compact-control-grid">
       <button
         type="button"
         class="compact-control-button control-prev hover-control"
-        title="上一首"
+        :title="text.previous"
         @click.stop="playPrev"
       >
         <SvgIcon icon-class="previous" />
@@ -21,7 +21,7 @@
       <button
         type="button"
         class="compact-control-button control-play hover-control"
-        :title="isPlaying ? '暂停' : '播放'"
+        :title="isPlaying ? text.pause : text.play"
         @click.stop="playOrPause"
       >
         <SvgIcon :icon-class="isPlaying ? 'pause' : 'play'" />
@@ -30,7 +30,7 @@
       <button
         type="button"
         class="compact-control-button control-next hover-control"
-        title="下一首"
+        :title="text.next"
         @click.stop="playNext"
       >
         <SvgIcon icon-class="next" />
@@ -39,7 +39,7 @@
       <button
         type="button"
         class="compact-control-button control-main-window hover-control"
-        title="显示或隐藏主窗口"
+        :title="text.toggleMain"
         @click.stop="toggleMainWindow"
       >
         <SvgIcon icon-class="logo" />
@@ -60,7 +60,7 @@
         type="button"
         class="compact-control-button control-like"
         :class="{ liked: isLiked }"
-        :title="isLiked ? '取消喜欢' : '加入喜欢'"
+        :title="isLiked ? text.unlike : text.like"
         @click.stop="toggleLike"
       >
         <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
@@ -70,21 +70,78 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
+import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 
 const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const OSD_STORAGE_KEY = 'osdLyric'
 
+const TEXTS = {
+  zh: {
+    coverAlt: '当前歌曲封面',
+    previous: '上一首',
+    play: '播放',
+    pause: '暂停',
+    next: '下一首',
+    toggleMain: '显示或隐藏主窗口',
+    like: '加入喜欢',
+    unlike: '取消喜欢',
+    heartStart: '根据我喜欢的音乐开启心动模式',
+    heartLoading: '正在生成心动模式…',
+    heartTimeout: '心动模式响应超时，请重试',
+    heartSuccess: '心动模式已开启',
+    heartError: '心动模式操作失败'
+  },
+  zht: {
+    coverAlt: '目前歌曲封面',
+    previous: '上一首',
+    play: '播放',
+    pause: '暫停',
+    next: '下一首',
+    toggleMain: '顯示或隱藏主視窗',
+    like: '加入喜歡',
+    unlike: '取消喜歡',
+    heartStart: '根據我喜歡的音樂開啟心動模式',
+    heartLoading: '正在產生心動模式…',
+    heartTimeout: '心動模式回應逾時，請重試',
+    heartSuccess: '心動模式已開啟',
+    heartError: '心動模式操作失敗'
+  },
+  en: {
+    coverAlt: 'Current track cover',
+    previous: 'Previous',
+    play: 'Play',
+    pause: 'Pause',
+    next: 'Next',
+    toggleMain: 'Show or hide main window',
+    like: 'Like',
+    unlike: 'Unlike',
+    heartStart: 'Start Heart Mode from Liked Songs',
+    heartLoading: 'Generating Heart Mode…',
+    heartTimeout: 'Heart Mode timed out. Please retry.',
+    heartSuccess: 'Heart Mode started',
+    heartError: 'Heart Mode operation failed'
+  }
+} as const
+
+const text = computed(() => TEXTS[resolveFeatureLanguage()])
 const rootRef = ref<HTMLElement | null>(null)
 const isHover = ref(false)
 const isPlaying = ref(false)
 const isLiked = ref(false)
 const coverUrl = ref(DEFAULT_COVER)
 const heartModeLoading = ref(false)
-const heartModeTitle = ref('根据我喜欢的音乐开启心动模式')
+const heartModeState = ref<'idle' | 'loading' | 'timeout' | 'success' | 'error'>('idle')
+const heartModeTitle = computed(() => {
+  if (heartModeState.value === 'loading') return text.value.heartLoading
+  if (heartModeState.value === 'timeout') return text.value.heartTimeout
+  if (heartModeState.value === 'success') return text.value.heartSuccess
+  if (heartModeState.value === 'error') return text.value.heartError
+  return text.value.heartStart
+})
 let heartModeChannel: BroadcastChannel | null = null
 let heartModeRequestId = ''
 let heartModeTimeout: number | null = null
@@ -186,7 +243,7 @@ const startHeartMode = () => {
   heartModeRequestId =
     typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
   heartModeLoading.value = true
-  heartModeTitle.value = '正在生成心动模式…'
+  heartModeState.value = 'loading'
 
   heartModeChannel.postMessage({
     type: 'start-heart-mode-from-likes',
@@ -197,7 +254,7 @@ const startHeartMode = () => {
   if (heartModeTimeout !== null) window.clearTimeout(heartModeTimeout)
   heartModeTimeout = window.setTimeout(() => {
     heartModeLoading.value = false
-    heartModeTitle.value = '心动模式响应超时，请重试'
+    heartModeState.value = 'timeout'
     heartModeTimeout = null
   }, 15000)
 }
@@ -215,9 +272,11 @@ const handleControlMessage = (event: MessageEvent) => {
     return
   }
 
-  heartModeTitle.value = String(event.data?.message || '心动模式状态已更新')
-  if (event.data?.status === 'loading') return
-
+  if (event.data?.status === 'loading') {
+    heartModeState.value = 'loading'
+    return
+  }
+  heartModeState.value = event.data?.status === 'success' ? 'success' : 'error'
   heartModeLoading.value = false
   if (heartModeTimeout !== null) {
     window.clearTimeout(heartModeTimeout)

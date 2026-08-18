@@ -32,7 +32,7 @@
           ref="searchInputRef"
           v-model="searchKeyword"
           class="custom-search-input"
-          :placeholder="searchPlaceholder"
+          :placeholder="effectiveSearchPlaceholder"
           @input="onSearchInput"
           @keydown="onKeyDown"
           @click.stop
@@ -40,7 +40,7 @@
       </div>
       <!-- =========== newADD end ======== -->
       <div v-if="filteredOptions.length === 0" class="no-data-item">
-        {{ noDataText }}
+        {{ effectiveNoDataText }}
       </div>
       <div
         v-for="(option, index) in filteredOptions"
@@ -75,6 +75,7 @@ import { computed, watch, ref, nextTick } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { useNormalStateStore } from '../store/state'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 
 // ======== newADD start======
 type SelectOption = {
@@ -102,10 +103,10 @@ const props = withDefaults(
   }>(),
   {
     searchable: false,
-    placeholder: '请选择',
-    noDataText: '暂无数据',
+    placeholder: '',
+    noDataText: '',
     // ======== newADD start======
-    searchPlaceholder: '搜索...',
+    searchPlaceholder: '',
     // =========== newADD end ========
     direction: 'auto',
     filterMethod: undefined
@@ -118,6 +119,12 @@ const $emit = defineEmits<{
 }>()
 
 const { enableScrolling } = storeToRefs(useNormalStateStore())
+const { t } = useI18n()
+const effectivePlaceholder = computed(() => props.placeholder || t('common.selectPlaceholder'))
+const effectiveNoDataText = computed(() => props.noDataText || t('common.noData'))
+const effectiveSearchPlaceholder = computed(
+  () => props.searchPlaceholder || t('common.searchPlaceholder')
+)
 
 const rootRef = ref<HTMLElement | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -155,7 +162,7 @@ const selectedOption = computed(() => {
 // =========== newADD end ========
 
 const selectedLabel = computed(() => {
-  return selectedOption.value ? selectedOption.value.label : props.placeholder
+  return selectedOption.value ? selectedOption.value.label : effectivePlaceholder.value
 })
 
 // ======== newADD start======

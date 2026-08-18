@@ -257,11 +257,58 @@
     "fade": {
       "fadeDuration": "Audio Fade In/Out Duration (seconds)",
       "fadeDurationDesc": "Duration of volume fade when switching, playing, or pausing."
+    },
+    "playbackRateModal": {
+      "title": "Playback Speed",
+      "presets": "Speed presets",
+      "current": "Current speed"
+    },
+    "pitchModal": {
+      "title": "Pitch",
+      "presets": "Pitch presets",
+      "current": "Current pitch"
+    },
+    "heartMode": {
+      "start": "Start Heart Mode from Liked Songs",
+      "loading": "Generating Heart Mode…",
+      "loadingWait": "Heart Mode is already loading. Please wait.",
+      "loginRequired": "Log in to NetEase Cloud Music before starting Heart Mode.",
+      "generating": "Generating Heart Mode from Liked Songs…",
+      "likedPlaylistMissing": "Could not find the Liked Songs playlist.",
+      "recommendationMissing": "No Heart Mode recommendations were returned.",
+      "started": "Heart Mode started with {count} tracks",
+      "likedPlaylistEmpty": "The Liked Songs playlist is empty.",
+      "failed": "Heart Mode failed to load. Please try again later.",
+      "timeout": "Heart Mode timed out. Please retry.",
+      "updated": "Heart Mode status updated",
+      "success": "Heart Mode started",
+      "error": "Heart Mode operation failed"
+    },
+    "compactControls": {
+      "coverAlt": "Current track cover",
+      "previous": "Previous",
+      "play": "Play",
+      "pause": "Pause",
+      "next": "Next",
+      "toggleMain": "Show or hide main window",
+      "like": "Like",
+      "unlike": "Unlike"
     }
   },
   "common": {
     "songs": "songs",
-    "play": "Play"
+    "play": "Play",
+    "selectPlaceholder": "Select",
+    "noData": "No data",
+    "searchPlaceholder": "Search...",
+    "reset": "Reset",
+    "change": "Change",
+    "select": "Select",
+    "input": "Input",
+    "confirm": "Confirm",
+    "login": "Log in",
+    "logout": "Log out",
+    "space": "Space"
   },
   "settings": {
     "nav": {
@@ -341,7 +388,11 @@
       "clickToLyric": "Click empty area of the player-bar to enter lyrics page",
       "jumpToLyricBegin": "Jump to begining of current lyric when seeking",
       "perventSuspend": "Prevent system sleep during playback",
-      "forceFactor": "Ignore system scaling (force 100%, restart required)"
+      "forceFactor": "Ignore system scaling (force 100%, restart required)",
+      "appFontSize": {
+        "text": "Main UI Font Size",
+        "desc": "Adjust the main-window UI font size without changing desktop or menu-bar lyrics."
+      }
     },
     "theme": {
       "auto": "Auto",
@@ -369,7 +420,12 @@
         "text": "Show Tray Lyrics",
         "desc": "Requires lyrics extension service."
       },
-      "showTray": "Show Tray Icon"
+      "showTray": "Show Tray Icon",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "installPrefix": "If the extension is not installed, click",
+      "here": "here",
+      "downloadSuffix": "to download it."
     },
     "osdLyric": {
       "showOsdLyric": "Show Desktop Lyrics",
@@ -416,7 +472,13 @@
         "desc2": "and enable the mouse hover to reduce window transparency feature"
       },
       "lyricZoom": "Zoom The Playing Lyric",
-      "lyricBold": "Bold Text"
+      "lyricBold": "Bold Text",
+      "colors": {
+        "background": "Background",
+        "played": "Played lyric",
+        "unplayed": "Unplayed lyric",
+        "shadow": "Text shadow"
+      }
     },
     "lyric": {
       "fontFamily": "Lyric Font Family",
@@ -485,7 +547,8 @@
       "sizeLimit": "Song Cache Limit",
       "noLimit": "No Limit",
       "sizeCached": "Cached {song} songs",
-      "clearCache": "Clear Cache"
+      "clearCache": "Clear Cache",
+      "cacheCleared": "Cache cleared"
     },
     "shortcut": {
       "enableGlobalShortcut": "Enable Global Shortcuts",
@@ -519,14 +582,20 @@
       "realIp": {
         "text": "Real IP",
         "ip": "IP Address"
-      }
+      },
+      "proxyProtocol": "Proxy protocol",
+      "updateProxy": "Update proxy",
+      "proxyDisabled": "Proxy disabled",
+      "proxyUpdated": "Proxy settings updated"
     },
     "stream": {
       "enable": "Enable Stream Music",
       "service": "Servers",
       "login": "Logged in",
       "logout": "Logged out",
-      "offline": "Offline"
+      "offline": "Offline",
+      "serviceAction": "Click to select; right-click to select and {action}",
+      "logoutConfirm": "Log out of {service}?"
     },
     "update": {
       "autoUpdate": "Enable Automatic Update Checks",
@@ -539,7 +608,41 @@
       "latestVersion": "Latest Version",
       "changelog": "Change Log",
       "updateAvailable": "UpdateAvailable",
-      "updating": "Updating"
+      "updating": "Updating",
+      "diagnostics": {
+        "releaseNotesLabel": "Version changes",
+        "title": "Updates & Diagnostics",
+        "lastError": "Last update check failed: {error}",
+        "copy": "Copy diagnostics",
+        "export": "Export diagnostics",
+        "openLog": "Open log file",
+        "openRelease": "Open release page",
+        "development": "Development",
+        "linuxPackage": "Linux package",
+        "macosUnsigned": "Unsigned macOS build",
+        "windowsPackage": "Windows package",
+        "desktopPackage": "Desktop package",
+        "browser": "Browser",
+        "reportTitle": "VutronMusic Custom diagnostics",
+        "generatedAt": "Generated at",
+        "appVersion": "App version",
+        "latestVersion": "Latest version",
+        "installFormat": "Install format",
+        "platform": "Platform",
+        "devEnvironment": "Development",
+        "systemLanguage": "System language",
+        "screenSize": "Screen size",
+        "windowSize": "Window size",
+        "pixelRatio": "Device pixel ratio",
+        "pageZoom": "Page zoom",
+        "updateError": "Update check error",
+        "yes": "Yes",
+        "no": "No",
+        "none": "None",
+        "copied": "Diagnostics copied to clipboard",
+        "exported": "Diagnostics file exported",
+        "logLocated": "Log file located in the file manager"
+      }
     },
     "playerTheme": {
       "title": "Player Theme",

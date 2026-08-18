@@ -127,8 +127,8 @@ test.describe('desktop feature integration', () => {
     const playback = readSource('src/renderer/components/ModalPlayback.vue')
     const pitch = readSource('src/renderer/components/ModalPitch.vue')
 
-    expect(playback).toContain('title="倍速播放"')
-    expect(playback).toContain('当前倍速:')
+    expect(playback).toContain("$t('player.playbackRateModal.title')")
+    expect(playback).toContain("$t('player.playbackRateModal.current')")
     expect(playback).toContain('class="preset-grid"')
     expect(playback).toContain('playbackRatePresets')
     expect(playback).not.toContain(':marks="marks"')
@@ -230,6 +230,29 @@ test.describe('desktop feature integration', () => {
     expect(main).toContain('lyricWin.showInactive()')
     expect(main).toContain("log.error('[OSD] Failed to load desktop lyric window:'")
     expect(main).toContain('if (this.lyricWin?.isDestroyed()) this.lyricWin = null')
+  })
+
+  test('keeps language switching reactive across Vue and injected controls', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
+    const select = readSource('src/renderer/components/CustomSelect.vue')
+    const playback = readSource('src/renderer/components/ModalPlayback.vue')
+    const pitch = readSource('src/renderer/components/ModalPitch.vue')
+    const diagnostics = readSource('src/renderer/components/LatestVersion.vue')
+    const compact = readSource('src/renderer/components/CompactCoverControls.vue')
+
+    expect(settings).toContain('setFeatureLanguage(value as SupportedLanguage)')
+    expect(settings).toContain('const languageOption = computed(() => [')
+    expect(settings).toContain('const translateOptions = computed(() => [')
+    expect(shared).toContain("FEATURE_LANGUAGE_CHANGE_EVENT = 'vutronmusic-language-change'")
+    expect(shared).toContain('const featureLanguage = ref<SupportedLanguage>')
+    expect(shared).toContain('refreshInjectedControlsForLanguage')
+    expect(select).toContain("t('common.selectPlaceholder')")
+    expect(select).toContain("t('common.searchPlaceholder')")
+    expect(playback).toContain("$t('player.playbackRateModal.title')")
+    expect(pitch).toContain("$t('player.pitchModal.title')")
+    expect(diagnostics).toContain('settings.update.diagnostics.title')
+    expect(compact).toContain('computed(() => TEXTS[resolveFeatureLanguage()])')
   })
 
   test('registers diagnostics and playback-history integrations', () => {

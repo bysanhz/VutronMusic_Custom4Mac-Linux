@@ -257,11 +257,58 @@
     "fade": {
       "fadeDuration": "音訊淡入淡出時長（秒）",
       "fadeDurationDesc": "切換歌曲、播放、暫停時音量漸變的時長"
+    },
+    "playbackRateModal": {
+      "title": "倍速播放",
+      "presets": "倍速預設",
+      "current": "目前倍速"
+    },
+    "pitchModal": {
+      "title": "音調調整",
+      "presets": "音調預設",
+      "current": "目前音調"
+    },
+    "heartMode": {
+      "start": "根據我喜歡的音樂開啟心動模式",
+      "loading": "正在產生心動模式…",
+      "loadingWait": "心動模式正在載入，請稍候",
+      "loginRequired": "心動模式需要先登入網易雲音樂",
+      "generating": "正在根據我喜歡的音樂產生心動模式…",
+      "likedPlaylistMissing": "找不到「我喜歡的音樂」歌單",
+      "recommendationMissing": "未取得心動模式推薦歌曲",
+      "started": "已開啟心動模式，共 {count} 首",
+      "likedPlaylistEmpty": "「我喜歡的音樂」歌單為空",
+      "failed": "心動模式載入失敗，請稍後重試",
+      "timeout": "心動模式回應逾時，請重試",
+      "updated": "心動模式狀態已更新",
+      "success": "心動模式已開啟",
+      "error": "心動模式操作失敗"
+    },
+    "compactControls": {
+      "coverAlt": "目前歌曲封面",
+      "previous": "上一首",
+      "play": "播放",
+      "pause": "暫停",
+      "next": "下一首",
+      "toggleMain": "顯示或隱藏主視窗",
+      "like": "加入喜歡",
+      "unlike": "取消喜歡"
     }
   },
   "common": {
     "songs": "首歌曲",
-    "play": "播放"
+    "play": "播放",
+    "selectPlaceholder": "請選擇",
+    "noData": "暫無資料",
+    "searchPlaceholder": "搜尋...",
+    "reset": "重設",
+    "change": "更改",
+    "select": "選擇",
+    "input": "輸入",
+    "confirm": "確定",
+    "login": "登入",
+    "logout": "登出",
+    "space": "空白鍵"
   },
   "settings": {
     "nav": {
@@ -341,7 +388,11 @@
       "clickToLyric": "點擊播放欄空白處進入歌詞頁",
       "jumpToLyricBegin": "調整進度時吸附到歌詞開始位置",
       "perventSuspend": "播放時防止系統休眠",
-      "forceFactor": "忽略系統縮放（強制 100%，重新啟動後生效）"
+      "forceFactor": "忽略系統縮放（強制 100%，重新啟動後生效）",
+      "appFontSize": {
+        "text": "主介面字體大小",
+        "desc": "調整主視窗整體字級，不影響桌面歌詞與選單列歌詞"
+      }
     },
     "theme": {
       "auto": "跟隨系統",
@@ -369,7 +420,12 @@
         "text": "顯示狀態列歌詞",
         "desc": "該功能需要安裝並啟用歌詞插件服務"
       },
-      "showTray": "顯示系統匣圖示"
+      "showTray": "顯示系統匣圖示",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "installPrefix": "若尚未安裝外掛，可點擊",
+      "here": "此處",
+      "downloadSuffix": "下載"
     },
     "osdLyric": {
       "showOsdLyric": "顯示桌面歌詞",
@@ -416,7 +472,13 @@
         "desc2": "並啟用鼠標停留降低視窗透明度功能"
       },
       "lyricZoom": "放縮當前播放的歌詞",
-      "lyricBold": "字體加粗"
+      "lyricBold": "字體加粗",
+      "colors": {
+        "background": "背景色",
+        "played": "已播放顏色",
+        "unplayed": "未播放顏色",
+        "shadow": "陰影顏色"
+      }
     },
     "lyric": {
       "fontFamily": "歌詞字型",
@@ -485,7 +547,8 @@
       "sizeLimit": "歌曲快取上限",
       "noLimit": "無限制",
       "sizeCached": "已快取歌曲 { song } 首",
-      "clearCache": "清除歌曲快取"
+      "clearCache": "清除歌曲快取",
+      "cacheCleared": "清除快取成功"
     },
     "shortcut": {
       "enableGlobalShortcut": "啟用全域快捷鍵",
@@ -519,14 +582,20 @@
       "realIp": {
         "text": "Real IP",
         "ip": "IP地址"
-      }
+      },
+      "proxyProtocol": "代理協定",
+      "updateProxy": "更新代理",
+      "proxyDisabled": "已關閉代理",
+      "proxyUpdated": "已更新代理設定"
     },
     "stream": {
       "enable": "啟用串流媒體音樂",
       "service": "串流媒體服務",
       "login": "已登入",
       "logout": "未登入",
-      "offline": "伺服器離線"
+      "offline": "伺服器離線",
+      "serviceAction": "按一下選擇，按右鍵選擇並{action}",
+      "logoutConfirm": "確定登出 {service} 嗎？"
     },
     "update": {
       "autoUpdate": "自動檢查更新",
@@ -539,7 +608,41 @@
       "latestVersion": "最新版本",
       "changelog": "版本更新內容",
       "updateAvailable": "有可用更新",
-      "updating": "更新進行中"
+      "updating": "更新進行中",
+      "diagnostics": {
+        "releaseNotesLabel": "版本變更",
+        "title": "更新與診斷",
+        "lastError": "最近一次更新檢查失敗：{error}",
+        "copy": "複製診斷資訊",
+        "export": "匯出診斷檔案",
+        "openLog": "開啟日誌檔案",
+        "openRelease": "開啟發佈頁面",
+        "development": "開發環境",
+        "linuxPackage": "Linux 安裝包",
+        "macosUnsigned": "macOS 未簽名建置",
+        "windowsPackage": "Windows 安裝包",
+        "desktopPackage": "桌面安裝包",
+        "browser": "瀏覽器環境",
+        "reportTitle": "VutronMusic Custom 診斷資訊",
+        "generatedAt": "產生時間",
+        "appVersion": "應用程式版本",
+        "latestVersion": "最新版本",
+        "installFormat": "安裝格式",
+        "platform": "執行平台",
+        "devEnvironment": "開發環境",
+        "systemLanguage": "系統語言",
+        "screenSize": "螢幕尺寸",
+        "windowSize": "視窗尺寸",
+        "pixelRatio": "裝置像素比",
+        "pageZoom": "頁面縮放",
+        "updateError": "更新檢查錯誤",
+        "yes": "是",
+        "no": "否",
+        "none": "無",
+        "copied": "診斷資訊已複製到剪貼簿",
+        "exported": "診斷檔案已匯出",
+        "logLocated": "已在檔案管理器中定位日誌檔案"
+      }
     },
     "playerTheme": {
       "title": "播放器樣式",

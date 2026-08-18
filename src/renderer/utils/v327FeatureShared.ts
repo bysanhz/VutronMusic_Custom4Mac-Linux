@@ -1,5 +1,9 @@
+import { ref } from 'vue'
+
 export type SupportedLanguage = 'zh' | 'zht' | 'en'
 export type JsonRecord = Record<string, any>
+
+export const FEATURE_LANGUAGE_CHANGE_EVENT = 'vutronmusic-language-change'
 
 const STYLE_ID = 'vutronmusic-v327-feature-style'
 const SETTINGS_STORAGE_KEY = 'settings'
@@ -9,7 +13,7 @@ let pendingEnsureTimer: number | null = null
 let cleanupRegistered = false
 let controlsReady = false
 
-export const resolveFeatureLanguage = (): SupportedLanguage => {
+const readFeatureLanguage = (): SupportedLanguage => {
   try {
     const settings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}')
     const language = settings?.general?.language
@@ -17,6 +21,30 @@ export const resolveFeatureLanguage = (): SupportedLanguage => {
   } catch {
     return 'en'
   }
+}
+
+const featureLanguage = ref<SupportedLanguage>(readFeatureLanguage())
+
+export const resolveFeatureLanguage = (): SupportedLanguage => featureLanguage.value
+
+const dispatchFeatureLanguageChange = (language: SupportedLanguage): void => {
+  window.dispatchEvent(new CustomEvent(FEATURE_LANGUAGE_CHANGE_EVENT, { detail: { language } }))
+}
+
+export const setFeatureLanguage = (language: string): void => {
+  const nextLanguage: SupportedLanguage = language === 'zh' || language === 'zht' ? language : 'en'
+  featureLanguage.value = nextLanguage
+  dispatchFeatureLanguageChange(nextLanguage)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== SETTINGS_STORAGE_KEY) return
+    const nextLanguage = readFeatureLanguage()
+    if (featureLanguage.value === nextLanguage) return
+    featureLanguage.value = nextLanguage
+    dispatchFeatureLanguageChange(nextLanguage)
+  })
 }
 
 export const readJsonRecord = (key: string): JsonRecord => {
@@ -259,7 +287,7 @@ export const createV327SettingsItem = (
 ): HTMLElement => {
   const item = document.createElement('div')
   item.id = id
-  item.className = 'item'
+  item.className = 'item vutronmusic-v327-settings-item'
 
   const left = document.createElement('div')
   left.className = 'left'
@@ -314,6 +342,14 @@ const scheduleEnsureAllControls = (): void => {
   }, 80)
 }
 
+const refreshInjectedControlsForLanguage = (): void => {
+  document
+    .querySelectorAll('.vutronmusic-v327-settings-item')
+    .forEach((element) => element.remove())
+  controlsReady = false
+  ensureAllControls()
+}
+
 const initializeSharedObserver = (): void => {
   if (settingsObserver) return
 
@@ -322,6 +358,7 @@ const initializeSharedObserver = (): void => {
     childList: true,
     subtree: true
   })
+  window.addEventListener(FEATURE_LANGUAGE_CHANGE_EVENT, refreshInjectedControlsForLanguage)
   ;[0, 100, 300, 800, 1600].forEach((delay) => {
     window.setTimeout(ensureAllControls, delay)
   })
@@ -333,6 +370,10 @@ const initializeSharedObserver = (): void => {
       () => {
         settingsObserver?.disconnect()
         settingsObserver = null
+        window.removeEventListener(
+          FEATURE_LANGUAGE_CHANGE_EVENT,
+          refreshInjectedControlsForLanguage
+        )
         controlEnsurers.clear()
         controlsReady = false
         if (pendingEnsureTimer !== null) {

@@ -1,5 +1,9 @@
 <template>
-  <ul v-if="releaseNoteItems.length" class="update-release" aria-label="版本变化">
+  <ul
+    v-if="releaseNoteItems.length"
+    class="update-release"
+    :aria-label="$t('settings.update.diagnostics.releaseNotesLabel')"
+  >
     <li v-for="(item, index) in releaseNoteItems" :key="`${index}-${item}`">
       {{ item }}
     </li>
@@ -9,7 +13,7 @@
   <section class="diagnostic-panel">
     <div class="diagnostic-panel__header">
       <div>
-        <div class="diagnostic-panel__title">更新与诊断</div>
+        <div class="diagnostic-panel__title">{{ $t('settings.update.diagnostics.title') }}</div>
         <div class="diagnostic-panel__description">
           {{ installFormatLabel }} · {{ platformLabel }}
         </div>
@@ -18,14 +22,18 @@
     </div>
 
     <div v-if="updateError" class="diagnostic-panel__error">
-      最近一次更新检查失败：{{ updateError }}
+      {{ $t('settings.update.diagnostics.lastError', { error: updateError }) }}
     </div>
 
     <div class="diagnostic-panel__actions">
-      <button @click="copyDiagnostics">复制诊断信息</button>
-      <button @click="downloadDiagnostics">导出诊断文件</button>
-      <button v-if="isElectron" @click="openLogFile">打开日志文件</button>
-      <button v-if="releaseUrl" @click="openReleasePage">打开发布页面</button>
+      <button @click="copyDiagnostics">{{ $t('settings.update.diagnostics.copy') }}</button>
+      <button @click="downloadDiagnostics">{{ $t('settings.update.diagnostics.export') }}</button>
+      <button v-if="isElectron" @click="openLogFile">{{
+        $t('settings.update.diagnostics.openLog')
+      }}</button>
+      <button v-if="releaseUrl" @click="openReleasePage">{{
+        $t('settings.update.diagnostics.openRelease')
+      }}</button>
     </div>
 
     <div v-if="actionMessage" class="diagnostic-panel__message">{{ actionMessage }}</div>
@@ -36,9 +44,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, toRefs } from 'vue'
 import { useNormalStateStore } from '../store/state'
+import { useI18n } from 'vue-i18n'
 
 const stateStore = useNormalStateStore()
 const { latestVersion, updateError } = toRefs(stateStore)
+const { t } = useI18n()
 
 // ======== newADD start======
 const appVersion = ref('unknown')
@@ -59,13 +69,13 @@ const installFormat = computed(() => {
 
 const installFormatLabel = computed(() => {
   const labels: Record<string, string> = {
-    development: '开发环境',
+    development: t('settings.update.diagnostics.development'),
     appimage: 'Linux AppImage',
-    'linux-package': 'Linux 安装包',
-    'macos-unsigned': 'macOS 未签名构建',
-    'windows-package': 'Windows 安装包',
-    package: '桌面安装包',
-    browser: '浏览器环境'
+    'linux-package': t('settings.update.diagnostics.linuxPackage'),
+    'macos-unsigned': t('settings.update.diagnostics.macosUnsigned'),
+    'windows-package': t('settings.update.diagnostics.windowsPackage'),
+    package: t('settings.update.diagnostics.desktopPackage'),
+    browser: t('settings.update.diagnostics.browser')
   }
 
   return labels[installFormat.value] || installFormat.value
@@ -140,21 +150,22 @@ const buildDiagnostics = () => {
   const screenSize = `${window.screen.width}x${window.screen.height}`
   const viewportSize = `${window.innerWidth}x${window.innerHeight}`
 
+  const d = 'settings.update.diagnostics'
   return [
-    'VutronMusic Custom 诊断信息',
-    `生成时间: ${new Date().toISOString()}`,
-    `应用版本: ${appVersion.value}`,
-    `最新版本: ${latest}`,
-    `安装格式: ${installFormatLabel.value}`,
-    `运行平台: ${platformLabel.value}`,
-    `开发环境: ${window.env?.isDev ? '是' : '否'}`,
-    `系统语言: ${navigator.language}`,
-    `屏幕尺寸: ${screenSize}`,
-    `窗口尺寸: ${viewportSize}`,
-    `设备像素比: ${window.devicePixelRatio}`,
-    `页面缩放: ${getZoomFactor().toFixed(3)}`,
+    t(`${d}.reportTitle`),
+    `${t(`${d}.generatedAt`)}: ${new Date().toISOString()}`,
+    `${t(`${d}.appVersion`)}: ${appVersion.value}`,
+    `${t(`${d}.latestVersion`)}: ${latest}`,
+    `${t(`${d}.installFormat`)}: ${installFormatLabel.value}`,
+    `${t(`${d}.platform`)}: ${platformLabel.value}`,
+    `${t(`${d}.devEnvironment`)}: ${t(window.env?.isDev ? `${d}.yes` : `${d}.no`)}`,
+    `${t(`${d}.systemLanguage`)}: ${navigator.language}`,
+    `${t(`${d}.screenSize`)}: ${screenSize}`,
+    `${t(`${d}.windowSize`)}: ${viewportSize}`,
+    `${t(`${d}.pixelRatio`)}: ${window.devicePixelRatio}`,
+    `${t(`${d}.pageZoom`)}: ${getZoomFactor().toFixed(3)}`,
     `User-Agent: ${navigator.userAgent}`,
-    `更新检查错误: ${updateError.value || '无'}`
+    `${t(`${d}.updateError`)}: ${updateError.value || t(`${d}.none`)}`
   ].join('\n')
 }
 
@@ -172,7 +183,7 @@ const copyDiagnostics = async () => {
 
   try {
     await navigator.clipboard.writeText(diagnostics)
-    setActionMessage('诊断信息已复制到剪贴板')
+    setActionMessage(t('settings.update.diagnostics.copied'))
   } catch {
     const textarea = document.createElement('textarea')
     textarea.value = diagnostics
@@ -182,7 +193,7 @@ const copyDiagnostics = async () => {
     textarea.select()
     document.execCommand('copy')
     textarea.remove()
-    setActionMessage('诊断信息已复制到剪贴板')
+    setActionMessage(t('settings.update.diagnostics.copied'))
   }
 }
 
@@ -198,12 +209,12 @@ const downloadDiagnostics = () => {
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
-  setActionMessage('诊断文件已导出')
+  setActionMessage(t('settings.update.diagnostics.exported'))
 }
 
 const openLogFile = () => {
   window.mainApi?.send('openLogFile')
-  setActionMessage('已在文件管理器中定位日志文件')
+  setActionMessage(t('settings.update.diagnostics.logLocated'))
 }
 
 const openReleasePage = () => {

@@ -2,6 +2,7 @@ import {
   readOsdCoverControlsVisibility,
   saveOsdCoverControlsVisibility
 } from './osdCoverControlsVisibility'
+import { FEATURE_LANGUAGE_CHANGE_EVENT, resolveFeatureLanguage } from './v327FeatureShared'
 
 const CONTROL_ID = 'osd-cover-controls-visibility-setting'
 const STYLE_ID = 'osd-cover-controls-visibility-setting-style'
@@ -34,15 +35,7 @@ type SupportedLanguage = keyof typeof TEXTS
  * Raises:
  *   设置解析失败时回退到 en，不向外抛出异常。
  */
-const resolveLanguage = (): SupportedLanguage => {
-  try {
-    const settings = JSON.parse(localStorage.getItem('settings') || '{}')
-    const language = settings?.general?.language
-    return language === 'zh' || language === 'zht' ? language : 'en'
-  } catch {
-    return 'en'
-  }
-}
+const resolveLanguage = (): SupportedLanguage => resolveFeatureLanguage()
 
 /** 注入设置项独立样式，避免依赖 SystemSettings.vue 的 scoped 属性。 */
 const injectStyle = () => {
@@ -187,7 +180,16 @@ const initializeOsdCoverControlsSettings = () => {
     const input = document.querySelector<HTMLInputElement>('#showCompactCoverControls')
     if (input) input.checked = event.newValue !== 'false'
   }
+  const handleLanguageChange = () => {
+    const item = document.getElementById(CONTROL_ID)
+    const text = TEXTS[resolveLanguage()]
+    const title = item?.querySelector<HTMLElement>('.title')
+    const description = item?.querySelector<HTMLElement>('.description')
+    if (title) title.textContent = text.title
+    if (description) description.textContent = text.description
+  }
   window.addEventListener('storage', handleStorage)
+  window.addEventListener(FEATURE_LANGUAGE_CHANGE_EVENT, handleLanguageChange)
   ;[0, 80, 240, 600, 1200].forEach((delay) => {
     window.setTimeout(() => {
       ensureControl()
@@ -199,6 +201,7 @@ const initializeOsdCoverControlsSettings = () => {
     () => {
       observer.disconnect()
       window.removeEventListener('storage', handleStorage)
+      window.removeEventListener(FEATURE_LANGUAGE_CHANGE_EVENT, handleLanguageChange)
       if (pendingTimer !== null) window.clearTimeout(pendingTimer)
     },
     { once: true }

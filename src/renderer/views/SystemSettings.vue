@@ -104,8 +104,8 @@
           <!-- ======== newADD start====== -->
           <div class="item">
             <div class="left">
-              <div class="title">主界面字体大小</div>
-              <div class="description">调节主窗口整体字号，不影响桌面歌词和菜单栏歌词</div>
+              <div class="title">{{ $t('settings.general.appFontSize.text') }}</div>
+              <div class="description">{{ $t('settings.general.appFontSize.desc') }}</div>
             </div>
             <div class="right">
               <div class="app-font-size-setting">
@@ -329,7 +329,7 @@
                   format="rgb"
                   show-alpha
                 />
-                <div class="text">背景色</div>
+                <div class="text">{{ $t('settings.osdLyric.colors.background') }}</div>
               </div>
               <div class="color">
                 <pick-colors
@@ -340,7 +340,7 @@
                   format="rgb"
                   show-alpha
                 />
-                <div class="text">已播放颜色</div>
+                <div class="text">{{ $t('settings.osdLyric.colors.played') }}</div>
               </div>
               <div class="color">
                 <pick-colors
@@ -351,7 +351,7 @@
                   format="rgb"
                   show-alpha
                 />
-                <div class="text">未播放颜色</div>
+                <div class="text">{{ $t('settings.osdLyric.colors.unplayed') }}</div>
               </div>
               <div class="color">
                 <pick-colors
@@ -362,7 +362,7 @@
                   format="rgb"
                   show-alpha
                 />
-                <div class="text">阴影颜色</div>
+                <div class="text">{{ $t('settings.osdLyric.colors.shadow') }}</div>
               </div>
             </div>
           </div>
@@ -418,13 +418,17 @@
                 <div class="left">
                   <div class="title"
                     >{{ $t('settings.extension.status') }}：{{
-                      extensionCheckResult ? '已开启' : '已停用'
+                      extensionCheckResult
+                        ? $t('settings.extension.enabled')
+                        : $t('settings.extension.disabled')
                     }}</div
                   >
                   <div class="description"
-                    >如果未安装插件，可点击
-                    <a @click="openOnBrowser('https://github.com/stark81/media-controls')">此处</a>
-                    下载</div
+                    >{{ $t('settings.extension.installPrefix') }}
+                    <a @click="openOnBrowser('https://github.com/stark81/media-controls')">{{
+                      $t('settings.extension.here')
+                    }}</a>
+                    {{ $t('settings.extension.downloadSuffix') }}</div
                   >
                 </div>
               </div>
@@ -496,11 +500,11 @@
                 >
               </div>
               <div class="right" :style="{ minWidth: '120px' }">
-                <button :style="{ marginRight: '16px' }" @click="autoCacheTrack.path = ''"
-                  >重置</button
-                >
+                <button :style="{ marginRight: '16px' }" @click="autoCacheTrack.path = ''">{{
+                  $t('common.reset')
+                }}</button>
                 <button @click="chooseDir(false)">{{
-                  autoCacheTrack.path ? '更改' : '选择'
+                  autoCacheTrack.path ? $t('common.change') : $t('common.select')
                 }}</button>
               </div>
             </div>
@@ -562,8 +566,10 @@
                 <div class="description">{{ $t('localMusic.localMusicFolder.desc') }}</div>
               </div>
               <div class="right">
-                <button class="input-btn" @click="selectDirModal = true">输入</button>
-                <button @click="chooseDir(true)">选择</button>
+                <button class="input-btn" @click="selectDirModal = true">{{
+                  $t('common.input')
+                }}</button>
+                <button @click="chooseDir(true)">{{ $t('common.select') }}</button>
               </div>
             </div>
             <div class="item">
@@ -572,7 +578,7 @@
                 <div class="description">{{ $t('localMusic.clearLocalMusic.desc') }}</div>
               </div>
               <div class="right">
-                <button @click="deleteLocalMusic">确定</button>
+                <button @click="deleteLocalMusic">{{ $t('common.confirm') }}</button>
               </div>
             </div>
             <div class="item">
@@ -673,7 +679,7 @@
                 <div class="title">{{ $t('player.resetPlayer') }}</div>
               </div>
               <div class="right">
-                <button @click="resetPlayer()">确定</button>
+                <button @click="resetPlayer()">{{ $t('common.confirm') }}</button>
               </div>
             </div>
             <div class="item">
@@ -989,7 +995,7 @@
             </div>
           </div>
           <div class="item" :style="{ display: 'block' }">
-            <div>代理协议：</div>
+            <div>{{ $t('settings.misc.proxyProtocol') }}：</div>
           </div>
           <div class="item">
             <div class="left item-row" :class="{ disabled: proxyType === ProxyType.Disable }">
@@ -1008,7 +1014,7 @@
               />
             </div>
             <div class="right">
-              <button @click="updateProxy">更新代理</button>
+              <button @click="updateProxy">{{ $t('settings.misc.updateProxy') }}</button>
             </div>
           </div>
           <div class="item">
@@ -1124,6 +1130,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import imageUrl from '../utils/settingImg.dataurl?raw'
 import { useRouter } from 'vue-router'
 import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d'
+import { setFeatureLanguage, type SupportedLanguage } from '../utils/v327FeatureShared'
 
 const router = useRouter()
 
@@ -1235,8 +1242,8 @@ const cacheSize = computed(() => {
 })
 
 const serviceTitle = (platform: serviceType) => {
-  const title = platform.status === 'logout' ? '登录' : '登出'
-  return `单击选择，右击选择并${title}`
+  const action = t(platform.status === 'logout' ? 'common.login' : 'common.logout')
+  return t('settings.stream.serviceAction', { action })
 }
 
 const handleUpdate = () => {
@@ -1257,7 +1264,7 @@ const loginOrlogout = (platform: serviceType) => {
   if (platform.status === 'logout') {
     router.push(`/streamLogin/${platform.name}`)
   } else {
-    if (confirm(`确定登出${platform.name}吗？`)) {
+    if (confirm(t('settings.stream.logoutConfirm', { service: platform.name }))) {
       handleStreamLogout(platform.name)
     }
   }
@@ -1282,86 +1289,87 @@ const selectLanguage = computed({
   set: (value) => {
     language.value = value
     locale.value = value
+    setFeatureLanguage(value as SupportedLanguage)
   }
 })
 
-const languageOption = [
+const languageOption = computed(() => [
   { label: t('settings.general.language.zhHans'), value: 'zh' },
   { label: t('settings.general.language.zhHant'), value: 'zht' },
   { label: t('settings.general.language.en'), value: 'en' }
-]
+])
 
-const closeOptions = [
+const closeOptions = computed(() => [
   { label: t('settings.general.closeAppOption.ask'), value: 'ask' },
   { label: t('settings.general.closeAppOption.minimizeToTray'), value: 'minimizeToTray' },
   { label: t('settings.general.closeAppOption.exit'), value: 'exit' }
-]
+])
 
-const trayColorOptions = [
+const trayColorOptions = computed(() => [
   { label: t('settings.general.trayColor.color'), value: 0 },
   { label: t('settings.general.trayColor.white'), value: 1 },
   { label: t('settings.general.trayColor.black'), value: 2 },
   { label: t('settings.general.trayColor.auto'), value: 3 }
-]
+])
 
-const typeOptions = [
+const typeOptions = computed(() => [
   { label: t('settings.osdLyric.type.small'), value: 'small' },
   { label: t('settings.osdLyric.type.normal'), value: 'normal' }
-]
+])
 
-const modeOptions = [
+const modeOptions = computed(() => [
   { label: t('settings.osdLyric.mode.oneLine'), value: 'oneLine' },
   { label: t('settings.osdLyric.mode.twoLines'), value: 'twoLines' }
-]
+])
 
-const translateOptions = [
+const translateOptions = computed(() => [
   { label: t('settings.osdLyric.translationMode.none'), value: 'none' },
   { label: t('settings.osdLyric.translationMode.tlyric'), value: 'tlyric' },
   { label: t('settings.osdLyric.translationMode.romalrc'), value: 'rlyric' }
-]
+])
 
 // ======== newADD start======
 // 桌面歌词对齐方式选项。
-const osdLyricAlignOptions = [
+const osdLyricAlignOptions = computed(() => [
   { label: t('settings.osdLyric.textAlign.start'), value: 'left' },
   { label: t('settings.osdLyric.textAlign.center'), value: 'center' },
   { label: t('settings.osdLyric.textAlign.end'), value: 'right' }
-]
+])
 // =========== newADD end ========
 
-const sizeLimitOptions = [
+const sizeLimitOptions = computed(() => [
   { label: t('settings.autoCacheTrack.noLimit'), value: false },
   { label: '500M', value: 512 },
   { label: '1G', value: 1024 },
   { label: '2G', value: 2048 },
   { label: '4G', value: 4096 },
   { label: '8G', value: 8192 }
-]
+])
 
-const musicQualityOptions = [
+const musicQualityOptions = computed(() => [
   { label: t('settings.general.musicQuality.low') + ' - 128Kbps', value: 128000 },
   { label: t('settings.general.musicQuality.medium') + ' - 192Kbps', value: 192000 },
   { label: t('settings.general.musicQuality.high') + ' - 320Kbps', value: 320000 },
   { label: t('settings.general.musicQuality.lossless') + ' - FLAC', value: 'flac' },
   { label: 'Hi-Res', value: 999000 }
-]
+])
 
-const embedCoverArtOption = [
+const embedCoverArtOption = computed(() => [
   { label: t('localMusic.embedCoverArt.none'), value: 0 },
   { label: t('localMusic.embedCoverArt.embedded'), value: 1 },
   { label: t('localMusic.embedCoverArt.path'), value: 2 },
   { label: t('localMusic.embedCoverArt.both'), value: 3 }
-]
+])
 
-const embedStyleOption = [
+const embedStyleOption = computed(() => [
   { label: t('localMusic.embedStyle.ignore'), value: 0 },
   { label: t('localMusic.embedStyle.rewrite'), value: 1 }
-]
+])
 
-const trackInfoOptions = [
+const trackInfoOptions = computed(() => [
   { label: t('settings.general.showTimeOrID.time'), value: 'time' },
   { label: t('settings.general.showTimeOrID.ID'), value: 'ID' }
-]
+])
 
 const devicesOptions = computed(() => {
   return allOutputDevices.value.map((device) => ({
@@ -1370,10 +1378,10 @@ const devicesOptions = computed(() => {
   }))
 })
 
-const orderFirstOptions = [
+const orderFirstOptions = computed(() => [
   { label: t('settings.unblock.sourceSearchMode.orderFirst'), value: true },
   { label: t('settings.unblock.sourceSearchMode.speedFirst'), value: false }
-]
+])
 
 const proxyTypeOption = computed(() => [
   { label: t('settings.misc.proxy.disable'), value: ProxyType.Disable },
@@ -1507,7 +1515,7 @@ const getVersion = () => {
 const clearCache = () => {
   deleteCacheTracks(true).then((res) => {
     if (res) {
-      showToast('清除缓存成功')
+      showToast(t('settings.autoCacheTrack.cacheCleared'))
       getCacheTracksInfo()
     }
   })
@@ -1558,7 +1566,11 @@ const updateProxy = () => {
   proxy.value.type = proxyType.value
   proxy.value.address = proxyServe.value
   proxy.value.port = port.value
-  showToast(proxyType.value === ProxyType.Disable ? '已关闭代理' : '已更新代理设置')
+  showToast(
+    proxyType.value === ProxyType.Disable
+      ? t('settings.misc.proxyDisabled')
+      : t('settings.misc.proxyUpdated')
+  )
 }
 
 const deleteLocalMusic = () => {
@@ -1667,7 +1679,7 @@ const formatShortcut = (shortcut: string) => {
     .replace('Left', '←')
     .replace('Right', '→')
   if (language.value === 'zh') {
-    shortcut = shortcut.replace('Space', '空格')
+    shortcut = shortcut.replace('Space', t('common.space'))
   }
   if (isMac) {
     return shortcut

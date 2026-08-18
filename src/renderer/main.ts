@@ -186,25 +186,25 @@ const publishHeartModeResult = (
 
 const startHeartModeFromLikes = async (requestId = '') => {
   if (heartModeLoading) {
-    publishHeartModeResult(requestId, 'error', '心动模式正在加载，请稍候')
+    publishHeartModeResult(requestId, 'error', i18n.global.t('player.heartMode.loadingWait'))
     return
   }
 
   if (!dataStore.user?.userId) {
-    const message = '心动模式需要先登录网易云音乐'
+    const message = i18n.global.t('player.heartMode.loginRequired')
     stateStore.showToast(message)
     publishHeartModeResult(requestId, 'error', message)
     return
   }
 
   heartModeLoading = true
-  stateStore.showToast('正在根据我喜欢的音乐生成心动模式…')
-  publishHeartModeResult(requestId, 'loading', '正在生成心动模式…')
+  stateStore.showToast(i18n.global.t('player.heartMode.generating'))
+  publishHeartModeResult(requestId, 'loading', i18n.global.t('player.heartMode.loading'))
 
   try {
     const playlistID = await resolveLikedPlaylistID()
     if (!playlistID) {
-      const message = '未找到“我喜欢的音乐”歌单'
+      const message = i18n.global.t('player.heartMode.likedPlaylistMissing')
       stateStore.showToast(message)
       publishHeartModeResult(requestId, 'error', message)
       return
@@ -247,7 +247,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
     const heartModeTrackIDs = Array.from(new Set<number>([seedTrackID, ...recommendedTrackIDs]))
 
     if (heartModeTrackIDs.length <= 1) {
-      const message = '未获取到心动模式推荐歌曲'
+      const message = i18n.global.t('player.heartMode.recommendationMissing')
       stateStore.showToast(message)
       publishHeartModeResult(requestId, 'error', message)
       return
@@ -259,15 +259,15 @@ const startHeartModeFromLikes = async (requestId = '') => {
 
     await playerStore.replacePlaylist('intelligence', playlistID, heartModeTrackIDs, 0)
 
-    const message = `已开启心动模式，共 ${heartModeTrackIDs.length} 首`
+    const message = i18n.global.t('player.heartMode.started', { count: heartModeTrackIDs.length })
     stateStore.showToast(message)
     publishHeartModeResult(requestId, 'success', message)
   } catch (error: any) {
     console.error('[HeartMode] 根据喜欢歌单启动失败：', error)
     const message =
       error?.message === 'LIKED_PLAYLIST_EMPTY'
-        ? '“我喜欢的音乐”歌单为空'
-        : '心动模式加载失败，请稍后重试'
+        ? i18n.global.t('player.heartMode.likedPlaylistEmpty')
+        : i18n.global.t('player.heartMode.failed')
     stateStore.showToast(message)
     publishHeartModeResult(requestId, 'error', message)
   } finally {

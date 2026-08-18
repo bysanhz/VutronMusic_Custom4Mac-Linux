@@ -1,13 +1,13 @@
 <template>
   <BaseModal
     :show="setPlaybackRateModal"
-    title="倍速播放"
+    :title="$t('player.playbackRateModal.title')"
     width="min(28rem, 94vw)"
     min-width="min(22rem, 94vw)"
     :close-fn="close"
   >
     <template #default>
-      <div class="preset-grid" aria-label="倍速预设">
+      <div class="preset-grid" :aria-label="$t('player.playbackRateModal.presets')">
         <button
           v-for="rate in playbackRatePresets"
           :key="rate"
@@ -49,7 +49,9 @@
 
     <template #footer>
       <div class="playback-footer">
-        <span class="current-value">当前倍速: {{ formatCurrentRate(playbackRate) }}</span>
+        <span class="current-value"
+          >{{ $t('player.playbackRateModal.current') }}: {{ formatCurrentRate(playbackRate) }}</span
+        >
         <button type="button" class="reset button" @click="reset">
           {{ $t('player.frequad.reset') }}
         </button>
