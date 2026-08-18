@@ -1,0 +1,13 @@
+run_id=32090348675
+status=in_progress
+conclusion=
+created_at=2026-08-18T02:02:00Z
+html_url=https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/runs/32090348675
+
+job=95571137901|Verify release source|completed|success
+job=95571410885|Build darwin x64|in_progress|
+job=95571410893|Build linux x64|in_progress|
+job=95571410904|Build win32 arm64|in_progress|
+job=95571410952|Build win32 x64|in_progress|
+job=95571410974|Build darwin arm64|completed|success
+job=95571410979|Build linux arm64|in_progress|
