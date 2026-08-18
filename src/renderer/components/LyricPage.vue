@@ -319,21 +319,41 @@ onBeforeUnmount(() => {
 
 .offset {
   position: absolute;
-  background-color: rgba(0, 0, 0, 0.05);
-  padding: 10px 6px;
   top: 50%;
   right: v-bind(offsetPadding);
-  border-radius: 8px;
-  transform: translate(0, -50%);
   z-index: 1;
-  contain: content;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 44px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  transform: translateY(-50%);
+  contain: layout paint;
 
-  .button-icon {
-    margin: unset;
+  :deep(.button-icon) {
+    width: 44px;
+    height: 44px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-radius: 0.75rem;
+    opacity: 0.48;
+    transition: 0.2s;
+  }
+
+  :deep(.button-icon .svg-icon) {
+    width: 22px;
+    height: 22px;
+  }
+
+  :deep(.button-icon:hover) {
+    opacity: 0.88;
   }
 
   .recovery {
-    margin: 10px 0;
+    margin: 0;
   }
 }
 

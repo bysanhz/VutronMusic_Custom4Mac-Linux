@@ -137,6 +137,21 @@ test.describe('desktop feature integration', () => {
     expect(pitch).not.toContain(':marks="marks"')
   })
 
+  test('keeps Classic cover, lyrics and lyric timing tools visually aligned', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const lyricPage = readSource('src/renderer/components/LyricPage.vue')
+
+    expect(commonPlayer).toContain("'calc(100% - 72px)'")
+    expect(commonPlayer).toContain("'24px'")
+    expect(commonPlayer).toContain('flex: 0 1 45%')
+    expect(commonPlayer).toContain('align-items: flex-end')
+    expect(commonPlayer).toContain('flex: 1 1 55%')
+    expect(lyricPage).toContain('width: 44px')
+    expect(lyricPage).toContain('height: 44px')
+    expect(lyricPage).toContain('width: 22px')
+    expect(lyricPage).toContain('height: 22px')
+  })
+
   test('routes Linux update checks through the Electron session network stack', () => {
     const updater = readSource('src/main/checkUpdate.ts')
 

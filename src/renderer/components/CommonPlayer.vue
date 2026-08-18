@@ -165,10 +165,10 @@
         <LyricPage
           v-if="show === 'fullLyric'"
           :text-align="isMobile ? 'center' : align"
-          :container-width="isMobile ? '50vw' : '90%'"
-          :container-margin="isMobile ? '0 auto' : '0 0 0 auto'"
+          :container-width="isMobile ? '50vw' : 'calc(100% - 72px)'"
+          :container-margin="isMobile ? '0 auto' : '0'"
           :hover="hover"
-          :offset-padding="isMobile ? '10vw' : '0'"
+          :offset-padding="isMobile ? '10vw' : '24px'"
           :margin="isMobile ? '4vh' : '40vh'"
         />
         <Comment
@@ -395,14 +395,17 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   display: flex;
-  padding: 0 calc((35vw - min(50vh, 33.33vw)) / 2.3);
+  box-sizing: border-box;
+  padding: 0 clamp(20px, 3vw, 44px);
 
   .left-side {
-    flex: 1;
+    flex: 0 1 45%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
+    box-sizing: border-box;
+    padding-right: clamp(16px, 2.5vw, 36px);
     transition: all 0.35s;
     z-index: 10;
 
@@ -666,7 +669,8 @@ onBeforeUnmount(() => {
   }
 
   .right-side {
-    flex: 1;
+    flex: 1 1 55%;
+    min-width: 0;
     justify-self: center;
     align-items: center;
     height: 100vh;
@@ -739,6 +743,7 @@ onBeforeUnmount(() => {
     flex-direction: column;
     justify-content: center;
     box-sizing: border-box;
+    padding: 0;
     .left-side {
       flex: unset;
       justify-content: unset;
