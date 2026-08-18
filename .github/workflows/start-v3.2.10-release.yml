@@ -1,0 +1,93 @@
+name: Start v3.2.10 release
+
+on:
+  push:
+    branches:
+      - automation/start-v3.2.10-release
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: 632e474a2f978641fc909711f0359c1acdf4300e
+      RELEASE_TAG: v3.2.10
+      RESULT_BRANCH: automation/start-v3.2.10-release-result
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify final release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --tags
+          test "$(git rev-parse origin/main)" = "${TARGET_SHA}"
+          git checkout --detach "${TARGET_SHA}"
+          test "$(node -p "require('./package.json').version")" = '3.2.10'
+          test -f .github/release-notes/v3.2.10.md
+
+      - name: Create exact release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXISTING="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha' 2>/dev/null || true)"
+          if [[ -n "${EXISTING}" ]]; then
+            test "${EXISTING}" = "${TARGET_SHA}"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${RELEASE_TAG}" \
+              -f sha="${TARGET_SHA}" >/dev/null
+          fi
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')" = "${TARGET_SHA}"
+
+      - name: Dispatch formal-source release build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          STARTED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "STARTED_AT=${STARTED_AT}" >> "$GITHUB_ENV"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" -f ref="${RELEASE_TAG}"
+
+      - name: Resolve release workflow run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN=''
+          for _ in $(seq 1 60); do
+            DATA="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?event=workflow_dispatch&per_page=30")"
+            RUN="$(jq -c --arg sha "${TARGET_SHA}" --arg started "${STARTED_AT}" '[.workflow_runs[] | select(.head_sha == $sha and .created_at >= $started)] | sort_by(.created_at) | reverse | .[0] // empty' <<<"${DATA}")"
+            [[ -n "${RUN}" ]] && break
+            sleep 2
+          done
+          [[ -n "${RUN}" ]]
+          RUN_ID="$(jq -r '.id' <<<"${RUN}")"
+          printf 'tag=%s\ntarget_sha=%s\nrun_id=%s\nstatus=%s\nconclusion=%s\nhtml_url=%s\n' \
+            "${RELEASE_TAG}" "${TARGET_SHA}" "${RUN_ID}" \
+            "$(jq -r '.status' <<<"${RUN}")" "$(jq -r '.conclusion // ""' <<<"${RUN}")" \
+            "$(jq -r '.html_url' <<<"${RUN}")" > /tmp/release-run.txt
+          cat /tmp/release-run.txt
+
+      - name: Publish run snapshot branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B "${RESULT_BRANCH}" origin/main
+          cp /tmp/release-run.txt .release-run-v3.2.10.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .release-run-v3.2.10.txt
+          git commit -m 'chore: record v3.2.10 release run'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
