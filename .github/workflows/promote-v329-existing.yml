@@ -1,0 +1,98 @@
+name: Promote existing v3.2.9 artifacts
+
+on:
+  push:
+    branches:
+      - automation/promote-v329-existing
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SHA: f082ae1692a5664007b49b6342ec19f8ca433fe0
+      RELEASE_TAG: v3.2.9
+      RELEASE_RUN_ID: '32090348675'
+      DRAFT_ID: '372050259'
+      DRAFT_TAG: v-draft-202608180215
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout source metadata
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify source and build result
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" | jq -r '.sha')"
+          test "${MAIN_SHA}" = "${EXPECTED_SHA}"
+          test "$(git show "${EXPECTED_SHA}:package.json" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).version))")" = "3.2.9"
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" | jq -r '.object.sha')"
+          test "${TAG_SHA}" = "${EXPECTED_SHA}"
+          RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}")"
+          test "$(jq -r '.status' <<<"${RUN}")" = "completed"
+          test "$(jq -r '.conclusion' <<<"${RUN}")" = "success"
+
+      - name: Verify existing draft and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          DRAFT="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_ID}")"
+          test "$(jq -r '.draft' <<<"${DRAFT}")" = "true"
+          test "$(jq -r '.tag_name' <<<"${DRAFT}")" = "${DRAFT_TAG}"
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_ID}/assets" --paginate | jq -r '.[].name' > /tmp/assets.txt
+          cat /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_mac_arm64.dmg' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_mac_x64.dmg' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_win_arm64.exe' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_win_x64.exe' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_win_x64-Portable.exe' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_linux_arm64.AppImage' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_linux_x86_64.AppImage' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_linux_arm64.deb' /tmp/assets.txt
+          grep -Fxq 'VutronMusic-3.2.9_linux_amd64.deb' /tmp/assets.txt
+          grep -Fxq 'latest.yml' /tmp/assets.txt
+          grep -Fxq 'latest-mac.yml' /tmp/assets.txt
+          grep -Fxq 'latest-linux.yml' /tmp/assets.txt
+          grep -Fxq 'latest-linux-arm64.yml' /tmp/assets.txt
+
+      - name: Promote same draft to formal v3.2.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(git show "${EXPECTED_SHA}:.github/release-notes/v3.2.9.md")"
+          jq -n \
+            --arg tag "${RELEASE_TAG}" \
+            --arg target "${EXPECTED_SHA}" \
+            --arg name "VutronMusic v3.2.9" \
+            --arg body "${BODY}" \
+            '{tag_name:$tag,target_commitish:$target,name:$name,body:$body,draft:false,prerelease:false,make_latest:"true"}' \
+            > /tmp/promote.json
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${DRAFT_ID}" --input /tmp/promote.json > /tmp/formal.json
+          test "$(jq -r '.id' /tmp/formal.json)" = "${DRAFT_ID}"
+          test "$(jq -r '.tag_name' /tmp/formal.json)" = "${RELEASE_TAG}"
+          test "$(jq -r '.draft' /tmp/formal.json)" = "false"
+          test "$(jq -r '.prerelease' /tmp/formal.json)" = "false"
+
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${DRAFT_TAG}" || true
+
+      - name: Verify latest release
+        shell: bash
+        run: |
+          set -euo pipefail
+          FORMAL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          LATEST="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+          test "$(jq -r '.id' <<<"${FORMAL}")" = "${DRAFT_ID}"
+          test "$(jq -r '.draft' <<<"${FORMAL}")" = "false"
+          test "$(jq -r '.prerelease' <<<"${FORMAL}")" = "false"
+          test "$(jq -r '.id' <<<"${LATEST}")" = "${DRAFT_ID}"
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" | jq -r '.object.sha')"
+          test "${TAG_SHA}" = "${EXPECTED_SHA}"
+          echo "release_id=${DRAFT_ID}"
+          echo "release_url=$(jq -r '.html_url' <<<"${FORMAL}")"
