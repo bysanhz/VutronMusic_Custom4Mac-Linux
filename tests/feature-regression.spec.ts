@@ -179,7 +179,9 @@ test.describe('desktop feature integration', () => {
     expect(commonPlayer).toContain("$t('player.moreActions')")
     expect(commonPlayer).toContain("$t(playing ? 'player.pause' : 'player.play')")
     expect(commonPlayer).toContain("$t('player.shuffle')")
-    expect(commonPlayer).toContain('-webkit-line-clamp: 2')
+    expect(commonPlayer).toContain(
+      '-webkit-line-clamp: 2;\n          line-clamp: 2;\n          line-height: 1.28'
+    )
     expect(playPage).toContain("$t('player.playerTheme')")
     expect(playPage).toContain("$t('player.collapsePlayer')")
     expect(playPage).toContain("t('player.showComments')")

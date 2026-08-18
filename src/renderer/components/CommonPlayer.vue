@@ -494,11 +494,9 @@ onBeforeUnmount(() => {
           opacity: 0.88;
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          line-clamp: 2;
-          line-height: 1.28;
+          -webkit-line-clamp: 1;
+          line-clamp: 1;
           overflow: hidden;
-          overflow-wrap: anywhere;
         }
 
         .haslist {
@@ -661,9 +659,11 @@ onBeforeUnmount(() => {
 
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          line-height: 1.28;
           overflow: hidden;
+          overflow-wrap: anywhere;
         }
 
         .haslist {
