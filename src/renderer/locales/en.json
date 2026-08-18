@@ -205,6 +205,8 @@
     "moveToFMTrash": "Dislike",
     "next": "Next",
     "volume": "Volume",
+    "volumeDown": "Volume down",
+    "volumeUp": "Volume up",
     "mute": "Mute",
     "shuffle": "Shuffle",
     "singleLoop": "Single Loop",

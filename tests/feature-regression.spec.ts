@@ -165,6 +165,24 @@ test.describe('desktop feature integration', () => {
     expect(writeComment).toContain('height: 44px')
   })
 
+  test('makes Classic volume step icons functional and self-describing', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+    const zhHant = readSource('src/renderer/locales/zh-hant.json')
+    const en = readSource('src/renderer/locales/en.json')
+
+    expect(commonPlayer).toContain('@click="adjustVolume(-0.05)"')
+    expect(commonPlayer).toContain('@click="adjustVolume(0.05)"')
+    expect(commonPlayer).toContain("$t('player.volumeDown')")
+    expect(commonPlayer).toContain("$t('player.volumeUp')")
+    expect(commonPlayer).toContain('Math.min(1, Math.max(0, volume.value + delta))')
+    expect(commonPlayer).toContain('Math.round(nextVolume * 100) / 100')
+    for (const locale of [zhHans, zhHant, en]) {
+      expect(locale).toContain('\"volumeDown\"')
+      expect(locale).toContain('\"volumeUp\"')
+    }
+  })
+
   test('keeps Classic track metadata readable and player actions self-describing', () => {
     const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
     const playPage = readSource('src/renderer/views/PlayPage.vue')

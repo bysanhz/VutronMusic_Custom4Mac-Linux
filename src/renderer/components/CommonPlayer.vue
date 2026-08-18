@@ -126,7 +126,7 @@
           </div>
           <div class="progress-bar">
             <div class="time"
-              ><button-icon :title="$t('player.volume')">
+              ><button-icon :title="$t('player.volumeDown')" @click="adjustVolume(-0.05)">
                 <svg-icon icon-class="volume-half" /></button-icon
             ></div>
             <div class="slider">
@@ -142,7 +142,7 @@
               />
             </div>
             <div class="time">
-              <button-icon :title="$t('player.volume')">
+              <button-icon :title="$t('player.volumeUp')" @click="adjustVolume(0.05)">
                 <svg-icon icon-class="volume" /></button-icon
             ></div>
           </div>
@@ -345,6 +345,11 @@ const formatTime = (time: number) => {
   const minutes = Math.floor(time / 60)
   const remainingSeconds = Math.ceil(time % 60)
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+const adjustVolume = (delta: number) => {
+  const nextVolume = Math.min(1, Math.max(0, volume.value + delta))
+  volume.value = Math.round(nextVolume * 100) / 100
 }
 
 const likeTrack = () => {
