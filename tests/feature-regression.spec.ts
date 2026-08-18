@@ -185,6 +185,19 @@ test.describe('desktop feature integration', () => {
     }
   })
 
+  test('keeps injected settings controls theme-aware and activates custom accent colors', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
+
+    expect(settings).toContain('@update:value="selectCustomizeColor"')
+    expect(settings).toContain('const selectCustomizeColor = (value: string) => {')
+    expect(settings).toContain('customizeColor.value.color = value')
+    expect(settings).toContain('changeColor(customizeColor.value)')
+    expect(sharedFeatures).toContain('color: var(--color-text);')
+    expect(sharedFeatures).toContain('background: var(--color-secondary-bg);')
+    expect(sharedFeatures).toContain('.vutronmusic-v327-controls button {')
+  })
+
   test('makes Classic volume step icons functional and self-describing', () => {
     const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
     const zhHans = readSource('src/renderer/locales/zh-hans.json')
