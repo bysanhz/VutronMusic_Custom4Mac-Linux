@@ -1,0 +1,104 @@
+name: Apply toggle and dock grouping fix
+
+on:
+  push:
+    branches:
+      - automation/fix-toggle-dock-grouping
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: 943da07cf3cb5d5c8f9aff11652f90ed4af02f2d
+      RESULT_BRANCH: automation/fix-toggle-dock-grouping-result
+    steps:
+      - name: Checkout helper branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          ACTUAL_SHA="$(git rev-parse origin/main)"
+          test "${ACTUAL_SHA}" = "${TARGET_SHA}"
+
+      - name: Apply focused patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/scripts/apply_toggle_dock_grouping_fix.py /tmp/apply_toggle_dock_grouping_fix.py
+          git checkout --detach "${TARGET_SHA}"
+          python3 /tmp/apply_toggle_dock_grouping_fix.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        run: >-
+          yarn prettier
+          src/main/index.ts
+          src/renderer/views/SystemSettings.vue
+          src/renderer/utils/v327FeatureShared.ts
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t FILES < <(git diff --name-only "${TARGET_SHA}" | sort)
+          printf '%s\n' "${FILES[@]}"
+          EXPECTED=(
+            src/main/index.ts
+            src/renderer/utils/v327FeatureShared.ts
+            src/renderer/views/SystemSettings.vue
+            tests/feature-regression.spec.ts
+          )
+          mapfile -t EXPECTED_SORTED < <(printf '%s\n' "${EXPECTED[@]}" | sort)
+          diff -u <(printf '%s\n' "${EXPECTED_SORTED[@]}") <(printf '%s\n' "${FILES[@]}")
+          grep -F "app.commandLine.appendSwitch('class', 'vutron')" src/main/index.ts
+          grep -F 'border-radius: 999px;' src/renderer/views/SystemSettings.vue
+          grep -F 'border-radius: 50%;' src/renderer/views/SystemSettings.vue
+
+      - name: Commit verified result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/main/index.ts \
+            src/renderer/views/SystemSettings.vue \
+            src/renderer/utils/v327FeatureShared.ts \
+            tests/feature-regression.spec.ts
+          git commit -m 'fix: unify toggles and Linux dock grouping'
+          git branch -f "${RESULT_BRANCH}" HEAD
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
