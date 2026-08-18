@@ -3,7 +3,7 @@
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
         <button-icon
-          title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          :title="$t('player.fullPlayer.lyricOffsetAdvance')"
           @click="setOffset(+0.5, $event)"
         >
           <svg-icon icon-class="back5s" />
@@ -12,7 +12,7 @@
           <svg-icon icon-class="recovery" />
         </button-icon>
         <button-icon
-          title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          :title="$t('player.fullPlayer.lyricOffsetDelay')"
           @click="setOffset(-0.5, $event)"
         >
           <svg-icon icon-class="forward5s" />
@@ -56,6 +56,9 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricLine from './LyricLine.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   hover: { type: Boolean, default: false },
@@ -109,11 +112,11 @@ const highlight = computed(() => Math.min(currentIndex.value, lyrics.value.lengt
 const offset = computed(() => {
   const lrcOffset = globalLyricOffset.value
   if (lrcOffset === 0) {
-    return '所有歌曲：未调整'
+    return t('player.fullPlayer.lyricOffsetNone')
   } else if (lrcOffset > 0) {
-    return `所有歌曲：提前${lrcOffset}s`
+    return t('player.fullPlayer.lyricOffsetAhead', { seconds: lrcOffset })
   } else {
-    return `所有歌曲：延后${Math.abs(lrcOffset)}s`
+    return t('player.fullPlayer.lyricOffsetBehind', { seconds: Math.abs(lrcOffset) })
   }
 })
 // =========== newADD end ========

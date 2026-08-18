@@ -165,6 +165,26 @@ test.describe('desktop feature integration', () => {
     expect(writeComment).toContain('height: 44px')
   })
 
+  test('uses the Classic track-info space and labels player controls', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const playPage = readSource('src/renderer/views/PlayPage.vue')
+    const lyricPage = readSource('src/renderer/components/LyricPage.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+
+    expect(commonPlayer).toContain(':title="currentTrack?.name || source"')
+    expect(commonPlayer).toContain(':title="`${artist.name} - ${album.name}`"')
+    expect(commonPlayer).toContain('-webkit-line-clamp: 2')
+    expect(commonPlayer).toContain("$t('player.fullPlayer.moreOptions')")
+    expect(commonPlayer).toContain("$t('player.shuffle')")
+    expect(commonPlayer).toContain("playing ? 'player.pause' : 'player.play'")
+    expect(playPage).toContain("$t('player.fullPlayer.theme')")
+    expect(playPage).toContain("t('player.fullPlayer.viewComments')")
+    expect(lyricPage).toContain("$t('player.fullPlayer.lyricOffsetAdvance')")
+    expect(lyricPage).toContain("t('player.fullPlayer.lyricOffsetNone')")
+    expect(zhHans).toContain('"fullPlayer"')
+    expect(zhHans).toContain('"moreOptions": "更多操作"')
+  })
+
   test('routes Linux update checks through the Electron session network stack', () => {
     const updater = readSource('src/main/checkUpdate.ts')
 

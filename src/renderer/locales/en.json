@@ -219,6 +219,23 @@
     "repeatTrack": "Repeat Track",
     "resetPlayer": "Reset Player State",
     "like": "Like",
+    "fullPlayer": {
+      "translationMode": "Switch lyric translation/romanization",
+      "moreOptions": "More options",
+      "theme": "Player theme",
+      "collapse": "Collapse player",
+      "resetTheme": "Reset player theme",
+      "changeScene": "Change scene",
+      "viewComments": "View comments",
+      "backToLyrics": "Back to lyrics",
+      "showSelectedLyrics": "Show selected lyrics",
+      "showFullLyrics": "Show full lyrics",
+      "lyricOffsetAdvance": "Advance 0.5 s; hold Shift for 0.1 s fine adjustment (all tracks)",
+      "lyricOffsetDelay": "Delay 0.5 s; hold Shift for 0.1 s fine adjustment (all tracks)",
+      "lyricOffsetNone": "All tracks: no adjustment",
+      "lyricOffsetAhead": "All tracks: {seconds}s earlier",
+      "lyricOffsetBehind": "All tracks: {seconds}s later"
+    },
     "getFMTimeout": "Failed to fetch Personal FM (timeout)",
     "getFMOverCount": "Too many retries for Personal FM; switch manually.",
     "converlution": {

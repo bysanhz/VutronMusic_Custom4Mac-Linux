@@ -219,6 +219,23 @@
     "repeatTrack": "單曲循環",
     "resetPlayer": "重設播放器狀態",
     "like": "喜歡",
+    "fullPlayer": {
+      "translationMode": "切換歌詞翻譯/音譯",
+      "moreOptions": "更多操作",
+      "theme": "播放器主題",
+      "collapse": "收起播放器",
+      "resetTheme": "重設播放器主題",
+      "changeScene": "切換場景",
+      "viewComments": "查看評論",
+      "backToLyrics": "返回歌詞",
+      "showSelectedLyrics": "顯示精選歌詞",
+      "showFullLyrics": "顯示完整歌詞",
+      "lyricOffsetAdvance": "提前 0.5 秒；按住 Shift 精調 0.1 秒（套用至所有歌曲）",
+      "lyricOffsetDelay": "延後 0.5 秒；按住 Shift 精調 0.1 秒（套用至所有歌曲）",
+      "lyricOffsetNone": "所有歌曲：未調整",
+      "lyricOffsetAhead": "所有歌曲：提前 {seconds}s",
+      "lyricOffsetBehind": "所有歌曲：延後 {seconds}s"
+    },
     "getFMTimeout": "取得私人FM逾時",
     "getFMOverCount": "取得私人FM時重試次數過多，請手動切換下一首",
     "converlution": {

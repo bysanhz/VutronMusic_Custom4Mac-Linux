@@ -19,7 +19,11 @@
           <div class="top-part">
             <div class="top-right">
               <div class="buttons">
-                <div class="transPro" @click="switchTransitionMode">
+                <div
+                  class="transPro"
+                  :title="$t('player.fullPlayer.translationMode')"
+                  @click="switchTransitionMode"
+                >
                   <label v-show="hasTLyric" :class="{ active: nTranslationMode === 'tlyric' }"
                     >译</label
                   >
@@ -42,10 +46,18 @@
                 >
                   <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
                 </button-icon>
-                <button-icon class="button" @click="addTrackToPlaylist"
+                <button-icon
+                  class="button"
+                  :title="$t('player.addToPlaylist')"
+                  @click="addTrackToPlaylist"
                   ><SvgIcon icon-class="plus"
                 /></button-icon>
-                <button-icon class="button" :prevent-blur="true" @click="showContextMenu">
+                <button-icon
+                  class="button"
+                  :title="$t('player.fullPlayer.moreOptions')"
+                  :prevent-blur="true"
+                  @click="showContextMenu"
+                >
                   <SvgIcon icon-class="options" />
                 </button-icon>
               </div>
@@ -97,7 +109,7 @@
               /></button-icon>
               <button-icon
                 id="play"
-                :title="$t(playing ? 'player.play' : 'player.pause')"
+                :title="$t(playing ? 'player.pause' : 'player.play')"
                 @click="playOrPause"
                 ><svg-icon :icon-class="playing ? 'pause' : 'play'"
               /></button-icon>
@@ -105,13 +117,17 @@
                 ><svg-icon icon-class="next"
               /></button-icon>
             </div>
-            <button-icon :class="{ active: shuffle }" @click="shuffle = !shuffle"
+            <button-icon
+              :class="{ active: shuffle }"
+              :title="$t('player.shuffle')"
+              @click="shuffle = !shuffle"
               ><svg-icon icon-class="shuffle"
             /></button-icon>
           </div>
           <div class="progress-bar">
             <div class="time"
-              ><button-icon> <svg-icon icon-class="volume-half" /></button-icon
+              ><button-icon :title="$t('player.volume')">
+                <svg-icon icon-class="volume-half" /></button-icon
             ></div>
             <div class="slider">
               <VueSlider
@@ -126,19 +142,20 @@
               />
             </div>
             <div class="time">
-              <button-icon> <svg-icon icon-class="volume" /></button-icon
+              <button-icon :title="$t('player.volume')">
+                <svg-icon icon-class="volume" /></button-icon
             ></div>
           </div>
           <!-- ======== newADD start====== -->
           <div class="bottom-track-info">
             <div
               :class="['title', { haslist: hasListSource() }]"
-              :title="source"
+              :title="currentTrack?.name || source"
               @click="hasListSource() && goToList()"
             >
               <span>{{ currentTrack?.name }}</span>
             </div>
-            <div class="subtitle">
+            <div class="subtitle" :title="`${artist.name} - ${album.name}`">
               <router-link
                 v-if="artist.matched !== false"
                 :to="`/artist/${artist.id}`"
@@ -621,7 +638,7 @@ onBeforeUnmount(() => {
         width: 100%;
         min-height: 64px;
         margin-top: 22px;
-        padding: 10px 14px;
+        padding: 11px 14px;
         box-sizing: border-box;
 
         border-radius: 10px;
@@ -630,7 +647,7 @@ onBeforeUnmount(() => {
 
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
 
         .title {
           font-size: 20px;
@@ -639,8 +656,8 @@ onBeforeUnmount(() => {
 
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           overflow: hidden;
         }
 
@@ -659,8 +676,8 @@ onBeforeUnmount(() => {
 
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           overflow: hidden;
         }
       }
