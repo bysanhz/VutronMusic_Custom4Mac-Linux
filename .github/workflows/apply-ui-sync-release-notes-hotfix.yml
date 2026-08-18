@@ -1,0 +1,158 @@
+name: Apply playback and settings UI hotfix
+
+on:
+  push:
+    branches:
+      - automation/fix-ui-sync-release-notes
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-22.04
+    env:
+      EXPECTED_MAIN_SHA: b8c44a2fe6d8d0a24124d83da40dbb6a485d8aeb
+      RESULT_BRANCH: automation/fix-ui-sync-release-notes-result
+
+    steps:
+      - name: Checkout exact main source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+
+      - name: Apply playback and UI fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          constants_path = Path('src/main/utils/Constants.ts')
+          constants = constants_path.read_text()
+          marker = "import '../osdPlaybackBridge'\n"
+          if constants.count(marker) != 1:
+              raise SystemExit('Constants.ts bridge import mismatch')
+          constants_path.write_text(constants.replace(marker, '', 1))
+
+          latest_path = Path('src/renderer/components/LatestVersion.vue')
+          latest = latest_path.read_text()
+          old_template = '''<template>\n  <div\n    v-if="latestVersion?.updateInfo?.releaseNotes"\n    v-same-html="latestVersion?.updateInfo?.releaseNotes || ''"\n    class="update-release"\n  ></div>\n'''
+          new_template = '''<template>\n  <div v-if="releaseNoteItems.length" class="update-release">\n    <ul class="update-release__list">\n      <li v-for="(item, index) in releaseNoteItems" :key="`${index}-${item}`">\n        {{ item }}\n      </li>\n    </ul>\n    <div v-if="hasMoreReleaseNotes" class="update-release__more">\n      更多更新内容可在发布页面查看\n    </div>\n  </div>\n'''
+          if latest.count(old_template) != 1:
+              raise SystemExit('LatestVersion template mismatch')
+          latest = latest.replace(old_template, new_template, 1)
+
+          release_marker = "const releaseUrl = computed(() => latestVersion.value?.releaseUrl || '')\n"
+          release_logic = '''const releaseUrl = computed(() => latestVersion.value?.releaseUrl || '')\n\nconst MAX_RELEASE_NOTE_ITEMS = 8\nconst MAX_RELEASE_NOTE_ITEM_LENGTH = 120\n\nconst markdownToPlainText = (value: string): string =>\n  value\n    .replace(/!\\[([^\\]]*)\\]\\([^)]+\\)/g, '$1')\n    .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/[`*_~]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim()\n\nconst allReleaseNoteItems = computed(() => {\n  const releaseNotes = latestVersion.value?.updateInfo?.releaseNotes\n  const source = Array.isArray(releaseNotes)\n    ? releaseNotes\n        .map((entry: any) =>\n          typeof entry === 'string' ? entry : String(entry?.note || entry?.version || '')\n        )\n        .join('\\n')\n    : typeof releaseNotes === 'string'\n      ? releaseNotes\n      : ''\n\n  const items: string[] = []\n  let section = ''\n\n  source.split(/\\r?\\n/).forEach((rawLine) => {\n    const line = rawLine.trim()\n    if (!line || /^```/.test(line) || /^-{3,}$/.test(line)) return\n\n    const heading = line.match(/^#{1,6}\\s+(.+)$/)\n    if (heading) {\n      const title = markdownToPlainText(heading[1] || '')\n      if (/^VutronMusic\\b/i.test(title) || /^v?\\d+\\.\\d+/i.test(title)) {\n        section = ''\n      } else {\n        section = title\n      }\n      return\n    }\n\n    const isBullet = /^[-*+]\\s+/.test(line) || /^\\d+[.)]\\s+/.test(line)\n    const body = markdownToPlainText(\n      line.replace(/^[-*+]\\s+/, '').replace(/^\\d+[.)]\\s+/, '')\n    )\n    if (!body) return\n\n    const combined = isBullet && section ? `${section}：${body}` : body\n    const concise =\n      combined.length > MAX_RELEASE_NOTE_ITEM_LENGTH\n        ? `${combined.slice(0, MAX_RELEASE_NOTE_ITEM_LENGTH - 1)}…`\n        : combined\n\n    if (!items.includes(concise)) items.push(concise)\n  })\n\n  return items\n})\n\nconst releaseNoteItems = computed(() => allReleaseNoteItems.value.slice(0, MAX_RELEASE_NOTE_ITEMS))\nconst hasMoreReleaseNotes = computed(\n  () => allReleaseNoteItems.value.length > MAX_RELEASE_NOTE_ITEMS\n)\n'''
+          if latest.count(release_marker) != 1:
+              raise SystemExit('LatestVersion release marker mismatch')
+          latest = latest.replace(release_marker, release_logic, 1)
+
+          old_release_style = '''.update-release {\n  width: 100%;\n  display: table;\n  border-radius: 12px;\n  padding: 10px 10px;\n  background-color: var(--color-secondary-bg);\n\n  h1,\n  h2,\n  h3 {\n    padding: 0.3em 0;\n    border-bottom: 2px solid var(--color-secondary-bg-for-transparent);\n  }\n\n  ul,\n  ol {\n    padding: 0.5em 0 0.5em 2em;\n  }\n}\n'''
+          new_release_style = '''.update-release {\n  width: 100%;\n  box-sizing: border-box;\n  border-radius: 12px;\n  padding: 14px 16px;\n  background-color: var(--color-secondary-bg);\n}\n\n.update-release__list {\n  display: grid;\n  gap: 8px;\n  margin: 0;\n  padding-left: 1.25em;\n}\n\n.update-release__list li {\n  line-height: 1.55;\n  opacity: 0.88;\n}\n\n.update-release__more {\n  margin-top: 10px;\n  font-size: 0.86em;\n  opacity: 0.62;\n}\n'''
+          if latest.count(old_release_style) != 1:
+              raise SystemExit('LatestVersion release style mismatch')
+          latest = latest.replace(old_release_style, new_release_style, 1)
+
+          old_diag_button = '''  button {\n    min-width: 116px;\n  }\n'''
+          new_diag_button = '''  button {\n    min-width: 116px;\n    min-height: 38px;\n    padding: 8px 12px;\n    border: 0;\n    border-radius: 10px;\n    background: var(--color-secondary-bg);\n    color: var(--color-text);\n    font: inherit;\n    font-weight: 600;\n    cursor: pointer;\n    transition:\n      background 0.2s ease,\n      color 0.2s ease,\n      transform 0.12s ease;\n\n    &:hover {\n      background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);\n      color: var(--color-primary);\n    }\n\n    &:active {\n      transform: scale(0.96);\n    }\n  }\n'''
+          if latest.count(old_diag_button) != 1:
+              raise SystemExit('LatestVersion diagnostic button mismatch')
+          latest = latest.replace(old_diag_button, new_diag_button, 1)
+          latest_path.write_text(latest)
+
+          shared_path = Path('src/renderer/utils/v327FeatureShared.ts')
+          shared = shared_path.read_text()
+          old_button = '''    .vutronmusic-v327-controls button {\n      min-height: 36px;\n      white-space: nowrap;\n    }\n'''
+          new_button = '''    .vutronmusic-v327-controls button {\n      min-height: 38px;\n      box-sizing: border-box;\n      padding: 8px 12px;\n      border: 0;\n      border-radius: 10px;\n      background: var(--color-secondary-bg);\n      color: var(--color-text);\n      font: inherit;\n      font-weight: 600;\n      white-space: nowrap;\n      cursor: pointer;\n      transition:\n        background 0.2s ease,\n        color 0.2s ease,\n        transform 0.12s ease;\n    }\n\n    .vutronmusic-v327-controls button:hover {\n      background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);\n      color: var(--color-primary);\n    }\n\n    .vutronmusic-v327-controls button:active {\n      transform: scale(0.96);\n    }\n'''
+          if shared.count(old_button) != 1:
+              raise SystemExit('v327 button marker mismatch')
+          shared = shared.replace(old_button, new_button, 1)
+
+          old_draft = '''    .vutronmusic-osd-preset-draft-row button {\n      min-height: 28px;\n      padding: 3px 9px;\n      border-radius: 7px;\n    }\n'''
+          new_draft = '''    .vutronmusic-osd-preset-draft-row button {\n      min-height: 38px;\n      padding: 8px 12px;\n      border-radius: 10px;\n    }\n'''
+          if shared.count(old_draft) != 1:
+              raise SystemExit('v327 draft button mismatch')
+          shared = shared.replace(old_draft, new_draft, 1)
+
+          old_transfer = '''    .vutronmusic-osd-preset-transfer-actions button {\n      min-height: 28px;\n      padding: 3px 9px;\n      border-radius: 7px;\n    }\n'''
+          new_transfer = '''    .vutronmusic-osd-preset-transfer-actions button {\n      min-height: 38px;\n      padding: 8px 12px;\n      border-radius: 10px;\n    }\n'''
+          if shared.count(old_transfer) != 1:
+              raise SystemExit('v327 transfer button mismatch')
+          shared_path.write_text(shared.replace(old_transfer, new_transfer, 1))
+
+          tests_path = Path('tests/feature-regression.spec.ts')
+          tests = tests_path.read_text()
+          test_marker = "  test('registers diagnostics and playback-history integrations', () => {\n"
+          if tests.count(test_marker) != 1:
+              raise SystemExit('feature regression marker mismatch')
+          additions = '''  test('keeps desktop lyric play-pause on exactly one IPC path', () => {\n    const constants = readSource('src/main/utils/Constants.ts')\n    const ipcs = readSource('src/main/IPCs.ts')\n\n    expect(constants).not.toContain("import '../osdPlaybackBridge'")\n    expect(ipcs).toContain("message === 'playOrPauseFromOsd'")\n    expect(ipcs).toContain("win.webContents.send('play-from-osd')")\n  })\n\n  test('formats release notes as concise bullet points without raw markdown headings', () => {\n    const latestVersion = readSource('src/renderer/components/LatestVersion.vue')\n\n    expect(latestVersion).toContain('releaseNoteItems')\n    expect(latestVersion).toContain('MAX_RELEASE_NOTE_ITEMS = 8')\n    expect(latestVersion).toContain('<li v-for="(item, index) in releaseNoteItems"')\n    expect(latestVersion).not.toContain('v-same-html="latestVersion?.updateInfo?.releaseNotes')\n  })\n\n  test('uses the rounded settings button style for dynamically mounted controls', () => {\n    const shared = readSource('src/renderer/utils/v327FeatureShared.ts')\n    const latestVersion = readSource('src/renderer/components/LatestVersion.vue')\n\n    expect(shared).toContain('.vutronmusic-v327-controls button {')\n    expect(shared).toContain('border-radius: 10px;')\n    expect(shared).toContain('background: var(--color-secondary-bg);')\n    expect(latestVersion).toContain('.diagnostic-panel__actions')\n    expect(latestVersion).toContain('border-radius: 10px;')\n  })\n\n'''
+          tests_path.write_text(tests.replace(test_marker, additions + test_marker, 1))
+          PY
+          git rm src/main/osdPlaybackBridge.ts
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format touched files
+        run: >-
+          yarn prettier
+          src/main/utils/Constants.ts
+          src/renderer/components/LatestVersion.vue
+          src/renderer/utils/v327FeatureShared.ts
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Check formatting
+        run: yarn run format:check
+
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
+
+      - name: Verify focused diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t FILES < <(git diff --name-only)
+          printf '%s\n' "${FILES[@]}"
+          test "${#FILES[@]}" -eq 5
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/osdPlaybackBridge.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/main/utils/Constants.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/renderer/components/LatestVersion.vue'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'src/renderer/utils/v327FeatureShared.ts'
+          printf '%s\n' "${FILES[@]}" | grep -Fxq 'tests/feature-regression.spec.ts'
+
+      - name: Commit verified result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "${RESULT_BRANCH}"
+          git add -A
+          git commit -m 'fix: sync playback state and refine settings UI'
+          git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
