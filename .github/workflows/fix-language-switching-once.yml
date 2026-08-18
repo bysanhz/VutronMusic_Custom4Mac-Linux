@@ -22,6 +22,25 @@ jobs:
       - name: Apply language switching fixes
         run: python tools/fix-i18n-switching-once.py
 
+      - name: Update legacy speed and pitch regression expectations
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/feature-regression.spec.ts')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              "expect(playback).toContain('title=\"倍速播放\"')": "expect(playback).toContain(\"$t('player.playbackRateModal.title')\")",
+              "expect(playback).toContain('当前倍速:')": "expect(playback).toContain(\"$t('player.playbackRateModal.current')\")",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise RuntimeError(f'missing legacy assertion: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Remove one-time helpers before validation
         run: |
           rm -f tools/fix-i18n-switching-once.py
