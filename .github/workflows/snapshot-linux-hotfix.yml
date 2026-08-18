@@ -13,7 +13,7 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     env:
-      TARGET_SHA: 334a60846f638ecac2fcb998fb17bb2fe036d00d
+      TARGET_SHA: b4ea7faf64038bc416aa6c3748bd9b9fda750b44
       RESULT_BRANCH: automation/snapshot-linux-hotfix-result
     steps:
       - uses: actions/checkout@v6
@@ -49,5 +49,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B "${RESULT_BRANCH}"
           git add .hotfix-run.txt
-          git commit -m 'chore: snapshot OSD UI hotfix run'
+          git commit -m 'chore: snapshot toggle dock fix run'
           git push --force origin "HEAD:refs/heads/${RESULT_BRANCH}"
