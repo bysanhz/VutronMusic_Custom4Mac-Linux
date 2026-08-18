@@ -19,6 +19,20 @@ jobs:
           ref: automation/fix-player-info-tooltips
           fetch-depth: 0
 
+      - name: Repair helper clamp guard
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/fix-player-info-tooltips-once.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'if block.count("-webkit-line-clamp: 1;") != 2 or block.count("line-clamp: 1;") != 2:\n    raise RuntimeError("Unexpected bottom-track-info clamp structure")'
+          new = 'if block.count("-webkit-line-clamp: 1;") != 2:\n    raise RuntimeError("Unexpected bottom-track-info clamp structure")'
+          if old not in text:
+              raise SystemExit('helper clamp guard pattern not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Apply player info and tooltip fixes
         run: python tools/fix-player-info-tooltips-once.py
 
