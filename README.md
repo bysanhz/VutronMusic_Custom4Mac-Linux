@@ -43,7 +43,68 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 | Windows | x64 | 安装版 / Portable | 支持应用内更新 |
 | Windows | ARM64 | 安装版 | 支持应用内更新 |
 
-macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，下载后可能被 Gatekeeper 判定为“已损坏”或阻止打开。macOS 用户推荐在自己的电脑上拉取源码并按本文“macOS 本机构建”一节生成与当前机器架构匹配的应用。仓库不会要求用户安装或配置签名证书。
+macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，下载后可能被 Gatekeeper 判定为“已损坏”或阻止打开。你可以选择按下方“macOS 下载版安装”处理单个 VutronMusic 应用，也可以在自己的电脑上拉取源码并按本文“macOS 本机构建”一节生成与当前机器架构匹配的应用。仓库不会要求用户安装或配置签名证书。
+
+### macOS 下载版安装（未签名 DMG）
+
+> 仅建议对从本仓库 [Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases) 下载、并且你确认来源可信的 VutronMusic 安装包执行以下操作。下面的方法只移除 VutronMusic 自身的下载隔离属性，不会关闭 macOS 全局 Gatekeeper。
+
+先根据 Mac 架构选择正确的安装包：
+
+- Apple Silicon（M1/M2/M3/M4/M5 等）下载 `arm64` DMG；
+- Intel Mac 下载 `x64` DMG。
+
+不确定当前机器架构时，在“终端”中执行：
+
+```bash
+uname -m
+```
+
+输出 `arm64` 表示 Apple Silicon；输出 `x86_64` 表示 Intel。
+
+下载完成后：
+
+1. 双击打开 DMG；
+2. 将 `VutronMusic` 拖到 `Applications`（应用程序）文件夹；
+3. 如果首次启动时出现“VutronMusic 已损坏，无法打开”或被 macOS 阻止，请打开“终端”并执行：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/VutronMusic.app
+open /Applications/VutronMusic.app
+```
+
+如果第一条命令提示权限不足，再执行：
+
+```bash
+sudo xattr -dr com.apple.quarantine /Applications/VutronMusic.app
+open /Applications/VutronMusic.app
+```
+
+`sudo` 会要求输入当前 macOS 用户密码；终端输入密码时不会显示字符，这是正常现象。
+
+如果已经安装过旧版本，请确认实际应用路径仍为：
+
+```text
+/Applications/VutronMusic.app
+```
+
+也可以检查安装包架构是否与当前 Mac 匹配：
+
+```bash
+file /Applications/VutronMusic.app/Contents/MacOS/VutronMusic
+```
+
+Apple Silicon 版本应包含 `arm64`，Intel 版本应包含 `x86_64`。
+
+上述 `xattr` 命令的作用是删除 Chrome、Safari 等浏览器为互联网下载文件添加的 `com.apple.quarantine` 隔离属性。由于当前 GitHub Release 的 macOS 包没有 Developer ID 签名与 Apple 公证，Gatekeeper 可能因此拒绝启动。此方法仅针对 `/Applications/VutronMusic.app`，不会降低其他应用的系统安全检查级别。
+
+**不建议**为了运行本应用执行关闭全局 Gatekeeper 的命令，例如：
+
+```bash
+sudo spctl --master-disable
+```
+
+如果仍然无法启动，请保留终端中的错误信息，并在本仓库 Issues 中附上 macOS 版本、机器架构和 VutronMusic 版本。
 
 ## 定制功能
 
@@ -300,7 +361,7 @@ git push origin "v${VERSION}"
 - 修改 preload、桌面歌词窗口或 Electron 主进程后，需要完整退出并重新启动；
 - 播放页右键菜单包含本曲歌词时间校正、播放历史与队列、睡眠定时器等入口；
 - Linux Deb 和未签名 macOS 构建只负责检查新版本，不执行静默安装；
-- macOS 下载版 DMG 被 Gatekeeper 拦截时，优先使用本文的本机构建流程；
+- macOS 下载版 DMG 被 Gatekeeper 拦截时，请按本文“macOS 下载版安装（未签名 DMG）”处理，或使用本机构建流程；
 - 出现问题时，可在设置页复制一键诊断快照并打开日志文件；
 - 网易云账号登录和通用功能可参考[上游 Wiki](https://github.com/stark81/VutronMusic/wiki/)。
 
