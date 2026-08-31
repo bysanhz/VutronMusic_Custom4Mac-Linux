@@ -8,6 +8,7 @@ import './assets/css/osdlyric.scss'
 import { initializeSmoothOsdWindowScale } from './utils/smoothOsdWindowScale'
 import { initializeOsdFontRendering } from './utils/osdFontRendering'
 import { initializeOsdCoverControlsVisibility } from './utils/osdCoverControlsVisibility'
+import { initializeOsdLyricSyncGuard } from './utils/osdLyricSyncGuard'
 import { useOsdLyricStore } from './store/osdLyric'
 // =========== newADD end ========
 
@@ -43,6 +44,8 @@ declare global {
 initializeSmoothOsdWindowScale()
 // 封面控件可见性独立于锁定状态，并在设置修改后实时同步。
 initializeOsdCoverControlsVisibility()
+// 桌面歌词使用独立播放时钟兜底，并周期性向主播放器校正真实播放进度。
+initializeOsdLyricSyncGuard()
 // =========== newADD end ========
 
 const app = createApp(OSDLyric)
