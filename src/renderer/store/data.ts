@@ -22,6 +22,10 @@ interface User {
   [key: string]: any
 }
 
+const sameTrackID = (left: number | string, right: number | string) => {
+  return String(left) === String(right)
+}
+
 export const useDataStore = defineStore(
   'data',
   () => {
@@ -64,27 +68,58 @@ export const useDataStore = defineStore(
 
     const { showToast } = useNormalStateStore()
 
+    /**
+     * 刷新用户歌单，并保留最后一次成功获取到的“我喜欢的音乐”歌单 ID。
+     *
+     * 网络请求失败或返回空数据时不清空本地缓存，避免启动阶段的短暂 API
+     * 异常把后续“喜欢歌曲详情”请求引导到无效的歌单 ID。
+     */
     const fetchLikedPlaylist = async () => {
-      if (!user.value.userId) return
-      await userPlaylist({
-        uid: user.value.userId,
-        limit: 2000,
-        timestamp: new Date().getTime()
-      }).then((res) => {
-        if (res.playlist) {
-          liked.playlists = res.playlist
-          likedSongPlaylistID.value = res.playlist[0].id
+      if (!user.value.userId) return false
+
+      try {
+        const res = await userPlaylist({
+          uid: user.value.userId,
+          limit: 2000,
+          timestamp: new Date().getTime()
+        })
+
+        if (!Array.isArray(res?.playlist)) return false
+
+        liked.playlists = res.playlist
+        const firstPlaylistID = Number(res.playlist[0]?.id)
+        if (Number.isFinite(firstPlaylistID) && firstPlaylistID > 0) {
+          likedSongPlaylistID.value = firstPlaylistID
         }
-      })
+        return true
+      } catch (error) {
+        console.warn('[Data] 获取用户歌单失败，继续使用本地缓存：', error)
+        return false
+      }
     }
 
+    /**
+     * 刷新喜欢歌曲 ID。
+     *
+     * `liked.songs` 会持久化为最后一次成功快照。只有服务端明确返回 ID 数组时才
+     * 覆盖该快照；请求失败、Cookie 尚未就绪或 API 返回 null 时均保留旧值，避免
+     * 所有红心在一次瞬时请求失败后同时变为空心。
+     */
     const fetchLikedSongs = async () => {
-      if (!user.value.userId) return
-      await userLikedSongsIDs(user.value.userId).then((res) => {
-        if (res.ids) {
-          liked.songs = res.ids
-        }
-      })
+      if (!user.value.userId) return false
+
+      try {
+        const res = await userLikedSongsIDs(user.value.userId)
+        if (!Array.isArray(res?.ids)) return false
+
+        liked.songs = res.ids
+          .map((id: number | string) => Number(id))
+          .filter((id: number) => Number.isFinite(id))
+        return true
+      } catch (error) {
+        console.warn('[Data] 获取喜欢歌曲失败，继续使用本地缓存：', error)
+        return false
+      }
     }
 
     const fetchLikedAlbums = () => {
@@ -163,13 +198,15 @@ export const useDataStore = defineStore(
         showToast(t('toast.needToLogin'))
         return
       }
-      let like = true
-      if (liked.songs.includes(id)) like = false
+
+      const alreadyLiked = liked.songs.some((item) => sameTrackID(item, id))
+      const like = !alreadyLiked
+
       likeTrack({ id, like })
         .then(() => {
           if (!like) {
-            liked.songs = liked.songs.filter((item) => item !== id)
-          } else {
+            liked.songs = liked.songs.filter((item) => !sameTrackID(item, id))
+          } else if (!liked.songs.some((item) => sameTrackID(item, id))) {
             liked.songs.push(id)
           }
         })
@@ -178,23 +215,41 @@ export const useDataStore = defineStore(
         })
     }
 
-    const fetchLikedSongsWithDetails = () => {
-      return getPlaylistDetail(likedSongPlaylistID.value, true).then((result) => {
-        if (!result) return
-        if (result.playlist?.trackIds?.length === 0) {
-          return new Promise<void>((resolve) => {
-            resolve()
-          })
+    /**
+     * 获取“我喜欢的音乐”前几首详情。
+     *
+     * 启动时该函数可能早于歌单列表完成，因此在没有有效歌单 ID 时先主动刷新一次
+     * 歌单。这样即使调用顺序并发，也不会因为初始 ID 为 0 而永久跳过详情加载。
+     */
+    const fetchLikedSongsWithDetails = async () => {
+      if (!likedSongPlaylistID.value) {
+        await fetchLikedPlaylist()
+      }
+      if (!likedSongPlaylistID.value) return
+
+      try {
+        const result = await getPlaylistDetail(likedSongPlaylistID.value, true)
+        const trackIDs = result?.playlist?.trackIds
+        if (!Array.isArray(trackIDs)) return
+
+        if (trackIDs.length === 0) {
+          liked.songsWithDetails = []
+          return
         }
-        return getTrackDetail(
-          result.playlist.trackIds
+
+        const detailResult = await getTrackDetail(
+          trackIDs
             .slice(0, 8)
-            .map((t) => t.id)
+            .map((track) => track.id)
             .join(',')
-        ).then((result) => {
-          liked.songsWithDetails = result.songs
-        })
-      })
+        )
+
+        if (Array.isArray(detailResult?.songs)) {
+          liked.songsWithDetails = detailResult.songs
+        }
+      } catch (error) {
+        console.warn('[Data] 获取喜欢歌曲详情失败，继续使用已有数据：', error)
+      }
     }
 
     const resetLiked = () => {
@@ -233,7 +288,7 @@ export const useDataStore = defineStore(
   },
   {
     persist: {
-      pick: ['user', 'likedSongPlaylistID', 'lastRefreshCookieDate', 'loginMode']
+      pick: ['user', 'likedSongPlaylistID', 'lastRefreshCookieDate', 'loginMode', 'liked.songs']
     }
   }
 )
