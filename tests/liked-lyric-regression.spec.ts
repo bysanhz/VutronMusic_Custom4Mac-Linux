@@ -36,7 +36,9 @@ test.describe('desktop lyric continuity', () => {
     const main = readSource('src/renderer/main.ts')
     const watchdog = readSource('src/renderer/utils/playerLyricWatchdog.ts')
 
-    expect(main).toContain("import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'")
+    expect(main).toContain(
+      "import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'"
+    )
     expect(main).toContain('initializePlayerLyricWatchdog(playerStore)')
     expect(watchdog).toContain('window.vutronmusic?.progress')
     expect(watchdog).toContain('player.currentIndex = expectedIndex')
