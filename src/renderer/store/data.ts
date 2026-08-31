@@ -26,6 +26,16 @@ const sameTrackID = (left: number | string, right: number | string) => {
   return String(left) === String(right)
 }
 
+const normalizeTrackIDs = (ids: Array<number | string>) => {
+  return Array.from(
+    new Set(
+      ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
+  )
+}
+
 export const useDataStore = defineStore(
   'data',
   () => {
@@ -69,6 +79,17 @@ export const useDataStore = defineStore(
     const { showToast } = useNormalStateStore()
 
     /**
+     * 用一个已经确认属于“我喜欢的音乐”的歌曲 ID 列表刷新红心状态快照。
+     *
+     * `/likelist` 并不是唯一可信来源。网易云的“我喜欢的音乐”本身也是一个普通
+     * 歌单，`/playlist/detail` 返回的 `trackIds` 同样是完整的喜欢歌曲集合。统一在
+     * 这里归一化，避免 API 返回 number/string 混用导致红心判断失效。
+     */
+    const syncLikedSongs = (ids: Array<number | string>) => {
+      liked.songs = normalizeTrackIDs(ids)
+    }
+
+    /**
      * 刷新用户歌单，并保留最后一次成功获取到的“我喜欢的音乐”歌单 ID。
      *
      * 网络请求失败或返回空数据时不清空本地缓存，避免启动阶段的短暂 API
@@ -99,27 +120,53 @@ export const useDataStore = defineStore(
     }
 
     /**
+     * 从“我喜欢的音乐”歌单详情重建喜欢歌曲 ID。
+     *
+     * 这是 `/likelist` 的独立兜底路径。只要“我喜欢的音乐”页面能够正常显示，
+     * 这里就能从同一个歌单详情里的 `trackIds` 恢复所有红心，而不依赖 `/likelist`。
+     */
+    const fetchLikedSongsFromPlaylist = async () => {
+      if (!likedSongPlaylistID.value) {
+        await fetchLikedPlaylist()
+      }
+      if (!likedSongPlaylistID.value) return false
+
+      try {
+        const result = await getPlaylistDetail(likedSongPlaylistID.value, true)
+        const trackIDs = result?.playlist?.trackIds
+        if (!Array.isArray(trackIDs)) return false
+
+        syncLikedSongs(trackIDs.map((track: any) => track?.id ?? track))
+        return true
+      } catch (error) {
+        console.warn('[Data] 从喜欢歌单重建红心状态失败，继续使用本地缓存：', error)
+        return false
+      }
+    }
+
+    /**
      * 刷新喜欢歌曲 ID。
      *
-     * `liked.songs` 会持久化为最后一次成功快照。只有服务端明确返回 ID 数组时才
-     * 覆盖该快照；请求失败、Cookie 尚未就绪或 API 返回 null 时均保留旧值，避免
-     * 所有红心在一次瞬时请求失败后同时变为空心。
+     * 优先使用 `/likelist`；如果接口返回异常、空结构或直接报错，则自动切换到
+     * “我喜欢的音乐”歌单详情作为权威兜底。这样页面已经能显示喜欢歌单时，播放器
+     * 不会再出现“歌曲明明在喜欢歌单里，红心却仍是空心”的状态分裂。
      */
     const fetchLikedSongs = async () => {
       if (!user.value.userId) return false
 
       try {
         const res = await userLikedSongsIDs(user.value.userId)
-        if (!Array.isArray(res?.ids)) return false
+        if (Array.isArray(res?.ids)) {
+          syncLikedSongs(res.ids)
+          return true
+        }
 
-        liked.songs = res.ids
-          .map((id: number | string) => Number(id))
-          .filter((id: number) => Number.isFinite(id))
-        return true
+        console.warn('[Data] /likelist 未返回 ids，改用喜欢歌单详情恢复红心状态')
       } catch (error) {
-        console.warn('[Data] 获取喜欢歌曲失败，继续使用本地缓存：', error)
-        return false
+        console.warn('[Data] 获取喜欢歌曲失败，改用喜欢歌单详情恢复：', error)
       }
+
+      return await fetchLikedSongsFromPlaylist()
     }
 
     const fetchLikedAlbums = () => {
@@ -216,10 +263,10 @@ export const useDataStore = defineStore(
     }
 
     /**
-     * 获取“我喜欢的音乐”前几首详情。
+     * 获取“我喜欢的音乐”前几首详情，同时用完整 `trackIds` 修复红心状态。
      *
-     * 启动时该函数可能早于歌单列表完成，因此在没有有效歌单 ID 时先主动刷新一次
-     * 歌单。这样即使调用顺序并发，也不会因为初始 ID 为 0 而永久跳过详情加载。
+     * `trackIds` 是整个喜欢歌单，而 `tracks` 可能只包含接口首批返回的若干歌曲。
+     * 因此必须先用完整 `trackIds` 更新 `liked.songs`，再只取前几首加载详情。
      */
     const fetchLikedSongsWithDetails = async () => {
       if (!likedSongPlaylistID.value) {
@@ -231,6 +278,8 @@ export const useDataStore = defineStore(
         const result = await getPlaylistDetail(likedSongPlaylistID.value, true)
         const trackIDs = result?.playlist?.trackIds
         if (!Array.isArray(trackIDs)) return
+
+        syncLikedSongs(trackIDs.map((track: any) => track?.id ?? track))
 
         if (trackIDs.length === 0) {
           liked.songsWithDetails = []
@@ -273,8 +322,10 @@ export const useDataStore = defineStore(
       loginMode,
       liked,
       libraryPlaylistFilter,
+      syncLikedSongs,
       fetchLikedPlaylist,
       fetchLikedSongs,
+      fetchLikedSongsFromPlaylist,
       resetUserInfo,
       likeATrack,
       fetchLikedSongsWithDetails,
