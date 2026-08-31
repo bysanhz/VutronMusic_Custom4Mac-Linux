@@ -28,7 +28,11 @@ const sameTrackID = (left: number | string, right: number | string) => {
 
 const normalizeTrackIDs = (ids: Array<number | string>) => {
   return Array.from(
-    new Set(ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))
+    new Set(
+      ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
   )
 }
 
@@ -75,6 +79,28 @@ export const useDataStore = defineStore(
     const { showToast } = useNormalStateStore()
 
     /**
+     * 从用户歌单列表中识别网易云真正的“我喜欢的音乐”。
+     *
+     * 不能再假定 `playlist[0]` 就是喜欢歌单。网易云当前返回结构会为系统喜欢歌单
+     * 标记 `specialType = 5`；名称仅作为旧接口兼容兜底。这样可以修复持久化 ID
+     * 指向普通歌单后，喜欢页面只显示该普通歌单、所有红心也跟着错误的问题。
+     */
+    const resolveLikedPlaylist = (playlists: any[]) => {
+      const specialPlaylist = playlists.find((playlist) => Number(playlist?.specialType) === 5)
+      if (specialPlaylist) return specialPlaylist
+
+      const currentUserID = Number(user.value.userId)
+      return playlists.find((playlist) => {
+        const creatorID = Number(playlist?.creator?.userId)
+        const name = String(playlist?.name ?? '')
+        return (
+          creatorID === currentUserID &&
+          (name.includes('喜欢的音乐') || /liked\s+songs/i.test(name))
+        )
+      })
+    }
+
+    /**
      * 用一个已经确认属于“我喜欢的音乐”的歌曲 ID 列表刷新红心状态快照。
      *
      * `/likelist` 并不是唯一可信来源。网易云的“我喜欢的音乐”本身也是一个普通
@@ -86,10 +112,10 @@ export const useDataStore = defineStore(
     }
 
     /**
-     * 刷新用户歌单，并保留最后一次成功获取到的“我喜欢的音乐”歌单 ID。
+     * 刷新用户歌单并重新确认“我喜欢的音乐”歌单 ID。
      *
-     * 网络请求失败或返回空数据时不清空本地缓存，避免启动阶段的短暂 API
-     * 异常把后续“喜欢歌曲详情”请求引导到无效的歌单 ID。
+     * 每次启动都会重新验证，而不是盲信旧版本持久化的 `likedSongPlaylistID`。
+     * 找不到可确认的喜欢歌单时保留旧缓存，不再把任意第一个普通歌单误当成喜欢歌单。
      */
     const fetchLikedPlaylist = async () => {
       if (!user.value.userId) return false
@@ -104,10 +130,15 @@ export const useDataStore = defineStore(
         if (!Array.isArray(res?.playlist)) return false
 
         liked.playlists = res.playlist
-        const firstPlaylistID = Number(res.playlist[0]?.id)
-        if (Number.isFinite(firstPlaylistID) && firstPlaylistID > 0) {
-          likedSongPlaylistID.value = firstPlaylistID
+        const likedPlaylist = resolveLikedPlaylist(res.playlist)
+        const resolvedID = Number(likedPlaylist?.id)
+
+        if (!Number.isFinite(resolvedID) || resolvedID <= 0) {
+          console.warn('[Data] 用户歌单中未找到可确认的“我喜欢的音乐”，保留已有 ID')
+          return false
         }
+
+        likedSongPlaylistID.value = resolvedID
         return true
       } catch (error) {
         console.warn('[Data] 获取用户歌单失败，继续使用本地缓存：', error)
@@ -118,13 +149,10 @@ export const useDataStore = defineStore(
     /**
      * 从“我喜欢的音乐”歌单详情重建喜欢歌曲 ID。
      *
-     * 这是 `/likelist` 的独立兜底路径。只要“我喜欢的音乐”页面能够正常显示，
-     * 这里就能从同一个歌单详情里的 `trackIds` 恢复所有红心，而不依赖 `/likelist`。
+     * 先重新验证喜欢歌单 ID，避免旧版本把普通歌单第一项持久化后继续污染红心状态。
      */
     const fetchLikedSongsFromPlaylist = async () => {
-      if (!likedSongPlaylistID.value) {
-        await fetchLikedPlaylist()
-      }
+      await fetchLikedPlaylist()
       if (!likedSongPlaylistID.value) return false
 
       try {
@@ -143,21 +171,23 @@ export const useDataStore = defineStore(
     /**
      * 刷新喜欢歌曲 ID。
      *
-     * 优先使用 `/likelist`；如果接口返回异常、空结构或直接报错，则自动切换到
-     * “我喜欢的音乐”歌单详情作为权威兜底。这样页面已经能显示喜欢歌单时，播放器
-     * 不会再出现“歌曲明明在喜欢歌单里，红心却仍是空心”的状态分裂。
+     * 启动时先验证真正的喜欢歌单。`/likelist` 返回非空 ID 数组时直接使用；若返回
+     * 空数组或异常，则再从已经确认的“我喜欢的音乐”歌单详情恢复，避免鉴权异常把
+     * 一个原本有大量红心的账号误判成 0 首喜欢歌曲。
      */
     const fetchLikedSongs = async () => {
       if (!user.value.userId) return false
 
+      await fetchLikedPlaylist()
+
       try {
         const res = await userLikedSongsIDs(user.value.userId)
-        if (Array.isArray(res?.ids)) {
+        if (Array.isArray(res?.ids) && res.ids.length > 0) {
           syncLikedSongs(res.ids)
           return true
         }
 
-        console.warn('[Data] /likelist 未返回 ids，改用喜欢歌单详情恢复红心状态')
+        console.warn('[Data] /likelist 未返回有效喜欢歌曲，改用喜欢歌单详情恢复红心状态')
       } catch (error) {
         console.warn('[Data] 获取喜欢歌曲失败，改用喜欢歌单详情恢复：', error)
       }
@@ -261,13 +291,10 @@ export const useDataStore = defineStore(
     /**
      * 获取“我喜欢的音乐”前几首详情，同时用完整 `trackIds` 修复红心状态。
      *
-     * `trackIds` 是整个喜欢歌单，而 `tracks` 可能只包含接口首批返回的若干歌曲。
-     * 因此必须先用完整 `trackIds` 更新 `liked.songs`，再只取前几首加载详情。
+     * 每次加载前都重新验证喜欢歌单 ID，避免并发启动时旧 ID 抢先读取错误歌单。
      */
     const fetchLikedSongsWithDetails = async () => {
-      if (!likedSongPlaylistID.value) {
-        await fetchLikedPlaylist()
-      }
+      await fetchLikedPlaylist()
       if (!likedSongPlaylistID.value) return
 
       try {
