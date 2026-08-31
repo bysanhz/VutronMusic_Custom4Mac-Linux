@@ -10,8 +10,16 @@ test.describe('liked songs resilience', () => {
     const dataStore = readSource('src/renderer/store/data.ts')
 
     expect(dataStore).toContain("'liked.songs'")
-    expect(dataStore).toContain('if (!Array.isArray(res?.ids)) return false')
-    expect(dataStore).toContain("'[Data] 获取喜欢歌曲失败，继续使用本地缓存：'")
+    expect(dataStore).toContain('const syncLikedSongs =')
+    expect(dataStore).toContain('liked.songs = normalizeTrackIDs(ids)')
+  })
+
+  test('falls back to the liked playlist when likelist is unavailable', () => {
+    const dataStore = readSource('src/renderer/store/data.ts')
+
+    expect(dataStore).toContain('const fetchLikedSongsFromPlaylist = async () =>')
+    expect(dataStore).toContain('return await fetchLikedSongsFromPlaylist()')
+    expect(dataStore).toContain('syncLikedSongs(trackIDs.map((track: any) => track?.id ?? track))')
   })
 
   test('compares track IDs by canonical string value when toggling likes', () => {
