@@ -29,6 +29,7 @@ import { initializePlaybackStartPolicy } from './utils/playbackStartGuard'
 import { initializeTrackLyricOffset } from './utils/trackLyricOffset'
 import { initializePlaybackHistory } from './utils/playbackHistory'
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
+import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
@@ -111,6 +112,7 @@ initializePlaybackStartPolicy(playerStore)
 initializeTrackLyricOffset(playerStore)
 initializePlaybackHistory(playerStore)
 initializeSleepTimerPlayerBridge(playerStore)
+initializePlayerLyricWatchdog(playerStore)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
