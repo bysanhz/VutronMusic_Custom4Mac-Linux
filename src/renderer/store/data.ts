@@ -28,11 +28,7 @@ const sameTrackID = (left: number | string, right: number | string) => {
 
 const normalizeTrackIDs = (ids: Array<number | string>) => {
   return Array.from(
-    new Set(
-      ids
-        .map((id) => Number(id))
-        .filter((id) => Number.isFinite(id) && id > 0)
-    )
+    new Set(ids.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))
   )
 }
 
