@@ -14,12 +14,29 @@ test.describe('liked songs resilience', () => {
     expect(dataStore).toContain('liked.songs = normalizeTrackIDs(ids)')
   })
 
-  test('falls back to the liked playlist when likelist is unavailable', () => {
+  test('resolves the real NetEase liked playlist instead of assuming playlist zero', () => {
+    const dataStore = readSource('src/renderer/store/data.ts')
+
+    expect(dataStore).toContain('const resolveLikedPlaylist =')
+    expect(dataStore).toContain('Number(playlist?.specialType) === 5')
+    expect(dataStore).toContain("name.includes('喜欢的音乐')")
+    expect(dataStore).not.toContain('const firstPlaylistID = Number(res.playlist[0]?.id)')
+  })
+
+  test('falls back to the verified liked playlist when likelist is unavailable', () => {
     const dataStore = readSource('src/renderer/store/data.ts')
 
     expect(dataStore).toContain('const fetchLikedSongsFromPlaylist = async () =>')
     expect(dataStore).toContain('return await fetchLikedSongsFromPlaylist()')
     expect(dataStore).toContain('syncLikedSongs(trackIDs.map((track: any) => track?.id ?? track))')
+  })
+
+  test('validates the liked playlist before every startup heart synchronization', () => {
+    const dataStore = readSource('src/renderer/store/data.ts')
+
+    expect(dataStore).toContain('const fetchLikedSongs = async () =>')
+    expect(dataStore).toContain('const fetchLikedSongsWithDetails = async () =>')
+    expect(dataStore.match(/await fetchLikedPlaylist\(\)/g)?.length).toBeGreaterThanOrEqual(3)
   })
 
   test('compares track IDs by canonical string value when toggling likes', () => {
@@ -28,14 +45,6 @@ test.describe('liked songs resilience', () => {
     expect(dataStore).toContain('const sameTrackID =')
     expect(dataStore).toContain('String(left) === String(right)')
     expect(dataStore).toContain('liked.songs.some((item) => sameTrackID(item, id))')
-  })
-
-  test('recovers the liked playlist ID before loading track details', () => {
-    const dataStore = readSource('src/renderer/store/data.ts')
-
-    expect(dataStore).toContain('if (!likedSongPlaylistID.value) {')
-    expect(dataStore).toContain('await fetchLikedPlaylist()')
-    expect(dataStore).toContain('if (!likedSongPlaylistID.value) return')
   })
 })
 
