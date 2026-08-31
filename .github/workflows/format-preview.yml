@@ -1,0 +1,29 @@
+name: Format Preview
+
+on:
+  push:
+    paths:
+      - 'src/renderer/store/data.ts'
+      - '.github/workflows/format-preview.yml'
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Print formatted data store
+        run: |
+          echo '===== FORMAT_PREVIEW_START ====='
+          yarn prettier src/renderer/store/data.ts
+          echo '===== FORMAT_PREVIEW_END ====='
