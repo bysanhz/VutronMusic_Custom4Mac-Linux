@@ -339,6 +339,7 @@ const showFullDescription = ref(false)
 const showComment = ref(false)
 const pSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
 const currentService = ref<serviceName | 'all'>('all')
+let intelligenceRequestID = 0
 
 const { user, likedSongPlaylistID } = storeToRefs(useDataStore())
 const listType = computed(() => route.name!.toString())
@@ -515,14 +516,41 @@ const play = () => {
   replacePlaylist(typeMap[playlistType.value], playlist.value.id || 0, trackIDs, idx)
 }
 
-const playIntelligenceList = () => {
-  const randomId = Math.floor(Math.random() * tracks.value.length + 1)
-  const songId = tracks.value[randomId].id
-  intelligencePlaylist({ id: songId, pid: likedSongPlaylistID.value }).then((result) => {
-    const trackIDs = result.data.map((t: any) => t.id)
+const playIntelligenceList = async () => {
+  if (!tracks.value.length) {
+    showToast('当前歌单没有可用于心动模式的歌曲')
+    return
+  }
+
+  const requestID = ++intelligenceRequestID
+  const randomIndex = Math.floor(Math.random() * tracks.value.length)
+  const songId = tracks.value[randomIndex]?.id
+
+  if (songId === undefined || songId === null) {
+    showToast('无法选择心动模式的起始歌曲')
+    return
+  }
+
+  try {
+    const result = await intelligencePlaylist({ id: songId, pid: likedSongPlaylistID.value })
+    if (requestID !== intelligenceRequestID) return
+
+    const trackIDs = Array.isArray(result?.data)
+      ? result.data.map((track: any) => track?.id).filter((id: any) => id !== undefined && id !== null)
+      : []
+
+    if (!trackIDs.length) {
+      showToast('心动模式暂时没有返回可播放歌曲，请稍后重试')
+      return
+    }
+
     const idx = _shuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
-    replacePlaylist('playlist', likedSongPlaylistID.value, trackIDs, idx)
-  })
+    await replacePlaylist('playlist', likedSongPlaylistID.value, trackIDs, idx)
+  } catch (error) {
+    if (requestID !== intelligenceRequestID) return
+    console.warn('[PlaylistPage] 心动模式加载失败：', error)
+    showToast('心动模式加载失败，请稍后重试')
+  }
 }
 
 const toggleFullDescription = () => {
