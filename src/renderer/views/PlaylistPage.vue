@@ -372,6 +372,8 @@ const playerStore = usePlayerStore()
 const { _shuffle } = storeToRefs(playerStore)
 const { replacePlaylist } = playerStore
 
+let intelligenceRequestRevision = 0
+
 const { t } = useI18n()
 
 const playlistType = computed(() => {
@@ -515,14 +517,40 @@ const play = () => {
   replacePlaylist(typeMap[playlistType.value], playlist.value.id || 0, trackIDs, idx)
 }
 
-const playIntelligenceList = () => {
-  const randomId = Math.floor(Math.random() * tracks.value.length + 1)
-  const songId = tracks.value[randomId].id
-  intelligencePlaylist({ id: songId, pid: likedSongPlaylistID.value }).then((result) => {
-    const trackIDs = result.data.map((t: any) => t.id)
+const playIntelligenceList = async () => {
+  if (!tracks.value.length || !likedSongPlaylistID.value) {
+    showToast('心动模式暂无可用歌曲')
+    return
+  }
+
+  const requestRevision = ++intelligenceRequestRevision
+  const randomIndex = Math.floor(Math.random() * tracks.value.length)
+  const songId = tracks.value[randomIndex]?.id
+  if (!songId) {
+    showToast('心动模式暂无可用歌曲')
+    return
+  }
+
+  try {
+    const result = await intelligencePlaylist({ id: songId, pid: likedSongPlaylistID.value })
+    if (requestRevision !== intelligenceRequestRevision) return
+
+    const trackIDs = (Array.isArray(result?.data) ? result.data : [])
+      .map((track: any) => Number(track?.id))
+      .filter((id: number) => Number.isFinite(id))
+
+    if (!trackIDs.length) {
+      showToast('心动模式加载失败，请稍后重试')
+      return
+    }
+
     const idx = _shuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
-    replacePlaylist('playlist', likedSongPlaylistID.value, trackIDs, idx)
-  })
+    await replacePlaylist('playlist', likedSongPlaylistID.value, trackIDs, idx)
+  } catch (error) {
+    if (requestRevision !== intelligenceRequestRevision) return
+    console.warn('[Playlist] 心动模式加载失败：', error)
+    showToast('心动模式加载失败，请稍后重试')
+  }
 }
 
 const toggleFullDescription = () => {

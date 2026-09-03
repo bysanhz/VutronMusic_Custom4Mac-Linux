@@ -100,6 +100,7 @@ export const usePlayerStore = defineStore(
     }>({ id: 0 })
 
     let lastUpdateTime = 0
+    let trackLoadRevision = 0
 
     const localMusicStore = useLocalMusicStore()
     const streamMusicStore = useStreamMusicStore()
@@ -124,6 +125,24 @@ export const usePlayerStore = defineStore(
     const osdLyricStore = useOsdLyricStore()
 
     /**
+     * 判断两个 Track 是否表示同一首正在播放的歌曲。
+     *
+     * 本地歌曲在在线匹配后 id 可能变化，因此优先使用 filePath 作为稳定身份；
+     * 其它歌曲使用规范化后的 id 比较。
+     */
+    const sameTrackIdentity = (left: Track | null, right: Track) => {
+      if (!left) return false
+      if (left.filePath && right.filePath) return left.filePath === right.filePath
+      return String(left.id) === String(right.id)
+    }
+
+    /**
+     * 只有最新一次切歌事务才允许提交歌词、封面、MediaSession 和 OSD 状态。
+     */
+    const isCurrentTrackLoad = (revision: number, track: Track) =>
+      revision === trackLoadRevision && sameTrackIdentity(currentTrack.value, track)
+
+    /**
      * 播放器最终使用的歌词偏移。
      *
      * 单曲 offset 保留歌曲自身的校正值；globalLyricOffset 是用户针对全部歌曲设置的
@@ -145,19 +164,21 @@ export const usePlayerStore = defineStore(
      * Args:
      *   track: 需要查询副歌位置的歌曲，默认使用当前歌曲。
      */
-    const loadCurrentTrackChorus = async (track: Track | null = currentTrack.value) => {
+    const loadCurrentTrackChorus = async (
+      track: Track | null = currentTrack.value,
+      revision = trackLoadRevision
+    ) => {
+      if (!track || !isCurrentTrackLoad(revision, track)) return
+
       chorusStartTime.value = 0
       chorus.value = 0
 
-      if (!settingsStore.general.showChorus || !track?.matched) return
+      if (!settingsStore.general.showChorus || !track.matched) return
 
       const requestedTrackID = track.id
       try {
         const result = await songChorus(requestedTrackID)
-        if (
-          currentTrack.value?.id !== requestedTrackID ||
-          !settingsStore.general.showChorus
-        ) {
+        if (!isCurrentTrackLoad(revision, track) || !settingsStore.general.showChorus) {
           return
         }
 
@@ -167,7 +188,9 @@ export const usePlayerStore = defineStore(
         chorusStartTime.value = startTime / 1000
         updateChorusPosition()
       } catch (error) {
-        console.warn('[Player] 获取副歌时间失败：', error)
+        if (isCurrentTrackLoad(revision, track)) {
+          console.warn('[Player] 获取副歌时间失败：', error)
+        }
       }
     }
     // =========== newADD end ========
@@ -178,6 +201,35 @@ export const usePlayerStore = defineStore(
     const currentTrackIndex = ref(0)
 
     const currentIndex = ref(-1)
+
+    /**
+     * 切换歌曲时立即清除上一首歌曲派生出的显示状态，避免网络请求期间出现
+     * “新音频 + 旧歌词/旧封面”的混合界面。
+     */
+    const clearTrackDerivedState = (track: Track) => {
+      lyrics.value = []
+      currentIndex.value = -1
+      chorusStartTime.value = 0
+      chorus.value = 0
+
+      if (pic.value?.startsWith('blob:')) {
+        URL.revokeObjectURL(pic.value)
+      }
+      pic.value = new URL('../assets/images/default.jpg', import.meta.url).href
+
+      if (osdLyricStore.show) {
+        const artists = track.artists ?? track.ar ?? []
+        window.mainApi?.sendMessage({
+          type: 'update-osd-status',
+          data: {
+            line: [-1, 0],
+            seek: 0,
+            title: `${artists[0]?.name || '未知歌手'} - ${track.name}`,
+            pic: pic.value
+          }
+        })
+      }
+    }
 
     let timer: any = null
 
@@ -701,7 +753,9 @@ export const usePlayerStore = defineStore(
       }
     }
 
-    const searchMatchForLocal = async (track: Track) => {
+    const searchMatchForLocal = async (track: Track, revision = trackLoadRevision) => {
+      if (!isCurrentTrackLoad(revision, track)) return
+
       if (track.type === 'local' && !track.matched) {
         const params = {
           title: track.name,
@@ -713,6 +767,7 @@ export const usePlayerStore = defineStore(
         }
         const result = await searchMatch(params)
           .then((res: any) => {
+            if (!isCurrentTrackLoad(revision, track)) return null
             if (res.result.songs.length > 0) {
               const newTrack = res.result.songs[0]
               updateLocalID2OnlineID(track.id, newTrack.id)
@@ -721,11 +776,14 @@ export const usePlayerStore = defineStore(
             }
           })
           .catch((err) => {
-            showToast(err)
+            if (isCurrentTrackLoad(revision, track)) showToast(err)
             return null
           })
         if (result) track = result
       }
+
+      if (!isCurrentTrackLoad(revision, track)) return
+
       window.mainApi?.send('write-cover', {
         filePath: track.filePath,
         picUrl: track.matched ? track.album?.picUrl || track.al?.picUrl : null,
@@ -734,8 +792,13 @@ export const usePlayerStore = defineStore(
       if (track.type === 'online' && !track.cache && settingsStore.autoCacheTrack.enable) {
         window.mainApi?.send('cacheATrack', { id: track.id, url: track.url })
       }
-      await getCurrentTrackInfo(track)
-      await updateMediaSessionMetaData(track)
+
+      const infoCommitted = await getCurrentTrackInfo(track, revision)
+      if (!infoCommitted || !isCurrentTrackLoad(revision, track)) return
+
+      const metadataCommitted = await updateMediaSessionMetaData(track, revision)
+      if (!metadataCommitted || !isCurrentTrackLoad(revision, track)) return
+
       if (osdLyricStore.show) {
         window.mainApi?.sendMessage({
           type: 'update-osd-status',
@@ -775,14 +838,18 @@ export const usePlayerStore = defineStore(
       }
     }
 
-    const getCurrentTrackInfo = async (track: Track) => {
-      if (!track) return
-      void loadCurrentTrackChorus(track)
-      await getLyric(track)
+    const getCurrentTrackInfo = async (track: Track, revision = trackLoadRevision) => {
+      if (!track || !isCurrentTrackLoad(revision, track)) return false
+
+      void loadCurrentTrackChorus(track, revision)
+      const committed = await getLyric(track, revision)
+      if (!committed || !isCurrentTrackLoad(revision, track)) return false
+
       currentIndex.value = getLyricIndex(lyrics.value, 0, 1)
+      return true
     }
 
-    const getLyric = async (track: Track) => {
+    const getLyric = async (track: Track, revision = trackLoadRevision) => {
       let data: lyricLine[] = []
       switch (track.type!) {
         case 'stream':
@@ -798,23 +865,29 @@ export const usePlayerStore = defineStore(
           break
       }
 
+      if (!isCurrentTrackLoad(revision, track)) return false
+
       data = data.filter((l) => !/^作(词|曲)\s*(:|：)\s*无$/.exec(l.lyric.text))
+      const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)
       if (data.length) {
         data.at(-1)!.end =
-          data.at(-1)!.end || Math.min(currentTrackDuration.value, data.at(-1)!.start + 10)
+          data.at(-1)!.end || Math.min(trackDuration, data.at(-1)!.start + 10)
       }
       const includeAM =
         data.length <= 10 && data.map((l) => l.lyric.text).includes('纯音乐，请欣赏')
       if (includeAM) {
         const reg = /^作(词|曲)\s*(:|：)\s*/
-        const artists = currentTrack.value!.artists ?? currentTrack.value!.ar
+        const artists = track.artists ?? track.ar ?? []
         const author = artists[0]?.name
         data = data.filter((l) => {
           const regExpArr = l.lyric.text.match(reg)
           return !regExpArr || l.lyric.text.replace(regExpArr[0], '') !== author
         })
       }
+
+      if (!isCurrentTrackLoad(revision, track)) return false
       lyrics.value = data.length === 1 && includeAM ? [] : data
+      return true
     }
 
     const _getLocalLyric = async (track: Track) => {
@@ -873,40 +946,47 @@ export const usePlayerStore = defineStore(
     }
 
     const replaceCurrentTrack = async (trackID: number | string, autoPlay = true) => {
+      const revision = ++trackLoadRevision
       cancelSleepTimerForTrackChange(trackID)
       if (autoPlay && currentTrack.value?.name) {
         scrobbleFM(currentTrack.value, seek.value)
       }
 
       return getLocalMusic(trackID as number).then(async (track) => {
+        if (revision !== trackLoadRevision) return false
         if (!track) {
           nextTrackCallback()
           return false
         }
+
         const resumePosition =
           !autoPlay &&
           currentTrack.value?.id !== undefined &&
           String(currentTrack.value.id) === String(trackID)
             ? seek.value
             : 0
+
         currentTrack.value = track
+        clearTrackDerivedState(track)
         seek.value = resumePosition
-        searchMatchForLocal(track!)
-        const source = await getTrackSource(track!)
-        let replaced = false
-        if (source) {
-          if (track!.id === currentTrack.value?.id) {
-            playAudioSource(source, autoPlay)
-            replaced = true
-          }
-        } else {
+        void searchMatchForLocal(track, revision)
+
+        const source = await getTrackSource(track)
+        if (!isCurrentTrackLoad(revision, track)) return false
+
+        if (!source) {
           showToast(track?.reason)
-          _playNextTrack(isPersonalFM.value)
+          void _playNextTrack(isPersonalFM.value)
+          return false
         }
-        if (autoPlay && currentTrack.value?.type === 'stream') {
+
+        const replaced = await playAudioSource(source, autoPlay, revision, track)
+        if (!replaced || !isCurrentTrackLoad(revision, track)) return false
+
+        if (autoPlay && track.type === 'stream') {
           scrobbleStream(track)
         }
-        return replaced
+        return true
       })
     }
 
@@ -948,10 +1028,19 @@ export const usePlayerStore = defineStore(
       window.mainApi?.send('update-now-playing', info)
     }
 
-    const playAudioSource = async (source: string, autoPlay = true) => {
-      // 切歌时先淡出
+    const playAudioSource = async (
+      source: string,
+      autoPlay = true,
+      revision = trackLoadRevision,
+      track: Track | null = currentTrack.value
+    ) => {
+      if (!track || !isCurrentTrackLoad(revision, track)) return false
+
+      // 切歌时先淡出；淡出结束后再次确认事务仍然是最新切歌请求。
       const fade = fadeDuration.value
       await smoothGain(0, fade)
+      if (!isCurrentTrackLoad(revision, track)) return false
+
       audioNodes.audio!.removeAttribute('src')
       audioNodes.audio!.load()
       audioNodes.audio!.src = source
@@ -959,6 +1048,7 @@ export const usePlayerStore = defineStore(
       if (autoPlay) {
         playing.value = await play()
       }
+      return isCurrentTrackLoad(revision, track)
     }
 
     const getLocalMusic = (id: number) => {
@@ -1392,33 +1482,64 @@ export const usePlayerStore = defineStore(
       }
     }
 
-    const updateMediaSessionMetaData = async (track: Track) => {
-      if ('mediaSession' in navigator === false) return
+    const updateMediaSessionMetaData = async (
+      track: Track,
+      revision = trackLoadRevision
+    ) => {
+      if (!isCurrentTrackLoad(revision, track)) return false
 
-      if (pic.value?.startsWith('blob:')) {
+      const nextPic = await getPic(track, 512)
+      if (!isCurrentTrackLoad(revision, track)) {
+        if (nextPic?.startsWith('blob:')) URL.revokeObjectURL(nextPic)
+        return false
+      }
+
+      if ('mediaSession' in navigator === false) {
+        if (pic.value?.startsWith('blob:') && pic.value !== nextPic) {
+          URL.revokeObjectURL(pic.value)
+        }
+        pic.value = nextPic
+        return true
+      }
+
+      let artwork: { src: string; type: string; sizes: string }[]
+      if (window.env?.isWindows) {
+        const pic2048 = await getPic(track, 2048)
+        if (!isCurrentTrackLoad(revision, track)) {
+          if (nextPic?.startsWith('blob:')) URL.revokeObjectURL(nextPic)
+          if (pic2048?.startsWith('blob:')) URL.revokeObjectURL(pic2048)
+          return false
+        }
+        artwork = [{ src: pic2048, type: 'image/jpg', sizes: '2048x2048' }]
+      } else {
+        const pic1024 = await getPic(track, 1024)
+        if (!isCurrentTrackLoad(revision, track)) {
+          if (nextPic?.startsWith('blob:')) URL.revokeObjectURL(nextPic)
+          if (pic1024?.startsWith('blob:')) URL.revokeObjectURL(pic1024)
+          return false
+        }
+        artwork = [
+          { src: nextPic, type: 'image/jpg', sizes: '512x512' },
+          { src: pic1024, type: 'image/jpg', sizes: '1024x1024' }
+        ]
+      }
+
+      if (!isCurrentTrackLoad(revision, track)) return false
+
+      if (pic.value?.startsWith('blob:') && pic.value !== nextPic) {
         URL.revokeObjectURL(pic.value)
       }
-      pic.value = await getPic(track, 512)
+      pic.value = nextPic
 
-      const arts = track.artists ?? track.ar
+      const arts = track.artists ?? track.ar ?? []
       const artists = arts.map((a) => a.name)
+      const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)
       const metadata = {
         title: track.name,
         artist: artists.join(','),
         album: track.album?.name ?? track.al?.name,
-        artwork: [
-          {
-            src: await getPic(track, 512),
-            type: 'image/jpg',
-            sizes: '512x512'
-          },
-          {
-            src: await getPic(track, 1024),
-            type: 'image/jpg',
-            sizes: '1024x1024'
-          }
-        ],
-        length: currentTrackDuration.value,
+        artwork,
+        length: trackDuration,
         trackId: track.id,
         url: '/trackid/' + track.id,
         progress: audioNodes.audio?.currentTime ?? 0,
@@ -1426,17 +1547,18 @@ export const usePlayerStore = defineStore(
         asText: lyrics.value.map((lrc) => `${formatTime(lrc.start)}${lrc.lyric.text}`).join('\n'),
         lyricOffset: lyricOffset.value
       }
-      if (window.env?.isWindows) {
-        metadata.artwork = [
-          {
-            src: await getPic(track, 2048),
-            type: 'image/jpg',
-            sizes: '2048x2048'
-          }
-        ]
-      }
+
+      if (!isCurrentTrackLoad(revision, track)) return false
       navigator.mediaSession.metadata = null
       navigator.mediaSession.metadata = new MediaMetadata(metadata)
+
+      if (osdLyricStore.show) {
+        window.mainApi?.sendMessage({
+          type: 'update-osd-status',
+          data: { pic: pic.value }
+        })
+      }
+
       if (window.env?.isLinux) {
         if (track.type === 'stream') {
           metadata.artwork.map((art) => {
@@ -1449,11 +1571,15 @@ export const usePlayerStore = defineStore(
             art.src = url
           })
         }
-        window.mainApi?.send('metadata', metadata)
+        if (isCurrentTrackLoad(revision, track)) {
+          window.mainApi?.send('metadata', metadata)
+        }
       }
+      return true
     }
 
     const resetPlayer = (resetBiq = true) => {
+      trackLoadRevision += 1
       list.value = []
       enabled.value = false
       currentTrackIndex.value = 0

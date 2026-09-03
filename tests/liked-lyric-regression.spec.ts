@@ -75,3 +75,37 @@ test.describe('desktop lyric continuity', () => {
     expect(guard).toContain('LOCAL_TICK_MS = 250')
   })
 })
+
+test.describe('player track identity consistency', () => {
+  test('uses a monotonic revision to reject stale asynchronous track work', () => {
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(player).toContain('let trackLoadRevision = 0')
+    expect(player).toContain('const isCurrentTrackLoad =')
+    expect(player).toContain('const revision = ++trackLoadRevision')
+    expect(player).toContain('clearTrackDerivedState(track)')
+    expect(player).toContain('void searchMatchForLocal(track, revision)')
+    expect(player).toContain('await playAudioSource(source, autoPlay, revision, track)')
+  })
+
+  test('commits lyrics, artwork and media metadata only for the active track load', () => {
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(player).toContain('const getLyric = async (track: Track, revision = trackLoadRevision) =>')
+    expect(player).toContain('if (!isCurrentTrackLoad(revision, track)) return false')
+    expect(player).toContain('const updateMediaSessionMetaData = async (')
+    expect(player).toContain('const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)')
+    expect(player).toContain("data: { pic: pic.value }")
+  })
+
+  test('keeps heart-mode random indexing in bounds and ignores stale requests', () => {
+    const playlist = readSource('src/renderer/views/PlaylistPage.vue')
+
+    expect(playlist).toContain('let intelligenceRequestRevision = 0')
+    expect(playlist).toContain('Math.floor(Math.random() * tracks.value.length)')
+    expect(playlist).not.toContain('Math.floor(Math.random() * tracks.value.length + 1)')
+    expect(playlist).toContain('requestRevision !== intelligenceRequestRevision')
+    expect(playlist).toContain('Array.isArray(result?.data)')
+    expect(playlist).toContain("showToast('心动模式加载失败，请稍后重试')")
+  })
+})
