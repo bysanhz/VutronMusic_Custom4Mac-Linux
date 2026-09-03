@@ -758,13 +758,20 @@ onBeforeUnmount(() => {
 .lyric-container {
   &.no-lyric {
     justify-content: center;
+    padding: 0;
 
     .left-side {
+      flex: 1 1 100%;
+      width: 100%;
       padding: 0;
+      align-items: center;
     }
     .right-side {
-      flex: 0;
+      flex: 0 0 0;
+      width: 0;
+      min-width: 0;
       padding: 0;
+      overflow: hidden;
     }
   }
 
@@ -775,7 +782,9 @@ onBeforeUnmount(() => {
     padding: 0;
     .left-side {
       flex: unset;
+      width: 100%;
       justify-content: unset;
+      align-items: center;
       padding: 0;
       margin-bottom: 4vh;
 

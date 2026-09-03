@@ -152,6 +152,19 @@ test.describe('desktop feature integration', () => {
     expect(lyricPage).toContain('height: 22px')
   })
 
+  test('centers the Classic cover when lyrics are absent or the window becomes portrait', () => {
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+
+    expect(commonPlayer).toContain('&.no-lyric {')
+    expect(commonPlayer).toContain('flex: 1 1 100%')
+    expect(commonPlayer).toContain('flex: 0 0 0')
+    expect(commonPlayer).toContain('width: 0')
+    expect(commonPlayer).toContain('overflow: hidden')
+    expect(commonPlayer).toContain('&.isMobile {')
+    expect(commonPlayer).toContain('width: 100%')
+    expect(commonPlayer).toContain('align-items: center')
+  })
+
   test('keeps the Classic lyric toolbar and comments inside the viewport tool lane', () => {
     const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
     const commentList = readSource('src/renderer/components/CommentList.vue')
