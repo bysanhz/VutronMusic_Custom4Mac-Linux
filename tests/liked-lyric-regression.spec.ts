@@ -91,10 +91,14 @@ test.describe('player track identity consistency', () => {
   test('commits lyrics, artwork and media metadata only for the active track load', () => {
     const player = readSource('src/renderer/store/player.ts')
 
-    expect(player).toContain('const getLyric = async (track: Track, revision = trackLoadRevision) =>')
+    expect(player).toContain(
+      'const getLyric = async (track: Track, revision = trackLoadRevision) =>'
+    )
     expect(player).toContain('if (!isCurrentTrackLoad(revision, track)) return false')
     expect(player).toContain('const updateMediaSessionMetaData = async (')
-    expect(player).toContain('const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)')
+    expect(player).toContain(
+      'const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)'
+    )
     expect(player).toContain("data: { pic: pic.value }")
   })
 
@@ -103,7 +107,9 @@ test.describe('player track identity consistency', () => {
 
     expect(playlist).toContain('let intelligenceRequestRevision = 0')
     expect(playlist).toContain('Math.floor(Math.random() * tracks.value.length)')
-    expect(playlist).not.toContain('Math.floor(Math.random() * tracks.value.length + 1)')
+    expect(playlist).not.toContain(
+      'Math.floor(Math.random() * tracks.value.length + 1)'
+    )
     expect(playlist).toContain('requestRevision !== intelligenceRequestRevision')
     expect(playlist).toContain('Array.isArray(result?.data)')
     expect(playlist).toContain("showToast('心动模式加载失败，请稍后重试')")
