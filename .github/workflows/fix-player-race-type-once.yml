@@ -22,22 +22,13 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
           path = Path('src/renderer/store/player.ts')
           text = path.read_text()
-          old = '''        } catch (error) {
-          if (!isTrackLoadCurrent(revision, track)) return
-          showToast(error)
-        }
-'''
-          new = '''        } catch (error) {
-          if (!isTrackLoadCurrent(revision, track)) return
-          showToast(error instanceof Error ? error.message : String(error))
-        }
-'''
-          if old not in text:
-              raise SystemExit('target block not found')
-          path.write_text(text.replace(old, new, 1))
+          target = '          showToast(error)\n'
+          replacement = '          showToast(error instanceof Error ? error.message : String(error))\n'
+          if text.count(target) != 1:
+              raise SystemExit(f'expected one target, found {text.count(target)}')
+          path.write_text(text.replace(target, replacement, 1))
           PY
           git diff --check
 
