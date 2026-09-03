@@ -1,0 +1,50 @@
+name: Fix player race type once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-player-race-type-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Patch TypeScript error
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/renderer/store/player.ts')
+          text = path.read_text()
+          old = '''        } catch (error) {
+          if (!isTrackLoadCurrent(revision, track)) return
+          showToast(error)
+        }
+'''
+          new = '''        } catch (error) {
+          if (!isTrackLoadCurrent(revision, track)) return
+          showToast(error instanceof Error ? error.message : String(error))
+        }
+'''
+          if old not in text:
+              raise SystemExit('target block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/store/player.ts
+          git commit -m "fix: normalize player metadata errors for toast"
+          git push origin HEAD:main
