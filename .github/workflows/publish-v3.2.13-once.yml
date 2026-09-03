@@ -1,0 +1,111 @@
+name: Publish v3.2.13 once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-v3.2.13-once.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: v3.2.13
+      RELEASE_SHA: f83321eb7592c5ea4cf1286a69d0f26b427ae92f
+    steps:
+      - name: Checkout exact release source
+        uses: actions/checkout@v6
+        with:
+          ref: f83321eb7592c5ea4cf1286a69d0f26b427ae92f
+          fetch-depth: 0
+
+      - name: Publish v3.2.13 from verified source
+        shell: bash
+        run: |
+          set -euo pipefail
+          STARTED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(node -p "require('./package.json').version")" = "3.2.13"
+          test -f ".github/release-notes/${RELEASE_TAG}.md"
+
+          gh run cancel 33739945868 --repo "$GITHUB_REPOSITORY" || true
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/${RELEASE_TAG}^{}" | awk '{print $1}')"
+            if [[ -z "$REMOTE_TAG_SHA" ]]; then
+              REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/${RELEASE_TAG}" | awk '{print $1}')"
+            fi
+            test "$REMOTE_TAG_SHA" = "$RELEASE_SHA"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "VutronMusic ${RELEASE_TAG}"
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
+
+          gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$RELEASE_TAG"
+
+          RUN_ID=""
+          for _ in $(seq 1 60); do
+            RUN_ID="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml --event workflow_dispatch --limit 20 --json databaseId,headSha,createdAt --jq ".[] | select(.headSha == \"${RELEASE_SHA}\" and .createdAt >= \"${STARTED_AT}\") | .databaseId" | head -n1)"
+            [[ -n "$RUN_ID" ]] && break
+            sleep 5
+          done
+          test -n "$RUN_ID"
+          echo "Release workflow run: $RUN_ID"
+
+          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status --interval 20
+
+          DRAFT_TAG=""
+          for _ in $(seq 1 30); do
+            DRAFT_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.draft == true and (.tag_name | startswith(\"v-draft-\")) and .created_at >= \"${STARTED_AT}\") | .tag_name" | head -n1)"
+            [[ -n "$DRAFT_TAG" ]] && break
+            sleep 3
+          done
+          test -n "$DRAFT_TAG"
+          echo "Draft release: $DRAFT_TAG"
+
+          rm -rf release-assets
+          mkdir -p release-assets
+          gh release download "$DRAFT_TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets
+
+          test -f release-assets/VutronMusic-3.2.13_mac_arm64.dmg
+          test -f release-assets/VutronMusic-3.2.13_mac_x64.dmg
+          test -f release-assets/VutronMusic-3.2.13_win_x64.exe
+          test -f release-assets/VutronMusic-3.2.13_win_arm64.exe
+          test -f release-assets/VutronMusic-3.2.13_linux_x86_64.AppImage
+          test -f release-assets/VutronMusic-3.2.13_linux_arm64.AppImage
+          test -f release-assets/latest.yml
+          test -f release-assets/latest-mac.yml
+          test -f release-assets/latest-linux.yml
+          test -f release-assets/latest-linux-arm64.yml
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Formal release already exists; refusing to replace it."
+            exit 1
+          fi
+
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "VutronMusic v3.2.13" \
+            --notes-file ".github/release-notes/${RELEASE_TAG}.md" \
+            --latest
+
+          gh release delete "$DRAFT_TAG" --repo "$GITHUB_REPOSITORY" --yes
+          git push origin ":refs/tags/${DRAFT_TAG}" || true
+
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)" = "$RELEASE_TAG"
+          echo "PUBLISHED_RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq .id)"
+
+          PUBLISHER_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.github/workflows/publish-v3.2.13-once.yml?ref=main" --jq .sha)"
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/contents/.github/workflows/publish-v3.2.13-once.yml" \
+            -f message='chore: remove v3.2.13 publisher' \
+            -f sha="$PUBLISHER_SHA" \
+            -f branch=main
