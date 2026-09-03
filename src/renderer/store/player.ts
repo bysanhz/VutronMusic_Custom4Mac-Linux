@@ -744,7 +744,7 @@ export const usePlayerStore = defineStore(
           }
         } catch (error) {
           if (!isTrackLoadCurrent(revision, track)) return
-          showToast(error)
+          showToast(error instanceof Error ? error.message : String(error))
         }
       }
 
