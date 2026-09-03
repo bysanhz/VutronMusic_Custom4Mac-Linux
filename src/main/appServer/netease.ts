@@ -5,6 +5,39 @@ import { CacheAPIs } from '../utils/CacheApis'
 import { handleNeteaseResult } from '../utils'
 import log from '../log'
 import { normalizeNeteaseAssetUrls } from '../../shared/neteaseAssetUrl'
+import https from 'node:https'
+import tls from 'node:tls'
+
+const configureSystemTrustedCAs = () => {
+  const getCACertificates = (tls as any).getCACertificates as
+    | ((type?: 'default' | 'system' | 'bundled' | 'extra') => string[])
+    | undefined
+  if (!getCACertificates) return
+
+  try {
+    const defaultCAs = getCACertificates('default')
+    const systemCAs = getCACertificates('system')
+    if (!systemCAs.length) return
+
+    https.globalAgent.options.ca = Array.from(new Set([...defaultCAs, ...systemCAs]))
+    log.info(`[TLS] 已合并 ${systemCAs.length} 个系统受信任 CA，供网易云 Node 请求使用`)
+  } catch (error) {
+    log.warn('[TLS] 读取系统 CA 失败，将继续使用 Node 默认 CA', error)
+  }
+}
+
+configureSystemTrustedCAs()
+
+const getNeteaseErrorMessage = (error: any): string => {
+  const message = error?.body?.msg
+  if (typeof message === 'string' && message) return message
+  if (message && typeof message === 'object') {
+    if (typeof message.message === 'string' && message.message) return message.message
+    if (typeof message.code === 'string' && message.code) return message.code
+  }
+  if (typeof error?.message === 'string' && error.message) return error.message
+  return 'Netease API request failed'
+}
 
 const isRepeatedDailySignin = (name: string, error: any): boolean => {
   return (
@@ -63,9 +96,20 @@ async function netease(fastify: FastifyInstance) {
         if ([400, 301, 250].includes(error.status)) {
           return reply.status(error.status).send(error.body)
         }
+
+        const upstreamStatus = Number(error?.status)
+        if (upstreamStatus >= 500 && upstreamStatus <= 599) {
+          return reply.status(upstreamStatus).send({
+            code: upstreamStatus,
+            retryable: true,
+            message: getNeteaseErrorMessage(error)
+          })
+        }
+
         return reply.status(500).send({
           code: 500,
-          message: 'Netease API request failed'
+          retryable: true,
+          message: getNeteaseErrorMessage(error)
         })
       }
     }

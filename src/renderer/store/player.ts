@@ -101,6 +101,7 @@ export const usePlayerStore = defineStore(
 
     let lastUpdateTime = 0
     let trackLoadRevision = 0
+    let trackLookupFailureRevision = -1
 
     const isTrackLoadCurrent = (revision: number, track?: Track | null) => {
       if (revision !== trackLoadRevision) return false
@@ -909,15 +910,26 @@ export const usePlayerStore = defineStore(
 
     const replaceCurrentTrack = async (trackID: number | string, autoPlay = true) => {
       const revision = ++trackLoadRevision
+      trackLookupFailureRevision = -1
       cancelSleepTimerForTrackChange(trackID)
       if (autoPlay && currentTrack.value?.name) {
         scrobbleFM(currentTrack.value, seek.value)
       }
 
-      const track = await getLocalMusic(trackID as number)
+      let track: Track | undefined
+      try {
+        track = await getLocalMusic(trackID as number)
+      } catch (error) {
+        if (revision !== trackLoadRevision) return false
+        trackLookupFailureRevision = revision
+        console.error(`[Player] 获取歌曲信息失败: ${trackID}`, error)
+        showToast('歌曲信息获取失败，未跳过当前歌曲，请稍后重试')
+        return false
+      }
       if (revision !== trackLoadRevision) return false
 
       if (!track) {
+        showToast('歌曲信息不存在，正在切换下一首...')
         nextTrackCallback()
         return false
       }
@@ -1021,42 +1033,45 @@ export const usePlayerStore = defineStore(
       return true
     }
 
-    const getLocalMusic = (id: number) => {
-      return new Promise<Track | undefined>((resolve) => {
-        let matchTrack = getALocalTrack({ id })
-        if (matchTrack) {
-          if (!isLocalList.value) {
-            showToast(`使用本地文件播放`)
+    const getLocalMusic = async (id: number): Promise<Track | undefined> => {
+      let matchTrack = getALocalTrack({ id })
+      if (matchTrack) {
+        if (!isLocalList.value) {
+          showToast(`使用本地文件播放`)
+        }
+        matchTrack.source = 'localTrack'
+        return matchTrack
+      }
+
+      matchTrack = getAStreamTrack(id)
+      if (matchTrack) return matchTrack
+
+      if (window.env?.isElectron) {
+        let lastError: unknown = null
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const response = await fetch(`atom://local-asset?type=track&id=${id}`)
+            if (response.status === 200) {
+              return (await response.json()) as Track
+            }
+            if (response.status === 404) return undefined
+
+            const details = await response.text().catch(() => '')
+            throw new Error(
+              `歌曲信息请求失败 (${response.status})${details ? `: ${details}` : ''}`
+            )
+          } catch (error) {
+            lastError = error
+            if (attempt === 0) await delay(400)
           }
-          matchTrack.source = 'localTrack'
-          resolve(matchTrack)
-          return
         }
-        matchTrack = getAStreamTrack(id)
-        if (matchTrack) {
-          resolve(matchTrack)
-          return
-        }
-        if (window.env?.isElectron) {
-          fetch(`atom://local-asset?type=track&id=${id}`).then((data) => {
-            if (data.status === 200) {
-              data.json().then((track: Track) => {
-                resolve(track)
-              })
-            } else if (data.status === 404) {
-              resolve(undefined)
-            }
-          })
-        } else {
-          getTrackDetail(id.toString()).then((data) => {
-            if (data.code === 200) {
-              resolve(data.songs[0])
-            } else {
-              resolve(undefined)
-            }
-          })
-        }
-      })
+
+        throw lastError instanceof Error ? lastError : new Error('歌曲信息请求失败')
+      }
+
+      const data = await getTrackDetail(id.toString())
+      if (data?.code === 200 && data.songs?.length) return data.songs[0]
+      return undefined
     }
 
     const getTrackSource = (track: Track) => {
@@ -1097,9 +1112,18 @@ export const usePlayerStore = defineStore(
         playing.value = false
         return false
       }
+
+      const previousIndex = currentTrackIndex.value
       currentTrackIndex.value = index!
-      await replaceCurrentTrack(trackID, true)
-      return true
+      const replaced = await replaceCurrentTrack(trackID, true)
+      if (
+        !replaced &&
+        trackLookupFailureRevision === trackLoadRevision &&
+        currentTrackIndex.value === index
+      ) {
+        currentTrackIndex.value = previousIndex
+      }
+      return replaced
     }
 
     const getNextTrack = (): [number | undefined, number, boolean] => {
@@ -1132,13 +1156,24 @@ export const usePlayerStore = defineStore(
         list.value.splice(currentTrackIndex.value, 0, currentTrack.value!.id)
       }
       const [trackID, index, isPlayingNext] = getNextTrack()
+      const previousIndex = currentTrackIndex.value
+      const previousPlayingNext = playingNext.value
       playingNext.value = isPlayingNext
       if (!trackID) {
         playing.value = false
         return false
       }
       currentTrackIndex.value = index
-      await replaceCurrentTrack(trackID, true)
+      const replaced = await replaceCurrentTrack(trackID, true)
+      if (
+        !replaced &&
+        trackLookupFailureRevision === trackLoadRevision &&
+        currentTrackIndex.value === index
+      ) {
+        currentTrackIndex.value = previousIndex
+        playingNext.value = previousPlayingNext
+      }
+      return replaced
     }
 
     const nextTrackCallback = () => {

@@ -706,20 +706,24 @@ class BackGround {
             })
           case 'track':
             ids = searchParams.get('id')
-            res = cache.get(CacheAPIs.Track, { ids })
-            if (res) {
-              const track = res.songs[0]
-              return new Response(JSON.stringify(track), {
-                headers: { 'content-type': 'application/json' }
-              })
-            } else {
-              res = await getTrackDetail(ids)
-              if (!res || !res.songs?.length) {
-                log.error('======get-track-error=====', ids)
-                return new Response(JSON.stringify({ status: 404 }), {
+            try {
+              res = cache.get(CacheAPIs.Track, { ids })
+              if (res) {
+                const track = res.songs[0]
+                return new Response(JSON.stringify(track), {
                   headers: { 'content-type': 'application/json' }
                 })
               }
+
+              res = await getTrackDetail(ids)
+              if (!res || !res.songs?.length) {
+                log.warn('[Player] 歌曲信息不存在', ids)
+                return new Response(JSON.stringify({ code: 404, message: 'Track not found' }), {
+                  status: 404,
+                  headers: { 'content-type': 'application/json' }
+                })
+              }
+
               const track = res.songs[0]
               const { url, br, gain, peak, source } = await getAudioSource(track)
               track.url = url
@@ -729,6 +733,13 @@ class BackGround {
               track.br = br
 
               return new Response(JSON.stringify(track), {
+                headers: { 'content-type': 'application/json' }
+              })
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error)
+              log.error(`[Player] 获取歌曲信息失败: ${ids}`, error)
+              return new Response(JSON.stringify({ code: 503, retryable: true, message }), {
+                status: 503,
                 headers: { 'content-type': 'application/json' }
               })
             }

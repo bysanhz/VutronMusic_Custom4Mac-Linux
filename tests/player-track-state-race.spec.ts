@@ -50,6 +50,33 @@ test.describe('player track-state race guards', () => {
     )
   })
 
+  test('keeps a transient track lookup failure from corrupting playlist navigation', () => {
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(player).toContain('let trackLookupFailureRevision = -1')
+    expect(player).toContain('for (let attempt = 0; attempt < 2; attempt += 1)')
+    expect(player).toContain('if (response.status === 404) return undefined')
+    expect(player).toContain("showToast('歌曲信息获取失败，未跳过当前歌曲，请稍后重试')")
+    expect(player).toContain('trackLookupFailureRevision === trackLoadRevision')
+  })
+
+  test('returns explicit HTTP failures from the atom track protocol', () => {
+    const main = readSource('src/main/index.ts')
+
+    expect(main).toContain("log.warn('[Player] 歌曲信息不存在', ids)")
+    expect(main).toContain("JSON.stringify({ code: 404, message: 'Track not found' })")
+    expect(main).toContain('JSON.stringify({ code: 503, retryable: true, message })')
+  })
+
+  test('adds system trusted CAs without disabling TLS validation', () => {
+    const netease = readSource('src/main/appServer/netease.ts')
+
+    expect(netease).toContain("getCACertificates('system')")
+    expect(netease).toContain('https.globalAgent.options.ca =')
+    expect(netease).not.toContain('NODE_TLS_REJECT_UNAUTHORIZED')
+    expect(netease).not.toContain('rejectUnauthorized: false')
+  })
+
   test('keeps heart-mode selection in bounds and ignores stale responses', () => {
     const playlist = readSource('src/renderer/views/PlaylistPage.vue')
 
