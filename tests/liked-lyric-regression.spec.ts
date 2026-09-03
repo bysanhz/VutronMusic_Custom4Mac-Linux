@@ -99,7 +99,7 @@ test.describe('player track identity consistency', () => {
     expect(player).toContain(
       'const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)'
     )
-    expect(player).toContain("data: { pic: pic.value }")
+    expect(player).toContain('data: { pic: pic.value }')
   })
 
   test('keeps heart-mode random indexing in bounds and ignores stale requests', () => {
@@ -107,9 +107,7 @@ test.describe('player track identity consistency', () => {
 
     expect(playlist).toContain('let intelligenceRequestRevision = 0')
     expect(playlist).toContain('Math.floor(Math.random() * tracks.value.length)')
-    expect(playlist).not.toContain(
-      'Math.floor(Math.random() * tracks.value.length + 1)'
-    )
+    expect(playlist).not.toContain('Math.floor(Math.random() * tracks.value.length + 1)')
     expect(playlist).toContain('requestRevision !== intelligenceRequestRevision')
     expect(playlist).toContain('Array.isArray(result?.data)')
     expect(playlist).toContain("showToast('心动模式加载失败，请稍后重试')")
