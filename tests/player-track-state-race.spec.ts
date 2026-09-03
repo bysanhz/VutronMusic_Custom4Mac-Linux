@@ -42,7 +42,9 @@ test.describe('player track-state race guards', () => {
 
     expect(playAudioSource).toContain('revision = trackLoadRevision')
     expect(playAudioSource).toContain('await smoothGain(0, fade)')
-    expect(playAudioSource.match(/revision !== trackLoadRevision/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(playAudioSource.match(/revision !== trackLoadRevision/g)?.length).toBeGreaterThanOrEqual(
+      2
+    )
     expect(playAudioSource.indexOf('await smoothGain(0, fade)')).toBeLessThan(
       playAudioSource.lastIndexOf('revision !== trackLoadRevision')
     )
@@ -52,7 +54,9 @@ test.describe('player track-state race guards', () => {
     const playlist = readSource('src/renderer/views/PlaylistPage.vue')
 
     expect(playlist).toContain('let intelligenceRequestID = 0')
-    expect(playlist).toContain('const randomIndex = Math.floor(Math.random() * tracks.value.length)')
+    expect(playlist).toContain(
+      'const randomIndex = Math.floor(Math.random() * tracks.value.length)'
+    )
     expect(playlist).not.toContain('Math.floor(Math.random() * tracks.value.length + 1)')
     expect(playlist).toContain('const requestID = ++intelligenceRequestID')
     expect(playlist).toContain('if (requestID !== intelligenceRequestID) return')

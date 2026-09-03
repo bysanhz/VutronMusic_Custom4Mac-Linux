@@ -536,7 +536,9 @@ const playIntelligenceList = async () => {
     if (requestID !== intelligenceRequestID) return
 
     const trackIDs = Array.isArray(result?.data)
-      ? result.data.map((track: any) => track?.id).filter((id: any) => id !== undefined && id !== null)
+      ? result.data
+          .map((track: any) => track?.id)
+          .filter((id: any) => id !== undefined && id !== null)
       : []
 
     if (!trackIDs.length) {
