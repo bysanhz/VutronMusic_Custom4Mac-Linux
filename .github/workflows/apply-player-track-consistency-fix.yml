@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply source patch
-        run: python3 tools/.apply_player_track_consistency_fix.py
+        run: python3 tools/.apply_player_track_consistency_fix_wrapper.py
 
       - name: Validate patch
         run: git diff --check
@@ -27,10 +27,11 @@ jobs:
         shell: bash
         run: |
           rm tools/.apply_player_track_consistency_fix.py
+          rm tools/.apply_player_track_consistency_fix_wrapper.py
           rm .github/workflows/apply-player-track-consistency-fix.yml
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/renderer/store/player.ts src/renderer/views/PlaylistPage.vue tests/liked-lyric-regression.spec.ts tools/.apply_player_track_consistency_fix.py .github/workflows/apply-player-track-consistency-fix.yml
+          git add src/renderer/store/player.ts src/renderer/views/PlaylistPage.vue tests/liked-lyric-regression.spec.ts tools/.apply_player_track_consistency_fix.py tools/.apply_player_track_consistency_fix_wrapper.py .github/workflows/apply-player-track-consistency-fix.yml
           git commit -m "fix(player): keep track metadata synchronized"
           git push origin "HEAD:${GITHUB_REF_NAME}"
