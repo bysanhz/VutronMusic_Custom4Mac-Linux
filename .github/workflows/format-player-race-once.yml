@@ -1,0 +1,43 @@
+name: Format player race fix once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/format-player-race-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format affected files
+        run: |
+          yarn prettier src/renderer/views/PlaylistPage.vue tests/player-track-state-race.spec.ts --write
+          git diff --check
+
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/views/PlaylistPage.vue tests/player-track-state-race.spec.ts
+          git commit -m "style: format player race fix"
+          git push origin HEAD:main
