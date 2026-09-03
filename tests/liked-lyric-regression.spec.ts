@@ -76,6 +76,7 @@ test.describe('desktop lyric continuity', () => {
   })
 })
 
+// These checks pin the transaction boundary that prevents stale song metadata from winning races.
 test.describe('player track identity consistency', () => {
   test('uses a monotonic revision to reject stale asynchronous track work', () => {
     const player = readSource('src/renderer/store/player.ts')
