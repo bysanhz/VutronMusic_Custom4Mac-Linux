@@ -12,6 +12,7 @@ export type HeartModeRerankOptions = {
   likedTrackIDs: Iterable<number>
   profile: HeartModeProfile
   targetCount?: number
+  contextTrackIDs?: Iterable<number>
 }
 
 const normalizeID = (value: unknown): number | null => {
@@ -113,7 +114,8 @@ export const rerankHeartModeCandidatesForDiversity = ({
   sourceSeedByTrackID,
   likedTrackIDs,
   profile,
-  targetCount = 30
+  targetCount = 30,
+  contextTrackIDs = []
 }: HeartModeRerankOptions): number[] => {
   const ranked = Array.from(
     new Set(
@@ -141,9 +143,21 @@ export const rerankHeartModeCandidatesForDiversity = ({
     Math.ceil(limit * Math.min(1, Math.max(0, Number(profile.familiarity) / 100)))
   )
 
-  const selected: number[] = [ranked[0]]
-  let selectedLikedCount = liked.has(ranked[0]) ? 1 : 0
-  const remaining = ranked.slice(1)
+  const context = Array.from(contextTrackIDs)
+    .map(normalizeID)
+    .filter((id): id is number => id !== null)
+
+  const selected: number[] = []
+  let selectedLikedCount = 0
+  const remaining = [...ranked]
+
+  // 初始队列必须保留主 seed 为第一首；rolling refill 有既有上下文时，
+  // 第一首也应参与 spacing 判断，不能无条件固定。
+  if (!context.length && remaining.length) {
+    const firstTrackID = remaining.shift()!
+    selected.push(firstTrackID)
+    if (liked.has(firstTrackID)) selectedLikedCount += 1
+  }
 
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1
@@ -167,7 +181,7 @@ export const rerankHeartModeCandidatesForDiversity = ({
     for (const index of candidateIndices) {
       const evaluation = evaluateSpacing({
         trackID: remaining[index],
-        selectedTrackIDs: selected,
+        selectedTrackIDs: [...context, ...selected],
         metadataByTrackID,
         sourceSeedByTrackID,
         artistDistance,
