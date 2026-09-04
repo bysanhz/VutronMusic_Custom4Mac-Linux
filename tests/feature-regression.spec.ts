@@ -732,9 +732,7 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('recordHeartModeTrackIDs(initialHeartModeTrackIDs)')
     expect(main).toContain('recordHeartModeTrackIDs(appendedTrackIDs)')
     expect(reranker).toContain('const maxLikedCount = Math.max(')
-    expect(reranker).toContain(
-      'const familiarityCapReached = selectedLikedCount >= maxLikedCount'
-    )
+    expect(reranker).toContain('const familiarityCapReached = selectedLikedCount >= maxLikedCount')
     expect(scorer).toContain('const familiarityWeight = 0.45 * familiarityLevel')
     expect(seedSelector).toContain('interleaveHeartModeSeedCandidates')
     expect(seedSelector).toContain('for (let rank = 0; rank < maxBranchLength; rank += 1)')
