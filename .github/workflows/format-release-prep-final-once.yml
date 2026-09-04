@@ -1,0 +1,43 @@
+name: One-time final release formatting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/format-release-prep-final-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format final release fixes
+        shell: bash
+        run: |
+          ./node_modules/.bin/prettier --write             src/renderer/main.ts             src/renderer/utils/heartModeSession.ts
+          git diff --check
+
+      - name: Commit formatted fixes and remove this workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/main.ts src/renderer/utils/heartModeSession.ts
+          git rm .github/workflows/format-release-prep-final-once.yml
+          git commit -m "chore: format final heart-mode release fixes"
+          git push origin HEAD:main
