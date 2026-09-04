@@ -289,7 +289,7 @@
       "generating": "Generating Heart Mode from Liked Songs…",
       "likedPlaylistMissing": "Could not find the Liked Songs playlist.",
       "recommendationMissing": "No Heart Mode recommendations were returned.",
-      "started": "Heart Mode started with {count} tracks",
+      "started": "Heart Mode started with {count} initial tracks and will keep replenishing",
       "likedPlaylistEmpty": "The Liked Songs playlist is empty.",
       "failed": "Heart Mode failed to load. Please try again later.",
       "timeout": "Heart Mode timed out. Please retry.",
