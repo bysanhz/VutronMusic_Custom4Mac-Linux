@@ -8,9 +8,14 @@ import {
 } from '../src/renderer/utils/playbackStartGuard'
 import { normalizeTrackLyricOffset } from '../src/renderer/utils/trackLyricOffset'
 import {
-  rankHeartModeCandidates,
+  calculateHeartModeRepeatPenalty,
+  migrateHeartModeHistoryEntries,
   selectHeartModeSeedIDs
 } from '../src/renderer/utils/heartModeHistory'
+import {
+  aggregateTrackFeedbackScore,
+  rankHeartModeCandidatesByScore
+} from '../src/renderer/utils/heartModeScorer'
 import {
   calculateActiveListenIncrement,
   scorePlaybackFeedback,
@@ -76,17 +81,114 @@ test.describe('track lyric timing', () => {
 })
 
 test.describe('heart mode history-aware recommendations', () => {
-  test('pushes recent unliked repeats behind fresh and liked candidates', () => {
-    const ranked = rankHeartModeCandidates({
-      seedTrackID: 1,
-      candidateTrackIDs: [10, 11, 12, 13],
-      likedTrackIDs: [1, 11],
-      recentPlayedTrackIDs: [10, 11],
-      recentHeartModeTrackIDs: [12],
-      targetCount: 5
+  test('combines NetEase rank, behavior, familiarity, and decaying repeat history', () => {
+    const now = 100 * 24 * 60 * 60 * 1000
+    const makeFeedback = (
+      trackId: number,
+      patch: Partial<PlaybackFeedback>
+    ): PlaybackFeedback => ({
+      trackId,
+      source: 'intelligence',
+      durationSeconds: 200,
+      activeListenSeconds: 10,
+      completionRatio: 0.05,
+      endReason: 'manual-next',
+      likedAtEnd: false,
+      likedDuringPlayback: false,
+      playedAt: now,
+      ...patch
     })
 
-    expect(ranked).toEqual([1, 13, 11, 12, 10])
+    const ranked = rankHeartModeCandidatesByScore({
+      seedTrackID: 1,
+      candidateTrackIDs: [10, 11, 12],
+      likedTrackIDs: [1, 11],
+      recentPlayedTrackIDs: [12],
+      historyEntries: [
+        {
+          id: 12,
+          recommendedAt: now - 60 * 60 * 1000,
+          legacy: false
+        }
+      ],
+      feedbackEntries: [
+        makeFeedback(10, {
+          activeListenSeconds: 200,
+          completionRatio: 1,
+          endReason: 'natural-end'
+        }),
+        makeFeedback(11, {})
+      ],
+      profile: getHeartModePresetProfile('diverse'),
+      targetCount: 4,
+      now
+    })
+
+    expect(ranked).toEqual([1, 10, 11, 12])
+  })
+
+  test('decays repeat penalty across short, medium, and long cooldown windows', () => {
+    const now = 60 * 24 * 60 * 60 * 1000
+    const penaltyAt12Hours = calculateHeartModeRepeatPenalty({
+      recommendedAt: now - 12 * 60 * 60 * 1000,
+      now
+    })
+    const penaltyAt3Days = calculateHeartModeRepeatPenalty({
+      recommendedAt: now - 3 * 24 * 60 * 60 * 1000,
+      now
+    })
+    const penaltyAt15Days = calculateHeartModeRepeatPenalty({
+      recommendedAt: now - 15 * 24 * 60 * 60 * 1000,
+      now
+    })
+    const penaltyAt31Days = calculateHeartModeRepeatPenalty({
+      recommendedAt: now - 31 * 24 * 60 * 60 * 1000,
+      now
+    })
+
+    expect(penaltyAt12Hours).toBeGreaterThan(penaltyAt3Days)
+    expect(penaltyAt3Days).toBeGreaterThan(penaltyAt15Days)
+    expect(penaltyAt15Days).toBeGreaterThan(0)
+    expect(penaltyAt31Days).toBe(0)
+  })
+
+  test('migrates v1 history conservatively without inventing preference labels', () => {
+    const migrated = migrateHeartModeHistoryEntries([
+      { id: 10, recommendedAt: 200 },
+      { id: 10, recommendedAt: 100 },
+      { id: 11, recommendedAt: 150 },
+      { id: 'bad', recommendedAt: 300 }
+    ])
+
+    expect(migrated).toEqual([
+      { id: 10, recommendedAt: 200, legacy: true },
+      { id: 11, recommendedAt: 150, legacy: true }
+    ])
+  })
+
+  test('aggregates only behavior events that carry a real preference signal', () => {
+    const now = 20 * 24 * 60 * 60 * 1000
+    const base: PlaybackFeedback = {
+      trackId: 10,
+      source: 'intelligence',
+      durationSeconds: 200,
+      activeListenSeconds: 10,
+      completionRatio: 0.05,
+      endReason: 'manual-next',
+      likedAtEnd: false,
+      likedDuringPlayback: false,
+      playedAt: now
+    }
+
+    expect(aggregateTrackFeedbackScore(10, [base], now)).toBe(-1)
+    expect(
+      aggregateTrackFeedbackScore(
+        10,
+        [{ ...base, endReason: 'playback-error' }],
+        now
+      )
+    ).toBe(0)
+    expect(aggregateTrackFeedbackScore(11, [base], now)).toBe(0)
   })
 
   test('prefers unseen liked tracks when choosing heart-mode seeds', () => {
@@ -226,6 +328,7 @@ test.describe('heart mode history-aware recommendations', () => {
   test('persists a cross-session cooldown and supplements candidates with multiple seeds', () => {
     const main = readSource('src/renderer/main.ts')
     const history = readSource('src/renderer/utils/heartModeHistory.ts')
+    const scorer = readSource('src/renderer/utils/heartModeScorer.ts')
     const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
     const session = readSource('src/renderer/utils/heartModeSession.ts')
@@ -236,12 +339,18 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('await dataStore.fetchPlayHistory()')
     expect(main).toContain('recentTracks.value.map')
     expect(main).toContain('heartModeProfile.value.seedCount')
-    expect(main).toContain('rankHeartModeCandidates({')
+    expect(main).toContain('rankHeartModeCandidatesByScore({')
+    expect(main).toContain('historyEntries: heartModeHistory')
+    expect(main).toContain('feedbackEntries: playbackFeedback.value')
     expect(main).toContain('recordHeartModeTrackIDs(heartModeTrackIDs)')
-    expect(history).toContain("HEART_MODE_HISTORY_KEY = 'vutronmusic-heart-mode-history-v1'")
-    expect(history).toContain('MAX_HEART_MODE_HISTORY = 300')
-    expect(history).toContain('HEART_MODE_HISTORY_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000')
-    expect(history).toContain('recentUnlikedRepeats.push(id)')
+    expect(history).toContain("HEART_MODE_HISTORY_V1_KEY = 'vutronmusic-heart-mode-history-v1'")
+    expect(history).toContain("HEART_MODE_HISTORY_KEY = 'vutronmusic-heart-mode-history-v2'")
+    expect(history).toContain('MAX_HEART_MODE_HISTORY = 500')
+    expect(history).toContain('calculateHeartModeRepeatPenalty')
+    expect(history).not.toContain('HEART_MODE_HISTORY_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000')
+    expect(scorer).toContain('aggregateTrackFeedbackScore')
+    expect(scorer).toContain('rankHeartModeCandidatesByScore')
+    expect(scorer).toContain('recentPlayed ? 0 : 1')
     expect(main).toContain('initializePlaybackFeedback(playerStore)')
     expect(main).toContain("markPlaybackEndReason('heart-mode-restart')")
     expect(main).toContain('createHeartModeSession({')
