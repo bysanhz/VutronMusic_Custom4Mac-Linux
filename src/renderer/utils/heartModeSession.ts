@@ -428,10 +428,9 @@ export const boostHeartModeCurrentBranch = (
     type: 'more-like-this',
     createdAt: now
   }
-  currentSession.explicitFeedback = [
-    ...currentSession.explicitFeedback,
-    explicitFeedback
-  ].slice(-MAX_EXPLICIT_FEEDBACK)
+  currentSession.explicitFeedback = [...currentSession.explicitFeedback, explicitFeedback].slice(
+    -MAX_EXPLICIT_FEEDBACK
+  )
   persist()
   return next
 }
@@ -454,15 +453,13 @@ export const steerHeartModeFurther = (
   const explicitFeedback: HeartModeExplicitFeedback = {
     sessionId: currentSession.id,
     trackId: id,
-    sourceSeedId:
-      normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
+    sourceSeedId: normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
     type: 'go-further',
     createdAt: now
   }
-  currentSession.explicitFeedback = [
-    ...currentSession.explicitFeedback,
-    explicitFeedback
-  ].slice(-MAX_EXPLICIT_FEEDBACK)
+  currentSession.explicitFeedback = [...currentSession.explicitFeedback, explicitFeedback].slice(
+    -MAX_EXPLICIT_FEEDBACK
+  )
   persist()
   return { ...currentSession.steering }
 }
