@@ -9,6 +9,7 @@ export type HeartModeRerankOptions = {
   rankedTrackIDs: number[]
   metadataByTrackID: ReadonlyMap<number, HeartModeTrackMetadata>
   sourceSeedByTrackID: Map<number, number> | Record<string, number>
+  likedTrackIDs: Iterable<number>
   profile: HeartModeProfile
   targetCount?: number
 }
@@ -99,16 +100,18 @@ const evaluateSpacing = ({
  *
  * 策略：
  * 1. 保留 Scorer 第一名（通常是主 seed）作为队首；
- * 2. 每一步优先挑选同时满足“同艺人间隔”和“同 seed 间隔”的最高分候选；
- * 3. 如果当前剩余候选没有一个完全满足约束，则选择违反程度最小的候选，
- *    同等违反程度时仍按 Scorer 原始排名决定，保证队列一定能填满；
- * 4. 本阶段不改变候选分数，只改变局部顺序，因此 NetEase + Phase 3 Scorer
- *    仍然是全局质量主导。
+ * 2. profile.familiarity 直接映射为最终队列中“已喜欢歌曲”的目标上限比例；
+ *    例如 35 表示约 35%，但主 seed 至少保留 1 首；
+ * 3. 在不超过熟悉歌曲上限的候选中，优先满足“同艺人间隔”和“同 seed 间隔”；
+ * 4. 若新歌候选不足，熟悉度上限会安全放宽，保证队列不被截断；
+ * 5. 若 spacing 无法完全满足，则选择违反程度最小的候选；同等违反程度时仍按
+ *    Scorer 原始排名决定。
  */
 export const rerankHeartModeCandidatesForDiversity = ({
   rankedTrackIDs,
   metadataByTrackID,
   sourceSeedByTrackID,
+  likedTrackIDs,
   profile,
   targetCount = 30
 }: HeartModeRerankOptions): number[] => {
@@ -125,15 +128,43 @@ export const rerankHeartModeCandidatesForDiversity = ({
   const limit = Math.max(1, Math.round(targetCount))
   const artistDistance = Math.max(0, Math.round(profile.maxSameArtistDistance))
   const seedDistance = Math.max(0, Math.round(profile.maxSameSeedDistance))
+  const liked = new Set(
+    Array.from(likedTrackIDs)
+      .map(normalizeID)
+      .filter((id): id is number => id !== null)
+  )
+
+  // familiarity=35 => 最终 30 首中约最多 11 首已喜欢歌曲。
+  // 主 seed 来自喜欢歌单，因此至少允许 1 首。
+  const maxLikedCount = Math.max(
+    1,
+    Math.ceil(limit * Math.min(1, Math.max(0, Number(profile.familiarity) / 100)))
+  )
 
   const selected: number[] = [ranked[0]]
+  let selectedLikedCount = liked.has(ranked[0]) ? 1 : 0
   const remaining = ranked.slice(1)
 
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1
     let bestViolation = Number.POSITIVE_INFINITY
 
-    for (let index = 0; index < remaining.length; index += 1) {
+    // 达到熟悉歌曲上限后，只要仍有未喜欢候选，就暂时不考虑已喜欢歌曲。
+    // 只有当未喜欢候选已经耗尽时才放宽该上限，避免队列长度不足。
+    const familiarityEligibleIndices = remaining
+      .map((trackID, index) => ({ trackID, index }))
+      .filter(
+        ({ trackID }) =>
+          !liked.has(trackID) || selectedLikedCount < maxLikedCount
+      )
+      .map(({ index }) => index)
+
+    const candidateIndices =
+      familiarityEligibleIndices.length > 0
+        ? familiarityEligibleIndices
+        : remaining.map((_, index) => index)
+
+    for (const index of candidateIndices) {
       const evaluation = evaluateSpacing({
         trackID: remaining[index],
         selectedTrackIDs: selected,
@@ -156,7 +187,9 @@ export const rerankHeartModeCandidatesForDiversity = ({
     }
 
     if (bestIndex < 0) break
-    selected.push(remaining.splice(bestIndex, 1)[0])
+    const [nextTrackID] = remaining.splice(bestIndex, 1)
+    selected.push(nextTrackID)
+    if (liked.has(nextTrackID)) selectedLikedCount += 1
   }
 
   return selected
