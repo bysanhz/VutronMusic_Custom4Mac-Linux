@@ -1147,10 +1147,9 @@ export const usePlayerStore = defineStore(
     const _playNextTrack = async (isPersonal: boolean) => {
       await pause()
       if (isPersonal) {
-        playNextFMTrack()
-      } else {
-        playNext()
+        return playNextFMTrack()
       }
+      return playNext()
     }
 
     const playNext = async () => {
