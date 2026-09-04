@@ -752,11 +752,13 @@ const replenishHeartModeRollingQueue = async (): Promise<void> => {
 watch(
   () => [
     playerStore.playlistSource?.type,
-    playerStore.currentTrackIndex,
+    playerStore.currentTrack?.id,
     playerStore.list.length,
     playbackFeedback.value.length
   ],
   () => {
+    // currentTrack 变化时，playbackFeedback 的 sync watcher 已经先完成上一首
+    // finalize + branchState 更新，因此这里读取到的是最新自适应权重。
     void replenishHeartModeRollingQueue()
   },
   { flush: 'post' }
