@@ -268,8 +268,8 @@ test.describe('heart mode history-aware recommendations', () => {
   })
 
   test('caps liked tracks according to familiarity when fresh candidates are available', () => {
-    const rankedTrackIDs = Array.from({ length: 30 }, (_, index) => index + 1)
-    const likedTrackIDs = rankedTrackIDs.slice(0, 20)
+    const rankedTrackIDs = Array.from({ length: 60 }, (_, index) => index + 1)
+    const likedTrackIDs = rankedTrackIDs.slice(0, 30)
     const metadataByTrackID = new Map<number, HeartModeTrackMetadata>(
       rankedTrackIDs.map((id) => [id, { artistIds: [1000 + id] }])
     )
