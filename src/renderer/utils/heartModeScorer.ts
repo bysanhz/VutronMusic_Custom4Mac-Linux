@@ -12,6 +12,7 @@ export type HeartModeScoreBreakdown = {
   repeatPenalty: number
   recentPlayedPenalty: number
   seedDiversity: number
+  branchPreference: number
   total: number
 }
 
@@ -31,6 +32,7 @@ export type HeartModeScorerOptions = {
   feedbackEntries: PlaybackFeedback[]
   profile: HeartModeProfile
   candidateSeedByTrackID?: Map<number, number> | Record<string, number>
+  branchScoreBySeedID?: Map<number, number> | Record<string, number>
   targetCount?: number
   now?: number
 }
@@ -65,6 +67,21 @@ const resolveSourceSeedID = (
 
   const id = Number(raw)
   return Number.isFinite(id) && id > 0 ? id : undefined
+}
+
+const resolveBranchScore = (
+  branchScoreBySeedID: HeartModeScorerOptions['branchScoreBySeedID'],
+  seedID: number | undefined
+): number => {
+  if (!branchScoreBySeedID || !seedID) return 0
+
+  const raw =
+    branchScoreBySeedID instanceof Map
+      ? branchScoreBySeedID.get(seedID)
+      : branchScoreBySeedID[String(seedID)]
+
+  const score = Number(raw)
+  return Number.isFinite(score) ? clamp(score, -1, 1) : 0
 }
 
 /**
@@ -125,6 +142,7 @@ export const scoreHeartModeCandidate = ({
   historyEntry,
   feedbackEntries,
   profile,
+  branchPreference = 0,
   now
 }: {
   trackID: number
@@ -137,6 +155,7 @@ export const scoreHeartModeCandidate = ({
   historyEntry?: HeartModeHistoryEntry
   feedbackEntries: PlaybackFeedback[]
   profile: HeartModeProfile
+  branchPreference?: number
   now: number
 }): HeartModeScoreBreakdown => {
   const noveltyLevel = clamp01(profile.novelty / 100)
@@ -167,6 +186,7 @@ export const scoreHeartModeCandidate = ({
   const recentPlayedPenalty = recentPlayed ? 1 : 0
   const seedDiversity =
     sourceSeedID && sourceSeedID !== seedTrackID ? 1 : 0
+  const normalizedBranchPreference = clamp(branchPreference, -1, 1)
 
   const rankWeight = 1.4
   const noveltyWeight = 0.35 + 1.65 * noveltyLevel
@@ -183,12 +203,18 @@ export const scoreHeartModeCandidate = ({
   // Phase 4 才会真正按艺人/seed 做邻接重排；这里仅让多分支候选有轻量机会。
   const seedDiversityWeight = 0.45 * diversityLevel
 
+  // Phase 5：同一 Session 内的分支反馈直接影响后续补队列。
+  // branchScore 已经被限制在 [-1, 1]，0.9 的权重足以改变同层候选顺序，
+  // 但不会压过极强的 NetEase rank / novelty / history 信号。
+  const branchPreferenceWeight = 0.9
+
   const total =
     rankWeight * rankQuality +
     noveltyWeight * novelty +
     familiarityWeight * familiarity +
     behaviorWeight * behavior +
-    seedDiversityWeight * seedDiversity -
+    seedDiversityWeight * seedDiversity +
+    branchPreferenceWeight * normalizedBranchPreference -
     repeatWeight * repeatPenalty -
     recentPlayedWeight * recentPlayedPenalty
 
@@ -200,6 +226,7 @@ export const scoreHeartModeCandidate = ({
     repeatPenalty,
     recentPlayedPenalty,
     seedDiversity,
+    branchPreference: normalizedBranchPreference,
     total
   }
 }
@@ -218,6 +245,7 @@ export const rankHeartModeCandidatesByScore = ({
   feedbackEntries,
   profile,
   candidateSeedByTrackID,
+  branchScoreBySeedID,
   targetCount = 30,
   now = Date.now()
 }: HeartModeScorerOptions): number[] => {
@@ -238,6 +266,7 @@ export const rankHeartModeCandidatesByScore = ({
 
   const scored: HeartModeScoredCandidate[] = candidates.map((id, originalRank) => {
     const sourceSeedId = resolveSourceSeedID(candidateSeedByTrackID, id)
+    const branchPreference = resolveBranchScore(branchScoreBySeedID, sourceSeedId)
     return {
       id,
       originalRank,
@@ -253,6 +282,7 @@ export const rankHeartModeCandidatesByScore = ({
         historyEntry: historyByTrackID.get(id),
         feedbackEntries,
         profile,
+        branchPreference,
         now
       })
     }
