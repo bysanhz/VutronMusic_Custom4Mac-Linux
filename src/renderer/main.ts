@@ -37,7 +37,13 @@ import {
   heartModeProfile,
   initializeHeartModeProfile
 } from './utils/heartModeProfile'
-import { createHeartModeSession } from './utils/heartModeSession'
+import {
+  createHeartModeSession,
+  getCurrentHeartModeSession,
+  getHeartModeBranchScoreMap,
+  recordHeartModeEnqueuedTracks,
+  registerHeartModeCandidatePool
+} from './utils/heartModeSession'
 import {
   getHeartModeHistory,
   recordHeartModeTrackIDs,
@@ -49,6 +55,13 @@ import {
   rerankHeartModeCandidatesForDiversity,
   type HeartModeTrackMetadata
 } from './utils/heartModeReranker'
+import {
+  HEART_MODE_INITIAL_QUEUE_SIZE,
+  HEART_MODE_REFILL_COUNT,
+  HEART_MODE_REFILL_THRESHOLD,
+  getHeartModeSpacingContext,
+  shouldReplenishHeartModeQueue
+} from './utils/heartModeEngine'
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
 import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
@@ -141,6 +154,9 @@ initializePlayerLyricWatchdog(playerStore)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
 let heartModeLoading = false
+let heartModeRollingLoading = false
+let heartModeLikedTrackIDsCache: number[] = []
+const heartModeMetadataCache = new Map<number, HeartModeTrackMetadata>()
 const heartModeChannel = new BroadcastChannel(HEART_MODE_CHANNEL)
 
 /**
