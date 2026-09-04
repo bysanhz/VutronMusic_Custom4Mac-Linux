@@ -44,12 +44,18 @@ import {
   selectHeartModeSeedIDs
 } from './utils/heartModeHistory'
 import { rankHeartModeCandidatesByScore } from './utils/heartModeScorer'
+import { interleaveHeartModeSeedCandidates } from './utils/heartModeSeedSelector'
+import {
+  rerankHeartModeCandidatesForDiversity,
+  type HeartModeTrackMetadata
+} from './utils/heartModeReranker'
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
 import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
 import { getPlaylistDetail, intelligencePlaylist } from './api/playlist'
+import { getTrackDetail } from './api/track'
 // =========== newADD end ========
 
 // Add API key defined in contextBridge to window object type
@@ -202,10 +208,49 @@ const collectRecentPlayedTrackIDs = () => {
   )
 }
 
+type HeartModeRecommendation = {
+  id: number
+  metadata?: HeartModeTrackMetadata
+}
+
+const extractHeartModeTrackMetadata = (track: any): HeartModeTrackMetadata | undefined => {
+  if (!track) return undefined
+
+  const artists = Array.isArray(track?.ar)
+    ? track.ar
+    : Array.isArray(track?.artists)
+      ? track.artists
+      : []
+
+  const artistIds = Array.from(
+    new Set(
+      artists
+        .map((artist: any) => Number(artist?.id))
+        .filter((id: number) => Number.isFinite(id) && id > 0)
+    )
+  )
+
+  const albumId = Number(track?.al?.id ?? track?.album?.id)
+  if (!artistIds.length && !(Number.isFinite(albumId) && albumId > 0)) {
+    return undefined
+  }
+
+  return {
+    artistIds,
+    albumId: Number.isFinite(albumId) && albumId > 0 ? albumId : undefined
+  }
+}
+
 /**
  * 请求一次网易云心动模式推荐；优先使用 sid，空结果或失败时退回兼容参数。
+ *
+ * 同时尽可能从 intelligence/list 自带的 songInfo 提取艺人/专辑元数据，
+ * 供 Phase 4 diversity reranker 使用。
  */
-const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: number) => {
+const fetchHeartModeRecommendations = async (
+  seedTrackID: number,
+  playlistID: number
+): Promise<HeartModeRecommendation[]> => {
   let result: any = null
 
   try {
@@ -235,8 +280,57 @@ const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: 
   }
 
   return responseItems
-    .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
-    .filter((id: number) => Number.isFinite(id) && id > 0)
+    .map((item: any) => {
+      const songInfo = item?.songInfo ?? item
+      const id = Number(item?.id ?? songInfo?.id)
+      if (!Number.isFinite(id) || id <= 0) return null
+
+      return {
+        id,
+        metadata: extractHeartModeTrackMetadata(songInfo)
+      } satisfies HeartModeRecommendation
+    })
+    .filter((item: HeartModeRecommendation | null): item is HeartModeRecommendation => item !== null)
+}
+
+/**
+ * 对 intelligence/list 中缺少 songInfo 的候选批量补齐艺人元数据。
+ *
+ * /song/detail 支持逗号分隔多个 id；这里每批最多 100 首，避免 URL 过长。
+ */
+const completeHeartModeTrackMetadata = async (
+  trackIDs: Iterable<number>,
+  metadataByTrackID: Map<number, HeartModeTrackMetadata>
+): Promise<void> => {
+  const missing = Array.from(
+    new Set(
+      Array.from(trackIDs)
+        .map((id) => Number(id))
+        .filter(
+          (id) =>
+            Number.isFinite(id) &&
+            id > 0 &&
+            !(metadataByTrackID.get(id)?.artistIds?.length)
+        )
+    )
+  )
+
+  const batchSize = 100
+  for (let start = 0; start < missing.length; start += batchSize) {
+    const batch = missing.slice(start, start + batchSize)
+    try {
+      const detail = await getTrackDetail(batch.join(','))
+      const songs = Array.isArray(detail?.songs) ? detail.songs : []
+      for (const song of songs) {
+        const id = Number(song?.id)
+        if (!Number.isFinite(id) || id <= 0) continue
+        const metadata = extractHeartModeTrackMetadata(song)
+        if (metadata) metadataByTrackID.set(id, metadata)
+      }
+    } catch (error) {
+      console.warn('[HeartMode] 批量补齐候选艺人信息失败，继续使用可用元数据：', error)
+    }
+  }
 }
 
 /**
@@ -247,7 +341,9 @@ const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: 
  * 2. 从喜欢歌单中随机选择一首歌曲作为 seed song；
  * 3. 调用 `/playmode/intelligence/list`，不调用私人 FM 或每日推荐；
  * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
- * 5. 使用 Phase 3 动态 Scorer 融合 NetEase 原始顺序、Profile、时间衰减历史与真实播放反馈。
+ * 5. 所有成功 seed 分支都参与候选池，并按分支内 NetEase 排名 round-robin 交织；
+ * 6. Phase 3 Scorer 完成全局质量排序后，再用 Phase 4 diversity reranker
+ *    执行同艺人/同 seed 的局部间隔约束。
  */
 const publishHeartModeResult = (
   requestId: string,
@@ -317,21 +413,23 @@ const startHeartModeFromLikes = async (requestId = '') => {
       throw new Error('LIKED_PLAYLIST_EMPTY')
     }
 
-    const candidateTrackIDs: number[] = []
-    const candidateSeedByTrackID = new Map<number, number>()
-    const recentPlayedSet = new Set(recentPlayedTrackIDs)
-    const recentHeartModeSet = new Set(recentHeartModeTrackIDs)
+    const recommendationsBySeed = new Map<number, number[]>()
+    const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
 
     for (const candidateSeedTrackID of seedTrackIDs) {
       try {
-        const recommendationIDs = await fetchHeartModeRecommendationIDs(
+        const recommendations = await fetchHeartModeRecommendations(
           candidateSeedTrackID,
           playlistID
         )
-        for (const recommendationID of recommendationIDs) {
-          candidateTrackIDs.push(recommendationID)
-          if (!candidateSeedByTrackID.has(recommendationID)) {
-            candidateSeedByTrackID.set(recommendationID, candidateSeedTrackID)
+        recommendationsBySeed.set(
+          candidateSeedTrackID,
+          recommendations.map((item) => item.id)
+        )
+
+        for (const recommendation of recommendations) {
+          if (recommendation.metadata && !metadataByTrackID.has(recommendation.id)) {
+            metadataByTrackID.set(recommendation.id, recommendation.metadata)
           }
         }
       } catch (error) {
@@ -339,19 +437,18 @@ const startHeartModeFromLikes = async (requestId = '') => {
           seedTrackID: candidateSeedTrackID,
           error
         })
-        continue
-      }
-
-      const novelCandidateCount = Array.from(new Set(candidateTrackIDs)).filter(
-        (id) => !recentPlayedSet.has(id) && !recentHeartModeSet.has(id)
-      ).length
-
-      if (novelCandidateCount >= HEART_MODE_TARGET_COUNT - 1) {
-        break
       }
     }
 
-    const heartModeTrackIDs = rankHeartModeCandidatesByScore({
+    const {
+      candidateTrackIDs,
+      candidateSeedByTrackID
+    } = interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)
+
+    // 主 seed 也要带分支归因，确保 reranker 能约束“seed 后立刻又来同一分支”。
+    candidateSeedByTrackID.set(seedTrackID, seedTrackID)
+
+    const scoredHeartModeTrackIDs = rankHeartModeCandidatesByScore({
       seedTrackID,
       candidateTrackIDs,
       likedTrackIDs,
@@ -360,8 +457,18 @@ const startHeartModeFromLikes = async (requestId = '') => {
       feedbackEntries: playbackFeedback.value,
       profile: heartModeProfile.value,
       candidateSeedByTrackID,
-      targetCount: HEART_MODE_TARGET_COUNT,
+      targetCount: candidateTrackIDs.length + 1,
       now
+    })
+
+    await completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)
+
+    const heartModeTrackIDs = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs: scoredHeartModeTrackIDs,
+      metadataByTrackID,
+      sourceSeedByTrackID: candidateSeedByTrackID,
+      profile: heartModeProfile.value,
+      targetCount: HEART_MODE_TARGET_COUNT
     })
 
     if (heartModeTrackIDs.length <= 1) {
