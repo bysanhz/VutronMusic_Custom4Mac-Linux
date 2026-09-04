@@ -104,7 +104,6 @@ import {
   boostHeartModeCurrentBranch,
   getCurrentHeartModeSession,
   getEffectiveHeartModeProfile,
-  getHeartModeRecommendationReason,
   resetCurrentHeartModeLearning,
   steerHeartModeFurther
 } from '../utils/heartModeSession'
@@ -244,16 +243,17 @@ const seedNames = ref<Record<string, string>>({})
 
 const texts = computed(() => TEXTS[resolveFeatureLanguage()])
 const isHeartMode = computed(() => playlistSource.value?.type === 'intelligence')
-const session = computed(() => {
-  sessionVersion.value
-  return getCurrentHeartModeSession()
-})
+const sessionSnapshot = computed(() => ({
+  version: sessionVersion.value,
+  value: getCurrentHeartModeSession()
+}))
+const session = computed(() => sessionSnapshot.value.value)
 const effectiveProfile = computed(() => getEffectiveHeartModeProfile(session.value))
 const reason = computed(() => {
-  sessionVersion.value
+  const activeSession = sessionSnapshot.value.value
   const trackId = Number(currentTrack.value?.id)
-  if (!Number.isFinite(trackId) || trackId <= 0) return null
-  return getHeartModeRecommendationReason(trackId)
+  if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return null
+  return activeSession.recommendationReasons[String(trackId)] ?? null
 })
 
 const sourceSeedName = computed(() => {
