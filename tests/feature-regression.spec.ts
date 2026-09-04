@@ -7,6 +7,10 @@ import {
   type PlaybackStartReason
 } from '../src/renderer/utils/playbackStartGuard'
 import { normalizeTrackLyricOffset } from '../src/renderer/utils/trackLyricOffset'
+import {
+  rankHeartModeCandidates,
+  selectHeartModeSeedIDs
+} from '../src/renderer/utils/heartModeHistory'
 
 const readSource = (relativePath: string): string =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf-8')
@@ -62,6 +66,44 @@ test.describe('track lyric timing', () => {
     expect(modal).not.toContain('minmax(78px, 1.2fr)')
     expect(modal).toContain('font-variant-numeric: tabular-nums;')
     expect(modal).toContain('white-space: nowrap;')
+  })
+})
+
+test.describe('heart mode history-aware recommendations', () => {
+  test('pushes recent unliked repeats behind fresh and liked candidates', () => {
+    const ranked = rankHeartModeCandidates({
+      seedTrackID: 1,
+      candidateTrackIDs: [10, 11, 12, 13],
+      likedTrackIDs: [1, 11],
+      recentPlayedTrackIDs: [10, 11],
+      recentHeartModeTrackIDs: [12],
+      targetCount: 5
+    })
+
+    expect(ranked).toEqual([1, 13, 11, 12, 10])
+  })
+
+  test('prefers unseen liked tracks when choosing heart-mode seeds', () => {
+    const seeds = selectHeartModeSeedIDs([1, 2, 3, 4], [1, 2, 3], 3, () => 0.5)
+
+    expect(seeds[0]).toBe(4)
+    expect(new Set(seeds).size).toBe(seeds.length)
+    expect(seeds).toHaveLength(3)
+  })
+
+  test('persists a cross-session cooldown and supplements candidates with multiple seeds', () => {
+    const main = readSource('src/renderer/main.ts')
+    const history = readSource('src/renderer/utils/heartModeHistory.ts')
+
+    expect(main).toContain('await dataStore.fetchPlayHistory()')
+    expect(main).toContain('recentTracks.value.map')
+    expect(main).toContain('MAX_HEART_MODE_SEED_ATTEMPTS = 3')
+    expect(main).toContain('rankHeartModeCandidates({')
+    expect(main).toContain('recordHeartModeTrackIDs(heartModeTrackIDs)')
+    expect(history).toContain("HEART_MODE_HISTORY_KEY = 'vutronmusic-heart-mode-history-v1'")
+    expect(history).toContain('MAX_HEART_MODE_HISTORY = 300')
+    expect(history).toContain('HEART_MODE_HISTORY_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000')
+    expect(history).toContain('recentUnlikedRepeats.push(id)')
   })
 })
 
