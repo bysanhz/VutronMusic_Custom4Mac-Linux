@@ -27,7 +27,13 @@ import { initializeSmoothWindowScale } from './utils/smoothWindowScale'
 import { initializeOsdWindowScaleSettings } from './utils/osdWindowScaleSettings'
 import { initializePlaybackStartPolicy } from './utils/playbackStartGuard'
 import { initializeTrackLyricOffset } from './utils/trackLyricOffset'
-import { initializePlaybackHistory } from './utils/playbackHistory'
+import { initializePlaybackHistory, recentTracks } from './utils/playbackHistory'
+import {
+  getRecentHeartModeTrackIDs,
+  rankHeartModeCandidates,
+  recordHeartModeTrackIDs,
+  selectHeartModeSeedIDs
+} from './utils/heartModeHistory'
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
 import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
@@ -107,6 +113,8 @@ app.mount('#app')
 initializeOsdWindowScaleSettings(router)
 
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
+const HEART_MODE_TARGET_COUNT = 30
+const MAX_HEART_MODE_SEED_ATTEMPTS = 3
 const playerStore = usePlayerStore(pinia)
 initializePlaybackStartPolicy(playerStore)
 initializeTrackLyricOffset(playerStore)
@@ -134,32 +142,90 @@ const resolveLikedPlaylistID = async () => {
 }
 
 /**
- * 从“我喜欢的音乐”中选择本次心动模式的种子歌曲。
+ * 获取“我喜欢的音乐”中的完整歌曲 ID。
  *
  * Args:
  *   playlistID: 用户“我喜欢的音乐”歌单 ID。
  *
  * Returns:
- *   种子歌曲 ID 以及完整的喜欢歌曲 ID 列表。
+ *   完整且去重后的喜欢歌曲 ID 列表。
  *
  * Raises:
  *   当歌单详情不可用或歌单为空时抛出错误。
  */
-const selectHeartModeSeedFromLikes = async (playlistID: number) => {
+const loadHeartModeLikedTrackIDs = async (playlistID: number) => {
   const detail = await getPlaylistDetail(playlistID, true)
-  const likedTrackIDs = (detail?.playlist?.trackIds || [])
-    .map((item: any) => Number(item?.id ?? item))
-    .filter((id: number) => Number.isFinite(id) && id > 0)
+  const likedTrackIDs = Array.from(
+    new Set<number>(
+      (detail?.playlist?.trackIds || [])
+        .map((item: any) => Number(item?.id ?? item))
+        .filter((id: number) => Number.isFinite(id) && id > 0)
+    )
+  )
 
   if (!likedTrackIDs.length) {
     throw new Error('LIKED_PLAYLIST_EMPTY')
   }
 
-  const seedIndex = Math.floor(Math.random() * likedTrackIDs.length)
-  return {
-    seedTrackID: likedTrackIDs[seedIndex],
-    likedTrackIDs
+  return likedTrackIDs
+}
+
+/**
+ * 汇总本机最近播放与网易云一周播放记录。
+ *
+ * 本机 recentTracks 跨应用重启持久化；网易云 weekData 则补充其他设备或旧会话产生的
+ * 最近播放。心动模式只把这些记录用于排序，不会修改用户的真实播放历史。
+ */
+const collectRecentPlayedTrackIDs = () => {
+  const localTrackIDs = recentTracks.value.map((track) => Number(track.id))
+  const cloudTrackIDs = dataStore.liked.playHistory.weekData.map((track: any) =>
+    Number(track?.id ?? track?.song?.id)
+  )
+
+  return Array.from(
+    new Set(
+      [...localTrackIDs, ...cloudTrackIDs].filter(
+        (id) => Number.isFinite(id) && Number(id) > 0
+      ) as number[]
+    )
+  )
+}
+
+/**
+ * 请求一次网易云心动模式推荐；优先使用 sid，空结果或失败时退回兼容参数。
+ */
+const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: number) => {
+  let result: any = null
+
+  try {
+    result = await intelligencePlaylist({
+      id: seedTrackID,
+      pid: playlistID,
+      sid: seedTrackID,
+      count: HEART_MODE_TARGET_COUNT
+    })
+  } catch (error) {
+    console.warn('[HeartMode] 带 sid 的请求失败，准备使用兼容参数重试：', error)
   }
+
+  let responseItems = Array.isArray(result?.data) ? result.data : []
+  if (!responseItems.length) {
+    console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
+      code: result?.code,
+      message: result?.message
+    })
+
+    result = await intelligencePlaylist({
+      id: seedTrackID,
+      pid: playlistID,
+      count: HEART_MODE_TARGET_COUNT
+    })
+    responseItems = Array.isArray(result?.data) ? result.data : []
+  }
+
+  return responseItems
+    .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
 }
 
 /**
@@ -212,41 +278,64 @@ const startHeartModeFromLikes = async (requestId = '') => {
       return
     }
 
-    const { seedTrackID } = await selectHeartModeSeedFromLikes(playlistID)
-    let result: any = null
+    const likedTrackIDs = await loadHeartModeLikedTrackIDs(playlistID)
 
     try {
-      result = await intelligencePlaylist({
-        id: seedTrackID,
-        pid: playlistID,
-        sid: seedTrackID
-      })
+      await dataStore.fetchPlayHistory()
     } catch (error) {
-      console.warn('[HeartMode] 带 sid 的请求失败，准备使用兼容参数重试：', error)
+      console.warn('[HeartMode] 网易云最近播放记录获取失败，仅使用本机历史：', error)
     }
 
-    let responseItems = Array.isArray(result?.data) ? result.data : []
-    if (!responseItems.length) {
-      console.warn('[HeartMode] 带 sid 的请求未返回歌曲，使用兼容参数重试：', {
-        code: result?.code,
-        message: result?.message
-      })
+    const recentPlayedTrackIDs = collectRecentPlayedTrackIDs()
+    const recentHeartModeTrackIDs = Array.from(getRecentHeartModeTrackIDs())
+    const avoidedSeedTrackIDs = [...recentPlayedTrackIDs, ...recentHeartModeTrackIDs]
+    const seedTrackIDs = selectHeartModeSeedIDs(
+      likedTrackIDs,
+      avoidedSeedTrackIDs,
+      MAX_HEART_MODE_SEED_ATTEMPTS
+    )
+    const seedTrackID = seedTrackIDs[0]
 
+    if (!seedTrackID) {
+      throw new Error('LIKED_PLAYLIST_EMPTY')
+    }
+
+    const candidateTrackIDs: number[] = []
+    const recentPlayedSet = new Set(recentPlayedTrackIDs)
+    const recentHeartModeSet = new Set(recentHeartModeTrackIDs)
+
+    for (const candidateSeedTrackID of seedTrackIDs) {
       try {
-        result = await intelligencePlaylist({ id: seedTrackID, pid: playlistID })
+        const recommendationIDs = await fetchHeartModeRecommendationIDs(
+          candidateSeedTrackID,
+          playlistID
+        )
+        candidateTrackIDs.push(...recommendationIDs)
       } catch (error) {
-        console.error('[HeartMode] 兼容参数请求仍然失败：', error)
-        throw error
+        console.warn('[HeartMode] 当前 seed 推荐请求失败，继续尝试下一个 seed：', {
+          seedTrackID: candidateSeedTrackID,
+          error
+        })
+        continue
       }
 
-      responseItems = Array.isArray(result?.data) ? result.data : []
+      const novelCandidateCount = Array.from(new Set(candidateTrackIDs)).filter(
+        (id) => !recentPlayedSet.has(id) && !recentHeartModeSet.has(id)
+      ).length
+
+      if (novelCandidateCount >= HEART_MODE_TARGET_COUNT - 1) {
+        break
+      }
     }
 
-    const recommendedTrackIDs = responseItems
-      .map((item: any) => Number(item?.id ?? item?.songInfo?.id))
-      .filter((id: number) => Number.isFinite(id) && id > 0)
-
-    const heartModeTrackIDs = Array.from(new Set<number>([seedTrackID, ...recommendedTrackIDs]))
+    const heartModeTrackIDs = rankHeartModeCandidates({
+      seedTrackID,
+      candidateTrackIDs,
+      likedTrackIDs,
+      recentPlayedTrackIDs,
+      recentHeartModeTrackIDs,
+      targetCount: HEART_MODE_TARGET_COUNT
+    })
 
     if (heartModeTrackIDs.length <= 1) {
       const message = i18n.global.t('player.heartMode.recommendationMissing')
@@ -259,6 +348,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'
 
+    recordHeartModeTrackIDs(heartModeTrackIDs)
     await playerStore.replacePlaylist('intelligence', playlistID, heartModeTrackIDs, 0)
 
     const message = i18n.global.t('player.heartMode.started', { count: heartModeTrackIDs.length })
