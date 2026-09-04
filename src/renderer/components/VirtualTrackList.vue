@@ -127,6 +127,7 @@ import {
   onMounted
 } from 'vue'
 import { usePlayerStore } from '../store/player'
+import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import { useNormalStateStore } from '../store/state'
 import { useLocalMusicStore } from '../store/localMusic'
 import VirtualScroll from './VirtualScrollNoHeight.vue'
@@ -286,6 +287,7 @@ const playThisList = (index: number) => {
   const sourceItems = props.allItems?.length ? props.allItems : items.value
   const IDs = sourceItems.map((track) => track.id || track.songId)
   const idx = sourceItems.findIndex((item) => (item.id || item.songId) === index)
+  markPlaybackEndReason('manual-select')
   replacePlaylist(props.type, id.value, IDs, idx)
 }
 
