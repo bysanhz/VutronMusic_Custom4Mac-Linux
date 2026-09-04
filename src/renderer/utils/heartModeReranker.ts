@@ -8,7 +8,7 @@ export type HeartModeTrackMetadata = {
 export type HeartModeRerankOptions = {
   rankedTrackIDs: number[]
   metadataByTrackID: ReadonlyMap<number, HeartModeTrackMetadata>
-  sourceSeedByTrackID: ReadonlyMap<number, number> | Record<string, number>
+  sourceSeedByTrackID: Map<number, number> | Record<string, number>
   profile: HeartModeProfile
   targetCount?: number
 }
