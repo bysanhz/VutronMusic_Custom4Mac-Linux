@@ -198,12 +198,21 @@ test.describe('heart mode history-aware recommendations', () => {
       repeatTolerance: 60,
       seedCount: 1
     })
+    expect(getHeartModePresetProfile('balanced')).toMatchObject({
+      diversity: 45,
+      novelty: 60,
+      familiarity: 55,
+      repeatTolerance: 35,
+      seedCount: 2
+    })
     expect(getHeartModePresetProfile('diverse')).toMatchObject({
       diversity: 80,
       novelty: 75,
       familiarity: 35,
       repeatTolerance: 20,
-      seedCount: 4
+      seedCount: 4,
+      maxSameArtistDistance: 4,
+      maxSameSeedDistance: 2
     })
     expect(getHeartModePresetProfile('explore')).toMatchObject({
       diversity: 95,
@@ -252,6 +261,8 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(settings).toContain("settings.heartModeProfile.title")
     expect(settings).toContain('v-model="selectedHeartModeMode"')
     expect(settings).toContain("heartModeProfile.mode === 'custom'")
+    expect(settings).toContain("updateHeartModeAdvanced('maxSameArtistDistance', $event)")
+    expect(settings).toContain("updateHeartModeAdvanced('maxSameSeedDistance', $event)")
     expect(player).toContain("markPlaybackEndReason('natural-end')")
     expect(player).toContain("markPlaybackEndReason('playback-error')")
     expect(player).toContain('return playNextFMTrack()')
