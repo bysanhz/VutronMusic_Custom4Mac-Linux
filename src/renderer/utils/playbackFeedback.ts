@@ -24,6 +24,7 @@ export type PlaybackFeedback = {
   completionRatio: number
   endReason: PlaybackEndReason
   likedAtEnd: boolean
+  likedDuringPlayback: boolean
   playedAt: number
 }
 
@@ -34,11 +35,13 @@ type ActivePlayback = {
   sourceSeedId?: number
   durationSeconds: number
   activeListenSeconds: number
+  activeProgressSeconds: number
   playedAt: number
   lastSampleAt: number
   lastProgress: number
   maxProgress: number
   likedAtEnd: boolean
+  likedDuringPlayback: boolean
 }
 
 type PendingEndReason = {
@@ -116,6 +119,7 @@ const readStoredFeedback = (): PlaybackFeedback[] => {
         completionRatio: clamp01(Number(item.completionRatio) || 0),
         endReason: item.endReason as PlaybackEndReason,
         likedAtEnd: Boolean(item.likedAtEnd),
+        likedDuringPlayback: Boolean(item.likedDuringPlayback),
         playedAt: Number(item.playedAt) || Date.now()
       }))
       .slice(0, MAX_PLAYBACK_FEEDBACK)
@@ -152,6 +156,9 @@ const sampleActivePlayback = (): void => {
   })
 
   active.activeListenSeconds += increment
+  if (increment > 0) {
+    active.activeProgressSeconds += progressDelta
+  }
 
   active.maxProgress = Math.max(active.maxProgress, progress)
   active.lastProgress = progress
@@ -210,8 +217,15 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
   sampleActivePlayback()
 
   const activeListenSeconds = Math.max(0, active.activeListenSeconds)
+  const activeProgressSeconds = Math.max(0, active.activeProgressSeconds)
   const completionRatio =
-    active.durationSeconds > 0 ? clamp01(activeListenSeconds / active.durationSeconds) : 0
+    active.durationSeconds > 0 ? clamp01(activeProgressSeconds / active.durationSeconds) : 0
+
+  if (activeListenSeconds <= 0 && activeProgressSeconds <= 0 && !active.likedDuringPlayback) {
+    activePlayback = null
+    pendingEndReason = null
+    return null
+  }
 
   const entry: PlaybackFeedback = {
     trackId: active.trackId,
@@ -223,6 +237,7 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
     completionRatio,
     endReason: reason,
     likedAtEnd: active.likedAtEnd,
+    likedDuringPlayback: active.likedDuringPlayback,
     playedAt: active.playedAt
   }
 
@@ -250,11 +265,13 @@ const startActivePlayback = (): void => {
     sourceSeedId: heartModeContext?.sourceSeedId,
     durationSeconds,
     activeListenSeconds: 0,
+    activeProgressSeconds: 0,
     playedAt: Date.now(),
     lastSampleAt: Date.now(),
-    lastProgress: 0,
-    maxProgress: 0,
-    likedAtEnd: Boolean(store.isLiked)
+    lastProgress: readPlaybackProgress(),
+    maxProgress: readPlaybackProgress(),
+    likedAtEnd: Boolean(store.isLiked),
+    likedDuringPlayback: false
   }
 
   if (heartModeContext) {
@@ -262,13 +279,30 @@ const startActivePlayback = (): void => {
   }
 }
 
-const actionEndReason = (actionName: string): PlaybackEndReason | null => {
+const actionEndReason = (
+  actionName: string,
+  args: unknown[],
+  store: PlayerStore
+): PlaybackEndReason | null => {
   switch (actionName) {
     case '_playNextTrack':
       return 'manual-next'
     case 'playPrev':
       return 'manual-previous'
-    case 'replacePlaylist':
+    case 'replacePlaylist': {
+      const [sourceType, sourceID, trackIDs, autoPlayTrackIndex] = args
+      const targetTrackID = Array.isArray(trackIDs)
+        ? normalizeID(trackIDs[Math.max(0, Number(autoPlayTrackIndex) || 0)])
+        : null
+      const sameSource =
+        String(sourceType ?? '') === String(store.playlistSource?.type ?? '') &&
+        String(sourceID ?? '') === String(store.playlistSource?.id ?? '')
+
+      if (sameSource && targetTrackID && targetTrackID !== activePlayback?.trackId) {
+        return 'manual-select'
+      }
+      return 'queue-replaced'
+    }
     case 'resetPlayer':
       return 'queue-replaced'
     default:
@@ -277,7 +311,7 @@ const actionEndReason = (actionName: string): PlaybackEndReason | null => {
 }
 
 export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null => {
-  const likedBonus = feedback.likedAtEnd ? 5 : 0
+  const likedBonus = feedback.likedDuringPlayback && feedback.likedAtEnd ? 5 : 0
 
   if (feedback.endReason === 'natural-end') {
     return likedBonus + 2
@@ -289,7 +323,9 @@ export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null
 
   if (manualSwitch) {
     let score = 0
-    if (feedback.activeListenSeconds <= 15) {
+    if (feedback.completionRatio >= 0.8) {
+      score = 1
+    } else if (feedback.activeListenSeconds <= 15) {
       score = -4
     } else if (feedback.activeListenSeconds <= 45 && feedback.completionRatio < 0.3) {
       score = -3
@@ -297,8 +333,6 @@ export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null
       score = -3
     } else if (feedback.completionRatio < 0.7) {
       score = -1
-    } else if (feedback.completionRatio >= 0.8) {
-      score = 1
     }
     return score + likedBonus
   }
@@ -341,14 +375,18 @@ export const initializePlaybackFeedback = (playerStore: PlayerStore): (() => voi
     () => [playerStore.currentTrack?.id, playerStore.isLiked] as const,
     ([trackID, liked]) => {
       if (!activePlayback || normalizeID(trackID) !== activePlayback.trackId) return
-      activePlayback.likedAtEnd = Boolean(liked)
+      const nextLiked = Boolean(liked)
+      if (nextLiked && !activePlayback.likedAtEnd) {
+        activePlayback.likedDuringPlayback = true
+      }
+      activePlayback.likedAtEnd = nextLiked
     },
     { flush: 'sync' }
   )
 
   unsubscribeActions?.()
-  unsubscribeActions = playerStore.$onAction(({ name, after, onError }) => {
-    const reason = actionEndReason(name)
+  unsubscribeActions = playerStore.$onAction(({ name, args, after, onError }) => {
+    const reason = actionEndReason(name, args, playerStore)
     if (!reason || !activePlayback) return
 
     const trackedID = activePlayback.trackId

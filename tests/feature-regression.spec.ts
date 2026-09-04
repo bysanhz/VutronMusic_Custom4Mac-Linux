@@ -141,6 +141,7 @@ test.describe('heart mode history-aware recommendations', () => {
       completionRatio: 0.05,
       endReason: 'manual-next',
       likedAtEnd: false,
+      likedDuringPlayback: false,
       playedAt: Date.now(),
       ...patch
     })
@@ -154,6 +155,11 @@ test.describe('heart mode history-aware recommendations', () => {
     ).toBe(1)
     expect(
       scorePlaybackFeedback(
+        makeFeedback({ activeListenSeconds: 10, completionRatio: 0.9, endReason: 'manual-next' })
+      )
+    ).toBe(1)
+    expect(
+      scorePlaybackFeedback(
         makeFeedback({ activeListenSeconds: 200, completionRatio: 1, endReason: 'natural-end' })
       )
     ).toBe(2)
@@ -163,10 +169,22 @@ test.describe('heart mode history-aware recommendations', () => {
           activeListenSeconds: 120,
           completionRatio: 0.6,
           endReason: 'natural-end',
-          likedAtEnd: true
+          likedAtEnd: true,
+          likedDuringPlayback: true
         })
       )
     ).toBe(7)
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({
+          activeListenSeconds: 120,
+          completionRatio: 0.6,
+          endReason: 'natural-end',
+          likedAtEnd: true,
+          likedDuringPlayback: false
+        })
+      )
+    ).toBe(2)
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'playback-error' }))).toBeNull()
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'app-close' }))).toBeNull()
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'queue-replaced' }))).toBeNull()
@@ -220,6 +238,8 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('createHeartModeSession({')
     expect(feedback).toContain("PLAYBACK_FEEDBACK_KEY = 'vutronmusic-playback-feedback-v1'")
     expect(feedback).toContain('activeListenSeconds')
+    expect(feedback).toContain('activeProgressSeconds')
+    expect(feedback).toContain('likedDuringPlayback')
     expect(feedback).toContain('window.vutronmusic?.progress')
     expect(feedback).toContain("case '_playNextTrack':")
     expect(feedback).toContain("return 'manual-next'")
