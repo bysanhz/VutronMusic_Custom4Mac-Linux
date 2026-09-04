@@ -29,6 +29,7 @@ import {
   consumeSleepTimerAtTrackEnd,
   registerSleepTimerPauseHandler
 } from '../utils/sleepTimerSettings'
+import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -930,7 +931,7 @@ export const usePlayerStore = defineStore(
 
       if (!track) {
         showToast('歌曲信息不存在，正在切换下一首...')
-        nextTrackCallback()
+        void _playNextTrack(isPersonalFM.value)
         return false
       }
 
@@ -957,6 +958,7 @@ export const usePlayerStore = defineStore(
 
       if (!source) {
         showToast(track.reason)
+        markPlaybackEndReason('playback-error')
         void _playNextTrack(isPersonalFM.value)
         return false
       }
@@ -1177,6 +1179,7 @@ export const usePlayerStore = defineStore(
     }
 
     const nextTrackCallback = () => {
+      markPlaybackEndReason('natural-end')
       seek.value = 0
       clearTimeout(timer)
       scrobbleFM(currentTrack.value!, 0, true)
@@ -1259,6 +1262,7 @@ export const usePlayerStore = defineStore(
             replaceCurrentTrack(currentTrack.value!.id, true)
           } else {
             showToast(`歌曲 ${currentTrack.value?.name} 播放错误，正在切换下一首...`)
+            markPlaybackEndReason('playback-error')
             _playNextTrack(isPersonalFM.value)
           }
         } else {
