@@ -748,6 +748,28 @@
                       @change="updateHeartModeAdvanced('longCooldownDays', $event)"
                     />
                   </label>
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.sameArtistDistance') }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      :value="heartModeProfile.maxSameArtistDistance"
+                      @change="updateHeartModeAdvanced('maxSameArtistDistance', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.sameSeedDistance') }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      :value="heartModeProfile.maxSameSeedDistance"
+                      @change="updateHeartModeAdvanced('maxSameSeedDistance', $event)"
+                    />
+                  </label>
                 </div>
               </details>
             </div>
@@ -1304,6 +1326,8 @@ type HeartModeAdvancedField =
   | 'shortCooldownHours'
   | 'mediumCooldownDays'
   | 'longCooldownDays'
+  | 'maxSameArtistDistance'
+  | 'maxSameSeedDistance'
 
 const heartModeModeOptions = computed(() => [
   { label: t('settings.heartModeProfile.modes.continuous'), value: 'continuous' },
