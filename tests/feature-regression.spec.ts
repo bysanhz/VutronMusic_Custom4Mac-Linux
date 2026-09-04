@@ -146,6 +146,7 @@ test.describe('heart mode history-aware recommendations', () => {
     })
 
     expect(scorePlaybackFeedback(makeFeedback({}))).toBe(-4)
+    expect(scorePlaybackFeedback(makeFeedback({ endReason: 'manual-select' }))).toBe(-4)
     expect(
       scorePlaybackFeedback(
         makeFeedback({ activeListenSeconds: 180, completionRatio: 0.9, endReason: 'manual-next' })
@@ -202,6 +203,8 @@ test.describe('heart mode history-aware recommendations', () => {
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
     const session = readSource('src/renderer/utils/heartModeSession.ts')
     const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const player = readSource('src/renderer/store/player.ts')
+    const virtualTrackList = readSource('src/renderer/components/VirtualTrackList.vue')
 
     expect(main).toContain('await dataStore.fetchPlayHistory()')
     expect(main).toContain('recentTracks.value.map')
@@ -228,6 +231,9 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(settings).toContain("settings.heartModeProfile.title")
     expect(settings).toContain('v-model="selectedHeartModeMode"')
     expect(settings).toContain("heartModeProfile.mode === 'custom'")
+    expect(player).toContain("markPlaybackEndReason('natural-end')")
+    expect(player).toContain("markPlaybackEndReason('playback-error')")
+    expect(virtualTrackList).toContain("markPlaybackEndReason('manual-select')")
   })
 })
 
