@@ -1224,6 +1224,7 @@ import {
 } from '../utils/heartModeProfile'
 
 const router = useRouter()
+const { locale, t } = useI18n()
 
 const settingsStore = useSettingsStore()
 const {
@@ -1428,7 +1429,6 @@ const shortcutInput = ref({
 
 const recordedShortcut = ref<any[]>([])
 const mainStyle = ref({})
-const { locale, t } = useI18n()
 
 const selectLanguage = computed({
   get: () => language.value,
