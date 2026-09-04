@@ -363,6 +363,33 @@ export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null
   return likedBonus > 0 ? likedBonus : null
 }
 
+export const resetActivePlaybackFeedbackWindow = (): void => {
+  const store = activePlayerStore
+  const active = activePlayback
+  const trackId = normalizeID(store?.currentTrack?.id)
+  if (!store || !active || !trackId || active.trackId !== trackId) return
+
+  const progress = readPlaybackProgress()
+  const source = String(store.playlistSource?.type || store.currentTrack?.type || 'unknown')
+  const context = source === 'intelligence' ? getHeartModeTrackContext(trackId) : null
+
+  activePlayback = {
+    ...active,
+    source,
+    heartModeSessionId: context?.heartModeSessionId,
+    sourceSeedId: context?.sourceSeedId,
+    activeListenSeconds: 0,
+    activeProgressSeconds: 0,
+    playedAt: Date.now(),
+    lastSampleAt: Date.now(),
+    lastProgress: progress,
+    maxProgress: progress,
+    likedAtEnd: Boolean(store.isLiked),
+    likedDuringPlayback: false
+  }
+  pendingEndReason = null
+}
+
 export const removePlaybackFeedbackForHeartModeSession = (
   sessionId: string
 ): number => {
