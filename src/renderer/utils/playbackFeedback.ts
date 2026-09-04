@@ -69,6 +69,26 @@ const normalizeID = (value: unknown): number | null => {
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value))
 
+export const calculateActiveListenIncrement = ({
+  playing,
+  wallDeltaSeconds,
+  progressDeltaSeconds,
+  playbackRate = 1
+}: {
+  playing: boolean
+  wallDeltaSeconds: number
+  progressDeltaSeconds: number
+  playbackRate?: number
+}): number => {
+  if (!playing || wallDeltaSeconds <= 0 || progressDeltaSeconds <= 0) return 0
+
+  const normalizedRate = Math.max(0.25, Number(playbackRate) || 1)
+  const maxExpectedProgressDelta = wallDeltaSeconds * normalizedRate * 2.5 + 2
+
+  if (progressDeltaSeconds > maxExpectedProgressDelta) return 0
+  return wallDeltaSeconds
+}
+
 const readPlaybackProgress = (): number => {
   const directProgress = Number(window.vutronmusic?.progress)
   if (Number.isFinite(directProgress) && directProgress >= 0) return directProgress
@@ -124,17 +144,14 @@ const sampleActivePlayback = (): void => {
   const wallDelta = Math.max(0, (now - active.lastSampleAt) / 1000)
   const progress = readPlaybackProgress()
   const progressDelta = progress - active.lastProgress
-  const playbackRate = Math.max(0.25, Number(store.playbackRate) || 1)
-  const maxExpectedProgressDelta = wallDelta * playbackRate * 2.5 + 2
+  const increment = calculateActiveListenIncrement({
+    playing: store.playing,
+    wallDeltaSeconds: wallDelta,
+    progressDeltaSeconds: progressDelta,
+    playbackRate: Number(store.playbackRate) || 1
+  })
 
-  if (
-    store.playing &&
-    wallDelta > 0 &&
-    progressDelta > 0 &&
-    progressDelta <= maxExpectedProgressDelta
-  ) {
-    active.activeListenSeconds += wallDelta
-  }
+  active.activeListenSeconds += increment
 
   active.maxProgress = Math.max(active.maxProgress, progress)
   active.lastProgress = progress
