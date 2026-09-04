@@ -337,9 +337,7 @@ export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null
     return score + likedBonus
   }
 
-  if (feedback.likedAtEnd) return likedBonus
-
-  return null
+  return likedBonus > 0 ? likedBonus : null
 }
 
 export const clearPlaybackFeedback = (): void => {
