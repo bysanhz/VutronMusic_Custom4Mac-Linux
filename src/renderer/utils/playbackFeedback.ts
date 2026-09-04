@@ -164,7 +164,13 @@ const sampleActivePlayback = (): void => {
 
 const setPendingEndReason = (reason: PlaybackEndReason, explicit: boolean): void => {
   if (!activePlayback) return
-  if (pendingEndReason?.explicit && !explicit) return
+  if (
+    !explicit &&
+    pendingEndReason?.trackId === activePlayback.trackId &&
+    Date.now() - pendingEndReason.setAt < 15_000
+  ) {
+    return
+  }
 
   pendingEndReason = {
     trackId: activePlayback.trackId,
