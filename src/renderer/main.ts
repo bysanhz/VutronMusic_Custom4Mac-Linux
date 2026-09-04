@@ -349,6 +349,73 @@ const completeHeartModeTrackMetadata = async (
   }
 }
 
+type HeartModeCandidatePool = {
+  candidateTrackIDs: number[]
+  candidateSeedByTrackID: Map<number, number>
+  metadataByTrackID: Map<number, HeartModeTrackMetadata>
+}
+
+/**
+ * 并发请求所有 seed 分支并构建 round-robin 候选池。
+ *
+ * 该 helper 同时服务首次启动和 Phase 5 rolling refill，保证两条路径使用同一套
+ * 多 seed 候选来源与归因规则。
+ */
+const fetchHeartModeCandidatePool = async (
+  seedTrackIDs: number[],
+  playlistID: number
+): Promise<HeartModeCandidatePool> => {
+  const recommendationsBySeed = new Map<number, number[]>()
+  const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
+
+  const branchResults = await Promise.all(
+    seedTrackIDs.map(async (candidateSeedTrackID) => {
+      try {
+        return {
+          seedTrackID: candidateSeedTrackID,
+          recommendations: await fetchHeartModeRecommendations(
+            candidateSeedTrackID,
+            playlistID
+          )
+        }
+      } catch (error) {
+        console.warn('[HeartMode] 当前 seed 推荐请求失败，保留其他可用分支：', {
+          seedTrackID: candidateSeedTrackID,
+          error
+        })
+        return {
+          seedTrackID: candidateSeedTrackID,
+          recommendations: [] as HeartModeRecommendation[]
+        }
+      }
+    })
+  )
+
+  for (const { seedTrackID: candidateSeedTrackID, recommendations } of branchResults) {
+    recommendationsBySeed.set(
+      candidateSeedTrackID,
+      recommendations.map((item) => item.id)
+    )
+
+    for (const recommendation of recommendations) {
+      if (recommendation.metadata && !metadataByTrackID.has(recommendation.id)) {
+        metadataByTrackID.set(recommendation.id, recommendation.metadata)
+      }
+    }
+  }
+
+  const {
+    candidateTrackIDs,
+    candidateSeedByTrackID
+  } = interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)
+
+  return {
+    candidateTrackIDs,
+    candidateSeedByTrackID,
+    metadataByTrackID
+  }
+}
+
 /**
  * 根据“我喜欢的音乐”开始一次新的网易云心动模式播放。
  *
@@ -429,51 +496,11 @@ const startHeartModeFromLikes = async (requestId = '') => {
       throw new Error('LIKED_PLAYLIST_EMPTY')
     }
 
-    const recommendationsBySeed = new Map<number, number[]>()
-    const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
-
-    // 多 seed 是并列候选源，不应把网络 RTT 串行叠加。Promise.all 保持输入顺序，
-    // 因此请求并发化不会改变后续 round-robin 的确定性 seed 顺序。
-    const branchResults = await Promise.all(
-      seedTrackIDs.map(async (candidateSeedTrackID) => {
-        try {
-          return {
-            seedTrackID: candidateSeedTrackID,
-            recommendations: await fetchHeartModeRecommendations(
-              candidateSeedTrackID,
-              playlistID
-            )
-          }
-        } catch (error) {
-          console.warn('[HeartMode] 当前 seed 推荐请求失败，保留其他可用分支：', {
-            seedTrackID: candidateSeedTrackID,
-            error
-          })
-          return {
-            seedTrackID: candidateSeedTrackID,
-            recommendations: [] as HeartModeRecommendation[]
-          }
-        }
-      })
-    )
-
-    for (const { seedTrackID: candidateSeedTrackID, recommendations } of branchResults) {
-      recommendationsBySeed.set(
-        candidateSeedTrackID,
-        recommendations.map((item) => item.id)
-      )
-
-      for (const recommendation of recommendations) {
-        if (recommendation.metadata && !metadataByTrackID.has(recommendation.id)) {
-          metadataByTrackID.set(recommendation.id, recommendation.metadata)
-        }
-      }
-    }
-
     const {
       candidateTrackIDs,
-      candidateSeedByTrackID
-    } = interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)
+      candidateSeedByTrackID,
+      metadataByTrackID
+    } = await fetchHeartModeCandidatePool(seedTrackIDs, playlistID)
 
     // 主 seed 也要带分支归因，确保 reranker 能约束“seed 后立刻又来同一分支”。
     candidateSeedByTrackID.set(seedTrackID, seedTrackID)
