@@ -132,6 +132,7 @@ export const initializeHeartModeProfile = (): (() => void) => {
       heartModeProfile.value = { ...DEFAULT_HEART_MODE_PROFILE }
     }
 
+    persistProfile()
     stopPersistWatch = watch(heartModeProfile, persistProfile, { deep: true })
     initialized = true
   }
