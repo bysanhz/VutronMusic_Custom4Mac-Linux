@@ -342,7 +342,9 @@
       "seedCount": "Interest Branches",
       "shortCooldown": "Strong Cooldown (hours)",
       "mediumCooldown": "Medium Cooldown (days)",
-      "longCooldown": "Long Decay (days)"
+      "longCooldown": "Long Decay (days)",
+      "sameArtistDistance": "Same-artist minimum spacing (tracks)",
+      "sameSeedDistance": "Same-branch minimum spacing (tracks)"
     },
     "nav": {
       "general": "General",
