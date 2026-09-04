@@ -1,4 +1,6 @@
 import type { HeartModeProfile } from './heartModeProfile'
+import type { HeartModeScoreBreakdown } from './heartModeScorer'
+import type { HeartModeRerankDecision } from './heartModeReranker'
 
 export type HeartModeBranchState = {
   seedId: number
@@ -7,7 +9,42 @@ export type HeartModeBranchState = {
   consecutiveQuickSkips: number
   completionAverage: number
   positiveCount: number
+  explicitBoostCount: number
   branchScore: number
+}
+
+export type HeartModeSteering = {
+  noveltyOffset: number
+  diversityOffset: number
+  familiarityOffset: number
+}
+
+export type HeartModeExplicitFeedbackType = 'more-like-this' | 'go-further'
+
+export type HeartModeExplicitFeedback = {
+  sessionId: string
+  trackId: number
+  sourceSeedId?: number
+  type: HeartModeExplicitFeedbackType
+  createdAt: number
+}
+
+export type HeartModeRecommendationReason = {
+  trackId: number
+  sourceSeedId?: number
+  score: HeartModeScoreBreakdown
+  originalRank: number
+  finalRank: number
+  likedAtRecommendation: boolean
+  rerank: Pick<
+    HeartModeRerankDecision,
+    | 'artistViolation'
+    | 'seedViolation'
+    | 'movedForArtistSpacing'
+    | 'movedForSeedSpacing'
+    | 'familiarityDeferred'
+  >
+  recommendedAt: number
 }
 
 export type HeartModeSessionState = {
@@ -21,6 +58,9 @@ export type HeartModeSessionState = {
   enqueuedTrackIDs: number[]
   pendingTrackIDs: number[]
   branchStates: Record<string, HeartModeBranchState>
+  steering: HeartModeSteering
+  explicitFeedback: HeartModeExplicitFeedback[]
+  recommendationReasons: Record<string, HeartModeRecommendationReason>
 }
 
 export type HeartModeTrackContext = {
@@ -38,9 +78,11 @@ export type HeartModeBranchFeedbackSignal = {
 }
 
 export const HEART_MODE_SESSION_KEY = 'vutronmusic-heart-mode-session-v1'
+export const HEART_MODE_SESSION_CHANGE_EVENT = 'vutronmusic-heart-mode-session-change'
 
 const MAX_SESSION_PLAYED_TRACKS = 200
 const MAX_SESSION_CANDIDATES = 500
+const MAX_EXPLICIT_FEEDBACK = 100
 
 let currentSession: HeartModeSessionState | null = null
 let hydrated = false
@@ -62,6 +104,21 @@ const normalizeTrackIDs = (value: unknown, max = MAX_SESSION_CANDIDATES): number
     )
   ).slice(-max)
 
+const createDefaultSteering = (): HeartModeSteering => ({
+  noveltyOffset: 0,
+  diversityOffset: 0,
+  familiarityOffset: 0
+})
+
+const normalizeSteering = (value: unknown): HeartModeSteering => {
+  const item = value && typeof value === 'object' ? (value as any) : {}
+  return {
+    noveltyOffset: clamp(Number(item.noveltyOffset) || 0, -30, 30),
+    diversityOffset: clamp(Number(item.diversityOffset) || 0, -30, 30),
+    familiarityOffset: clamp(Number(item.familiarityOffset) || 0, -30, 30)
+  }
+}
+
 const createDefaultBranchState = (seedId: number): HeartModeBranchState => ({
   seedId,
   playedCount: 0,
@@ -69,6 +126,7 @@ const createDefaultBranchState = (seedId: number): HeartModeBranchState => ({
   consecutiveQuickSkips: 0,
   completionAverage: 0,
   positiveCount: 0,
+  explicitBoostCount: 0,
   branchScore: 0
 })
 
@@ -88,18 +146,43 @@ const normalizeBranchState = (
     ),
     completionAverage: clamp(Number(item.completionAverage) || 0, 0, 1),
     positiveCount: Math.max(0, Math.round(Number(item.positiveCount) || 0)),
+    explicitBoostCount: Math.max(
+      0,
+      Math.round(Number(item.explicitBoostCount) || 0)
+    ),
     branchScore: clamp(Number(item.branchScore) || 0, -1, 1)
+  }
+}
+
+const normalizeRecommendationReason = (
+  value: unknown,
+  fallbackTrackId: number
+): HeartModeRecommendationReason | null => {
+  const item = value && typeof value === 'object' ? (value as any) : null
+  if (!item) return null
+  const trackId = normalizePositiveID(item.trackId) ?? fallbackTrackId
+  if (!trackId || !item.score || typeof item.score !== 'object') return null
+  const sourceSeedId = normalizePositiveID(item.sourceSeedId) ?? undefined
+  return {
+    trackId,
+    sourceSeedId,
+    score: item.score as HeartModeScoreBreakdown,
+    originalRank: Math.max(-1, Math.round(Number(item.originalRank) || 0)),
+    finalRank: Math.max(0, Math.round(Number(item.finalRank) || 0)),
+    likedAtRecommendation: Boolean(item.likedAtRecommendation),
+    rerank: {
+      artistViolation: Math.max(0, Number(item.rerank?.artistViolation) || 0),
+      seedViolation: Math.max(0, Number(item.rerank?.seedViolation) || 0),
+      movedForArtistSpacing: Boolean(item.rerank?.movedForArtistSpacing),
+      movedForSeedSpacing: Boolean(item.rerank?.movedForSeedSpacing),
+      familiarityDeferred: Boolean(item.rerank?.familiarityDeferred)
+    },
+    recommendedAt: Number(item.recommendedAt) || Date.now()
   }
 }
 
 /**
  * 根据一次可用于偏好学习的播放反馈更新 seed 分支状态。
- *
- * branchScore 使用有界 EMA：
- * - quick skip(-4) 会迅速拉低分支；
- * - 连续 quick skip 额外叠加 streak penalty；
- * - natural-end(+2)、主动点赞(+5) 会逐步恢复/提升；
- * - score=null 的生命周期事件完全不更新分支。
  */
 export const calculateNextHeartModeBranchState = (
   previous: HeartModeBranchState,
@@ -132,6 +215,7 @@ export const calculateNextHeartModeBranchState = (
     consecutiveQuickSkips,
     completionAverage,
     positiveCount,
+    explicitBoostCount: previous.explicitBoostCount,
     branchScore: clamp(emaScore - streakPenalty, -1, 1)
   }
 }
@@ -160,8 +244,14 @@ const readSession = (): HeartModeSessionState | null => {
       )
     }
 
-    // 兼容 Phase 1-4 的旧 session：旧数据没有 rolling queue 字段时，
-    // 把已经有 source 归因的歌曲视作“曾经已入队”，pending 默认为空。
+    const recommendationReasons: Record<string, HeartModeRecommendationReason> = {}
+    for (const [trackID, rawReason] of Object.entries(stored.recommendationReasons || {})) {
+      const normalizedTrackID = normalizePositiveID(trackID)
+      if (!normalizedTrackID) continue
+      const reason = normalizeRecommendationReason(rawReason, normalizedTrackID)
+      if (reason) recommendationReasons[String(normalizedTrackID)] = reason
+    }
+
     const legacyEnqueuedTrackIDs = Object.keys(sourceSeedByTrackID)
       .map(normalizePositiveID)
       .filter((id: number | null): id is number => id !== null)
@@ -181,7 +271,12 @@ const readSession = (): HeartModeSessionState | null => {
         stored.enqueuedTrackIDs ?? legacyEnqueuedTrackIDs
       ),
       pendingTrackIDs: normalizeTrackIDs(stored.pendingTrackIDs),
-      branchStates
+      branchStates,
+      steering: normalizeSteering(stored.steering),
+      explicitFeedback: Array.isArray(stored.explicitFeedback)
+        ? stored.explicitFeedback.slice(-MAX_EXPLICIT_FEEDBACK)
+        : [],
+      recommendationReasons
     }
   } catch {
     return null
@@ -198,9 +293,10 @@ const persist = (): void => {
   try {
     if (!currentSession) {
       localStorage.removeItem(HEART_MODE_SESSION_KEY)
-      return
+    } else {
+      localStorage.setItem(HEART_MODE_SESSION_KEY, JSON.stringify(currentSession))
     }
-    localStorage.setItem(HEART_MODE_SESSION_KEY, JSON.stringify(currentSession))
+    window.dispatchEvent(new CustomEvent(HEART_MODE_SESSION_CHANGE_EVENT))
   } catch (error) {
     console.warn('[HeartModeSession] 保存当前 session 失败：', error)
   }
@@ -246,7 +342,10 @@ export const createHeartModeSession = ({
     playedTrackIDs: [],
     enqueuedTrackIDs: normalizeTrackIDs(enqueuedTrackIDs),
     pendingTrackIDs: normalizeTrackIDs(pendingTrackIDs),
-    branchStates
+    branchStates,
+    steering: createDefaultSteering(),
+    explicitFeedback: [],
+    recommendationReasons: {}
   }
   persist()
   return currentSession
@@ -255,6 +354,30 @@ export const createHeartModeSession = ({
 export const getCurrentHeartModeSession = (): HeartModeSessionState | null => {
   hydrate()
   return currentSession
+}
+
+export const getEffectiveHeartModeProfile = (
+  session: HeartModeSessionState | null = getCurrentHeartModeSession()
+): HeartModeProfile | null => {
+  if (!session) return null
+  return {
+    ...session.profile,
+    novelty: clamp(
+      session.profile.novelty + session.steering.noveltyOffset,
+      0,
+      100
+    ),
+    diversity: clamp(
+      session.profile.diversity + session.steering.diversityOffset,
+      0,
+      100
+    ),
+    familiarity: clamp(
+      session.profile.familiarity + session.steering.familiarityOffset,
+      0,
+      100
+    )
+  }
 }
 
 export const getHeartModeTrackContext = (trackID: number): HeartModeTrackContext | null => {
@@ -268,6 +391,15 @@ export const getHeartModeTrackContext = (trackID: number): HeartModeTrackContext
     heartModeSessionId: currentSession.id,
     sourceSeedId: currentSession.sourceSeedByTrackID[String(id)]
   }
+}
+
+export const getHeartModeRecommendationReason = (
+  trackID: number
+): HeartModeRecommendationReason | null => {
+  hydrate()
+  const id = normalizePositiveID(trackID)
+  if (!currentSession || !id) return null
+  return currentSession.recommendationReasons[String(id)] ?? null
 }
 
 export const getHeartModeBranchScoreMap = (): Map<number, number> => {
@@ -310,6 +442,97 @@ export const applyHeartModeFeedbackToSession = (
   currentSession.branchStates[key] = next
   persist()
   return next
+}
+
+export const boostHeartModeCurrentBranch = (
+  trackID: number,
+  now = Date.now()
+): HeartModeBranchState | null => {
+  hydrate()
+  if (!currentSession) return null
+  const id = normalizePositiveID(trackID)
+  if (!id) return null
+  const seedId = normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)])
+  if (!seedId) return null
+
+  const key = String(seedId)
+  const previous =
+    currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
+  const next: HeartModeBranchState = {
+    ...previous,
+    explicitBoostCount: previous.explicitBoostCount + 1,
+    branchScore: clamp(
+      previous.branchScore + 0.25 * (1 - previous.branchScore),
+      -1,
+      1
+    )
+  }
+  currentSession.branchStates[key] = next
+  currentSession.explicitFeedback = [
+    ...currentSession.explicitFeedback,
+    {
+      sessionId: currentSession.id,
+      trackId: id,
+      sourceSeedId: seedId,
+      type: 'more-like-this',
+      createdAt: now
+    }
+  ].slice(-MAX_EXPLICIT_FEEDBACK)
+  persist()
+  return next
+}
+
+export const steerHeartModeFurther = (
+  trackID: number,
+  now = Date.now()
+): HeartModeSteering | null => {
+  hydrate()
+  if (!currentSession) return null
+  const id = normalizePositiveID(trackID)
+  if (!id) return null
+
+  currentSession.steering = {
+    noveltyOffset: clamp(currentSession.steering.noveltyOffset + 10, -30, 30),
+    diversityOffset: clamp(currentSession.steering.diversityOffset + 10, -30, 30),
+    familiarityOffset: clamp(
+      currentSession.steering.familiarityOffset - 10,
+      -30,
+      30
+    )
+  }
+
+  currentSession.explicitFeedback = [
+    ...currentSession.explicitFeedback,
+    {
+      sessionId: currentSession.id,
+      trackId: id,
+      sourceSeedId:
+        normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ??
+        undefined,
+      type: 'go-further',
+      createdAt: now
+    }
+  ].slice(-MAX_EXPLICIT_FEEDBACK)
+  persist()
+  return { ...currentSession.steering }
+}
+
+export const recordHeartModeRecommendationReasons = (
+  reasons: Iterable<HeartModeRecommendationReason>
+): void => {
+  hydrate()
+  if (!currentSession) return
+
+  for (const reason of reasons) {
+    const id = normalizePositiveID(reason.trackId)
+    if (!id) continue
+    currentSession.recommendationReasons[String(id)] = {
+      ...reason,
+      trackId: id,
+      sourceSeedId: normalizePositiveID(reason.sourceSeedId) ?? undefined
+    }
+  }
+  persist()
 }
 
 export const registerHeartModeCandidatePool = ({
