@@ -16,6 +16,11 @@ import {
   aggregateTrackFeedbackScore,
   rankHeartModeCandidatesByScore
 } from '../src/renderer/utils/heartModeScorer'
+import { interleaveHeartModeSeedCandidates } from '../src/renderer/utils/heartModeSeedSelector'
+import {
+  rerankHeartModeCandidatesForDiversity,
+  type HeartModeTrackMetadata
+} from '../src/renderer/utils/heartModeReranker'
 import {
   calculateActiveListenIncrement,
   scorePlaybackFeedback,
@@ -213,6 +218,82 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(seeds).toHaveLength(3)
   })
 
+  test('interleaves every successful seed branch by its internal NetEase rank', () => {
+    const recommendationsBySeed = new Map<number, number[]>([
+      [1, [10, 11, 12]],
+      [2, [20, 11, 22]],
+      [3, [30, 31]]
+    ])
+
+    const pool = interleaveHeartModeSeedCandidates([1, 2, 3], recommendationsBySeed)
+
+    expect(pool.candidateTrackIDs).toEqual([10, 20, 30, 11, 31, 12, 22])
+    expect(pool.candidateSeedByTrackID.get(10)).toBe(1)
+    expect(pool.candidateSeedByTrackID.get(20)).toBe(2)
+    expect(pool.candidateSeedByTrackID.get(30)).toBe(3)
+    expect(pool.candidateSeedByTrackID.get(11)).toBe(1)
+  })
+
+  test('reranks high-scoring candidates to satisfy artist and seed spacing when feasible', () => {
+    const metadataByTrackID = new Map<number, HeartModeTrackMetadata>([
+      [1, { artistIds: [10] }],
+      [2, { artistIds: [10] }],
+      [3, { artistIds: [20] }],
+      [4, { artistIds: [30] }],
+      [5, { artistIds: [40] }]
+    ])
+    const sourceSeedByTrackID = new Map<number, number>([
+      [1, 100],
+      [2, 100],
+      [3, 200],
+      [4, 100],
+      [5, 200]
+    ])
+    const profile = {
+      ...getHeartModePresetProfile('balanced'),
+      maxSameArtistDistance: 2,
+      maxSameSeedDistance: 1
+    }
+
+    const reranked = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs: [1, 2, 3, 4, 5],
+      metadataByTrackID,
+      sourceSeedByTrackID,
+      profile,
+      targetCount: 5
+    })
+
+    expect(reranked).toEqual([1, 3, 4, 5, 2])
+  })
+
+  test('relaxes impossible spacing constraints instead of dropping the queue', () => {
+    const metadataByTrackID = new Map<number, HeartModeTrackMetadata>([
+      [1, { artistIds: [10] }],
+      [2, { artistIds: [10] }],
+      [3, { artistIds: [10] }]
+    ])
+    const sourceSeedByTrackID = new Map<number, number>([
+      [1, 100],
+      [2, 100],
+      [3, 100]
+    ])
+    const profile = {
+      ...getHeartModePresetProfile('explore'),
+      maxSameArtistDistance: 5,
+      maxSameSeedDistance: 3
+    }
+
+    const reranked = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs: [1, 2, 3],
+      metadataByTrackID,
+      sourceSeedByTrackID,
+      profile,
+      targetCount: 3
+    })
+
+    expect(reranked).toEqual([1, 2, 3])
+  })
+
   test('counts only real active listening and ignores pause or seek jumps', () => {
     expect(
       calculateActiveListenIncrement({
@@ -361,6 +442,8 @@ test.describe('heart mode history-aware recommendations', () => {
     const main = readSource('src/renderer/main.ts')
     const history = readSource('src/renderer/utils/heartModeHistory.ts')
     const scorer = readSource('src/renderer/utils/heartModeScorer.ts')
+    const seedSelector = readSource('src/renderer/utils/heartModeSeedSelector.ts')
+    const reranker = readSource('src/renderer/utils/heartModeReranker.ts')
     const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
     const session = readSource('src/renderer/utils/heartModeSession.ts')
@@ -371,10 +454,21 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('await dataStore.fetchPlayHistory()')
     expect(main).toContain('recentTracks.value.map')
     expect(main).toContain('heartModeProfile.value.seedCount')
+    expect(main).toContain('recommendationsBySeed.set(')
+    expect(main).toContain('interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)')
+    expect(main).not.toContain('novelCandidateCount')
     expect(main).toContain('rankHeartModeCandidatesByScore({')
+    expect(main).toContain('targetCount: candidateTrackIDs.length + 1')
     expect(main).toContain('historyEntries: heartModeHistory')
     expect(main).toContain('feedbackEntries: playbackFeedback.value')
+    expect(main).toContain('completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)')
+    expect(main).toContain('rerankHeartModeCandidatesForDiversity({')
     expect(main).toContain('recordHeartModeTrackIDs(heartModeTrackIDs)')
+    expect(seedSelector).toContain('interleaveHeartModeSeedCandidates')
+    expect(seedSelector).toContain('for (let rank = 0; rank < maxBranchLength; rank += 1)')
+    expect(reranker).toContain('maxSameArtistDistance')
+    expect(reranker).toContain('maxSameSeedDistance')
+    expect(reranker).toContain('totalViolation')
     expect(history).toContain("HEART_MODE_HISTORY_V1_KEY = 'vutronmusic-heart-mode-history-v1'")
     expect(history).toContain("HEART_MODE_HISTORY_KEY = 'vutronmusic-heart-mode-history-v2'")
     expect(history).toContain('MAX_HEART_MODE_HISTORY = 500')
