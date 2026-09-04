@@ -454,6 +454,8 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('await dataStore.fetchPlayHistory()')
     expect(main).toContain('recentTracks.value.map')
     expect(main).toContain('heartModeProfile.value.seedCount')
+    expect(main).toContain('const branchResults = await Promise.all(')
+    expect(main).toContain('seedTrackIDs.map(async (candidateSeedTrackID) => {')
     expect(main).toContain('recommendationsBySeed.set(')
     expect(main).toContain('interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)')
     expect(main).not.toContain('novelCandidateCount')
