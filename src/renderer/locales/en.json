@@ -324,6 +324,26 @@
     "space": "Space"
   },
   "settings": {
+    "heartModeProfile": {
+      "title": "Heart Mode Style",
+      "desc": "Balance familiarity, freshness, and stylistic exploration in Heart Mode",
+      "modes": {
+        "continuous": "Continuous",
+        "balanced": "Balanced",
+        "diverse": "Diverse",
+        "explore": "Explore",
+        "custom": "Custom"
+      },
+      "diversity": "Style Diversity",
+      "novelty": "Novelty",
+      "familiarity": "Familiarity",
+      "repeatTolerance": "Repeat Tolerance",
+      "advanced": "Advanced",
+      "seedCount": "Interest Branches",
+      "shortCooldown": "Strong Cooldown (hours)",
+      "mediumCooldown": "Medium Cooldown (days)",
+      "longCooldown": "Long Decay (days)"
+    },
     "nav": {
       "general": "General",
       "appearance": "Appearance",

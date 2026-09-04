@@ -667,6 +667,90 @@
                 />
               </div>
             </div>
+            <div class="item heart-mode-profile-row">
+              <div class="left">
+                <div class="title">{{ $t('settings.heartModeProfile.title') }}</div>
+                <div class="description">{{ $t('settings.heartModeProfile.desc') }}</div>
+              </div>
+              <div class="right heart-mode-profile-select">
+                <CustomSelect
+                  v-model="selectedHeartModeMode"
+                  :options="heartModeModeOptions"
+                />
+              </div>
+            </div>
+            <div
+              v-if="heartModeProfile.mode === 'custom'"
+              class="heart-mode-custom-panel"
+            >
+              <div
+                v-for="control in heartModeCoreControls"
+                :key="control.key"
+                class="heart-mode-control"
+              >
+                <div class="heart-mode-control-header">
+                  <span>{{ control.label }}</span>
+                  <strong>{{ control.value }}</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  :value="control.value"
+                  @input="updateHeartModeCore(control.key, $event)"
+                />
+              </div>
+              <details class="heart-mode-advanced">
+                <summary>{{ $t('settings.heartModeProfile.advanced') }}</summary>
+                <div class="heart-mode-advanced-grid">
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.seedCount') }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="8"
+                      step="1"
+                      :value="heartModeProfile.seedCount"
+                      @change="updateHeartModeAdvanced('seedCount', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.shortCooldown') }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      step="1"
+                      :value="heartModeProfile.shortCooldownHours"
+                      @change="updateHeartModeAdvanced('shortCooldownHours', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.mediumCooldown') }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      step="1"
+                      :value="heartModeProfile.mediumCooldownDays"
+                      @change="updateHeartModeAdvanced('mediumCooldownDays', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ $t('settings.heartModeProfile.longCooldown') }}</span>
+                    <input
+                      type="number"
+                      min="7"
+                      max="365"
+                      step="1"
+                      :value="heartModeProfile.longCooldownDays"
+                      @change="updateHeartModeAdvanced('longCooldownDays', $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </div>
             <div class="item">
               <div class="left">
                 <div class="title">{{ $t('settings.general.outputDevice.text') }}</div>
@@ -1132,6 +1216,12 @@ import imageUrl from '../utils/settingImg.dataurl?raw'
 import { useRouter } from 'vue-router'
 import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d'
 import { setFeatureLanguage, type SupportedLanguage } from '../utils/v327FeatureShared'
+import {
+  applyHeartModePreset,
+  heartModeProfile,
+  updateHeartModeProfile,
+  type HeartModeMode
+} from '../utils/heartModeProfile'
 
 const router = useRouter()
 
@@ -1206,6 +1296,61 @@ const {
 const playerStore = usePlayerStore()
 const { resetPlayer } = playerStore
 const { outputDevice, currentTrack } = storeToRefs(playerStore)
+
+type HeartModeCoreField = 'diversity' | 'novelty' | 'familiarity' | 'repeatTolerance'
+type HeartModeAdvancedField =
+  | 'seedCount'
+  | 'shortCooldownHours'
+  | 'mediumCooldownDays'
+  | 'longCooldownDays'
+
+const heartModeModeOptions = computed(() => [
+  { label: t('settings.heartModeProfile.modes.continuous'), value: 'continuous' },
+  { label: t('settings.heartModeProfile.modes.balanced'), value: 'balanced' },
+  { label: t('settings.heartModeProfile.modes.diverse'), value: 'diverse' },
+  { label: t('settings.heartModeProfile.modes.explore'), value: 'explore' },
+  { label: t('settings.heartModeProfile.modes.custom'), value: 'custom' }
+])
+
+const selectedHeartModeMode = computed<HeartModeMode>({
+  get: () => heartModeProfile.value.mode,
+  set: (value) => applyHeartModePreset(value)
+})
+
+const heartModeCoreControls = computed<
+  Array<{ key: HeartModeCoreField; label: string; value: number }>
+>(() => [
+  {
+    key: 'diversity',
+    label: t('settings.heartModeProfile.diversity'),
+    value: heartModeProfile.value.diversity
+  },
+  {
+    key: 'novelty',
+    label: t('settings.heartModeProfile.novelty'),
+    value: heartModeProfile.value.novelty
+  },
+  {
+    key: 'familiarity',
+    label: t('settings.heartModeProfile.familiarity'),
+    value: heartModeProfile.value.familiarity
+  },
+  {
+    key: 'repeatTolerance',
+    label: t('settings.heartModeProfile.repeatTolerance'),
+    value: heartModeProfile.value.repeatTolerance
+  }
+])
+
+const updateHeartModeCore = (field: HeartModeCoreField, event: Event) => {
+  const value = Number((event.target as HTMLInputElement).value)
+  updateHeartModeProfile({ mode: 'custom', [field]: value })
+}
+
+const updateHeartModeAdvanced = (field: HeartModeAdvancedField, event: Event) => {
+  const value = Number((event.target as HTMLInputElement).value)
+  updateHeartModeProfile({ mode: 'custom', [field]: value })
+}
 
 const localMusicStore = useLocalMusicStore()
 const { resetLocalMusic } = localMusicStore
@@ -2342,4 +2487,82 @@ input.text-input {
   font-weight: 700;
 }
 /* =========== newADD end ======== */
+.heart-mode-profile-select {
+  width: min(240px, 100%);
+}
+
+.heart-mode-custom-panel {
+  margin: -6px 0 18px;
+  padding: 14px 18px 16px;
+  border-radius: 12px;
+  background: var(--color-secondary-bg);
+}
+
+.heart-mode-control + .heart-mode-control {
+  margin-top: 14px;
+}
+
+.heart-mode-control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 6px;
+  color: var(--color-text);
+
+  strong {
+    min-width: 28px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.heart-mode-control input[type='range'] {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.heart-mode-advanced {
+  margin-top: 16px;
+  color: var(--color-text);
+
+  summary {
+    cursor: pointer;
+    color: var(--color-text-secondary);
+  }
+}
+
+.heart-mode-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 12px;
+
+  label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--color-text-secondary);
+  }
+
+  input[type='number'] {
+    width: 84px;
+    box-sizing: border-box;
+    padding: 7px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 7px;
+    outline: none;
+    background: var(--color-body-bg, rgba(127, 127, 127, 0.08));
+    color: var(--color-text);
+    font: inherit;
+  }
+}
+
+@media (max-width: 720px) {
+  .heart-mode-advanced-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>

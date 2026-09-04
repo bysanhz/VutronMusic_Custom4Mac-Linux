@@ -324,6 +324,26 @@
     "space": "空白鍵"
   },
   "settings": {
+    "heartModeProfile": {
+      "title": "心動模式風格",
+      "desc": "控制心動模式在熟悉、新鮮與風格跳脫之間的平衡",
+      "modes": {
+        "continuous": "連續",
+        "balanced": "平衡",
+        "diverse": "跳脫",
+        "explore": "探索",
+        "custom": "自訂"
+      },
+      "diversity": "風格跳脫度",
+      "novelty": "新鮮度",
+      "familiarity": "熟悉感",
+      "repeatTolerance": "重複容忍度",
+      "advanced": "進階選項",
+      "seedCount": "興趣分支數",
+      "shortCooldown": "短期強冷卻（小時）",
+      "mediumCooldown": "中期冷卻（天）",
+      "longCooldown": "長期衰減（天）"
+    },
     "nav": {
       "general": "通用",
       "appearance": "外觀",

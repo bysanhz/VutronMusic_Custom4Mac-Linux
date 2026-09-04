@@ -29,6 +29,15 @@ import { initializePlaybackStartPolicy } from './utils/playbackStartGuard'
 import { initializeTrackLyricOffset } from './utils/trackLyricOffset'
 import { initializePlaybackHistory, recentTracks } from './utils/playbackHistory'
 import {
+  initializePlaybackFeedback,
+  markPlaybackEndReason
+} from './utils/playbackFeedback'
+import {
+  heartModeProfile,
+  initializeHeartModeProfile
+} from './utils/heartModeProfile'
+import { createHeartModeSession } from './utils/heartModeSession'
+import {
   getRecentHeartModeTrackIDs,
   rankHeartModeCandidates,
   recordHeartModeTrackIDs,
@@ -114,11 +123,12 @@ initializeOsdWindowScaleSettings(router)
 
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const HEART_MODE_TARGET_COUNT = 30
-const MAX_HEART_MODE_SEED_ATTEMPTS = 3
 const playerStore = usePlayerStore(pinia)
 initializePlaybackStartPolicy(playerStore)
 initializeTrackLyricOffset(playerStore)
 initializePlaybackHistory(playerStore)
+initializePlaybackFeedback(playerStore)
+initializeHeartModeProfile()
 initializeSleepTimerPlayerBridge(playerStore)
 initializePlayerLyricWatchdog(playerStore)
 const dataStore = useDataStore(pinia)
@@ -236,7 +246,7 @@ const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: 
  * 2. 从喜欢歌单中随机选择一首歌曲作为 seed song；
  * 3. 调用 `/playmode/intelligence/list`，不调用私人 FM 或每日推荐；
  * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
- * 5. 后续歌曲严格采用智能播放接口返回的推荐顺序。
+ * 5. 当前阶段保留 history-aware 排序，同时记录多 seed 分支归因，供后续动态 Scorer 使用。
  */
 const publishHeartModeResult = (
   requestId: string,
@@ -292,7 +302,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
     const seedTrackIDs = selectHeartModeSeedIDs(
       likedTrackIDs,
       avoidedSeedTrackIDs,
-      MAX_HEART_MODE_SEED_ATTEMPTS
+      heartModeProfile.value.seedCount
     )
     const seedTrackID = seedTrackIDs[0]
 
@@ -301,6 +311,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
     }
 
     const candidateTrackIDs: number[] = []
+    const candidateSeedByTrackID = new Map<number, number>()
     const recentPlayedSet = new Set(recentPlayedTrackIDs)
     const recentHeartModeSet = new Set(recentHeartModeTrackIDs)
 
@@ -310,7 +321,12 @@ const startHeartModeFromLikes = async (requestId = '') => {
           candidateSeedTrackID,
           playlistID
         )
-        candidateTrackIDs.push(...recommendationIDs)
+        for (const recommendationID of recommendationIDs) {
+          candidateTrackIDs.push(recommendationID)
+          if (!candidateSeedByTrackID.has(recommendationID)) {
+            candidateSeedByTrackID.set(recommendationID, candidateSeedTrackID)
+          }
+        }
       } catch (error) {
         console.warn('[HeartMode] 当前 seed 推荐请求失败，继续尝试下一个 seed：', {
           seedTrackID: candidateSeedTrackID,
@@ -344,6 +360,22 @@ const startHeartModeFromLikes = async (requestId = '') => {
       return
     }
 
+    const sourceSeedByTrackID = Object.fromEntries(
+      heartModeTrackIDs.map((trackID) => [
+        String(trackID),
+        trackID === seedTrackID
+          ? seedTrackID
+          : candidateSeedByTrackID.get(trackID) ?? seedTrackID
+      ])
+    )
+
+    createHeartModeSession({
+      profile: heartModeProfile.value,
+      seedIds: seedTrackIDs,
+      sourceSeedByTrackID
+    })
+
+    markPlaybackEndReason('heart-mode-restart')
     playerStore.clearPlayNextList()
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'

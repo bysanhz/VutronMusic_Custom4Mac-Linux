@@ -11,6 +11,11 @@ import {
   rankHeartModeCandidates,
   selectHeartModeSeedIDs
 } from '../src/renderer/utils/heartModeHistory'
+import {
+  scorePlaybackFeedback,
+  type PlaybackFeedback
+} from '../src/renderer/utils/playbackFeedback'
+import { getHeartModePresetProfile } from '../src/renderer/utils/heartModeProfile'
 
 const readSource = (relativePath: string): string =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf-8')
@@ -91,19 +96,102 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(seeds).toHaveLength(3)
   })
 
+  test('maps listening behavior to preference signals without treating lifecycle events as dislike', () => {
+    const makeFeedback = (patch: Partial<PlaybackFeedback>): PlaybackFeedback => ({
+      trackId: 1,
+      source: 'intelligence',
+      durationSeconds: 200,
+      activeListenSeconds: 10,
+      completionRatio: 0.05,
+      endReason: 'manual-next',
+      likedAtEnd: false,
+      playedAt: Date.now(),
+      ...patch
+    })
+
+    expect(scorePlaybackFeedback(makeFeedback({}))).toBe(-4)
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({ activeListenSeconds: 180, completionRatio: 0.9, endReason: 'manual-next' })
+      )
+    ).toBe(1)
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({ activeListenSeconds: 200, completionRatio: 1, endReason: 'natural-end' })
+      )
+    ).toBe(2)
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({
+          activeListenSeconds: 120,
+          completionRatio: 0.6,
+          endReason: 'natural-end',
+          likedAtEnd: true
+        })
+      )
+    ).toBe(7)
+    expect(scorePlaybackFeedback(makeFeedback({ endReason: 'playback-error' }))).toBeNull()
+    expect(scorePlaybackFeedback(makeFeedback({ endReason: 'app-close' }))).toBeNull()
+    expect(scorePlaybackFeedback(makeFeedback({ endReason: 'queue-replaced' }))).toBeNull()
+  })
+
+  test('uses the requested presets and keeps Diverse as the default exploration profile', () => {
+    expect(getHeartModePresetProfile('continuous')).toMatchObject({
+      diversity: 15,
+      novelty: 40,
+      familiarity: 80,
+      repeatTolerance: 60,
+      seedCount: 1
+    })
+    expect(getHeartModePresetProfile('diverse')).toMatchObject({
+      diversity: 80,
+      novelty: 75,
+      familiarity: 35,
+      repeatTolerance: 20,
+      seedCount: 4
+    })
+    expect(getHeartModePresetProfile('explore')).toMatchObject({
+      diversity: 95,
+      novelty: 95,
+      familiarity: 15,
+      repeatTolerance: 5,
+      seedCount: 5
+    })
+  })
+
   test('persists a cross-session cooldown and supplements candidates with multiple seeds', () => {
     const main = readSource('src/renderer/main.ts')
     const history = readSource('src/renderer/utils/heartModeHistory.ts')
+    const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
+    const profile = readSource('src/renderer/utils/heartModeProfile.ts')
+    const session = readSource('src/renderer/utils/heartModeSession.ts')
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
 
     expect(main).toContain('await dataStore.fetchPlayHistory()')
     expect(main).toContain('recentTracks.value.map')
-    expect(main).toContain('MAX_HEART_MODE_SEED_ATTEMPTS = 3')
+    expect(main).toContain('heartModeProfile.value.seedCount')
     expect(main).toContain('rankHeartModeCandidates({')
     expect(main).toContain('recordHeartModeTrackIDs(heartModeTrackIDs)')
     expect(history).toContain("HEART_MODE_HISTORY_KEY = 'vutronmusic-heart-mode-history-v1'")
     expect(history).toContain('MAX_HEART_MODE_HISTORY = 300')
     expect(history).toContain('HEART_MODE_HISTORY_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000')
     expect(history).toContain('recentUnlikedRepeats.push(id)')
+    expect(main).toContain('initializePlaybackFeedback(playerStore)')
+    expect(main).toContain("markPlaybackEndReason('heart-mode-restart')")
+    expect(main).toContain('createHeartModeSession({')
+    expect(feedback).toContain("PLAYBACK_FEEDBACK_KEY = 'vutronmusic-playback-feedback-v1'")
+    expect(feedback).toContain('activeListenSeconds')
+    expect(feedback).toContain('window.vutronmusic?.progress')
+    expect(feedback).toContain("case '_playNextTrack':")
+    expect(feedback).toContain("return 'manual-next'")
+    expect(feedback).toContain("finalizeActivePlayback('app-close')")
+    expect(profile).toContain("HEART_MODE_PROFILE_KEY = 'vutronmusic-heart-mode-profile-v1'")
+    expect(profile).toContain('DEFAULT_HEART_MODE_PROFILE')
+    expect(session).toContain("HEART_MODE_SESSION_KEY = 'vutronmusic-heart-mode-session-v1'")
+    expect(session).toContain('sourceSeedByTrackID')
+    expect(settings).toContain("settings.heartModeProfile.title")
+    expect(settings).toContain('v-model="selectedHeartModeMode"')
+    expect(settings).toContain("heartModeProfile.mode === 'custom'")
   })
 })
 

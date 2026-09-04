@@ -324,6 +324,26 @@
     "space": "空格"
   },
   "settings": {
+    "heartModeProfile": {
+      "title": "心动模式风格",
+      "desc": "控制心动模式在熟悉、新鲜与风格跳脱之间的平衡",
+      "modes": {
+        "continuous": "连续",
+        "balanced": "平衡",
+        "diverse": "跳脱",
+        "explore": "探索",
+        "custom": "自定义"
+      },
+      "diversity": "风格跳脱度",
+      "novelty": "新鲜度",
+      "familiarity": "熟悉感",
+      "repeatTolerance": "重复容忍度",
+      "advanced": "高级选项",
+      "seedCount": "兴趣分支数",
+      "shortCooldown": "短期强冷却（小时）",
+      "mediumCooldown": "中期冷却（天）",
+      "longCooldown": "长期衰减（天）"
+    },
     "nav": {
       "general": "通用",
       "appearance": "外观",
