@@ -426,7 +426,9 @@ const fetchHeartModeCandidatePool = async (
  * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
  * 5. 所有成功 seed 分支都参与候选池，并按分支内 NetEase 排名 round-robin 交织；
  * 6. Phase 3 Scorer 完成全局质量排序后，再用 Phase 4 diversity reranker
- *    执行同艺人/同 seed 的局部间隔约束。
+ *    执行同艺人/同 seed 的局部间隔约束；
+ * 7. Phase 5 首次只入队 12 首，剩余候选进入 session.pendingTrackIDs，
+ *    后续根据实时 branchScore 滚动补队列。
  */
 const publishHeartModeResult = (
   requestId: string,
@@ -520,24 +522,31 @@ const startHeartModeFromLikes = async (requestId = '') => {
 
     await completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)
 
-    const heartModeTrackIDs = rerankHeartModeCandidatesForDiversity({
+    const initialHeartModeTrackIDs = rerankHeartModeCandidatesForDiversity({
       rankedTrackIDs: scoredHeartModeTrackIDs,
       metadataByTrackID,
       sourceSeedByTrackID: candidateSeedByTrackID,
       likedTrackIDs,
       profile: heartModeProfile.value,
-      targetCount: HEART_MODE_TARGET_COUNT
+      targetCount: HEART_MODE_INITIAL_QUEUE_SIZE
     })
 
-    if (heartModeTrackIDs.length <= 1) {
+    if (initialHeartModeTrackIDs.length <= 1) {
       const message = i18n.global.t('player.heartMode.recommendationMissing')
       stateStore.showToast(message)
       publishHeartModeResult(requestId, 'error', message)
       return
     }
 
+    const initialTrackSet = new Set(initialHeartModeTrackIDs)
+    const pendingTrackIDs = scoredHeartModeTrackIDs.filter(
+      (trackID) => !initialTrackSet.has(trackID)
+    )
+
+    // Session 保存完整候选归因，而不是只保存当前 12 首。后续 rolling refill
+    // 才能在不重新解释 sourceSeedId 的前提下持续学习同一批 seed 分支。
     const sourceSeedByTrackID = Object.fromEntries(
-      heartModeTrackIDs.map((trackID) => [
+      scoredHeartModeTrackIDs.map((trackID) => [
         String(trackID),
         trackID === seedTrackID
           ? seedTrackID
@@ -545,10 +554,19 @@ const startHeartModeFromLikes = async (requestId = '') => {
       ])
     )
 
+    heartModeLikedTrackIDsCache = [...likedTrackIDs]
+    heartModeMetadataCache.clear()
+    for (const [trackID, metadata] of metadataByTrackID) {
+      heartModeMetadataCache.set(trackID, metadata)
+    }
+
     createHeartModeSession({
       profile: heartModeProfile.value,
       seedIds: seedTrackIDs,
-      sourceSeedByTrackID
+      playlistId: playlistID,
+      sourceSeedByTrackID,
+      enqueuedTrackIDs: initialHeartModeTrackIDs,
+      pendingTrackIDs
     })
 
     markPlaybackEndReason('heart-mode-restart')
@@ -556,10 +574,17 @@ const startHeartModeFromLikes = async (requestId = '') => {
     playerStore.shuffle = false
     playerStore.repeatMode = 'off'
 
-    recordHeartModeTrackIDs(heartModeTrackIDs)
-    await playerStore.replacePlaylist('intelligence', playlistID, heartModeTrackIDs, 0)
+    recordHeartModeTrackIDs(initialHeartModeTrackIDs)
+    await playerStore.replacePlaylist(
+      'intelligence',
+      playlistID,
+      initialHeartModeTrackIDs,
+      0
+    )
 
-    const message = i18n.global.t('player.heartMode.started', { count: heartModeTrackIDs.length })
+    const message = i18n.global.t('player.heartMode.started', {
+      count: initialHeartModeTrackIDs.length
+    })
     stateStore.showToast(message)
     publishHeartModeResult(requestId, 'success', message)
   } catch (error: any) {
