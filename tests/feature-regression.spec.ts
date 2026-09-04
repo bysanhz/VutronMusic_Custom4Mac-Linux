@@ -14,11 +14,13 @@ import {
 } from '../src/renderer/utils/heartModeHistory'
 import {
   aggregateTrackFeedbackScore,
-  rankHeartModeCandidatesByScore
+  rankHeartModeCandidatesByScore,
+  rankHeartModeCandidatesWithScores
 } from '../src/renderer/utils/heartModeScorer'
 import { interleaveHeartModeSeedCandidates } from '../src/renderer/utils/heartModeSeedSelector'
 import {
   rerankHeartModeCandidatesForDiversity,
+  rerankHeartModeCandidatesWithDecisions,
   type HeartModeTrackMetadata
 } from '../src/renderer/utils/heartModeReranker'
 import {
@@ -368,6 +370,7 @@ test.describe('heart mode history-aware recommendations', () => {
       consecutiveQuickSkips: 0,
       completionAverage: 0,
       positiveCount: 0,
+      explicitBoostCount: 0,
       branchScore: 0
     }
 
@@ -407,6 +410,7 @@ test.describe('heart mode history-aware recommendations', () => {
       consecutiveQuickSkips: 0,
       completionAverage: 0.6,
       positiveCount: 1,
+      explicitBoostCount: 0,
       branchScore: 0.2
     }
 
@@ -418,6 +422,83 @@ test.describe('heart mode history-aware recommendations', () => {
         positive: false
       })
     ).toEqual(previous)
+  })
+
+  test('exposes immutable-style score snapshots for recommendation explanations', () => {
+    const scored = rankHeartModeCandidatesWithScores({
+      seedTrackID: 1,
+      candidateTrackIDs: [10, 20],
+      likedTrackIDs: [1],
+      recentPlayedTrackIDs: [],
+      historyEntries: [],
+      feedbackEntries: [],
+      profile: getHeartModePresetProfile('diverse'),
+      candidateSeedByTrackID: new Map([
+        [10, 100],
+        [20, 200]
+      ]),
+      branchScoreBySeedID: new Map([
+        [100, 0.5],
+        [200, -0.5]
+      ]),
+      pinSeedFirst: false,
+      targetCount: 2,
+      now: 1000
+    })
+
+    expect(scored).toHaveLength(2)
+    expect(scored[0].id).toBe(10)
+    expect(scored[0].sourceSeedId).toBe(100)
+    expect(scored[0].breakdown.branchPreference).toBe(0.5)
+    expect(Number.isFinite(scored[0].breakdown.total)).toBe(true)
+  })
+
+  test('records rerank decisions that explain seed-spacing moves', () => {
+    const result = rerankHeartModeCandidatesWithDecisions({
+      rankedTrackIDs: [1, 2, 3],
+      metadataByTrackID: new Map(),
+      sourceSeedByTrackID: new Map([
+        [1, 100],
+        [2, 100],
+        [3, 200]
+      ]),
+      likedTrackIDs: [],
+      profile: {
+        ...getHeartModePresetProfile('balanced'),
+        maxSameArtistDistance: 0,
+        maxSameSeedDistance: 1
+      },
+      targetCount: 3
+    })
+
+    expect(result.trackIDs).toEqual([1, 3, 2])
+    expect(result.decisions['3'].finalRank).toBe(1)
+    expect(result.decisions['3'].movedForSeedSpacing).toBe(true)
+  })
+
+  test('wires explainability, steering, and safe session-learning reset into the player', () => {
+    const session = readSource('src/renderer/utils/heartModeSession.ts')
+    const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
+    const assistant = readSource('src/renderer/components/HeartModeAssistant.vue')
+    const playPage = readSource('src/renderer/views/PlayPage.vue')
+    const main = readSource('src/renderer/main.ts')
+
+    expect(session).toContain('recommendationReasons')
+    expect(session).toContain('boostHeartModeCurrentBranch')
+    expect(session).toContain('steerHeartModeFurther')
+    expect(session).toContain('resetCurrentHeartModeLearning')
+    expect(session).toContain('explicitBoostCount')
+    expect(feedback).toContain('removePlaybackFeedbackForHeartModeSession')
+    expect(feedback).toContain('resetActivePlaybackFeedbackWindow')
+    expect(assistant).toContain('多来点这种')
+    expect(assistant).toContain('跳远一点')
+    expect(assistant).toContain('重置本轮学习')
+    expect(assistant).toContain('window.confirm')
+    expect(playPage).toContain('<HeartModeAssistant />')
+    expect(main).toContain('rankHeartModeCandidatesWithScores')
+    expect(main).toContain('rerankHeartModeCandidatesWithDecisions')
+    expect(main).toContain('recordHeartModeRecommendationReasons')
+    expect(main).toContain('getEffectiveHeartModeProfile')
   })
 
   test('uses adaptive branch score to reorder otherwise similar refill candidates', () => {
