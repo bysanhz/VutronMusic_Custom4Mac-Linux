@@ -237,9 +237,9 @@ const extractHeartModeTrackMetadata = (track: any): HeartModeTrackMetadata | und
       ? track.artists
       : []
 
-  const artistIds = Array.from(
-    new Set(
-      artists
+  const artistIds: number[] = Array.from(
+    new Set<number>(
+      (artists as any[])
         .map((artist: any) => Number(artist?.id))
         .filter((id: number) => Number.isFinite(id) && id > 0)
     )
