@@ -342,7 +342,9 @@
       "seedCount": "興趣分支數",
       "shortCooldown": "短期強冷卻（小時）",
       "mediumCooldown": "中期冷卻（天）",
-      "longCooldown": "長期衰減（天）"
+      "longCooldown": "長期衰減（天）",
+      "sameArtistDistance": "同藝人最小間隔（首）",
+      "sameSeedDistance": "同分支最小間隔（首）"
     },
     "nav": {
       "general": "通用",
