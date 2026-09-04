@@ -237,7 +237,7 @@ export const scoreHeartModeCandidate = ({
  *
  * seed 固定为第一首，剩余候选按 total score 降序；同分时保持 NetEase 原始顺序。
  */
-export const rankHeartModeCandidatesByScore = ({
+export const rankHeartModeCandidatesWithScores = ({
   seedTrackID,
   candidateTrackIDs,
   likedTrackIDs,
@@ -250,7 +250,7 @@ export const rankHeartModeCandidatesByScore = ({
   pinSeedFirst = true,
   targetCount = 30,
   now = Date.now()
-}: HeartModeScorerOptions): number[] => {
+}: HeartModeScorerOptions): HeartModeScoredCandidate[] => {
   const seed = Number(seedTrackID)
   if (!Number.isFinite(seed) || seed <= 0) return []
 
@@ -296,8 +296,40 @@ export const rankHeartModeCandidatesByScore = ({
     return left.originalRank - right.originalRank
   })
 
-  const rankedTrackIDs = scored.map((item) => item.id)
-  const result = pinSeedFirst ? [seed, ...rankedTrackIDs] : rankedTrackIDs
+  const ranked = pinSeedFirst
+    ? [
+        {
+          id: seed,
+          originalRank: -1,
+          sourceSeedId: seed,
+          breakdown: scoreHeartModeCandidate({
+            trackID: seed,
+            originalRank: 0,
+            candidateCount: Math.max(1, candidates.length),
+            sourceSeedID: seed,
+            seedTrackID: seed,
+            liked: liked.has(seed),
+            recentPlayed: recentPlayed.has(seed),
+            historyEntry: historyByTrackID.get(seed),
+            feedbackEntries,
+            profile,
+            branchPreference: resolveBranchScore(branchScoreBySeedID, seed),
+            now
+          })
+        },
+        ...scored
+      ]
+    : scored
 
-  return result.slice(0, Math.max(1, Math.round(targetCount)))
+  return ranked.slice(0, Math.max(1, Math.round(targetCount)))
 }
+
+/**
+ * 兼容 Phase 3-5 的 ID-only 排序 API。
+ *
+ * Phase 6 需要解释快照时使用 rankHeartModeCandidatesWithScores()；
+ * 原有调用仍可继续使用本函数，不改变返回类型。
+ */
+export const rankHeartModeCandidatesByScore = (
+  options: HeartModeScorerOptions
+): number[] => rankHeartModeCandidatesWithScores(options).map((item) => item.id)
