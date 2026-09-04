@@ -517,6 +517,22 @@ export const steerHeartModeFurther = (
   return { ...currentSession.steering }
 }
 
+export const resetCurrentHeartModeLearning = (): HeartModeSessionState | null => {
+  hydrate()
+  if (!currentSession) return null
+
+  currentSession.branchStates = Object.fromEntries(
+    currentSession.seedIds.map((seedId) => [
+      String(seedId),
+      createDefaultBranchState(seedId)
+    ])
+  )
+  currentSession.steering = createDefaultSteering()
+  currentSession.explicitFeedback = []
+  persist()
+  return currentSession
+}
+
 export const recordHeartModeRecommendationReasons = (
   reasons: Iterable<HeartModeRecommendationReason>
 ): void => {
