@@ -1,6 +1,10 @@
 import { ref, watch, type WatchStopHandle } from 'vue'
 import type { usePlayerStore } from '../store/player'
-import { getHeartModeTrackContext, recordHeartModePlayedTrack } from './heartModeSession'
+import {
+  applyHeartModeFeedbackToSession,
+  getHeartModeTrackContext,
+  recordHeartModePlayedTrack
+} from './heartModeSession'
 
 type PlayerStore = ReturnType<typeof usePlayerStore>
 
@@ -243,6 +247,25 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
 
   playbackFeedback.value = [entry, ...playbackFeedback.value].slice(0, MAX_PLAYBACK_FEEDBACK)
   persistFeedback()
+
+  const preferenceScore = scorePlaybackFeedback(entry)
+  if (entry.heartModeSessionId && entry.sourceSeedId) {
+    const manualSwitch = ['manual-next', 'manual-previous', 'manual-select'].includes(
+      entry.endReason
+    )
+    applyHeartModeFeedbackToSession({
+      sessionId: entry.heartModeSessionId,
+      seedId: entry.sourceSeedId,
+      score: preferenceScore,
+      completionRatio: entry.completionRatio,
+      quickSkip:
+        manualSwitch &&
+        entry.activeListenSeconds <= 15 &&
+        entry.completionRatio < 0.8,
+      positive: preferenceScore !== null && preferenceScore >= 2
+    })
+  }
+
   activePlayback = null
   pendingEndReason = null
   return entry
