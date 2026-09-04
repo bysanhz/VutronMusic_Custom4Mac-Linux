@@ -363,6 +363,21 @@ export const scorePlaybackFeedback = (feedback: PlaybackFeedback): number | null
   return likedBonus > 0 ? likedBonus : null
 }
 
+export const removePlaybackFeedbackForHeartModeSession = (
+  sessionId: string
+): number => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  if (!normalizedSessionId) return 0
+
+  const before = playbackFeedback.value.length
+  playbackFeedback.value = playbackFeedback.value.filter(
+    (entry) => entry.heartModeSessionId !== normalizedSessionId
+  )
+  const removed = before - playbackFeedback.value.length
+  if (removed > 0) persistFeedback()
+  return removed
+}
+
 export const clearPlaybackFeedback = (): void => {
   playbackFeedback.value = []
   persistFeedback()
