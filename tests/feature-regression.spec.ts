@@ -27,6 +27,18 @@ import {
   type PlaybackFeedback
 } from '../src/renderer/utils/playbackFeedback'
 import { getHeartModePresetProfile } from '../src/renderer/utils/heartModeProfile'
+import {
+  calculateNextHeartModeBranchState,
+  type HeartModeBranchState
+} from '../src/renderer/utils/heartModeSession'
+import {
+  HEART_MODE_INITIAL_QUEUE_SIZE,
+  HEART_MODE_REFILL_COUNT,
+  HEART_MODE_REFILL_THRESHOLD,
+  getHeartModeRemainingQueueCount,
+  getHeartModeSpacingContext,
+  shouldReplenishHeartModeQueue
+} from '../src/renderer/utils/heartModeEngine'
 
 const readSource = (relativePath: string): string =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf-8')
@@ -348,6 +360,128 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(reranked).toEqual([1, 2, 3])
   })
 
+  test('lowers branch score on consecutive quick skips and lets positive playback recover it', () => {
+    const initial: HeartModeBranchState = {
+      seedId: 100,
+      playedCount: 0,
+      quickSkipCount: 0,
+      consecutiveQuickSkips: 0,
+      completionAverage: 0,
+      positiveCount: 0,
+      branchScore: 0
+    }
+
+    const firstSkip = calculateNextHeartModeBranchState(initial, {
+      score: -4,
+      completionRatio: 0.05,
+      quickSkip: true,
+      positive: false
+    })
+    const secondSkip = calculateNextHeartModeBranchState(firstSkip, {
+      score: -4,
+      completionRatio: 0.04,
+      quickSkip: true,
+      positive: false
+    })
+    const recovered = calculateNextHeartModeBranchState(secondSkip, {
+      score: 2,
+      completionRatio: 1,
+      quickSkip: false,
+      positive: true
+    })
+
+    expect(firstSkip.branchScore).toBeLessThan(0)
+    expect(secondSkip.branchScore).toBeLessThan(firstSkip.branchScore)
+    expect(secondSkip.consecutiveQuickSkips).toBe(2)
+    expect(secondSkip.quickSkipCount).toBe(2)
+    expect(recovered.branchScore).toBeGreaterThan(secondSkip.branchScore)
+    expect(recovered.consecutiveQuickSkips).toBe(0)
+    expect(recovered.positiveCount).toBe(1)
+  })
+
+  test('ignores neutral lifecycle feedback when updating branch state', () => {
+    const previous: HeartModeBranchState = {
+      seedId: 100,
+      playedCount: 2,
+      quickSkipCount: 1,
+      consecutiveQuickSkips: 0,
+      completionAverage: 0.6,
+      positiveCount: 1,
+      branchScore: 0.2
+    }
+
+    expect(
+      calculateNextHeartModeBranchState(previous, {
+        score: null,
+        completionRatio: 0.1,
+        quickSkip: false,
+        positive: false
+      })
+    ).toEqual(previous)
+  })
+
+  test('uses adaptive branch score to reorder otherwise similar refill candidates', () => {
+    const ranked = rankHeartModeCandidatesByScore({
+      seedTrackID: 1,
+      candidateTrackIDs: [10, 20],
+      likedTrackIDs: [],
+      recentPlayedTrackIDs: [],
+      historyEntries: [],
+      feedbackEntries: [],
+      profile: getHeartModePresetProfile('balanced'),
+      candidateSeedByTrackID: new Map([
+        [10, 100],
+        [20, 200]
+      ]),
+      branchScoreBySeedID: new Map([
+        [100, -1],
+        [200, 1]
+      ]),
+      pinSeedFirst: false,
+      targetCount: 2,
+      now: 1000
+    })
+
+    expect(ranked).toEqual([20, 10])
+  })
+
+  test('replenishes a twelve-track rolling queue only after fewer than five remain', () => {
+    expect(HEART_MODE_INITIAL_QUEUE_SIZE).toBe(12)
+    expect(HEART_MODE_REFILL_THRESHOLD).toBe(5)
+    expect(HEART_MODE_REFILL_COUNT).toBe(8)
+    expect(getHeartModeRemainingQueueCount(6, 12)).toBe(5)
+    expect(shouldReplenishHeartModeQueue(6, 12)).toBe(false)
+    expect(getHeartModeRemainingQueueCount(7, 12)).toBe(4)
+    expect(shouldReplenishHeartModeQueue(7, 12)).toBe(true)
+  })
+
+  test('keeps spacing constraints across the existing queue tail during refill', () => {
+    const profile = {
+      ...getHeartModePresetProfile('balanced'),
+      maxSameArtistDistance: 0,
+      maxSameSeedDistance: 1
+    }
+    const sourceSeedByTrackID = new Map<number, number>([
+      [1, 100],
+      [2, 100],
+      [3, 200]
+    ])
+
+    expect(getHeartModeSpacingContext([7, 8, 1], profile)).toEqual([1])
+
+    const reranked = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs: [2, 3],
+      metadataByTrackID: new Map(),
+      sourceSeedByTrackID,
+      likedTrackIDs: [],
+      profile,
+      targetCount: 2,
+      contextTrackIDs: [1]
+    })
+
+    expect(reranked).toEqual([3, 2])
+  })
+
   test('counts only real active listening and ignores pause or seek jumps', () => {
     expect(
       calculateActiveListenIncrement({
@@ -501,6 +635,7 @@ test.describe('heart mode history-aware recommendations', () => {
     const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
     const session = readSource('src/renderer/utils/heartModeSession.ts')
+    const engine = readSource('src/renderer/utils/heartModeEngine.ts')
     const settings = readSource('src/renderer/views/SystemSettings.vue')
     const player = readSource('src/renderer/store/player.ts')
     const virtualTrackList = readSource('src/renderer/components/VirtualTrackList.vue')
@@ -553,6 +688,22 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(profile).toContain('persistProfile()\n    stopPersistWatch = watch')
     expect(session).toContain("HEART_MODE_SESSION_KEY = 'vutronmusic-heart-mode-session-v1'")
     expect(session).toContain('sourceSeedByTrackID')
+    expect(session).toContain('branchStates')
+    expect(session).toContain('consecutiveQuickSkips')
+    expect(session).toContain('pendingTrackIDs')
+    expect(session).toContain('enqueuedTrackIDs')
+    expect(session).toContain('calculateNextHeartModeBranchState')
+    expect(engine).toContain('HEART_MODE_INITIAL_QUEUE_SIZE = 12')
+    expect(engine).toContain('HEART_MODE_REFILL_THRESHOLD = 5')
+    expect(engine).toContain('HEART_MODE_REFILL_COUNT = 8')
+    expect(main).toContain('targetCount: HEART_MODE_INITIAL_QUEUE_SIZE')
+    expect(main).toContain('pinSeedFirst: false')
+    expect(main).toContain('branchScoreBySeedID: getHeartModeBranchScoreMap()')
+    expect(main).toContain('playerStore.appendTracksToPlaylist(refillTrackIDs)')
+    expect(main).toContain('recordHeartModeEnqueuedTracks(appendedTrackIDs)')
+    expect(main).toContain('shouldReplenishHeartModeQueue(')
+    expect(feedback).toContain('applyHeartModeFeedbackToSession({')
+    expect(player).toContain('const appendTracksToPlaylist =')
     expect(settings).toContain("settings.heartModeProfile.title")
     expect(settings).toContain('v-model="selectedHeartModeMode"')
     expect(settings).toContain("heartModeProfile.mode === 'custom'")
