@@ -30,7 +30,7 @@ export type HeartModeScorerOptions = {
   historyEntries: HeartModeHistoryEntry[]
   feedbackEntries: PlaybackFeedback[]
   profile: HeartModeProfile
-  candidateSeedByTrackID?: ReadonlyMap<number, number> | Record<string, number>
+  candidateSeedByTrackID?: Map<number, number> | Record<string, number>
   targetCount?: number
   now?: number
 }
