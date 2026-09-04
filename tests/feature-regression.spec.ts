@@ -188,6 +188,20 @@ test.describe('heart mode history-aware recommendations', () => {
         now
       )
     ).toBe(0)
+    expect(
+      aggregateTrackFeedbackScore(
+        10,
+        [
+          {
+            ...base,
+            endReason: 'playback-error',
+            likedAtEnd: true,
+            likedDuringPlayback: false
+          }
+        ],
+        now
+      )
+    ).toBe(0)
     expect(aggregateTrackFeedbackScore(11, [base], now)).toBe(0)
   })
 
@@ -288,6 +302,24 @@ test.describe('heart mode history-aware recommendations', () => {
       )
     ).toBe(2)
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'playback-error' }))).toBeNull()
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({
+          endReason: 'playback-error',
+          likedAtEnd: true,
+          likedDuringPlayback: false
+        })
+      )
+    ).toBeNull()
+    expect(
+      scorePlaybackFeedback(
+        makeFeedback({
+          endReason: 'playback-error',
+          likedAtEnd: true,
+          likedDuringPlayback: true
+        })
+      )
+    ).toBe(5)
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'app-close' }))).toBeNull()
     expect(scorePlaybackFeedback(makeFeedback({ endReason: 'queue-replaced' }))).toBeNull()
   })
