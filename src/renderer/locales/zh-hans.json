@@ -289,7 +289,7 @@
       "generating": "正在根据我喜欢的音乐生成心动模式…",
       "likedPlaylistMissing": "未找到“我喜欢的音乐”歌单",
       "recommendationMissing": "未获取到心动模式推荐歌曲",
-      "started": "已开启心动模式，共 {count} 首",
+      "started": "已开启心动模式，首批 {count} 首，将自动续播",
       "likedPlaylistEmpty": "“我喜欢的音乐”歌单为空",
       "failed": "心动模式加载失败，请稍后重试",
       "timeout": "心动模式响应超时，请重试",
