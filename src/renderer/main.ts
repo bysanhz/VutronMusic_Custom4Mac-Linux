@@ -40,8 +40,10 @@ import {
 import {
   createHeartModeSession,
   getCurrentHeartModeSession,
+  getEffectiveHeartModeProfile,
   getHeartModeBranchScoreMap,
   recordHeartModeEnqueuedTracks,
+  recordHeartModeRecommendationReasons,
   registerHeartModeCandidatePool
 } from './utils/heartModeSession'
 import {
@@ -49,10 +51,12 @@ import {
   recordHeartModeTrackIDs,
   selectHeartModeSeedIDs
 } from './utils/heartModeHistory'
-import { rankHeartModeCandidatesByScore } from './utils/heartModeScorer'
+import {
+  rankHeartModeCandidatesWithScores
+} from './utils/heartModeScorer'
 import { interleaveHeartModeSeedCandidates } from './utils/heartModeSeedSelector'
 import {
-  rerankHeartModeCandidatesForDiversity,
+  rerankHeartModeCandidatesWithDecisions,
   type HeartModeTrackMetadata
 } from './utils/heartModeReranker'
 import {
@@ -507,7 +511,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
     // 主 seed 也要带分支归因，确保 reranker 能约束“seed 后立刻又来同一分支”。
     candidateSeedByTrackID.set(seedTrackID, seedTrackID)
 
-    const scoredHeartModeTrackIDs = rankHeartModeCandidatesByScore({
+    const scoredHeartModeCandidates = rankHeartModeCandidatesWithScores({
       seedTrackID,
       candidateTrackIDs,
       likedTrackIDs,
@@ -519,10 +523,11 @@ const startHeartModeFromLikes = async (requestId = '') => {
       targetCount: candidateTrackIDs.length + 1,
       now
     })
+    const scoredHeartModeTrackIDs = scoredHeartModeCandidates.map((item) => item.id)
 
     await completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)
 
-    const initialHeartModeTrackIDs = rerankHeartModeCandidatesForDiversity({
+    const initialRerankResult = rerankHeartModeCandidatesWithDecisions({
       rankedTrackIDs: scoredHeartModeTrackIDs,
       metadataByTrackID,
       sourceSeedByTrackID: candidateSeedByTrackID,
@@ -530,6 +535,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
       profile: heartModeProfile.value,
       targetCount: HEART_MODE_INITIAL_QUEUE_SIZE
     })
+    const initialHeartModeTrackIDs = initialRerankResult.trackIDs
 
     if (initialHeartModeTrackIDs.length <= 1) {
       const message = i18n.global.t('player.heartMode.recommendationMissing')
@@ -568,6 +574,36 @@ const startHeartModeFromLikes = async (requestId = '') => {
       enqueuedTrackIDs: initialHeartModeTrackIDs,
       pendingTrackIDs
     })
+
+    const likedTrackSet = new Set(likedTrackIDs)
+    const scoredByTrackID = new Map(
+      scoredHeartModeCandidates.map((item) => [item.id, item])
+    )
+    recordHeartModeRecommendationReasons(
+      initialHeartModeTrackIDs.flatMap((trackID) => {
+        const scored = scoredByTrackID.get(trackID)
+        const decision = initialRerankResult.decisions[String(trackID)]
+        if (!scored || !decision) return []
+        return [
+          {
+            trackId: trackID,
+            sourceSeedId: scored.sourceSeedId,
+            score: scored.breakdown,
+            originalRank: scored.originalRank,
+            finalRank: decision.finalRank,
+            likedAtRecommendation: likedTrackSet.has(trackID),
+            rerank: {
+              artistViolation: decision.artistViolation,
+              seedViolation: decision.seedViolation,
+              movedForArtistSpacing: decision.movedForArtistSpacing,
+              movedForSeedSpacing: decision.movedForSeedSpacing,
+              familiarityDeferred: decision.familiarityDeferred
+            },
+            recommendedAt: now
+          }
+        ]
+      })
+    )
 
     markPlaybackEndReason('heart-mode-restart')
     playerStore.clearPlayNextList()
@@ -700,20 +736,23 @@ const replenishHeartModeRollingQueue = async (): Promise<void> => {
         )
     )
 
-    const rankedPendingTrackIDs = rankHeartModeCandidatesByScore({
+    const effectiveProfile =
+      getEffectiveHeartModeProfile(activeSession) ?? activeSession.profile
+    const rankedPendingCandidates = rankHeartModeCandidatesWithScores({
       seedTrackID: activeSession.seedIds[0],
       candidateTrackIDs: activeSession.pendingTrackIDs,
       likedTrackIDs,
       recentPlayedTrackIDs,
       historyEntries,
       feedbackEntries: playbackFeedback.value,
-      profile: activeSession.profile,
+      profile: effectiveProfile,
       candidateSeedByTrackID,
       branchScoreBySeedID: getHeartModeBranchScoreMap(),
       pinSeedFirst: false,
       targetCount: activeSession.pendingTrackIDs.length,
       now
     })
+    const rankedPendingTrackIDs = rankedPendingCandidates.map((item) => item.id)
 
     await completeHeartModeTrackMetadata(
       rankedPendingTrackIDs,
@@ -722,23 +761,55 @@ const replenishHeartModeRollingQueue = async (): Promise<void> => {
 
     const contextTrackIDs = getHeartModeSpacingContext(
       playerStore.list,
-      activeSession.profile
+      effectiveProfile
     )
-    const refillTrackIDs = rerankHeartModeCandidatesForDiversity({
+    const refillRerankResult = rerankHeartModeCandidatesWithDecisions({
       rankedTrackIDs: rankedPendingTrackIDs,
       metadataByTrackID: heartModeMetadataCache,
       sourceSeedByTrackID: candidateSeedByTrackID,
       likedTrackIDs,
-      profile: activeSession.profile,
+      profile: effectiveProfile,
       targetCount: HEART_MODE_REFILL_COUNT,
       contextTrackIDs
     })
+    const refillTrackIDs = refillRerankResult.trackIDs
+    const queueBaseRank = playerStore.list.length
 
     const appendedTrackIDs = playerStore.appendTracksToPlaylist(refillTrackIDs)
     if (!appendedTrackIDs.length) return
 
     recordHeartModeEnqueuedTracks(appendedTrackIDs)
     recordHeartModeTrackIDs(appendedTrackIDs)
+
+    const likedTrackSet = new Set(likedTrackIDs)
+    const scoredByTrackID = new Map(
+      rankedPendingCandidates.map((item) => [item.id, item])
+    )
+    recordHeartModeRecommendationReasons(
+      appendedTrackIDs.flatMap((trackID) => {
+        const scored = scoredByTrackID.get(trackID)
+        const decision = refillRerankResult.decisions[String(trackID)]
+        if (!scored || !decision) return []
+        return [
+          {
+            trackId: trackID,
+            sourceSeedId: scored.sourceSeedId,
+            score: scored.breakdown,
+            originalRank: scored.originalRank,
+            finalRank: queueBaseRank + decision.finalRank,
+            likedAtRecommendation: likedTrackSet.has(trackID),
+            rerank: {
+              artistViolation: decision.artistViolation,
+              seedViolation: decision.seedViolation,
+              movedForArtistSpacing: decision.movedForArtistSpacing,
+              movedForSeedSpacing: decision.movedForSeedSpacing,
+              familiarityDeferred: decision.familiarityDeferred
+            },
+            recommendedAt: now
+          }
+        ]
+      })
+    )
   } catch (error) {
     console.warn('[HeartMode] rolling queue 补充失败，保留当前剩余队列：', error)
   } finally {
