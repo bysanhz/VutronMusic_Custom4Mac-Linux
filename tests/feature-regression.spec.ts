@@ -259,11 +259,64 @@ test.describe('heart mode history-aware recommendations', () => {
       rankedTrackIDs: [1, 2, 3, 4, 5],
       metadataByTrackID,
       sourceSeedByTrackID,
+      likedTrackIDs: [],
       profile,
       targetCount: 5
     })
 
     expect(reranked).toEqual([1, 3, 4, 5, 2])
+  })
+
+  test('caps liked tracks according to familiarity when fresh candidates are available', () => {
+    const rankedTrackIDs = Array.from({ length: 30 }, (_, index) => index + 1)
+    const likedTrackIDs = rankedTrackIDs.slice(0, 20)
+    const metadataByTrackID = new Map<number, HeartModeTrackMetadata>(
+      rankedTrackIDs.map((id) => [id, { artistIds: [1000 + id] }])
+    )
+    const sourceSeedByTrackID = new Map<number, number>(
+      rankedTrackIDs.map((id, index) => [id, 100 + (index % 4)])
+    )
+    const profile = {
+      ...getHeartModePresetProfile('diverse'),
+      familiarity: 35,
+      maxSameArtistDistance: 0,
+      maxSameSeedDistance: 0
+    }
+
+    const reranked = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs,
+      metadataByTrackID,
+      sourceSeedByTrackID,
+      likedTrackIDs,
+      profile,
+      targetCount: 30
+    })
+
+    expect(reranked).toHaveLength(30)
+    expect(reranked.filter((id) => likedTrackIDs.includes(id))).toHaveLength(11)
+  })
+
+  test('relaxes familiarity cap only when there are not enough fresh candidates', () => {
+    const rankedTrackIDs = [1, 2, 3, 4, 5]
+    const likedTrackIDs = [1, 2, 3, 4]
+    const profile = {
+      ...getHeartModePresetProfile('explore'),
+      familiarity: 15,
+      maxSameArtistDistance: 0,
+      maxSameSeedDistance: 0
+    }
+
+    const reranked = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs,
+      metadataByTrackID: new Map(),
+      sourceSeedByTrackID: new Map(),
+      likedTrackIDs,
+      profile,
+      targetCount: 5
+    })
+
+    expect(reranked).toHaveLength(5)
+    expect(new Set(reranked)).toEqual(new Set(rankedTrackIDs))
   })
 
   test('relaxes impossible spacing constraints instead of dropping the queue', () => {
@@ -287,6 +340,7 @@ test.describe('heart mode history-aware recommendations', () => {
       rankedTrackIDs: [1, 2, 3],
       metadataByTrackID,
       sourceSeedByTrackID,
+      likedTrackIDs: [],
       profile,
       targetCount: 3
     })
@@ -465,7 +519,11 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('feedbackEntries: playbackFeedback.value')
     expect(main).toContain('completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)')
     expect(main).toContain('rerankHeartModeCandidatesForDiversity({')
+    expect(main).toContain('likedTrackIDs,')
     expect(main).toContain('recordHeartModeTrackIDs(heartModeTrackIDs)')
+    expect(reranker).toContain('const maxLikedCount = Math.max(')
+    expect(reranker).toContain('selectedLikedCount < maxLikedCount')
+    expect(scorer).toContain('const familiarityWeight = 0.45 * familiarityLevel')
     expect(seedSelector).toContain('interleaveHeartModeSeedCandidates')
     expect(seedSelector).toContain('for (let rank = 0; rank < maxBranchLength; rank += 1)')
     expect(reranker).toContain('maxSameArtistDistance')
