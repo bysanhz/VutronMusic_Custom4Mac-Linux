@@ -114,9 +114,7 @@ const readStoredFeedback = (): PlaybackFeedback[] => {
       .map((item: any) => ({
         trackId: Number(item.trackId),
         source: String(item.source || 'unknown'),
-        heartModeSessionId: item.heartModeSessionId
-          ? String(item.heartModeSessionId)
-          : undefined,
+        heartModeSessionId: item.heartModeSessionId ? String(item.heartModeSessionId) : undefined,
         sourceSeedId: normalizeID(item.sourceSeedId) ?? undefined,
         durationSeconds: Math.max(0, Number(item.durationSeconds) || 0),
         activeListenSeconds: Math.max(0, Number(item.activeListenSeconds) || 0),
@@ -258,10 +256,7 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
       seedId: entry.sourceSeedId,
       score: preferenceScore,
       completionRatio: entry.completionRatio,
-      quickSkip:
-        manualSwitch &&
-        entry.activeListenSeconds <= 15 &&
-        entry.completionRatio < 0.8,
+      quickSkip: manualSwitch && entry.activeListenSeconds <= 15 && entry.completionRatio < 0.8,
       positive: preferenceScore !== null && preferenceScore >= 2
     })
   }
@@ -278,8 +273,7 @@ const startActivePlayback = (): void => {
 
   const source = String(store.playlistSource?.type || store.currentTrack?.type || 'unknown')
   const durationSeconds = Math.max(0, Number(store.currentTrackDuration) || 0)
-  const heartModeContext =
-    source === 'intelligence' ? getHeartModeTrackContext(trackID) : null
+  const heartModeContext = source === 'intelligence' ? getHeartModeTrackContext(trackID) : null
 
   activePlayback = {
     trackId: trackID,
@@ -390,9 +384,7 @@ export const resetActivePlaybackFeedbackWindow = (): void => {
   pendingEndReason = null
 }
 
-export const removePlaybackFeedbackForHeartModeSession = (
-  sessionId: string
-): number => {
+export const removePlaybackFeedbackForHeartModeSession = (sessionId: string): number => {
   const normalizedSessionId = String(sessionId || '').trim()
   if (!normalizedSessionId) return 0
 

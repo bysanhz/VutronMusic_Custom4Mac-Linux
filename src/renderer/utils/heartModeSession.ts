@@ -130,26 +130,17 @@ const createDefaultBranchState = (seedId: number): HeartModeBranchState => ({
   branchScore: 0
 })
 
-const normalizeBranchState = (
-  value: unknown,
-  fallbackSeedId: number
-): HeartModeBranchState => {
+const normalizeBranchState = (value: unknown, fallbackSeedId: number): HeartModeBranchState => {
   const item = value && typeof value === 'object' ? (value as any) : {}
   const seedId = normalizePositiveID(item.seedId) ?? fallbackSeedId
   return {
     seedId,
     playedCount: Math.max(0, Math.round(Number(item.playedCount) || 0)),
     quickSkipCount: Math.max(0, Math.round(Number(item.quickSkipCount) || 0)),
-    consecutiveQuickSkips: Math.max(
-      0,
-      Math.round(Number(item.consecutiveQuickSkips) || 0)
-    ),
+    consecutiveQuickSkips: Math.max(0, Math.round(Number(item.consecutiveQuickSkips) || 0)),
     completionAverage: clamp(Number(item.completionAverage) || 0, 0, 1),
     positiveCount: Math.max(0, Math.round(Number(item.positiveCount) || 0)),
-    explicitBoostCount: Math.max(
-      0,
-      Math.round(Number(item.explicitBoostCount) || 0)
-    ),
+    explicitBoostCount: Math.max(0, Math.round(Number(item.explicitBoostCount) || 0)),
     branchScore: clamp(Number(item.branchScore) || 0, -1, 1)
   }
 }
@@ -193,20 +184,15 @@ export const calculateNextHeartModeBranchState = (
   const playedCount = previous.playedCount + 1
   const completionRatio = clamp(Number(signal.completionRatio) || 0, 0, 1)
   const completionAverage =
-    (previous.completionAverage * previous.playedCount + completionRatio) /
-    playedCount
+    (previous.completionAverage * previous.playedCount + completionRatio) / playedCount
 
-  const consecutiveQuickSkips = signal.quickSkip
-    ? previous.consecutiveQuickSkips + 1
-    : 0
+  const consecutiveQuickSkips = signal.quickSkip ? previous.consecutiveQuickSkips + 1 : 0
   const quickSkipCount = previous.quickSkipCount + (signal.quickSkip ? 1 : 0)
   const positiveCount = previous.positiveCount + (signal.positive ? 1 : 0)
 
   const normalizedSignal = clamp(signal.score / 4, -1, 1)
   const emaScore = previous.branchScore * 0.75 + normalizedSignal * 0.25
-  const streakPenalty = signal.quickSkip
-    ? Math.min(0.3, 0.08 * consecutiveQuickSkips)
-    : 0
+  const streakPenalty = signal.quickSkip ? Math.min(0.3, 0.08 * consecutiveQuickSkips) : 0
 
   return {
     seedId: previous.seedId,
@@ -263,13 +249,8 @@ const readSession = (): HeartModeSessionState | null => {
       playlistId: normalizePositiveID(stored.playlistId) ?? 0,
       startedAt: Number(stored.startedAt) || Date.now(),
       sourceSeedByTrackID,
-      playedTrackIDs: normalizeTrackIDs(
-        stored.playedTrackIDs,
-        MAX_SESSION_PLAYED_TRACKS
-      ),
-      enqueuedTrackIDs: normalizeTrackIDs(
-        stored.enqueuedTrackIDs ?? legacyEnqueuedTrackIDs
-      ),
+      playedTrackIDs: normalizeTrackIDs(stored.playedTrackIDs, MAX_SESSION_PLAYED_TRACKS),
+      enqueuedTrackIDs: normalizeTrackIDs(stored.enqueuedTrackIDs ?? legacyEnqueuedTrackIDs),
       pendingTrackIDs: normalizeTrackIDs(stored.pendingTrackIDs),
       branchStates,
       steering: normalizeSteering(stored.steering),
@@ -326,10 +307,7 @@ export const createHeartModeSession = ({
 
   const normalizedSeeds = normalizeTrackIDs(seedIds)
   const branchStates = Object.fromEntries(
-    normalizedSeeds.map((seedId) => [
-      String(seedId),
-      createDefaultBranchState(seedId)
-    ])
+    normalizedSeeds.map((seedId) => [String(seedId), createDefaultBranchState(seedId)])
   )
 
   currentSession = {
@@ -362,21 +340,9 @@ export const getEffectiveHeartModeProfile = (
   if (!session) return null
   return {
     ...session.profile,
-    novelty: clamp(
-      session.profile.novelty + session.steering.noveltyOffset,
-      0,
-      100
-    ),
-    diversity: clamp(
-      session.profile.diversity + session.steering.diversityOffset,
-      0,
-      100
-    ),
-    familiarity: clamp(
-      session.profile.familiarity + session.steering.familiarityOffset,
-      0,
-      100
-    )
+    novelty: clamp(session.profile.novelty + session.steering.noveltyOffset, 0, 100),
+    diversity: clamp(session.profile.diversity + session.steering.diversityOffset, 0, 100),
+    familiarity: clamp(session.profile.familiarity + session.steering.familiarityOffset, 0, 100)
   }
 }
 
@@ -407,10 +373,7 @@ export const getHeartModeBranchScoreMap = (): Map<number, number> => {
   if (!currentSession) return new Map()
 
   return new Map(
-    Object.values(currentSession.branchStates).map((state) => [
-      state.seedId,
-      state.branchScore
-    ])
+    Object.values(currentSession.branchStates).map((state) => [state.seedId, state.branchScore])
   )
 }
 
@@ -418,11 +381,7 @@ export const applyHeartModeFeedbackToSession = (
   signal: HeartModeBranchFeedbackSignal
 ): HeartModeBranchState | null => {
   hydrate()
-  if (
-    !currentSession ||
-    signal.sessionId !== currentSession.id ||
-    signal.score === null
-  ) {
+  if (!currentSession || signal.sessionId !== currentSession.id || signal.score === null) {
     return null
   }
 
@@ -430,8 +389,7 @@ export const applyHeartModeFeedbackToSession = (
   if (!seedId || !currentSession.seedIds.includes(seedId)) return null
 
   const key = String(seedId)
-  const previous =
-    currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
+  const previous = currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
   const next = calculateNextHeartModeBranchState(previous, {
     score: signal.score,
     completionRatio: signal.completionRatio,
@@ -456,16 +414,11 @@ export const boostHeartModeCurrentBranch = (
   if (!seedId) return null
 
   const key = String(seedId)
-  const previous =
-    currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
+  const previous = currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
   const next: HeartModeBranchState = {
     ...previous,
     explicitBoostCount: previous.explicitBoostCount + 1,
-    branchScore: clamp(
-      previous.branchScore + 0.25 * (1 - previous.branchScore),
-      -1,
-      1
-    )
+    branchScore: clamp(previous.branchScore + 0.25 * (1 - previous.branchScore), -1, 1)
   }
   currentSession.branchStates[key] = next
   currentSession.explicitFeedback = [
@@ -494,11 +447,7 @@ export const steerHeartModeFurther = (
   currentSession.steering = {
     noveltyOffset: clamp(currentSession.steering.noveltyOffset + 10, -30, 30),
     diversityOffset: clamp(currentSession.steering.diversityOffset + 10, -30, 30),
-    familiarityOffset: clamp(
-      currentSession.steering.familiarityOffset - 10,
-      -30,
-      30
-    )
+    familiarityOffset: clamp(currentSession.steering.familiarityOffset - 10, -30, 30)
   }
 
   currentSession.explicitFeedback = [
@@ -507,8 +456,7 @@ export const steerHeartModeFurther = (
       sessionId: currentSession.id,
       trackId: id,
       sourceSeedId:
-        normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ??
-        undefined,
+        normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
       type: 'go-further',
       createdAt: now
     }
@@ -522,10 +470,7 @@ export const resetCurrentHeartModeLearning = (): HeartModeSessionState | null =>
   if (!currentSession) return null
 
   currentSession.branchStates = Object.fromEntries(
-    currentSession.seedIds.map((seedId) => [
-      String(seedId),
-      createDefaultBranchState(seedId)
-    ])
+    currentSession.seedIds.map((seedId) => [String(seedId), createDefaultBranchState(seedId)])
   )
   currentSession.steering = createDefaultSteering()
   currentSession.explicitFeedback = []
@@ -567,10 +512,7 @@ export const registerHeartModeCandidatePool = ({
     }
   }
 
-  const blocked = new Set([
-    ...currentSession.playedTrackIDs,
-    ...currentSession.enqueuedTrackIDs
-  ])
+  const blocked = new Set([...currentSession.playedTrackIDs, ...currentSession.enqueuedTrackIDs])
   currentSession.pendingTrackIDs = Array.from(
     new Set([
       ...currentSession.pendingTrackIDs,
@@ -598,9 +540,7 @@ export const recordHeartModeEnqueuedTracks = (trackIDs: Iterable<number>): void 
   currentSession.enqueuedTrackIDs = Array.from(
     new Set([...currentSession.enqueuedTrackIDs, ...normalized])
   ).slice(-MAX_SESSION_CANDIDATES)
-  currentSession.pendingTrackIDs = currentSession.pendingTrackIDs.filter(
-    (id) => !incoming.has(id)
-  )
+  currentSession.pendingTrackIDs = currentSession.pendingTrackIDs.filter((id) => !incoming.has(id))
   persist()
 }
 
@@ -608,10 +548,7 @@ export const replaceHeartModePendingTracks = (trackIDs: Iterable<number>): void 
   hydrate()
   if (!currentSession) return
 
-  const blocked = new Set([
-    ...currentSession.playedTrackIDs,
-    ...currentSession.enqueuedTrackIDs
-  ])
+  const blocked = new Set([...currentSession.playedTrackIDs, ...currentSession.enqueuedTrackIDs])
   currentSession.pendingTrackIDs = Array.from(trackIDs)
     .map(normalizePositiveID)
     .filter((id: number | null): id is number => id !== null)

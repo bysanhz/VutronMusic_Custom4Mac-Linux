@@ -133,18 +133,12 @@ export const rerankHeartModeCandidatesWithDecisions = ({
   contextTrackIDs = []
 }: HeartModeRerankOptions): HeartModeRerankResult => {
   const ranked = Array.from(
-    new Set(
-      rankedTrackIDs
-        .map(normalizeID)
-        .filter((id): id is number => id !== null)
-    )
+    new Set(rankedTrackIDs.map(normalizeID).filter((id): id is number => id !== null))
   )
 
   if (!ranked.length) return { trackIDs: [], decisions: {} }
 
-  const originalRankByTrackID = new Map(
-    ranked.map((trackID, index) => [trackID, index])
-  )
+  const originalRankByTrackID = new Map(ranked.map((trackID, index) => [trackID, index]))
   const limit = Math.max(1, Math.round(targetCount))
   const artistDistance = Math.max(0, Math.round(profile.maxSameArtistDistance))
   const seedDistance = Math.max(0, Math.round(profile.maxSameSeedDistance))
@@ -211,10 +205,7 @@ export const rerankHeartModeCandidatesWithDecisions = ({
     const familiarityCapReached = selectedLikedCount >= maxLikedCount
     const familiarityEligibleIndices = remaining
       .map((trackID, index) => ({ trackID, index }))
-      .filter(
-        ({ trackID }) =>
-          !liked.has(trackID) || !familiarityCapReached
-      )
+      .filter(({ trackID }) => !liked.has(trackID) || !familiarityCapReached)
       .map(({ index }) => index)
 
     const candidateIndices =
@@ -259,8 +250,7 @@ export const rerankHeartModeCandidatesWithDecisions = ({
       (index) => (evaluations.get(index)?.seedViolation ?? 0) > 0
     )
     const familiarityDeferred =
-      familiarityCapReached &&
-      remaining.slice(0, bestIndex).some((trackID) => liked.has(trackID))
+      familiarityCapReached && remaining.slice(0, bestIndex).some((trackID) => liked.has(trackID))
 
     const [nextTrackID] = remaining.splice(bestIndex, 1)
     selected.push(nextTrackID)
@@ -279,6 +269,5 @@ export const rerankHeartModeCandidatesWithDecisions = ({
  * 兼容 Phase 4-5 的 ID-only reranker。
  * Phase 6 解释层使用 rerankHeartModeCandidatesWithDecisions() 保存决策快照。
  */
-export const rerankHeartModeCandidatesForDiversity = (
-  options: HeartModeRerankOptions
-): number[] => rerankHeartModeCandidatesWithDecisions(options).trackIDs
+export const rerankHeartModeCandidatesForDiversity = (options: HeartModeRerankOptions): number[] =>
+  rerankHeartModeCandidatesWithDecisions(options).trackIDs

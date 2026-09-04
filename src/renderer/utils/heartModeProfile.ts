@@ -89,7 +89,9 @@ let stopPersistWatch: WatchStopHandle | null = null
 const isHeartModeMode = (value: unknown): value is HeartModeMode =>
   ['continuous', 'balanced', 'diverse', 'explore', 'custom'].includes(String(value))
 
-const normalizeProfile = (value: Partial<HeartModeProfile> | null | undefined): HeartModeProfile => {
+const normalizeProfile = (
+  value: Partial<HeartModeProfile> | null | undefined
+): HeartModeProfile => {
   const mode = isHeartModeMode(value?.mode) ? value.mode : DEFAULT_HEART_MODE_PROFILE.mode
   const base =
     mode === 'custom'

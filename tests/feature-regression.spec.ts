@@ -102,10 +102,7 @@ test.describe('track lyric timing', () => {
 test.describe('heart mode history-aware recommendations', () => {
   test('combines NetEase rank, behavior, familiarity, and decaying repeat history', () => {
     const now = 100 * 24 * 60 * 60 * 1000
-    const makeFeedback = (
-      trackId: number,
-      patch: Partial<PlaybackFeedback>
-    ): PlaybackFeedback => ({
+    const makeFeedback = (trackId: number, patch: Partial<PlaybackFeedback>): PlaybackFeedback => ({
       trackId,
       source: 'intelligence',
       durationSeconds: 200,
@@ -200,13 +197,7 @@ test.describe('heart mode history-aware recommendations', () => {
     }
 
     expect(aggregateTrackFeedbackScore(10, [base], now)).toBe(-1)
-    expect(
-      aggregateTrackFeedbackScore(
-        10,
-        [{ ...base, endReason: 'playback-error' }],
-        now
-      )
-    ).toBe(0)
+    expect(aggregateTrackFeedbackScore(10, [{ ...base, endReason: 'playback-error' }], now)).toBe(0)
     expect(
       aggregateTrackFeedbackScore(
         10,
@@ -733,7 +724,9 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('targetCount: candidateTrackIDs.length + 1')
     expect(main).toContain('historyEntries: heartModeHistory')
     expect(main).toContain('feedbackEntries: playbackFeedback.value')
-    expect(main).toContain('completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)')
+    expect(main).toContain(
+      'completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)'
+    )
     expect(main).toContain('rerankHeartModeCandidatesForDiversity({')
     expect(main).toContain('likedTrackIDs,')
     expect(main).toContain('recordHeartModeTrackIDs(initialHeartModeTrackIDs)')
@@ -786,7 +779,7 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('shouldReplenishHeartModeQueue(')
     expect(feedback).toContain('applyHeartModeFeedbackToSession({')
     expect(player).toContain('const appendTracksToPlaylist =')
-    expect(settings).toContain("settings.heartModeProfile.title")
+    expect(settings).toContain('settings.heartModeProfile.title')
     expect(settings).toContain('v-model="selectedHeartModeMode"')
     expect(settings).toContain("heartModeProfile.mode === 'custom'")
     expect(settings).toContain("updateHeartModeAdvanced('maxSameArtistDistance', $event)")

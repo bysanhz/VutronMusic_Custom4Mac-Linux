@@ -673,16 +673,10 @@
                 <div class="description">{{ $t('settings.heartModeProfile.desc') }}</div>
               </div>
               <div class="right heart-mode-profile-select">
-                <CustomSelect
-                  v-model="selectedHeartModeMode"
-                  :options="heartModeModeOptions"
-                />
+                <CustomSelect v-model="selectedHeartModeMode" :options="heartModeModeOptions" />
               </div>
             </div>
-            <div
-              v-if="heartModeProfile.mode === 'custom'"
-              class="heart-mode-custom-panel"
-            >
+            <div v-if="heartModeProfile.mode === 'custom'" class="heart-mode-custom-panel">
               <div
                 v-for="control in heartModeCoreControls"
                 :key="control.key"
@@ -2588,5 +2582,4 @@ input.text-input {
     grid-template-columns: 1fr;
   }
 }
-
 </style>

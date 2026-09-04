@@ -165,9 +165,7 @@ export const scoreHeartModeCandidate = ({
   const repeatTolerance = clamp01(profile.repeatTolerance / 100)
 
   const rankQuality =
-    candidateCount <= 1
-      ? 1
-      : clamp01(1 - originalRank / Math.max(1, candidateCount - 1))
+    candidateCount <= 1 ? 1 : clamp01(1 - originalRank / Math.max(1, candidateCount - 1))
 
   // “最近听过但没点赞”不是 dislike；这里只降低“新鲜度”，不附加未点赞惩罚。
   const novelty = recentPlayed ? 0 : 1
@@ -185,8 +183,7 @@ export const scoreHeartModeCandidate = ({
     : 0
 
   const recentPlayedPenalty = recentPlayed ? 1 : 0
-  const seedDiversity =
-    sourceSeedID && sourceSeedID !== seedTrackID ? 1 : 0
+  const seedDiversity = sourceSeedID && sourceSeedID !== seedTrackID ? 1 : 0
   const normalizedBranchPreference = clamp(branchPreference, -1, 1)
 
   const rankWeight = 1.4
@@ -330,6 +327,5 @@ export const rankHeartModeCandidatesWithScores = ({
  * Phase 6 需要解释快照时使用 rankHeartModeCandidatesWithScores()；
  * 原有调用仍可继续使用本函数，不改变返回类型。
  */
-export const rankHeartModeCandidatesByScore = (
-  options: HeartModeScorerOptions
-): number[] => rankHeartModeCandidatesWithScores(options).map((item) => item.id)
+export const rankHeartModeCandidatesByScore = (options: HeartModeScorerOptions): number[] =>
+  rankHeartModeCandidatesWithScores(options).map((item) => item.id)

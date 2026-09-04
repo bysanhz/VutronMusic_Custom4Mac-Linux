@@ -8,12 +8,7 @@ export const getHeartModeRemainingQueueCount = (
   currentTrackIndex: number,
   queueLength: number
 ): number =>
-  Math.max(
-    0,
-    Math.max(0, Math.round(queueLength)) -
-      Math.max(0, Math.round(currentTrackIndex)) -
-      1
-  )
+  Math.max(0, Math.max(0, Math.round(queueLength)) - Math.max(0, Math.round(currentTrackIndex)) - 1)
 
 export const shouldReplenishHeartModeQueue = (
   currentTrackIndex: number,
@@ -36,10 +31,7 @@ export const getHeartModeSpacingContext = (
   const contextLength = Math.max(
     0,
     Math.round(
-      Math.max(
-        Number(profile.maxSameArtistDistance) || 0,
-        Number(profile.maxSameSeedDistance) || 0
-      )
+      Math.max(Number(profile.maxSameArtistDistance) || 0, Number(profile.maxSameSeedDistance) || 0)
     )
   )
 

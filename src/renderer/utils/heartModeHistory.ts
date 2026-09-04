@@ -30,22 +30,14 @@ const normalizeHistoryEntries = (
   for (const item of value) {
     const id = Number(item?.id)
     const recommendedAt = Number(item?.recommendedAt)
-    if (
-      !Number.isFinite(id) ||
-      id <= 0 ||
-      !Number.isFinite(recommendedAt) ||
-      recommendedAt <= 0
-    ) {
+    if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(recommendedAt) || recommendedAt <= 0) {
       continue
     }
 
     const entry: HeartModeHistoryEntry = {
       id,
       recommendedAt,
-      legacy:
-        typeof item?.legacy === 'boolean'
-          ? item.legacy
-          : legacyFallback
+      legacy: typeof item?.legacy === 'boolean' ? item.legacy : legacyFallback
     }
 
     const existing = byTrackID.get(id)
@@ -122,22 +114,12 @@ export const calculateHeartModeRepeatPenalty = ({
 }): number => {
   const ageMs = Math.max(0, now - Number(recommendedAt))
   const shortMs = Math.max(1, Number(shortCooldownHours) || 24) * 60 * 60 * 1000
-  const mediumMs = Math.max(
-    shortMs,
-    Math.max(1, Number(mediumCooldownDays) || 7) * DAY_MS
-  )
-  const longMs = Math.max(
-    mediumMs,
-    Math.max(1, Number(longCooldownDays) || 30) * DAY_MS
-  )
+  const mediumMs = Math.max(shortMs, Math.max(1, Number(mediumCooldownDays) || 7) * DAY_MS)
+  const longMs = Math.max(mediumMs, Math.max(1, Number(longCooldownDays) || 30) * DAY_MS)
 
   if (ageMs >= longMs) return 0
 
-  const exponentialSegment = (
-    startValue: number,
-    endValue: number,
-    progress: number
-  ): number => {
+  const exponentialSegment = (startValue: number, endValue: number, progress: number): number => {
     const t = Math.min(1, Math.max(0, progress))
     return startValue * Math.pow(endValue / startValue, t)
   }
@@ -147,18 +129,10 @@ export const calculateHeartModeRepeatPenalty = ({
   }
 
   if (ageMs <= mediumMs) {
-    return exponentialSegment(
-      0.8,
-      0.35,
-      (ageMs - shortMs) / Math.max(1, mediumMs - shortMs)
-    )
+    return exponentialSegment(0.8, 0.35, (ageMs - shortMs) / Math.max(1, mediumMs - shortMs))
   }
 
-  return exponentialSegment(
-    0.35,
-    0.01,
-    (ageMs - mediumMs) / Math.max(1, longMs - mediumMs)
-  )
+  return exponentialSegment(0.35, 0.01, (ageMs - mediumMs) / Math.max(1, longMs - mediumMs))
 }
 
 /**

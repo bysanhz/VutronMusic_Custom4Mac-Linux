@@ -1,10 +1,6 @@
 <template>
   <div v-if="isHeartMode" class="heart-mode-assistant">
-    <button
-      class="heart-mode-trigger"
-      :title="texts.title"
-      @click="panelOpen = !panelOpen"
-    >
+    <button class="heart-mode-trigger" :title="texts.title" @click="panelOpen = !panelOpen">
       ✨
     </button>
 
@@ -56,17 +52,13 @@
           </div>
 
           <div class="queue-summary">
-            {{ texts.played }} {{ session.playedTrackIDs.length }}
-            · {{ texts.queued }} {{ session.enqueuedTrackIDs.length }}
-            · {{ texts.pending }} {{ session.pendingTrackIDs.length }}
+            {{ texts.played }} {{ session.playedTrackIDs.length }} · {{ texts.queued }}
+            {{ session.enqueuedTrackIDs.length }} · {{ texts.pending }}
+            {{ session.pendingTrackIDs.length }}
           </div>
 
           <div class="branches">
-            <div
-              v-for="branch in branchRows"
-              :key="branch.seedId"
-              class="branch-row"
-            >
+            <div v-for="branch in branchRows" :key="branch.seedId" class="branch-row">
               <span class="branch-name">{{ branch.name }}</span>
               <span :class="['branch-state', branch.tone]">{{ branch.label }}</span>
             </div>
@@ -144,7 +136,8 @@ const TEXTS = {
     reasonRank: '它在当前候选中的综合质量排序较高',
     reset: '重置本轮学习',
     resetHint: '清除本轮评分与调试误操作，不删除喜欢、长期 Profile、推荐历史或当前队列。',
-    resetConfirm: '确认重置本轮心动学习？\n\n会清除本 Session 已记录的播放反馈、分支评分和临时控制；不会影响喜欢歌曲、长期 Profile、推荐历史和当前队列。',
+    resetConfirm:
+      '确认重置本轮心动学习？\n\n会清除本 Session 已记录的播放反馈、分支评分和临时控制；不会影响喜欢歌曲、长期 Profile、推荐历史和当前队列。',
     resetDone: '本轮学习已重置',
     removedFeedback: '已移除 {count} 条本轮播放反馈',
     strongDown: '强烈降低',
@@ -183,7 +176,8 @@ const TEXTS = {
     reasonRank: '它在目前候選中的綜合品質排序較高',
     reset: '重置本輪學習',
     resetHint: '清除本輪評分與測試誤操作，不刪除喜歡、長期 Profile、推薦歷史或目前佇列。',
-    resetConfirm: '確認重置本輪心動學習？\n\n會清除本 Session 已記錄的播放回饋、分支評分和暫時控制；不會影響喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
+    resetConfirm:
+      '確認重置本輪心動學習？\n\n會清除本 Session 已記錄的播放回饋、分支評分和暫時控制；不會影響喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
     resetDone: '本輪學習已重置',
     removedFeedback: '已移除 {count} 條本輪播放回饋',
     strongDown: '強烈降低',
@@ -198,7 +192,8 @@ const TEXTS = {
     close: 'Close',
     why: 'Why this track?',
     from: 'Recommendation source',
-    noSnapshot: 'No explanation snapshot is available for this track yet. Newly generated or refilled tracks will record one automatically.',
+    noSnapshot:
+      'No explanation snapshot is available for this track yet. Newly generated or refilled tracks will record one automatically.',
     moreLikeThis: 'More like this',
     goFurther: 'Go further',
     session: 'Session status',
@@ -208,7 +203,8 @@ const TEXTS = {
     played: 'Played',
     queued: 'Queued',
     pending: 'Pending',
-    sessionAdjusted: 'These changes apply only to this session and do not modify the long-term Profile.',
+    sessionAdjusted:
+      'These changes apply only to this session and do not modify the long-term Profile.',
     boosted: 'This recommendation branch will have more weight in future refills',
     further: 'The next refill will explore further, diversify more, and use fewer familiar tracks',
     seedFallback: 'Current recommendation branch',
@@ -217,12 +213,15 @@ const TEXTS = {
     reasonFamiliar: 'This is already one of your liked tracks',
     reasonBehavior: 'Your past playback behavior for this track has been positive',
     reasonArtistSpacing: 'It was repositioned to avoid repeating the same artist too closely',
-    reasonSeedSpacing: 'It was repositioned to avoid repeating the same recommendation branch too closely',
+    reasonSeedSpacing:
+      'It was repositioned to avoid repeating the same recommendation branch too closely',
     reasonFamiliarityCap: 'It was repositioned to keep the familiar-track mix under control',
     reasonRank: 'It ranked highly among the current candidates',
     reset: 'Reset session learning',
-    resetHint: 'Clears session scores and accidental test feedback without changing likes, long-term Profile, recommendation history, or the current queue.',
-    resetConfirm: 'Reset learning for this Heart Mode session?\n\nThis removes recorded playback feedback, branch scores, and temporary steering for this session. Likes, long-term Profile, recommendation history, and the current queue remain unchanged.',
+    resetHint:
+      'Clears session scores and accidental test feedback without changing likes, long-term Profile, recommendation history, or the current queue.',
+    resetConfirm:
+      'Reset learning for this Heart Mode session?\n\nThis removes recorded playback feedback, branch scores, and temporary steering for this session. Likes, long-term Profile, recommendation history, and the current queue remain unchanged.',
     resetDone: 'Session learning reset',
     removedFeedback: 'Removed {count} session feedback entries',
     strongDown: 'Strongly down',
@@ -325,9 +324,7 @@ const loadSeedNames = async () => {
         .map((artist: any) => String(artist?.name || '').trim())
         .filter(Boolean)
       const name = String(song?.name || `#${id}`)
-      next[String(id)] = artistNames.length
-        ? `${name} — ${artistNames.join('/')}`
-        : name
+      next[String(id)] = artistNames.length ? `${name} — ${artistNames.join('/')}` : name
     }
     seedNames.value = next
   } catch (error) {
