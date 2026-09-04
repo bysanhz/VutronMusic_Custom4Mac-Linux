@@ -641,14 +641,11 @@ const refreshHeartModeRollingCandidates = async (): Promise<void> => {
     }
   }
 
-  const sourceSeedByTrackID = Object.fromEntries(
-    candidateTrackIDs
-      .map((trackID) => {
-        const seedID = candidateSeedByTrackID.get(trackID)
-        return seedID ? [String(trackID), seedID] : null
-      })
-      .filter((entry): entry is [string, number] => entry !== null)
-  )
+  const sourceSeedByTrackID: Record<string, number> = {}
+  for (const trackID of candidateTrackIDs) {
+    const seedID = candidateSeedByTrackID.get(trackID)
+    if (seedID) sourceSeedByTrackID[String(trackID)] = seedID
+  }
 
   registerHeartModeCandidatePool({
     sourceSeedByTrackID,
