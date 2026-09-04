@@ -481,6 +481,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
       rankedTrackIDs: scoredHeartModeTrackIDs,
       metadataByTrackID,
       sourceSeedByTrackID: candidateSeedByTrackID,
+      likedTrackIDs,
       profile: heartModeProfile.value,
       targetCount: HEART_MODE_TARGET_COUNT
     })
