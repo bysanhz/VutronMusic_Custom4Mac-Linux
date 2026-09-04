@@ -38,6 +38,7 @@ type ActivePlayback = {
   lastSampleAt: number
   lastProgress: number
   maxProgress: number
+  likedAtEnd: boolean
 }
 
 type PendingEndReason = {
@@ -57,6 +58,7 @@ let activePlayback: ActivePlayback | null = null
 let pendingEndReason: PendingEndReason | null = null
 let sampleTimer: number | null = null
 let stopTrackWatch: WatchStopHandle | null = null
+let stopLikedWatch: WatchStopHandle | null = null
 let unsubscribeActions: (() => void) | null = null
 let beforeUnloadHandler: (() => void) | null = null
 
@@ -137,6 +139,10 @@ const sampleActivePlayback = (): void => {
   active.maxProgress = Math.max(active.maxProgress, progress)
   active.lastProgress = progress
   active.lastSampleAt = now
+
+  if (normalizeID(store.currentTrack?.id) === active.trackId) {
+    active.likedAtEnd = Boolean(store.isLiked)
+  }
 }
 
 const setPendingEndReason = (reason: PlaybackEndReason, explicit: boolean): void => {
@@ -193,7 +199,7 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
     activeListenSeconds,
     completionRatio,
     endReason: reason,
-    likedAtEnd: Boolean(store.isLiked),
+    likedAtEnd: active.likedAtEnd,
     playedAt: active.playedAt
   }
 
@@ -224,7 +230,8 @@ const startActivePlayback = (): void => {
     playedAt: Date.now(),
     lastSampleAt: Date.now(),
     lastProgress: 0,
-    maxProgress: 0
+    maxProgress: 0,
+    likedAtEnd: Boolean(store.isLiked)
   }
 
   if (heartModeContext) {
@@ -306,12 +313,25 @@ export const initializePlaybackFeedback = (playerStore: PlayerStore): (() => voi
     { flush: 'sync' }
   )
 
+  stopLikedWatch?.()
+  stopLikedWatch = watch(
+    () => [playerStore.currentTrack?.id, playerStore.isLiked] as const,
+    ([trackID, liked]) => {
+      if (!activePlayback || normalizeID(trackID) !== activePlayback.trackId) return
+      activePlayback.likedAtEnd = Boolean(liked)
+    },
+    { flush: 'sync' }
+  )
+
   unsubscribeActions?.()
   unsubscribeActions = playerStore.$onAction(({ name, after, onError }) => {
     const reason = actionEndReason(name)
     if (!reason || !activePlayback) return
 
     const trackedID = activePlayback.trackId
+    if (normalizeID(playerStore.currentTrack?.id) === trackedID) {
+      activePlayback.likedAtEnd = Boolean(playerStore.isLiked)
+    }
     setPendingEndReason(reason, false)
 
     const clearStaleReason = () => {
@@ -344,6 +364,8 @@ export const initializePlaybackFeedback = (playerStore: PlayerStore): (() => voi
     if (activePlayback) finalizeActivePlayback('app-close')
     stopTrackWatch?.()
     stopTrackWatch = null
+    stopLikedWatch?.()
+    stopLikedWatch = null
     unsubscribeActions?.()
     unsubscribeActions = null
     if (sampleTimer !== null) {
