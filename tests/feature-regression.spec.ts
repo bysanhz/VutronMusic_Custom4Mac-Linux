@@ -718,21 +718,23 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(main).toContain('const branchResults = await Promise.all(')
     expect(main).toContain('seedTrackIDs.map(async (candidateSeedTrackID) => {')
     expect(main).toContain('recommendationsBySeed.set(')
-    expect(main).toContain('interleaveHeartModeSeedCandidates(seedTrackIDs, recommendationsBySeed)')
+    expect(main).toContain('interleaveHeartModeSeedCandidates(')
     expect(main).not.toContain('novelCandidateCount')
-    expect(main).toContain('rankHeartModeCandidatesByScore({')
+    expect(main).toContain('rankHeartModeCandidatesWithScores({')
     expect(main).toContain('targetCount: candidateTrackIDs.length + 1')
     expect(main).toContain('historyEntries: heartModeHistory')
     expect(main).toContain('feedbackEntries: playbackFeedback.value')
     expect(main).toContain(
       'completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)'
     )
-    expect(main).toContain('rerankHeartModeCandidatesForDiversity({')
+    expect(main).toContain('rerankHeartModeCandidatesWithDecisions({')
     expect(main).toContain('likedTrackIDs,')
     expect(main).toContain('recordHeartModeTrackIDs(initialHeartModeTrackIDs)')
     expect(main).toContain('recordHeartModeTrackIDs(appendedTrackIDs)')
     expect(reranker).toContain('const maxLikedCount = Math.max(')
-    expect(reranker).toContain('selectedLikedCount < maxLikedCount')
+    expect(reranker).toContain(
+      'const familiarityCapReached = selectedLikedCount >= maxLikedCount'
+    )
     expect(scorer).toContain('const familiarityWeight = 0.45 * familiarityLevel')
     expect(seedSelector).toContain('interleaveHeartModeSeedCandidates')
     expect(seedSelector).toContain('for (let rank = 0; rank < maxBranchLength; rank += 1)')
