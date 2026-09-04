@@ -421,15 +421,16 @@ export const boostHeartModeCurrentBranch = (
     branchScore: clamp(previous.branchScore + 0.25 * (1 - previous.branchScore), -1, 1)
   }
   currentSession.branchStates[key] = next
+  const explicitFeedback: HeartModeExplicitFeedback = {
+    sessionId: currentSession.id,
+    trackId: id,
+    sourceSeedId: seedId,
+    type: 'more-like-this',
+    createdAt: now
+  }
   currentSession.explicitFeedback = [
     ...currentSession.explicitFeedback,
-    {
-      sessionId: currentSession.id,
-      trackId: id,
-      sourceSeedId: seedId,
-      type: 'more-like-this',
-      createdAt: now
-    }
+    explicitFeedback
   ].slice(-MAX_EXPLICIT_FEEDBACK)
   persist()
   return next
@@ -450,16 +451,17 @@ export const steerHeartModeFurther = (
     familiarityOffset: clamp(currentSession.steering.familiarityOffset - 10, -30, 30)
   }
 
+  const explicitFeedback: HeartModeExplicitFeedback = {
+    sessionId: currentSession.id,
+    trackId: id,
+    sourceSeedId:
+      normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
+    type: 'go-further',
+    createdAt: now
+  }
   currentSession.explicitFeedback = [
     ...currentSession.explicitFeedback,
-    {
-      sessionId: currentSession.id,
-      trackId: id,
-      sourceSeedId:
-        normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
-      type: 'go-further',
-      createdAt: now
-    }
+    explicitFeedback
   ].slice(-MAX_EXPLICIT_FEEDBACK)
   persist()
   return { ...currentSession.steering }
