@@ -5,6 +5,21 @@ export type HeartModeTrackMetadata = {
   albumId?: number
 }
 
+export type HeartModeRerankDecision = {
+  originalRank: number
+  finalRank: number
+  artistViolation: number
+  seedViolation: number
+  movedForArtistSpacing: boolean
+  movedForSeedSpacing: boolean
+  familiarityDeferred: boolean
+}
+
+export type HeartModeRerankResult = {
+  trackIDs: number[]
+  decisions: Record<string, HeartModeRerankDecision>
+}
+
 export type HeartModeRerankOptions = {
   rankedTrackIDs: number[]
   metadataByTrackID: ReadonlyMap<number, HeartModeTrackMetadata>
@@ -108,7 +123,7 @@ const evaluateSpacing = ({
  * 5. 若 spacing 无法完全满足，则选择违反程度最小的候选；同等违反程度时仍按
  *    Scorer 原始排名决定。
  */
-export const rerankHeartModeCandidatesForDiversity = ({
+export const rerankHeartModeCandidatesWithDecisions = ({
   rankedTrackIDs,
   metadataByTrackID,
   sourceSeedByTrackID,
@@ -116,7 +131,7 @@ export const rerankHeartModeCandidatesForDiversity = ({
   profile,
   targetCount = 30,
   contextTrackIDs = []
-}: HeartModeRerankOptions): number[] => {
+}: HeartModeRerankOptions): HeartModeRerankResult => {
   const ranked = Array.from(
     new Set(
       rankedTrackIDs
@@ -125,8 +140,11 @@ export const rerankHeartModeCandidatesForDiversity = ({
     )
   )
 
-  if (!ranked.length) return []
+  if (!ranked.length) return { trackIDs: [], decisions: {} }
 
+  const originalRankByTrackID = new Map(
+    ranked.map((trackID, index) => [trackID, index])
+  )
   const limit = Math.max(1, Math.round(targetCount))
   const artistDistance = Math.max(0, Math.round(profile.maxSameArtistDistance))
   const seedDistance = Math.max(0, Math.round(profile.maxSameSeedDistance))
@@ -136,8 +154,6 @@ export const rerankHeartModeCandidatesForDiversity = ({
       .filter((id): id is number => id !== null)
   )
 
-  // familiarity=35 => 最终 30 首中约最多 11 首已喜欢歌曲。
-  // 主 seed 来自喜欢歌单，因此至少允许 1 首。
   const maxLikedCount = Math.max(
     1,
     Math.ceil(limit * Math.min(1, Math.max(0, Number(profile.familiarity) / 100)))
@@ -148,28 +164,56 @@ export const rerankHeartModeCandidatesForDiversity = ({
     .filter((id): id is number => id !== null)
 
   const selected: number[] = []
+  const decisions: Record<string, HeartModeRerankDecision> = {}
   let selectedLikedCount = 0
   const remaining = [...ranked]
 
-  // 初始队列必须保留主 seed 为第一首；rolling refill 有既有上下文时，
-  // 第一首也应参与 spacing 判断，不能无条件固定。
+  const recordDecision = (
+    trackID: number,
+    evaluation: ConstraintEvaluation,
+    flags: {
+      movedForArtistSpacing?: boolean
+      movedForSeedSpacing?: boolean
+      familiarityDeferred?: boolean
+    } = {}
+  ) => {
+    decisions[String(trackID)] = {
+      originalRank: originalRankByTrackID.get(trackID) ?? 0,
+      finalRank: selected.length - 1,
+      artistViolation: evaluation.artistViolation,
+      seedViolation: evaluation.seedViolation,
+      movedForArtistSpacing: Boolean(flags.movedForArtistSpacing),
+      movedForSeedSpacing: Boolean(flags.movedForSeedSpacing),
+      familiarityDeferred: Boolean(flags.familiarityDeferred)
+    }
+  }
+
   if (!context.length && remaining.length) {
     const firstTrackID = remaining.shift()!
     selected.push(firstTrackID)
     if (liked.has(firstTrackID)) selectedLikedCount += 1
+    recordDecision(firstTrackID, {
+      artistViolation: 0,
+      seedViolation: 0,
+      totalViolation: 0
+    })
   }
 
   while (remaining.length && selected.length < limit) {
     let bestIndex = -1
     let bestViolation = Number.POSITIVE_INFINITY
+    let bestEvaluation: ConstraintEvaluation = {
+      artistViolation: 0,
+      seedViolation: 0,
+      totalViolation: 0
+    }
 
-    // 达到熟悉歌曲上限后，只要仍有未喜欢候选，就暂时不考虑已喜欢歌曲。
-    // 只有当未喜欢候选已经耗尽时才放宽该上限，避免队列长度不足。
+    const familiarityCapReached = selectedLikedCount >= maxLikedCount
     const familiarityEligibleIndices = remaining
       .map((trackID, index) => ({ trackID, index }))
       .filter(
         ({ trackID }) =>
-          !liked.has(trackID) || selectedLikedCount < maxLikedCount
+          !liked.has(trackID) || !familiarityCapReached
       )
       .map(({ index }) => index)
 
@@ -177,6 +221,8 @@ export const rerankHeartModeCandidatesForDiversity = ({
       familiarityEligibleIndices.length > 0
         ? familiarityEligibleIndices
         : remaining.map((_, index) => index)
+
+    const evaluations = new Map<number, ConstraintEvaluation>()
 
     for (const index of candidateIndices) {
       const evaluation = evaluateSpacing({
@@ -187,24 +233,52 @@ export const rerankHeartModeCandidatesForDiversity = ({
         artistDistance,
         seedDistance
       })
+      evaluations.set(index, evaluation)
 
       if (evaluation.totalViolation === 0) {
         bestIndex = index
         bestViolation = 0
+        bestEvaluation = evaluation
         break
       }
 
       if (evaluation.totalViolation < bestViolation) {
         bestIndex = index
         bestViolation = evaluation.totalViolation
+        bestEvaluation = evaluation
       }
     }
 
     if (bestIndex < 0) break
+
+    const earlierIndices = candidateIndices.filter((index) => index < bestIndex)
+    const movedForArtistSpacing = earlierIndices.some(
+      (index) => (evaluations.get(index)?.artistViolation ?? 0) > 0
+    )
+    const movedForSeedSpacing = earlierIndices.some(
+      (index) => (evaluations.get(index)?.seedViolation ?? 0) > 0
+    )
+    const familiarityDeferred =
+      familiarityCapReached &&
+      remaining.slice(0, bestIndex).some((trackID) => liked.has(trackID))
+
     const [nextTrackID] = remaining.splice(bestIndex, 1)
     selected.push(nextTrackID)
     if (liked.has(nextTrackID)) selectedLikedCount += 1
+    recordDecision(nextTrackID, bestEvaluation, {
+      movedForArtistSpacing,
+      movedForSeedSpacing,
+      familiarityDeferred
+    })
   }
 
-  return selected
+  return { trackIDs: selected, decisions }
 }
+
+/**
+ * 兼容 Phase 4-5 的 ID-only reranker。
+ * Phase 6 解释层使用 rerankHeartModeCandidatesWithDecisions() 保存决策快照。
+ */
+export const rerankHeartModeCandidatesForDiversity = (
+  options: HeartModeRerankOptions
+): number[] => rerankHeartModeCandidatesWithDecisions(options).trackIDs
