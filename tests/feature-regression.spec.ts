@@ -12,6 +12,7 @@ import {
   selectHeartModeSeedIDs
 } from '../src/renderer/utils/heartModeHistory'
 import {
+  calculateActiveListenIncrement,
   scorePlaybackFeedback,
   type PlaybackFeedback
 } from '../src/renderer/utils/playbackFeedback'
@@ -94,6 +95,41 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(seeds[0]).toBe(4)
     expect(new Set(seeds).size).toBe(seeds.length)
     expect(seeds).toHaveLength(3)
+  })
+
+  test('counts only real active listening and ignores pause or seek jumps', () => {
+    expect(
+      calculateActiveListenIncrement({
+        playing: true,
+        wallDeltaSeconds: 1,
+        progressDeltaSeconds: 1,
+        playbackRate: 1
+      })
+    ).toBe(1)
+    expect(
+      calculateActiveListenIncrement({
+        playing: false,
+        wallDeltaSeconds: 1,
+        progressDeltaSeconds: 1,
+        playbackRate: 1
+      })
+    ).toBe(0)
+    expect(
+      calculateActiveListenIncrement({
+        playing: true,
+        wallDeltaSeconds: 1,
+        progressDeltaSeconds: 180,
+        playbackRate: 1
+      })
+    ).toBe(0)
+    expect(
+      calculateActiveListenIncrement({
+        playing: true,
+        wallDeltaSeconds: 1,
+        progressDeltaSeconds: 0,
+        playbackRate: 1
+      })
+    ).toBe(0)
   })
 
   test('maps listening behavior to preference signals without treating lifecycle events as dislike', () => {
