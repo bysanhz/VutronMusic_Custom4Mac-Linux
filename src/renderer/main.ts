@@ -30,7 +30,8 @@ import { initializeTrackLyricOffset } from './utils/trackLyricOffset'
 import { initializePlaybackHistory, recentTracks } from './utils/playbackHistory'
 import {
   initializePlaybackFeedback,
-  markPlaybackEndReason
+  markPlaybackEndReason,
+  playbackFeedback
 } from './utils/playbackFeedback'
 import {
   heartModeProfile,
@@ -38,11 +39,11 @@ import {
 } from './utils/heartModeProfile'
 import { createHeartModeSession } from './utils/heartModeSession'
 import {
-  getRecentHeartModeTrackIDs,
-  rankHeartModeCandidates,
+  getHeartModeHistory,
   recordHeartModeTrackIDs,
   selectHeartModeSeedIDs
 } from './utils/heartModeHistory'
+import { rankHeartModeCandidatesByScore } from './utils/heartModeScorer'
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
 import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
@@ -246,7 +247,7 @@ const fetchHeartModeRecommendationIDs = async (seedTrackID: number, playlistID: 
  * 2. 从喜欢歌单中随机选择一首歌曲作为 seed song；
  * 3. 调用 `/playmode/intelligence/list`，不调用私人 FM 或每日推荐；
  * 4. 以种子歌曲为第一首，立即替换当前播放队列并开始播放；
- * 5. 当前阶段保留 history-aware 排序，同时记录多 seed 分支归因，供后续动态 Scorer 使用。
+ * 5. 使用 Phase 3 动态 Scorer 融合 NetEase 原始顺序、Profile、时间衰减历史与真实播放反馈。
  */
 const publishHeartModeResult = (
   requestId: string,
@@ -297,7 +298,13 @@ const startHeartModeFromLikes = async (requestId = '') => {
     }
 
     const recentPlayedTrackIDs = collectRecentPlayedTrackIDs()
-    const recentHeartModeTrackIDs = Array.from(getRecentHeartModeTrackIDs())
+    const heartModeHistory = getHeartModeHistory()
+    const now = Date.now()
+    const longCooldownMs =
+      Math.max(1, heartModeProfile.value.longCooldownDays) * 24 * 60 * 60 * 1000
+    const recentHeartModeTrackIDs = heartModeHistory
+      .filter((entry) => now - entry.recommendedAt < longCooldownMs)
+      .map((entry) => entry.id)
     const avoidedSeedTrackIDs = [...recentPlayedTrackIDs, ...recentHeartModeTrackIDs]
     const seedTrackIDs = selectHeartModeSeedIDs(
       likedTrackIDs,
@@ -344,13 +351,17 @@ const startHeartModeFromLikes = async (requestId = '') => {
       }
     }
 
-    const heartModeTrackIDs = rankHeartModeCandidates({
+    const heartModeTrackIDs = rankHeartModeCandidatesByScore({
       seedTrackID,
       candidateTrackIDs,
       likedTrackIDs,
       recentPlayedTrackIDs,
-      recentHeartModeTrackIDs,
-      targetCount: HEART_MODE_TARGET_COUNT
+      historyEntries: heartModeHistory,
+      feedbackEntries: playbackFeedback.value,
+      profile: heartModeProfile.value,
+      candidateSeedByTrackID,
+      targetCount: HEART_MODE_TARGET_COUNT,
+      now
     })
 
     if (heartModeTrackIDs.length <= 1) {
