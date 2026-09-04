@@ -170,7 +170,9 @@ export const scoreHeartModeCandidate = ({
 
   const rankWeight = 1.4
   const noveltyWeight = 0.35 + 1.65 * noveltyLevel
-  const familiarityWeight = 1.5 * familiarityLevel
+  // 熟悉度仍可作为轻量单曲先验，但 Phase 4 最终队列还会按 profile.familiarity
+  // 控制“已喜欢歌曲”占比，避免多 seed 候选池扩大后熟悉歌曲集体挤入前列。
+  const familiarityWeight = 0.45 * familiarityLevel
   const behaviorWeight = 1.3
 
   // repeatTolerance 越高，重复相关惩罚越弱，但不会彻底归零。
