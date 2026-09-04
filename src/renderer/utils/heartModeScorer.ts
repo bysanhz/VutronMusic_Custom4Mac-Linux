@@ -33,6 +33,7 @@ export type HeartModeScorerOptions = {
   profile: HeartModeProfile
   candidateSeedByTrackID?: Map<number, number> | Record<string, number>
   branchScoreBySeedID?: Map<number, number> | Record<string, number>
+  pinSeedFirst?: boolean
   targetCount?: number
   now?: number
 }
@@ -246,6 +247,7 @@ export const rankHeartModeCandidatesByScore = ({
   profile,
   candidateSeedByTrackID,
   branchScoreBySeedID,
+  pinSeedFirst = true,
   targetCount = 30,
   now = Date.now()
 }: HeartModeScorerOptions): number[] => {
@@ -294,8 +296,8 @@ export const rankHeartModeCandidatesByScore = ({
     return left.originalRank - right.originalRank
   })
 
-  return [seed, ...scored.map((item) => item.id)].slice(
-    0,
-    Math.max(1, Math.round(targetCount))
-  )
+  const rankedTrackIDs = scored.map((item) => item.id)
+  const result = pinSeedFirst ? [seed, ...rankedTrackIDs] : rankedTrackIDs
+
+  return result.slice(0, Math.max(1, Math.round(targetCount)))
 }
