@@ -416,27 +416,41 @@ const startHeartModeFromLikes = async (requestId = '') => {
     const recommendationsBySeed = new Map<number, number[]>()
     const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
 
-    for (const candidateSeedTrackID of seedTrackIDs) {
-      try {
-        const recommendations = await fetchHeartModeRecommendations(
-          candidateSeedTrackID,
-          playlistID
-        )
-        recommendationsBySeed.set(
-          candidateSeedTrackID,
-          recommendations.map((item) => item.id)
-        )
-
-        for (const recommendation of recommendations) {
-          if (recommendation.metadata && !metadataByTrackID.has(recommendation.id)) {
-            metadataByTrackID.set(recommendation.id, recommendation.metadata)
+    // 多 seed 是并列候选源，不应把网络 RTT 串行叠加。Promise.all 保持输入顺序，
+    // 因此请求并发化不会改变后续 round-robin 的确定性 seed 顺序。
+    const branchResults = await Promise.all(
+      seedTrackIDs.map(async (candidateSeedTrackID) => {
+        try {
+          return {
+            seedTrackID: candidateSeedTrackID,
+            recommendations: await fetchHeartModeRecommendations(
+              candidateSeedTrackID,
+              playlistID
+            )
+          }
+        } catch (error) {
+          console.warn('[HeartMode] 当前 seed 推荐请求失败，保留其他可用分支：', {
+            seedTrackID: candidateSeedTrackID,
+            error
+          })
+          return {
+            seedTrackID: candidateSeedTrackID,
+            recommendations: [] as HeartModeRecommendation[]
           }
         }
-      } catch (error) {
-        console.warn('[HeartMode] 当前 seed 推荐请求失败，继续尝试下一个 seed：', {
-          seedTrackID: candidateSeedTrackID,
-          error
-        })
+      })
+    )
+
+    for (const { seedTrackID: candidateSeedTrackID, recommendations } of branchResults) {
+      recommendationsBySeed.set(
+        candidateSeedTrackID,
+        recommendations.map((item) => item.id)
+      )
+
+      for (const recommendation of recommendations) {
+        if (recommendation.metadata && !metadataByTrackID.has(recommendation.id)) {
+          metadataByTrackID.set(recommendation.id, recommendation.metadata)
+        }
       }
     }
 
