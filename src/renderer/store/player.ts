@@ -1337,6 +1337,33 @@ export const usePlayerStore = defineStore(
       if (playNow) playNext()
     }
 
+    /**
+     * 向当前播放列表尾部追加歌曲，不替换当前歌曲、不中断播放。
+     *
+     * Heart Mode rolling queue 使用该动作补充后续歌曲；重复 ID 会被忽略。
+     */
+    const appendTracksToPlaylist = (trackIDs: number[]): number[] => {
+      const existing = new Set(_list.value)
+      const appended = Array.from(
+        new Set(
+          trackIDs
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id) && id > 0 && !existing.has(id))
+        )
+      )
+
+      if (!appended.length) return []
+      _list.value.push(...appended)
+
+      // Heart Mode 会强制 shuffle=false；这里仍保持通用行为，避免其他调用方
+      // 在 shuffle 模式下追加后看不到新歌曲。
+      if (_shuffle.value) {
+        _shuffleList.value.push(...appended)
+      }
+
+      return appended
+    }
+
     const _handleTimeUpdate = () => {
       if (!audioNodes.audio) return
       if (Math.abs(audioNodes.audio.currentTime - lastUpdateTime) >= 1) {
@@ -2060,6 +2087,7 @@ export const usePlayerStore = defineStore(
       setDevice,
       switchRepeatMode,
       addTrackToPlayNext,
+      appendTracksToPlaylist,
       playPersonalFM,
       playNextFMTrack,
       moveToFMTrash
