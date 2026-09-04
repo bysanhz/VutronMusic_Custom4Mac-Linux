@@ -614,6 +614,154 @@ const runHeartModeFromLikes = (requestId = '') => {
 }
 // =========== newADD end ========
 
+const ensureHeartModeLikedTrackIDs = async (playlistID: number): Promise<number[]> => {
+  if (heartModeLikedTrackIDsCache.length) return heartModeLikedTrackIDsCache
+  heartModeLikedTrackIDsCache = await loadHeartModeLikedTrackIDs(playlistID)
+  return heartModeLikedTrackIDsCache
+}
+
+/**
+ * 当 pending 候选池不足时重新请求同一组 seed。
+ *
+ * 新结果只补充从未入队/播放过的歌曲；既有 sourceSeedId 不会被新请求覆盖。
+ */
+const refreshHeartModeRollingCandidates = async (): Promise<void> => {
+  const session = getCurrentHeartModeSession()
+  if (!session || session.playlistId <= 0 || !session.seedIds.length) return
+
+  const {
+    candidateTrackIDs,
+    candidateSeedByTrackID,
+    metadataByTrackID
+  } = await fetchHeartModeCandidatePool(session.seedIds, session.playlistId)
+
+  for (const [trackID, metadata] of metadataByTrackID) {
+    if (!heartModeMetadataCache.has(trackID)) {
+      heartModeMetadataCache.set(trackID, metadata)
+    }
+  }
+
+  const sourceSeedByTrackID = Object.fromEntries(
+    candidateTrackIDs
+      .map((trackID) => {
+        const seedID = candidateSeedByTrackID.get(trackID)
+        return seedID ? [String(trackID), seedID] : null
+      })
+      .filter((entry): entry is [string, number] => entry !== null)
+  )
+
+  registerHeartModeCandidatePool({
+    sourceSeedByTrackID,
+    pendingTrackIDs: candidateTrackIDs
+  })
+}
+
+/**
+ * Phase 5 rolling queue：剩余歌曲少于阈值时，使用最新 branchScore 重新排序
+ * pending 候选并追加固定数量歌曲。
+ */
+const replenishHeartModeRollingQueue = async (): Promise<void> => {
+  if (heartModeLoading || heartModeRollingLoading) return
+  if (playerStore.playlistSource?.type !== 'intelligence') return
+
+  const session = getCurrentHeartModeSession()
+  if (!session || session.playlistId <= 0) return
+
+  if (
+    !shouldReplenishHeartModeQueue(
+      playerStore.currentTrackIndex,
+      playerStore.list.length,
+      HEART_MODE_REFILL_THRESHOLD
+    )
+  ) {
+    return
+  }
+
+  heartModeRollingLoading = true
+  try {
+    if (session.pendingTrackIDs.length < HEART_MODE_REFILL_COUNT) {
+      await refreshHeartModeRollingCandidates()
+    }
+
+    const activeSession = getCurrentHeartModeSession()
+    if (!activeSession?.pendingTrackIDs.length) return
+
+    const likedTrackIDs = await ensureHeartModeLikedTrackIDs(activeSession.playlistId)
+    const recentPlayedTrackIDs = collectRecentPlayedTrackIDs()
+    const historyEntries = getHeartModeHistory()
+    const now = Date.now()
+
+    const candidateSeedByTrackID = new Map<number, number>(
+      Object.entries(activeSession.sourceSeedByTrackID)
+        .map(([trackID, seedID]) => [Number(trackID), Number(seedID)] as const)
+        .filter(
+          ([trackID, seedID]) =>
+            Number.isFinite(trackID) &&
+            trackID > 0 &&
+            Number.isFinite(seedID) &&
+            seedID > 0
+        )
+    )
+
+    const rankedPendingTrackIDs = rankHeartModeCandidatesByScore({
+      seedTrackID: activeSession.seedIds[0],
+      candidateTrackIDs: activeSession.pendingTrackIDs,
+      likedTrackIDs,
+      recentPlayedTrackIDs,
+      historyEntries,
+      feedbackEntries: playbackFeedback.value,
+      profile: activeSession.profile,
+      candidateSeedByTrackID,
+      branchScoreBySeedID: getHeartModeBranchScoreMap(),
+      pinSeedFirst: false,
+      targetCount: activeSession.pendingTrackIDs.length,
+      now
+    })
+
+    await completeHeartModeTrackMetadata(
+      rankedPendingTrackIDs,
+      heartModeMetadataCache
+    )
+
+    const contextTrackIDs = getHeartModeSpacingContext(
+      playerStore.list,
+      activeSession.profile
+    )
+    const refillTrackIDs = rerankHeartModeCandidatesForDiversity({
+      rankedTrackIDs: rankedPendingTrackIDs,
+      metadataByTrackID: heartModeMetadataCache,
+      sourceSeedByTrackID: candidateSeedByTrackID,
+      likedTrackIDs,
+      profile: activeSession.profile,
+      targetCount: HEART_MODE_REFILL_COUNT,
+      contextTrackIDs
+    })
+
+    const appendedTrackIDs = playerStore.appendTracksToPlaylist(refillTrackIDs)
+    if (!appendedTrackIDs.length) return
+
+    recordHeartModeEnqueuedTracks(appendedTrackIDs)
+    recordHeartModeTrackIDs(appendedTrackIDs)
+  } catch (error) {
+    console.warn('[HeartMode] rolling queue 补充失败，保留当前剩余队列：', error)
+  } finally {
+    heartModeRollingLoading = false
+  }
+}
+
+watch(
+  () => [
+    playerStore.playlistSource?.type,
+    playerStore.currentTrackIndex,
+    playerStore.list.length,
+    playbackFeedback.value.length
+  ],
+  () => {
+    void replenishHeartModeRollingQueue()
+  },
+  { flush: 'post' }
+)
+
 /**
  * 使用 BroadcastChannel 接收桌面歌词窗口的心动模式请求。
  *
