@@ -322,9 +322,10 @@ export const registerHeartModeCandidatePool = ({
   hydrate()
   if (!currentSession) return
 
-  currentSession.sourceSeedByTrackID = {
-    ...currentSession.sourceSeedByTrackID,
-    ...sourceSeedByTrackID
+  for (const [trackID, seedID] of Object.entries(sourceSeedByTrackID)) {
+    if (!(trackID in currentSession.sourceSeedByTrackID)) {
+      currentSession.sourceSeedByTrackID[trackID] = seedID
+    }
   }
 
   const blocked = new Set([
