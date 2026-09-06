@@ -27,6 +27,124 @@
           <button class="close" :title="texts.close" @click="panelOpen = false">×</button>
         </header>
 
+        <details class="profile-card" open>
+          <summary>
+            <span>{{ texts.profileSettings }}</span>
+            <small>{{ texts.profileSettingsHint }}</small>
+          </summary>
+
+          <div class="profile-content">
+            <div class="algorithm-toggle-row">
+              <div>
+                <strong>{{ texts.algorithmEnabled }}</strong>
+                <small>{{ customAlgorithmEnabled ? texts.algorithmOnHint : texts.algorithmOffHint }}</small>
+              </div>
+              <label class="mini-toggle">
+                <input v-model="customAlgorithmEnabled" type="checkbox" />
+                <span></span>
+              </label>
+            </div>
+
+            <label class="profile-field">
+              <span>{{ texts.profileMode }}</span>
+              <select v-model="selectedProfileMode">
+                <option v-for="option in profileModeOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+
+            <div v-if="heartModeProfile.mode === 'custom'" class="profile-custom">
+              <label v-for="control in profileCoreControls" :key="control.key" class="profile-slider">
+                <div>
+                  <span>{{ control.label }}</span>
+                  <strong>{{ control.value }}</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  :value="control.value"
+                  @input="updateProfileCore(control.key, $event)"
+                />
+              </label>
+
+              <details class="profile-advanced">
+                <summary>{{ texts.advanced }}</summary>
+                <div class="profile-advanced-grid">
+                  <label>
+                    <span>{{ texts.seedCount }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="8"
+                      step="1"
+                      :value="heartModeProfile.seedCount"
+                      @change="updateProfileAdvanced('seedCount', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ texts.shortCooldown }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      step="1"
+                      :value="heartModeProfile.shortCooldownHours"
+                      @change="updateProfileAdvanced('shortCooldownHours', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ texts.mediumCooldown }}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      step="1"
+                      :value="heartModeProfile.mediumCooldownDays"
+                      @change="updateProfileAdvanced('mediumCooldownDays', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ texts.longCooldown }}</span>
+                    <input
+                      type="number"
+                      min="7"
+                      max="365"
+                      step="1"
+                      :value="heartModeProfile.longCooldownDays"
+                      @change="updateProfileAdvanced('longCooldownDays', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ texts.sameArtistDistance }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      :value="heartModeProfile.maxSameArtistDistance"
+                      @change="updateProfileAdvanced('maxSameArtistDistance', $event)"
+                    />
+                  </label>
+                  <label>
+                    <span>{{ texts.sameSeedDistance }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      :value="heartModeProfile.maxSameSeedDistance"
+                      @change="updateProfileAdvanced('maxSameSeedDistance', $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </div>
+          </div>
+        </details>
+
         <div class="section">
           <div class="section-title">{{ texts.why }}</div>
           <div v-if="reason" class="reason-card">
@@ -39,21 +157,31 @@
               <li v-for="item in explanationItems" :key="item">{{ item }}</li>
             </ul>
           </div>
-          <div v-else class="muted">{{ texts.noSnapshot }}</div>
+          <div v-else class="muted">
+            {{ customAlgorithmEnabled ? texts.noSnapshot : texts.basicModeReason }}
+          </div>
         </div>
 
         <div class="actions">
-          <button class="heart-action-button" @click="moreLikeThis">
+          <button
+            class="heart-action-button"
+            :disabled="!customAlgorithmEnabled || !session"
+            @click="moreLikeThis"
+          >
             <span class="heart-action-icon" aria-hidden="true">＋</span>
             <span>{{ texts.moreLikeThis }}</span>
           </button>
-          <button class="heart-action-button" @click="goFurther">
+          <button
+            class="heart-action-button"
+            :disabled="!customAlgorithmEnabled || !session"
+            @click="goFurther"
+          >
             <span class="heart-action-icon" aria-hidden="true">↗</span>
             <span>{{ texts.goFurther }}</span>
           </button>
         </div>
 
-        <div v-if="session" class="section session-section">
+        <div v-if="customAlgorithmEnabled && session" class="section session-section">
           <div class="section-title">{{ texts.session }}</div>
           <div class="section-hint">{{ texts.sessionHint }}</div>
 
@@ -146,6 +274,14 @@ import {
   resetActivePlaybackFeedbackWindow
 } from '../utils/playbackFeedback'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
+import {
+  applyHeartModePreset,
+  heartModeCustomAlgorithmEnabled,
+  heartModeProfile,
+  setHeartModeCustomAlgorithmEnabled,
+  updateHeartModeProfile,
+  type HeartModeMode
+} from '../utils/heartModeProfile'
 
 const TEXTS = {
   zh: {
@@ -153,6 +289,29 @@ const TEXTS = {
     subtitle: '推荐解释与本轮控制',
     close: '关闭',
     dragHint: '点击打开；拖动可移动位置',
+    profileSettings: '心动模式设置',
+    profileSettingsHint: '算法开关、风格和自定义参数',
+    algorithmEnabled: '使用自定义心动算法',
+    algorithmOnHint: '已启用：多 Seed、个性化评分、反馈学习和滚动补歌。',
+    algorithmOffHint: '已关闭：下次启动将使用网易云单 Seed 原始推荐顺序。',
+    profileMode: '心动模式风格',
+    modeContinuous: '连续',
+    modeBalanced: '平衡',
+    modeDiverse: '跳脱',
+    modeExplore: '探索',
+    modeCustom: '自定义',
+    diversityLabel: '风格跳脱度',
+    noveltyLabel: '新鲜度',
+    familiarityLabel: '熟悉感',
+    repeatToleranceLabel: '重复容忍度',
+    advanced: '高级参数',
+    seedCount: '兴趣分支数',
+    shortCooldown: '短期强冷却（小时）',
+    mediumCooldown: '中期冷却（天）',
+    longCooldown: '长期衰减（天）',
+    sameArtistDistance: '同艺人最小间隔',
+    sameSeedDistance: '同分支最小间隔',
+    basicModeReason: '当前使用基础网易云心动模式，不运行自定义评分，因此没有推荐解释快照。',
     why: '为什么推荐这首？',
     from: '来自这个推荐方向',
     sourceHint: '当前歌曲由这个 Seed 分支扩展出来，不是歌曲的平台来源。',
@@ -218,6 +377,29 @@ const TEXTS = {
     subtitle: '推薦解釋與本輪控制',
     close: '關閉',
     dragHint: '點擊開啟；拖動可移動位置',
+    profileSettings: '心動模式設定',
+    profileSettingsHint: '演算法開關、風格和自訂參數',
+    algorithmEnabled: '使用自訂心動演算法',
+    algorithmOnHint: '已啟用：多 Seed、個人化評分、回饋學習和滾動補歌。',
+    algorithmOffHint: '已關閉：下次啟動將使用網易雲單 Seed 原始推薦順序。',
+    profileMode: '心動模式風格',
+    modeContinuous: '連續',
+    modeBalanced: '平衡',
+    modeDiverse: '跳脫',
+    modeExplore: '探索',
+    modeCustom: '自訂',
+    diversityLabel: '風格跳脫度',
+    noveltyLabel: '新鮮度',
+    familiarityLabel: '熟悉感',
+    repeatToleranceLabel: '重複容忍度',
+    advanced: '進階參數',
+    seedCount: '興趣分支數',
+    shortCooldown: '短期強冷卻（小時）',
+    mediumCooldown: '中期冷卻（天）',
+    longCooldown: '長期衰減（天）',
+    sameArtistDistance: '同藝人最小間隔',
+    sameSeedDistance: '同分支最小間隔',
+    basicModeReason: '目前使用基礎網易雲心動模式，不執行自訂評分，因此沒有推薦解釋快照。',
     why: '為什麼推薦這首？',
     from: '來自這個推薦方向',
     sourceHint: '目前歌曲由這個 Seed 分支延伸而來，不是歌曲的平台來源。',
@@ -283,6 +465,30 @@ const TEXTS = {
     subtitle: 'Recommendation explanation and session controls',
     close: 'Close',
     dragHint: 'Click to open; drag to move',
+    profileSettings: 'Heart Mode settings',
+    profileSettingsHint: 'Algorithm switch, style, and custom parameters',
+    algorithmEnabled: 'Use custom Heart Mode algorithm',
+    algorithmOnHint: 'Enabled: multi-seed scoring, feedback learning, and rolling refills.',
+    algorithmOffHint: 'Disabled: the next start will keep NetEase single-seed recommendation order.',
+    profileMode: 'Heart Mode style',
+    modeContinuous: 'Continuous',
+    modeBalanced: 'Balanced',
+    modeDiverse: 'Diverse',
+    modeExplore: 'Explore',
+    modeCustom: 'Custom',
+    diversityLabel: 'Style diversity',
+    noveltyLabel: 'Novelty',
+    familiarityLabel: 'Familiarity',
+    repeatToleranceLabel: 'Repeat tolerance',
+    advanced: 'Advanced parameters',
+    seedCount: 'Interest branches',
+    shortCooldown: 'Strong cooldown (hours)',
+    mediumCooldown: 'Medium cooldown (days)',
+    longCooldown: 'Long decay (days)',
+    sameArtistDistance: 'Same-artist minimum spacing',
+    sameSeedDistance: 'Same-branch minimum spacing',
+    basicModeReason:
+      'Basic NetEase Heart Mode is active. Custom scoring is disabled, so no recommendation explanation snapshot is generated.',
     why: 'Why this track?',
     from: 'From this recommendation direction',
     sourceHint:
@@ -356,6 +562,68 @@ const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const settingsStore = useSettingsStore()
 const { currentTrack, playlistSource } = storeToRefs(playerStore)
+
+type HeartModeCoreField = 'diversity' | 'novelty' | 'familiarity' | 'repeatTolerance'
+type HeartModeAdvancedField =
+  | 'seedCount'
+  | 'shortCooldownHours'
+  | 'mediumCooldownDays'
+  | 'longCooldownDays'
+  | 'maxSameArtistDistance'
+  | 'maxSameSeedDistance'
+
+const customAlgorithmEnabled = computed({
+  get: () => heartModeCustomAlgorithmEnabled.value,
+  set: (value: boolean) => setHeartModeCustomAlgorithmEnabled(value)
+})
+
+const selectedProfileMode = computed<HeartModeMode>({
+  get: () => heartModeProfile.value.mode,
+  set: (value) => applyHeartModePreset(value)
+})
+
+const profileModeOptions = computed(() => [
+  { value: 'continuous' as const, label: texts.value.modeContinuous },
+  { value: 'balanced' as const, label: texts.value.modeBalanced },
+  { value: 'diverse' as const, label: texts.value.modeDiverse },
+  { value: 'explore' as const, label: texts.value.modeExplore },
+  { value: 'custom' as const, label: texts.value.modeCustom }
+])
+
+const profileCoreControls = computed<
+  Array<{ key: HeartModeCoreField; label: string; value: number }>
+>(() => [
+  {
+    key: 'diversity',
+    label: texts.value.diversityLabel,
+    value: heartModeProfile.value.diversity
+  },
+  {
+    key: 'novelty',
+    label: texts.value.noveltyLabel,
+    value: heartModeProfile.value.novelty
+  },
+  {
+    key: 'familiarity',
+    label: texts.value.familiarityLabel,
+    value: heartModeProfile.value.familiarity
+  },
+  {
+    key: 'repeatTolerance',
+    label: texts.value.repeatToleranceLabel,
+    value: heartModeProfile.value.repeatTolerance
+  }
+])
+
+const updateProfileCore = (field: HeartModeCoreField, event: Event) => {
+  const value = Number((event.target as HTMLInputElement).value)
+  updateHeartModeProfile({ mode: 'custom', [field]: value })
+}
+
+const updateProfileAdvanced = (field: HeartModeAdvancedField, event: Event) => {
+  const value = Number((event.target as HTMLInputElement).value)
+  updateHeartModeProfile({ mode: 'custom', [field]: value })
+}
 
 const panelOpen = ref(false)
 const sessionVersion = ref(0)
@@ -600,6 +868,7 @@ const refreshSession = () => {
 }
 
 const moreLikeThis = () => {
+  if (!customAlgorithmEnabled.value) return
   const trackId = Number(currentTrack.value?.id)
   if (!Number.isFinite(trackId) || trackId <= 0) return
   const updated = boostHeartModeCurrentBranch(trackId)
@@ -609,6 +878,7 @@ const moreLikeThis = () => {
 }
 
 const goFurther = () => {
+  if (!customAlgorithmEnabled.value) return
   const trackId = Number(currentTrack.value?.id)
   if (!Number.isFinite(trackId) || trackId <= 0) return
   const updated = steerHeartModeFurther(trackId)
@@ -788,6 +1058,212 @@ onBeforeUnmount(() => {
   opacity: 0.6;
 }
 
+.profile-card {
+  margin-top: 14px;
+  border: 1px solid rgba(128, 128, 128, 0.24);
+  border-radius: 11px;
+  background: var(--color-secondary-bg-for-transparent);
+  overflow: hidden;
+
+  > summary {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 11px 12px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    span {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    small {
+      font-size: 10.5px;
+      opacity: 0.56;
+    }
+  }
+
+  &[open] > summary {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+  }
+}
+
+.profile-content {
+  padding: 11px 12px 12px;
+}
+
+.algorithm-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+
+  > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    font-size: 12px;
+  }
+
+  small {
+    font-size: 10px;
+    line-height: 1.4;
+    opacity: 0.56;
+  }
+}
+
+.mini-toggle {
+  position: relative;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 24px;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  span {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    border-radius: 999px;
+    background: rgba(128, 128, 128, 0.22);
+    transition: 0.16s ease;
+
+    &::after {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+      content: '';
+      transition: transform 0.16s ease;
+    }
+  }
+
+  input:checked + span {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+
+    &::after {
+      transform: translateX(18px);
+    }
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.profile-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  > span {
+    font-size: 11.5px;
+    font-weight: 650;
+  }
+
+  select {
+    min-width: 120px;
+    min-height: 34px;
+    padding: 0 30px 0 10px;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    border-radius: 8px;
+    color: var(--color-text);
+    background: var(--color-body-bg);
+    font: inherit;
+    cursor: pointer;
+  }
+}
+
+.profile-custom {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(128, 128, 128, 0.14);
+}
+
+.profile-slider {
+  display: block;
+  margin-bottom: 9px;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 10.5px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+}
+
+.profile-advanced {
+  margin-top: 10px;
+
+  > summary {
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 650;
+    opacity: 0.74;
+  }
+}
+
+.profile-advanced-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 9px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span {
+      font-size: 9.5px;
+      line-height: 1.3;
+      opacity: 0.62;
+    }
+
+    input {
+      min-width: 0;
+      height: 30px;
+      box-sizing: border-box;
+      padding: 0 7px;
+      border: 1px solid rgba(128, 128, 128, 0.26);
+      border-radius: 7px;
+      color: var(--color-text);
+      background: var(--color-body-bg);
+      font: inherit;
+    }
+  }
+}
+
 .section {
   margin-top: 16px;
 }
@@ -903,6 +1379,14 @@ onBeforeUnmount(() => {
   &:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--color-primary) 65%, #ffffff 35%);
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+    opacity: 0.42;
+    transform: none;
+    box-shadow: none;
   }
 }
 
