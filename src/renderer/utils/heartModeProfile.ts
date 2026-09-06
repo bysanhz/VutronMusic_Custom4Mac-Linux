@@ -17,6 +17,8 @@ export type HeartModeProfile = {
 }
 
 export const HEART_MODE_PROFILE_KEY = 'vutronmusic-heart-mode-profile-v1'
+export const HEART_MODE_CUSTOM_ALGORITHM_KEY =
+  'vutronmusic-heart-mode-custom-algorithm-enabled-v1'
 
 const clamp = (value: unknown, min: number, max: number, fallback: number): number => {
   const parsed = Number(value)
@@ -82,9 +84,11 @@ export const HEART_MODE_PRESETS: Record<Exclude<HeartModeMode, 'custom'>, HeartM
 export const DEFAULT_HEART_MODE_PROFILE: HeartModeProfile = { ...HEART_MODE_PRESETS.diverse }
 
 export const heartModeProfile = ref<HeartModeProfile>({ ...DEFAULT_HEART_MODE_PROFILE })
+export const heartModeCustomAlgorithmEnabled = ref(true)
 
 let initialized = false
 let stopPersistWatch: WatchStopHandle | null = null
+let stopAlgorithmPersistWatch: WatchStopHandle | null = null
 
 const isHeartModeMode = (value: unknown): value is HeartModeMode =>
   ['continuous', 'balanced', 'diverse', 'explore', 'custom'].includes(String(value))
@@ -125,6 +129,17 @@ const persistProfile = (): void => {
   }
 }
 
+const persistCustomAlgorithmEnabled = (): void => {
+  try {
+    localStorage.setItem(
+      HEART_MODE_CUSTOM_ALGORITHM_KEY,
+      JSON.stringify(heartModeCustomAlgorithmEnabled.value)
+    )
+  } catch (error) {
+    console.warn('[HeartModeProfile] 保存自定义心动算法开关失败：', error)
+  }
+}
+
 export const initializeHeartModeProfile = (): (() => void) => {
   if (!initialized) {
     try {
@@ -134,14 +149,29 @@ export const initializeHeartModeProfile = (): (() => void) => {
       heartModeProfile.value = { ...DEFAULT_HEART_MODE_PROFILE }
     }
 
+    try {
+      const storedAlgorithm = localStorage.getItem(HEART_MODE_CUSTOM_ALGORITHM_KEY)
+      heartModeCustomAlgorithmEnabled.value =
+        storedAlgorithm === null ? true : Boolean(JSON.parse(storedAlgorithm))
+    } catch {
+      heartModeCustomAlgorithmEnabled.value = true
+    }
+
     persistProfile()
+    persistCustomAlgorithmEnabled()
     stopPersistWatch = watch(heartModeProfile, persistProfile, { deep: true })
+    stopAlgorithmPersistWatch = watch(
+      heartModeCustomAlgorithmEnabled,
+      persistCustomAlgorithmEnabled
+    )
     initialized = true
   }
 
   return () => {
     stopPersistWatch?.()
+    stopAlgorithmPersistWatch?.()
     stopPersistWatch = null
+    stopAlgorithmPersistWatch = null
     initialized = false
   }
 }
@@ -170,4 +200,10 @@ export const updateHeartModeProfile = (patch: Partial<HeartModeProfile>): void =
     ...heartModeProfile.value,
     ...patch
   })
+}
+
+
+export const setHeartModeCustomAlgorithmEnabled = (enabled: boolean): void => {
+  initializeHeartModeProfile()
+  heartModeCustomAlgorithmEnabled.value = Boolean(enabled)
 }
