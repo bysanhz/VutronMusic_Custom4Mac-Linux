@@ -1189,6 +1189,8 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain(':disabled="!customAlgorithmEnabled || !session"')
 
     expect(main).toContain('const startBasicHeartModeQueue = async')
+    expect(main).toContain('slice(0, HEART_MODE_TARGET_COUNT)')
+    expect(main).toContain("replacePlaylist('intelligence', playlistID, trackIDs, 0)")
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) {')
     expect(main).toContain('clearCurrentHeartModeSession()')
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) return')
