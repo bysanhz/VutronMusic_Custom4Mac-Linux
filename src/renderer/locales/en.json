@@ -597,7 +597,10 @@
       "noLimit": "No Limit",
       "sizeCached": "Cached {song} songs",
       "clearCache": "Clear Cache",
-      "cacheCleared": "Cache cleared"
+      "cacheCleared": "Cache cleared",
+      "custom": "Custom",
+      "customLimit": "Custom Cache Limit",
+      "customLimitDesc": "Enter 0.1–1024 GB. Older cached tracks are removed automatically when the limit is exceeded."
     },
     "shortcut": {
       "enableGlobalShortcut": "Enable Global Shortcuts",
