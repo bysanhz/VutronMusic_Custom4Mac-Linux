@@ -1192,6 +1192,8 @@ test.describe('desktop feature integration', () => {
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) {')
     expect(main).toContain('clearCurrentHeartModeSession()')
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) return')
-    expect(session).toContain('if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null')
+    expect(session).toContain(
+      'if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null'
+    )
   })
 })

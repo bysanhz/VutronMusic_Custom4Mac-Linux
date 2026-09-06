@@ -37,7 +37,9 @@
             <div class="algorithm-toggle-row">
               <div>
                 <strong>{{ texts.algorithmEnabled }}</strong>
-                <small>{{ customAlgorithmEnabled ? texts.algorithmOnHint : texts.algorithmOffHint }}</small>
+                <small>{{
+                  customAlgorithmEnabled ? texts.algorithmOnHint : texts.algorithmOffHint
+                }}</small>
               </div>
               <label class="mini-toggle">
                 <input v-model="customAlgorithmEnabled" type="checkbox" />
@@ -48,14 +50,22 @@
             <label class="profile-field">
               <span>{{ texts.profileMode }}</span>
               <select v-model="selectedProfileMode">
-                <option v-for="option in profileModeOptions" :key="option.value" :value="option.value">
+                <option
+                  v-for="option in profileModeOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
             </label>
 
             <div v-if="heartModeProfile.mode === 'custom'" class="profile-custom">
-              <label v-for="control in profileCoreControls" :key="control.key" class="profile-slider">
+              <label
+                v-for="control in profileCoreControls"
+                :key="control.key"
+                class="profile-slider"
+              >
                 <div>
                   <span>{{ control.label }}</span>
                   <strong>{{ control.value }}</strong>
@@ -469,7 +479,8 @@ const TEXTS = {
     profileSettingsHint: 'Algorithm switch, style, and custom parameters',
     algorithmEnabled: 'Use custom Heart Mode algorithm',
     algorithmOnHint: 'Enabled: multi-seed scoring, feedback learning, and rolling refills.',
-    algorithmOffHint: 'Disabled: the next start will keep NetEase single-seed recommendation order.',
+    algorithmOffHint:
+      'Disabled: the next start will keep NetEase single-seed recommendation order.',
     profileMode: 'Heart Mode style',
     modeContinuous: 'Continuous',
     modeBalanced: 'Balanced',

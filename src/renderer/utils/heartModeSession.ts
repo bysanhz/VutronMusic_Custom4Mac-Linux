@@ -1,7 +1,4 @@
-import {
-  heartModeCustomAlgorithmEnabled,
-  type HeartModeProfile
-} from './heartModeProfile'
+import { heartModeCustomAlgorithmEnabled, type HeartModeProfile } from './heartModeProfile'
 import type { HeartModeScoreBreakdown } from './heartModeScorer'
 import type { HeartModeRerankDecision } from './heartModeReranker'
 

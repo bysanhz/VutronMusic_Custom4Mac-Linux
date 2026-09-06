@@ -17,8 +17,7 @@ export type HeartModeProfile = {
 }
 
 export const HEART_MODE_PROFILE_KEY = 'vutronmusic-heart-mode-profile-v1'
-export const HEART_MODE_CUSTOM_ALGORITHM_KEY =
-  'vutronmusic-heart-mode-custom-algorithm-enabled-v1'
+export const HEART_MODE_CUSTOM_ALGORITHM_KEY = 'vutronmusic-heart-mode-custom-algorithm-enabled-v1'
 
 const clamp = (value: unknown, min: number, max: number, fallback: number): number => {
   const parsed = Number(value)
@@ -201,7 +200,6 @@ export const updateHeartModeProfile = (patch: Partial<HeartModeProfile>): void =
     ...patch
   })
 }
-
 
 export const setHeartModeCustomAlgorithmEnabled = (enabled: boolean): void => {
   initializeHeartModeProfile()
