@@ -695,6 +695,10 @@
                 <CustomSelect v-model="selectedHeartModeMode" :options="heartModeModeOptions" />
               </div>
             </div>
+            <div class="heart-mode-seed-concept">
+              <strong>{{ $t('settings.heartModeProfile.seedConceptTitle') }}</strong>
+              <span>{{ $t('settings.heartModeProfile.seedConceptDesc') }}</span>
+            </div>
             <div v-if="heartModeProfile.mode === 'custom'" class="heart-mode-custom-panel">
               <div
                 v-for="control in heartModeCoreControls"
@@ -713,12 +717,16 @@
                   :value="control.value"
                   @input="updateHeartModeCore(control.key, $event)"
                 />
+                <div class="heart-mode-control-hint">{{ control.hint }}</div>
               </div>
               <details class="heart-mode-advanced">
                 <summary>{{ $t('settings.heartModeProfile.advanced') }}</summary>
                 <div class="heart-mode-advanced-grid">
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.seedCount') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.seedCount') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.seedCountHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="1"
@@ -729,7 +737,10 @@
                     />
                   </label>
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.shortCooldown') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.shortCooldown') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.shortCooldownHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="1"
@@ -740,7 +751,10 @@
                     />
                   </label>
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.mediumCooldown') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.mediumCooldown') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.mediumCooldownHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="1"
@@ -751,7 +765,10 @@
                     />
                   </label>
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.longCooldown') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.longCooldown') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.longCooldownHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="7"
@@ -762,7 +779,10 @@
                     />
                   </label>
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.sameArtistDistance') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.sameArtistDistance') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.sameArtistDistanceHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="0"
@@ -773,7 +793,10 @@
                     />
                   </label>
                   <label>
-                    <span>{{ $t('settings.heartModeProfile.sameSeedDistance') }}</span>
+                    <span class="heart-mode-advanced-label">
+                      <strong>{{ $t('settings.heartModeProfile.sameSeedDistance') }}</strong>
+                      <small>{{ $t('settings.heartModeProfile.sameSeedDistanceHint') }}</small>
+                    </span>
                     <input
                       type="number"
                       min="0"
@@ -1363,27 +1386,31 @@ const selectedHeartModeMode = computed<HeartModeMode>({
 })
 
 const heartModeCoreControls = computed<
-  Array<{ key: HeartModeCoreField; label: string; value: number }>
+  Array<{ key: HeartModeCoreField; label: string; value: number; hint: string }>
 >(() => [
   {
     key: 'diversity',
     label: t('settings.heartModeProfile.diversity'),
-    value: heartModeProfile.value.diversity
+    value: heartModeProfile.value.diversity,
+    hint: t('settings.heartModeProfile.diversityHint')
   },
   {
     key: 'novelty',
     label: t('settings.heartModeProfile.novelty'),
-    value: heartModeProfile.value.novelty
+    value: heartModeProfile.value.novelty,
+    hint: t('settings.heartModeProfile.noveltyHint')
   },
   {
     key: 'familiarity',
     label: t('settings.heartModeProfile.familiarity'),
-    value: heartModeProfile.value.familiarity
+    value: heartModeProfile.value.familiarity,
+    hint: t('settings.heartModeProfile.familiarityHint')
   },
   {
     key: 'repeatTolerance',
     label: t('settings.heartModeProfile.repeatTolerance'),
-    value: heartModeProfile.value.repeatTolerance
+    value: heartModeProfile.value.repeatTolerance,
+    hint: t('settings.heartModeProfile.repeatToleranceHint')
   }
 ])
 
@@ -2535,6 +2562,28 @@ input.text-input {
   width: min(240px, 100%);
 }
 
+.heart-mode-seed-concept {
+  margin: -4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-secondary-bg));
+
+  strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 13px;
+    color: var(--color-text);
+  }
+
+  span {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+}
+
 .heart-mode-custom-panel {
   margin: -6px 0 18px;
   padding: 14px 18px 16px;
@@ -2566,6 +2615,13 @@ input.text-input {
   accent-color: var(--color-primary);
 }
 
+.heart-mode-control-hint {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
 .heart-mode-advanced {
   margin-top: 16px;
   color: var(--color-text);
@@ -2586,8 +2642,29 @@ input.text-input {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
     color: var(--color-text-secondary);
+  }
+
+  .heart-mode-advanced-label {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--color-text);
+    }
+
+    small {
+      font-size: 10.5px;
+      line-height: 1.35;
+      color: var(--color-text-secondary);
+    }
   }
 
   input[type='number'] {
