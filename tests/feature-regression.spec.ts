@@ -1222,6 +1222,7 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('seedCountHint')
     expect(assistant).toContain("branchTitle: '兴趣分支的实时偏好'")
     expect(assistant).toContain('branchHint')
+    expect(assistant).toContain('branch-section-hint')
     expect(assistant).not.toContain('<details class="profile-card"')
     expect(assistant).not.toContain('<details class="strategy-card"')
     expect(assistant).toContain(':disabled="!customAlgorithmEnabled || !session"')
