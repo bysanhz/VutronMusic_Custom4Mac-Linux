@@ -225,6 +225,9 @@ export const useNormalStateStore = defineStore('state', () => {
 
       if (result) {
         latestVersion.value = result
+        if (result.manualDownload) {
+          await window.mainApi?.invoke('show-update-dialog', result)
+        }
       } else {
         throw new Error('更新服务未返回版本信息')
       }
