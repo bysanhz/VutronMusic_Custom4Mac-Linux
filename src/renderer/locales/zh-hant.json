@@ -597,7 +597,10 @@
       "noLimit": "無限制",
       "sizeCached": "已快取歌曲 { song } 首",
       "clearCache": "清除歌曲快取",
-      "cacheCleared": "清除快取成功"
+      "cacheCleared": "清除快取成功",
+      "custom": "自訂",
+      "customLimit": "自訂快取上限",
+      "customLimitDesc": "請輸入 0.1–1024 GB；快取超過上限後會自動清理較早的歌曲。"
     },
     "shortcut": {
       "enableGlobalShortcut": "啟用全域快捷鍵",
