@@ -1255,7 +1255,9 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain('width: 164px')
     expect(settings).toContain(':deep(.select-wrapper)')
     expect(settings).toContain(':deep(.custom-select .custom-text)')
-    expect(settings).toContain('<div class="title">{{ $t(\'settings.general.musicQuality.text\') }}</div>')
+    expect(settings).toContain(
+      '<div class="title">{{ $t(\'settings.general.musicQuality.text\') }}</div>'
+    )
     expect(zhLocale).toContain('"customLimit"')
     expect(mainUtils).toContain('const limitInBytes = (sizeLimit as number) * 1024 * 1024')
   })
