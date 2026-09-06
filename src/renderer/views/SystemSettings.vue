@@ -667,6 +667,25 @@
                 />
               </div>
             </div>
+            <div class="item">
+              <div class="left">
+                <div class="title">{{ $t('settings.heartModeProfile.algorithmEnabled') }}</div>
+                <div class="description">
+                  {{ $t('settings.heartModeProfile.algorithmEnabledDesc') }}
+                </div>
+              </div>
+              <div class="right">
+                <div class="toggle">
+                  <input
+                    id="heart-mode-custom-algorithm"
+                    v-model="useCustomHeartModeAlgorithm"
+                    type="checkbox"
+                    name="heart-mode-custom-algorithm"
+                  />
+                  <label for="heart-mode-custom-algorithm"></label>
+                </div>
+              </div>
+            </div>
             <div class="item heart-mode-profile-row">
               <div class="left">
                 <div class="title">{{ $t('settings.heartModeProfile.title') }}</div>
@@ -1234,7 +1253,9 @@ import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d
 import { setFeatureLanguage, type SupportedLanguage } from '../utils/v327FeatureShared'
 import {
   applyHeartModePreset,
+  heartModeCustomAlgorithmEnabled,
   heartModeProfile,
+  setHeartModeCustomAlgorithmEnabled,
   updateHeartModeProfile,
   type HeartModeMode
 } from '../utils/heartModeProfile'
@@ -1330,6 +1351,11 @@ const heartModeModeOptions = computed(() => [
   { label: t('settings.heartModeProfile.modes.explore'), value: 'explore' },
   { label: t('settings.heartModeProfile.modes.custom'), value: 'custom' }
 ])
+
+const useCustomHeartModeAlgorithm = computed({
+  get: () => heartModeCustomAlgorithmEnabled.value,
+  set: (value: boolean) => setHeartModeCustomAlgorithmEnabled(value)
+})
 
 const selectedHeartModeMode = computed<HeartModeMode>({
   get: () => heartModeProfile.value.mode,
