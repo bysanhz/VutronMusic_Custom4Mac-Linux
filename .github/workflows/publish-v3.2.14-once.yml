@@ -1,0 +1,65 @@
+name: Publish VutronMusic v3.2.14 once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-v3.2.14-once.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_SHA="7b96fb5d44a4007f16b2f352f24eba8ed9a8c33d"
+          git cat-file -e "${TARGET_SHA}^{commit}"
+          PACKAGE_VERSION="$(git show "${TARGET_SHA}:package.json" | jq -r '.version')"
+          echo "release target: ${TARGET_SHA}"
+          echo "package version: ${PACKAGE_VERSION}"
+          test "${PACKAGE_VERSION}" = "3.2.14"
+          git show "${TARGET_SHA}:.github/release-notes/v3.2.14.md" >/dev/null
+          git show "${TARGET_SHA}:.github/workflows/build.yml" | grep -q "release_tag:"
+
+      - name: Create v3.2.14 tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_SHA="7b96fb5d44a4007f16b2f352f24eba8ed9a8c33d"
+          if git ls-remote --exit-code --tags origin refs/tags/v3.2.14 >/dev/null 2>&1; then
+            echo "v3.2.14 already exists; refusing to overwrite it."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a v3.2.14 "${TARGET_SHA}" -m "VutronMusic 3.2.14"
+          git push origin refs/tags/v3.2.14
+
+      - name: Dispatch formal Release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --ref v3.2.14 -f release_tag=v3.2.14
+
+      - name: Remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout main
+          git pull --ff-only origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/publish-v3.2.14-once.yml
+          git commit -m "chore: remove one-time v3.2.14 publisher"
+          git push origin HEAD:main
