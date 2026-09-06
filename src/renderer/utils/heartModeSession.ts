@@ -334,6 +334,12 @@ export const getCurrentHeartModeSession = (): HeartModeSessionState | null => {
   return currentSession
 }
 
+export const clearCurrentHeartModeSession = (): void => {
+  hydrate()
+  currentSession = null
+  persist()
+}
+
 export const getEffectiveHeartModeProfile = (
   session: HeartModeSessionState | null = getCurrentHeartModeSession()
 ): HeartModeProfile | null => {
