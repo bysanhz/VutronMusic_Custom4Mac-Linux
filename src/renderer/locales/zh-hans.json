@@ -604,7 +604,10 @@
       "noLimit": "无限制",
       "sizeCached": "已缓存歌曲 { song } 首",
       "clearCache": "清除歌曲缓存",
-      "cacheCleared": "清除缓存成功"
+      "cacheCleared": "清除缓存成功",
+      "custom": "自定义",
+      "customLimit": "自定义缓存上限",
+      "customLimitDesc": "请输入 0.1–1024 GB；缓存超过上限后会自动清理较早的歌曲。"
     },
     "shortcut": {
       "enableGlobalShortcut": "启用全局快捷键",
