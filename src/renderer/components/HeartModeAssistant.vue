@@ -312,7 +312,8 @@ const TEXTS = {
       '“Go further” applies session-only novelty +10, diversity +10, familiarity -10 per click, capped at ±30.',
       '“Reset session learning” clears this session’s playback feedback, branch scores, and temporary steering while preserving likes, long-term Profile, recommendation history, and current queue.'
     ],
-    strategyNote: 'The long-term Profile sets the overall style; playback behavior and these controls only steer the current session.',
+    strategyNote:
+      'The long-term Profile sets the overall style; playback behavior and these controls only steer the current session.',
     reset: 'Reset session learning',
     resetHint:
       'Clears session scores and accidental test feedback without changing likes, long-term Profile, recommendation history, or the current queue.',
@@ -347,15 +348,13 @@ const viewport = ref({ width: window.innerWidth, height: window.innerHeight })
 const assistantPosition = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 const suppressNextClick = ref(false)
-let dragStart:
-  | {
-      pointerId: number
-      originX: number
-      originY: number
-      clientX: number
-      clientY: number
-    }
-  | null = null
+let dragStart: {
+  pointerId: number
+  originX: number
+  originY: number
+  clientX: number
+  clientY: number
+} | null = null
 
 const isDarkMode = computed(() => {
   const appearance = settingsStore.theme.appearance
@@ -477,11 +476,7 @@ const persistAssistantPosition = () => {
 const restoreAssistantPosition = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(HEART_MODE_ASSISTANT_POSITION_KEY) || 'null')
-    if (
-      stored &&
-      Number.isFinite(Number(stored.x)) &&
-      Number.isFinite(Number(stored.y))
-    ) {
+    if (stored && Number.isFinite(Number(stored.x)) && Number.isFinite(Number(stored.y))) {
       assistantPosition.value = clampAssistantPosition(Number(stored.x), Number(stored.y))
       return
     }
@@ -512,10 +507,7 @@ const moveDrag = (event: PointerEvent) => {
 
   isDragging.value = true
   panelOpen.value = false
-  assistantPosition.value = clampAssistantPosition(
-    dragStart.originX + dx,
-    dragStart.originY + dy
-  )
+  assistantPosition.value = clampAssistantPosition(dragStart.originX + dx, dragStart.originY + dy)
 }
 
 const endDrag = (event: PointerEvent) => {
@@ -864,7 +856,6 @@ onBeforeUnmount(() => {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
     }
   }
-
 }
 
 .metrics {
