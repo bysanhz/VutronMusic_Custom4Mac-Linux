@@ -650,7 +650,6 @@
       "logoutConfirm": "Log out of {service}?"
     },
     "update": {
-      "autoUpdate": "Enable Automatic Update Checks",
       "currentVersion": "Current Version",
       "updateCheck": "Check For Update",
       "downloadUpdate": "Download Update",
@@ -694,7 +693,8 @@
         "copied": "Diagnostics copied to clipboard",
         "exported": "Diagnostics file exported",
         "logLocated": "Log file located in the file manager"
-      }
+      },
+      "manualOnly": "Updates are checked only when you click “Check For Update”; the app does not check on startup."
     },
     "playerTheme": {
       "title": "Player Theme",
