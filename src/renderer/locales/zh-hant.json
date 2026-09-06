@@ -346,7 +346,19 @@
       "sameArtistDistance": "同藝人最小間隔（首）",
       "sameSeedDistance": "同分支最小間隔（首）",
       "algorithmEnabled": "使用自訂心動演算法",
-      "algorithmEnabledDesc": "開啟後使用多 Seed、個人化評分、回饋學習、多樣性重排和滾動補歌；關閉後使用網易雲單 Seed 原始推薦順序"
+      "algorithmEnabledDesc": "開啟後使用多 Seed、個人化評分、回饋學習、多樣性重排和滾動補歌；關閉後使用網易雲單 Seed 原始推薦順序",
+      "diversityHint": "低：更集中在相近風格和主興趣分支；高：更容易跨興趣分支、跨風格。",
+      "noveltyHint": "低：允許最近聽過或推薦過的歌更快回來；高：更偏近期沒聽過的歌，重複懲罰也更強。",
+      "familiarityHint": "低：降低「已喜歡歌曲」在最終佇列中的比例；高：允許更多已喜歡歌曲進入佇列，並給予輕度加分。",
+      "repeatToleranceHint": "低：強烈避開近期重複；高：更能接受最近聽過或推薦過的歌曲再次出現。",
+      "seedCountHint": "一條興趣分支（Seed）= 從一首喜歡歌曲出發的一路推薦。1 更聚焦；數量越多，候選方向越廣（1–8）。",
+      "shortCooldownHint": "剛推薦過的歌曲在這段時間內受到最強重複懲罰。調大後，短時間內更不容易重複。",
+      "mediumCooldownHint": "控制重複懲罰從「強」降到「中等」需要多久。調大後，中期內重複恢復更慢。",
+      "longCooldownHint": "超過這個天數後，歷史重複懲罰歸零。調大後，系統會更久記住「最近推薦過」。",
+      "sameArtistDistanceHint": "0=不限制；2=同一藝人再次出現前，中間至少隔 2 首。",
+      "sameSeedDistanceHint": "0=不限制；2=同一興趣分支再次出現前，中間至少隔 2 首。",
+      "seedConceptTitle": "什麼是興趣分支（Seed）？",
+      "seedConceptDesc": "系統會從「我喜歡的音樂」選若干首歌作為 Seed。每個 Seed 都代表一條興趣路線，並各自向網易雲延伸候選歌曲；這些分支最後再合併評分。"
     },
     "nav": {
       "general": "通用",
