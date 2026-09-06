@@ -19,230 +19,277 @@
         :class="['heart-mode-panel', panelHorizontalClass, panelVerticalClass]"
         :style="panelStyle"
       >
-        <header>
-          <div>
-            <strong>{{ texts.title }}</strong>
-            <span>{{ texts.subtitle }}</span>
+        <header class="panel-header">
+          <button
+            v-if="panelPage !== 'main'"
+            class="back-button"
+            :title="texts.back"
+            @click="panelPage = 'main'"
+          >
+            ←
+          </button>
+          <div class="panel-heading">
+            <strong>{{ panelTitle }}</strong>
+            <span>{{ panelSubtitle }}</span>
           </div>
           <button class="close" :title="texts.close" @click="panelOpen = false">×</button>
         </header>
 
-        <details class="profile-card" open>
-          <summary>
-            <span>{{ texts.profileSettings }}</span>
-            <small>{{ texts.profileSettingsHint }}</small>
-          </summary>
-
-          <div class="profile-content">
-            <div class="algorithm-toggle-row">
-              <div>
-                <strong>{{ texts.algorithmEnabled }}</strong>
-                <small>{{
-                  customAlgorithmEnabled ? texts.algorithmOnHint : texts.algorithmOffHint
-                }}</small>
+        <template v-if="panelPage === 'main'">
+          <div class="section">
+            <div class="section-title">{{ texts.why }}</div>
+            <div v-if="reason" class="reason-card">
+              <div class="source">
+                <span>{{ texts.from }}</span>
+                <strong>{{ sourceSeedName }}</strong>
+                <small>{{ texts.sourceHint }}</small>
               </div>
-              <label class="mini-toggle">
-                <input v-model="customAlgorithmEnabled" type="checkbox" />
-                <span></span>
-              </label>
+              <ul>
+                <li v-for="item in explanationItems" :key="item">{{ item }}</li>
+              </ul>
+            </div>
+            <div v-else class="muted">
+              {{ customAlgorithmEnabled ? texts.noSnapshot : texts.basicModeReason }}
+            </div>
+          </div>
+
+          <div class="actions">
+            <button
+              class="heart-action-button"
+              :disabled="!customAlgorithmEnabled || !session"
+              @click="moreLikeThis"
+            >
+              <span class="heart-action-icon" aria-hidden="true">＋</span>
+              <span>{{ texts.moreLikeThis }}</span>
+            </button>
+            <button
+              class="heart-action-button"
+              :disabled="!customAlgorithmEnabled || !session"
+              @click="goFurther"
+            >
+              <span class="heart-action-icon" aria-hidden="true">↗</span>
+              <span>{{ texts.goFurther }}</span>
+            </button>
+          </div>
+
+          <div v-if="customAlgorithmEnabled && session" class="section session-section">
+            <div class="section-title">{{ texts.session }}</div>
+            <div class="section-hint">{{ texts.sessionHint }}</div>
+
+            <div class="metrics">
+              <div>
+                <span>{{ texts.explore }}</span>
+                <strong>{{ effectiveProfile?.novelty ?? session.profile.novelty }}%</strong>
+              </div>
+              <div>
+                <span>{{ texts.diversity }}</span>
+                <strong>{{ effectiveProfile?.diversity ?? session.profile.diversity }}%</strong>
+              </div>
+              <div>
+                <span>{{ texts.familiarity }}</span>
+                <strong>{{ effectiveProfile?.familiarity ?? session.profile.familiarity }}%</strong>
+              </div>
             </div>
 
-            <label class="profile-field">
-              <span>{{ texts.profileMode }}</span>
-              <select v-model="selectedProfileMode">
-                <option
-                  v-for="option in profileModeOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
+            <div class="queue-summary">
+              {{ texts.played }} {{ session.playedTrackIDs.length }} · {{ texts.queued }}
+              {{ session.enqueuedTrackIDs.length }} · {{ texts.pending }}
+              {{ session.pendingTrackIDs.length }}
+            </div>
 
-            <div v-if="heartModeProfile.mode === 'custom'" class="profile-custom">
-              <label
-                v-for="control in profileCoreControls"
-                :key="control.key"
-                class="profile-slider"
-              >
+            <div class="branch-section-title">{{ texts.branchTitle }}</div>
+            <div class="branches">
+              <div v-for="branch in branchRows" :key="branch.seedId" class="branch-row">
+                <span class="branch-name">{{ branch.name }}</span>
+                <span :class="['branch-state', branch.tone]">{{ branch.label }}</span>
+              </div>
+            </div>
+
+            <div
+              v-if="
+                session.steering.noveltyOffset ||
+                session.steering.diversityOffset ||
+                session.steering.familiarityOffset
+              "
+              class="steering-note"
+            >
+              {{ texts.sessionAdjusted }}
+            </div>
+          </div>
+
+          <div class="panel-navigation">
+            <button class="nav-card" @click="panelPage = 'settings'">
+              <span class="nav-card-icon" aria-hidden="true">⚙</span>
+              <span>
+                <strong>{{ texts.profileSettings }}</strong>
+                <small>{{ texts.profileSettingsHint }}</small>
+              </span>
+              <b aria-hidden="true">›</b>
+            </button>
+            <button class="nav-card" @click="panelPage = 'guide'">
+              <span class="nav-card-icon" aria-hidden="true">?</span>
+              <span>
+                <strong>{{ texts.guideTitle }}</strong>
+                <small>{{ texts.guideHint }}</small>
+              </span>
+              <b aria-hidden="true">›</b>
+            </button>
+          </div>
+
+          <div class="reset-zone">
+            <button class="heart-action-button reset-button" @click="resetLearning">
+              <span class="heart-action-icon" aria-hidden="true">↺</span>
+              <span>{{ texts.reset }}</span>
+            </button>
+            <span>{{ texts.resetHint }}</span>
+          </div>
+        </template>
+
+        <template v-else-if="panelPage === 'settings'">
+          <div class="subpage-content">
+            <div class="settings-card">
+              <div class="algorithm-toggle-row">
                 <div>
-                  <span>{{ control.label }}</span>
-                  <strong>{{ control.value }}</strong>
+                  <strong>{{ texts.algorithmEnabled }}</strong>
+                  <small>{{
+                    customAlgorithmEnabled ? texts.algorithmOnHint : texts.algorithmOffHint
+                  }}</small>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  :value="control.value"
-                  @input="updateProfileCore(control.key, $event)"
-                />
+                <label class="mini-toggle">
+                  <input v-model="customAlgorithmEnabled" type="checkbox" />
+                  <span></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-card">
+              <label class="profile-field">
+                <span>{{ texts.profileMode }}</span>
+                <select v-model="selectedProfileMode">
+                  <option
+                    v-for="option in profileModeOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
               </label>
 
-              <details class="profile-advanced">
-                <summary>{{ texts.advanced }}</summary>
-                <div class="profile-advanced-grid">
-                  <label>
-                    <span>{{ texts.seedCount }}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="8"
-                      step="1"
-                      :value="heartModeProfile.seedCount"
-                      @change="updateProfileAdvanced('seedCount', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ texts.shortCooldown }}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="168"
-                      step="1"
-                      :value="heartModeProfile.shortCooldownHours"
-                      @change="updateProfileAdvanced('shortCooldownHours', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ texts.mediumCooldown }}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      step="1"
-                      :value="heartModeProfile.mediumCooldownDays"
-                      @change="updateProfileAdvanced('mediumCooldownDays', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ texts.longCooldown }}</span>
-                    <input
-                      type="number"
-                      min="7"
-                      max="365"
-                      step="1"
-                      :value="heartModeProfile.longCooldownDays"
-                      @change="updateProfileAdvanced('longCooldownDays', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ texts.sameArtistDistance }}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="1"
-                      :value="heartModeProfile.maxSameArtistDistance"
-                      @change="updateProfileAdvanced('maxSameArtistDistance', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ texts.sameSeedDistance }}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="1"
-                      :value="heartModeProfile.maxSameSeedDistance"
-                      @change="updateProfileAdvanced('maxSameSeedDistance', $event)"
-                    />
-                  </label>
+              <div class="profile-description">
+                <strong>{{ currentProfileModeLabel }}</strong>
+                <p>{{ currentProfileModeDescription }}</p>
+                <div class="profile-summary">
+                  <span>{{ texts.noveltyShort }} {{ heartModeProfile.novelty }}</span>
+                  <span>{{ texts.diversityShort }} {{ heartModeProfile.diversity }}</span>
+                  <span>{{ texts.familiarityShort }} {{ heartModeProfile.familiarity }}</span>
+                  <span>{{ texts.seedShort }} {{ heartModeProfile.seedCount }}</span>
                 </div>
-              </details>
+              </div>
+
+              <div v-if="!customAlgorithmEnabled" class="settings-disabled-note">
+                {{ texts.profileDisabledHint }}
+              </div>
+
+              <div v-if="heartModeProfile.mode === 'custom'" class="profile-custom">
+                <label
+                  v-for="control in profileCoreControls"
+                  :key="control.key"
+                  class="profile-slider"
+                >
+                  <div>
+                    <span>{{ control.label }}</span>
+                    <strong>{{ control.value }}</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    :value="control.value"
+                    @input="updateProfileCore(control.key, $event)"
+                  />
+                </label>
+
+                <details class="profile-advanced">
+                  <summary>{{ texts.advanced }}</summary>
+                  <div class="profile-advanced-grid">
+                    <label>
+                      <span>{{ texts.seedCount }}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="8"
+                        step="1"
+                        :value="heartModeProfile.seedCount"
+                        @change="updateProfileAdvanced('seedCount', $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ texts.shortCooldown }}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="168"
+                        step="1"
+                        :value="heartModeProfile.shortCooldownHours"
+                        @change="updateProfileAdvanced('shortCooldownHours', $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ texts.mediumCooldown }}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        step="1"
+                        :value="heartModeProfile.mediumCooldownDays"
+                        @change="updateProfileAdvanced('mediumCooldownDays', $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ texts.longCooldown }}</span>
+                      <input
+                        type="number"
+                        min="7"
+                        max="365"
+                        step="1"
+                        :value="heartModeProfile.longCooldownDays"
+                        @change="updateProfileAdvanced('longCooldownDays', $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ texts.sameArtistDistance }}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="1"
+                        :value="heartModeProfile.maxSameArtistDistance"
+                        @change="updateProfileAdvanced('maxSameArtistDistance', $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>{{ texts.sameSeedDistance }}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="1"
+                        :value="heartModeProfile.maxSameSeedDistance"
+                        @change="updateProfileAdvanced('maxSameSeedDistance', $event)"
+                      />
+                    </label>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
-        </details>
+        </template>
 
-        <div class="section">
-          <div class="section-title">{{ texts.why }}</div>
-          <div v-if="reason" class="reason-card">
-            <div class="source">
-              <span>{{ texts.from }}</span>
-              <strong>{{ sourceSeedName }}</strong>
-              <small>{{ texts.sourceHint }}</small>
-            </div>
-            <ul>
-              <li v-for="item in explanationItems" :key="item">{{ item }}</li>
-            </ul>
-          </div>
-          <div v-else class="muted">
-            {{ customAlgorithmEnabled ? texts.noSnapshot : texts.basicModeReason }}
-          </div>
-        </div>
-
-        <div class="actions">
-          <button
-            class="heart-action-button"
-            :disabled="!customAlgorithmEnabled || !session"
-            @click="moreLikeThis"
-          >
-            <span class="heart-action-icon" aria-hidden="true">＋</span>
-            <span>{{ texts.moreLikeThis }}</span>
-          </button>
-          <button
-            class="heart-action-button"
-            :disabled="!customAlgorithmEnabled || !session"
-            @click="goFurther"
-          >
-            <span class="heart-action-icon" aria-hidden="true">↗</span>
-            <span>{{ texts.goFurther }}</span>
-          </button>
-        </div>
-
-        <div v-if="customAlgorithmEnabled && session" class="section session-section">
-          <div class="section-title">{{ texts.session }}</div>
-          <div class="section-hint">{{ texts.sessionHint }}</div>
-
-          <div class="metrics">
-            <div>
-              <span>{{ texts.explore }}</span>
-              <strong>{{ effectiveProfile?.novelty ?? session.profile.novelty }}%</strong>
-            </div>
-            <div>
-              <span>{{ texts.diversity }}</span>
-              <strong>{{ effectiveProfile?.diversity ?? session.profile.diversity }}%</strong>
-            </div>
-            <div>
-              <span>{{ texts.familiarity }}</span>
-              <strong>{{ effectiveProfile?.familiarity ?? session.profile.familiarity }}%</strong>
-            </div>
-          </div>
-
-          <div class="queue-summary">
-            {{ texts.played }} {{ session.playedTrackIDs.length }} · {{ texts.queued }}
-            {{ session.enqueuedTrackIDs.length }} · {{ texts.pending }}
-            {{ session.pendingTrackIDs.length }}
-          </div>
-
-          <div class="branch-section-title">{{ texts.branchTitle }}</div>
-          <div class="branches">
-            <div v-for="branch in branchRows" :key="branch.seedId" class="branch-row">
-              <span class="branch-name">{{ branch.name }}</span>
-              <span :class="['branch-state', branch.tone]">{{ branch.label }}</span>
-            </div>
-          </div>
-
-          <div
-            v-if="
-              session.steering.noveltyOffset ||
-              session.steering.diversityOffset ||
-              session.steering.familiarityOffset
-            "
-            class="steering-note"
-          >
-            {{ texts.sessionAdjusted }}
-          </div>
-        </div>
-
-        <details class="strategy-card">
-          <summary>
-            <span>{{ texts.strategyTitle }}</span>
-            <small>{{ texts.strategySummary }}</small>
-          </summary>
-          <div class="strategy-content">
-            <div v-for="item in strategyItems" :key="item.title" class="strategy-group">
+        <template v-else>
+          <div class="subpage-content guide-page">
+            <div v-for="item in strategyItems" :key="item.title" class="guide-group">
               <strong>{{ item.title }}</strong>
               <ul>
                 <li v-for="bullet in item.bullets" :key="bullet">{{ bullet }}</li>
@@ -250,15 +297,7 @@
             </div>
             <div class="strategy-note">{{ texts.strategyNote }}</div>
           </div>
-        </details>
-
-        <div class="reset-zone">
-          <button class="heart-action-button reset-button" @click="resetLearning">
-            <span class="heart-action-icon" aria-hidden="true">↺</span>
-            <span>{{ texts.reset }}</span>
-          </button>
-          <span>{{ texts.resetHint }}</span>
-        </div>
+        </template>
       </section>
     </transition>
   </div>
@@ -301,6 +340,21 @@ const TEXTS = {
     dragHint: '点击打开；拖动可移动位置',
     profileSettings: '心动模式设置',
     profileSettingsHint: '算法开关、风格和自定义参数',
+    guideTitle: '操作说明',
+    guideHint: '评分、播放反馈和快捷操作规则',
+    back: '返回',
+    settingsPageSubtitle: '调整长期心动模式配置',
+    guidePageSubtitle: '了解哪些行为会改变后续推荐',
+    modeContinuousDesc: '更强调熟悉和连贯，分支少、重复容忍更高，适合长时间顺听。',
+    modeBalancedDesc: '在熟悉歌曲与新发现之间保持中间状态，适合作为稳妥的日常模式。',
+    modeDiverseDesc: '明显增加风格跨度并减少熟歌比例，适合想听到更多不同方向时使用。',
+    modeExploreDesc: '最大化新鲜和跳脱，重复容忍最低，适合主动发现陌生歌曲和风格。',
+    modeCustomDesc: '完全按下面的参数控制推荐倾向，适合你自己精细调节。',
+    noveltyShort: '新鲜',
+    diversityShort: '跳脱',
+    familiarityShort: '熟悉',
+    seedShort: '分支',
+    profileDisabledHint: '自定义算法当前关闭：这些风格参数会保留，但下一次基础网易云心动模式不会使用它们。',
     algorithmEnabled: '使用自定义心动算法',
     algorithmOnHint: '已启用：多 Seed、个性化评分、反馈学习和滚动补歌。',
     algorithmOffHint: '已关闭：下次启动将使用网易云单 Seed 原始推荐顺序。',
@@ -363,6 +417,11 @@ const TEXTS = {
       '高完成度后切歌 +1；自然播完 +2；播放期间主动点赞额外 +5。',
       '听过但没点赞不算负反馈；Seek、播放错误、退出和队列替换也不扣分。'
     ],
+    strategySwitchTitle: '算法开关',
+    strategySwitchBullets: [
+      '开启：使用多 Seed、个性化评分、反馈学习、多样性重排和滚动补歌。',
+      '关闭：下一次启动改用网易云单 Seed 原始推荐顺序；当前队列不会被强制替换。'
+    ],
     strategyControlTitle: '显式控制',
     strategyControlBullets: [
       '“多来点这种”：提高当前 Seed 分支分数，让同方向歌曲在后续补歌中更容易靠前。',
@@ -389,6 +448,21 @@ const TEXTS = {
     dragHint: '點擊開啟；拖動可移動位置',
     profileSettings: '心動模式設定',
     profileSettingsHint: '演算法開關、風格和自訂參數',
+    guideTitle: '操作說明',
+    guideHint: '評分、播放回饋和快捷操作規則',
+    back: '返回',
+    settingsPageSubtitle: '調整長期心動模式設定',
+    guidePageSubtitle: '了解哪些行為會改變後續推薦',
+    modeContinuousDesc: '更強調熟悉和連貫，分支少、重複容忍較高，適合長時間順聽。',
+    modeBalancedDesc: '在熟悉歌曲與新發現之間保持中間狀態，適合作為穩妥的日常模式。',
+    modeDiverseDesc: '明顯增加風格跨度並降低熟歌比例，適合想聽到更多不同方向時使用。',
+    modeExploreDesc: '最大化新鮮和跳脫，重複容忍最低，適合主動發現陌生歌曲和風格。',
+    modeCustomDesc: '完全依下面的參數控制推薦傾向，適合自行精細調整。',
+    noveltyShort: '新鮮',
+    diversityShort: '跳脫',
+    familiarityShort: '熟悉',
+    seedShort: '分支',
+    profileDisabledHint: '自訂演算法目前關閉：這些風格參數會保留，但下一次基礎網易雲心動模式不會使用它們。',
     algorithmEnabled: '使用自訂心動演算法',
     algorithmOnHint: '已啟用：多 Seed、個人化評分、回饋學習和滾動補歌。',
     algorithmOffHint: '已關閉：下次啟動將使用網易雲單 Seed 原始推薦順序。',
@@ -451,6 +525,11 @@ const TEXTS = {
       '高完成度後切歌 +1；自然播完 +2；播放期間主動按喜歡額外 +5。',
       '聽過但沒按喜歡不算負回饋；Seek、播放錯誤、退出和佇列替換也不扣分。'
     ],
+    strategySwitchTitle: '演算法開關',
+    strategySwitchBullets: [
+      '開啟：使用多 Seed、個人化評分、回饋學習、多樣性重排和滾動補歌。',
+      '關閉：下一次啟動改用網易雲單 Seed 原始推薦順序；目前佇列不會被強制替換。'
+    ],
     strategyControlTitle: '顯式控制',
     strategyControlBullets: [
       '「多來點這種」：提高目前 Seed 分支分數，讓同方向歌曲在後續補歌中更容易靠前。',
@@ -477,6 +556,27 @@ const TEXTS = {
     dragHint: 'Click to open; drag to move',
     profileSettings: 'Heart Mode settings',
     profileSettingsHint: 'Algorithm switch, style, and custom parameters',
+    guideTitle: 'How it works',
+    guideHint: 'Scoring, playback feedback, and quick-control rules',
+    back: 'Back',
+    settingsPageSubtitle: 'Adjust long-term Heart Mode preferences',
+    guidePageSubtitle: 'See which actions change future recommendations',
+    modeContinuousDesc:
+      'Prioritizes familiarity and continuity with fewer branches and higher repeat tolerance; good for long listening sessions.',
+    modeBalancedDesc:
+      'Keeps a middle ground between familiar tracks and discovery; a stable everyday default.',
+    modeDiverseDesc:
+      'Increases stylistic range and reduces familiar-track share; useful when you want more variety.',
+    modeExploreDesc:
+      'Maximizes novelty and stylistic distance with very low repeat tolerance; best for active discovery.',
+    modeCustomDesc:
+      'Uses the controls below directly, for precise manual tuning of recommendation behavior.',
+    noveltyShort: 'Novel',
+    diversityShort: 'Diverse',
+    familiarityShort: 'Familiar',
+    seedShort: 'Seeds',
+    profileDisabledHint:
+      'The custom algorithm is off. These style settings stay saved, but the next basic NetEase Heart Mode run will not use them.',
     algorithmEnabled: 'Use custom Heart Mode algorithm',
     algorithmOnHint: 'Enabled: multi-seed scoring, feedback learning, and rolling refills.',
     algorithmOffHint:
@@ -545,6 +645,11 @@ const TEXTS = {
       'Fast manual skips: ≤15 seconds -4; 15–45 seconds with <30% completion -3; switching around the middle is usually -1.',
       'High-completion manual switch +1; natural completion +2; an active like adds +5.',
       'Heard-but-not-liked is neutral; seeks, playback errors, app exit, and queue replacement do not lower preference.'
+    ],
+    strategySwitchTitle: 'Algorithm switch',
+    strategySwitchBullets: [
+      'On: use multi-seed personalized scoring, feedback learning, diversity reranking, and rolling refills.',
+      'Off: the next start uses NetEase single-seed order; the current queue is not force-replaced.'
     ],
     strategyControlTitle: 'Explicit controls',
     strategyControlBullets: [
@@ -636,7 +741,10 @@ const updateProfileAdvanced = (field: HeartModeAdvancedField, event: Event) => {
   updateHeartModeProfile({ mode: 'custom', [field]: value })
 }
 
+type HeartModePanelPage = 'main' | 'settings' | 'guide'
+
 const panelOpen = ref(false)
+const panelPage = ref<HeartModePanelPage>('main')
 const sessionVersion = ref(0)
 const seedNames = ref<Record<string, string>>({})
 
@@ -699,6 +807,40 @@ const panelStyle = computed(() => {
 })
 
 const texts = computed(() => TEXTS[resolveFeatureLanguage()])
+
+const panelTitle = computed(() => {
+  if (panelPage.value === 'settings') return texts.value.profileSettings
+  if (panelPage.value === 'guide') return texts.value.guideTitle
+  return texts.value.title
+})
+
+const panelSubtitle = computed(() => {
+  if (panelPage.value === 'settings') return texts.value.settingsPageSubtitle
+  if (panelPage.value === 'guide') return texts.value.guidePageSubtitle
+  return texts.value.subtitle
+})
+
+const currentProfileModeLabel = computed(
+  () =>
+    profileModeOptions.value.find((option) => option.value === heartModeProfile.value.mode)?.label ??
+    texts.value.modeCustom
+)
+
+const currentProfileModeDescription = computed(() => {
+  switch (heartModeProfile.value.mode) {
+    case 'continuous':
+      return texts.value.modeContinuousDesc
+    case 'balanced':
+      return texts.value.modeBalancedDesc
+    case 'diverse':
+      return texts.value.modeDiverseDesc
+    case 'explore':
+      return texts.value.modeExploreDesc
+    default:
+      return texts.value.modeCustomDesc
+  }
+})
+
 const isHeartMode = computed(() => playlistSource.value?.type === 'intelligence')
 const sessionSnapshot = computed(() => ({
   version: sessionVersion.value,
@@ -762,6 +904,7 @@ const explanationItems = computed(() => {
 })
 
 const strategyItems = computed(() => [
+  { title: texts.value.strategySwitchTitle, bullets: texts.value.strategySwitchBullets },
   { title: texts.value.strategyScoreTitle, bullets: texts.value.strategyScoreBullets },
   { title: texts.value.strategyFeedbackTitle, bullets: texts.value.strategyFeedbackBullets },
   { title: texts.value.strategyControlTitle, bullets: texts.value.strategyControlBullets }
@@ -828,6 +971,7 @@ const togglePanel = () => {
     return
   }
   panelOpen.value = !panelOpen.value
+  if (panelOpen.value) panelPage.value = 'main'
 }
 
 const handleViewportResize = () => {
@@ -1004,7 +1148,7 @@ onBeforeUnmount(() => {
 
 .heart-mode-panel {
   position: absolute;
-  width: min(360px, calc(100vw - 32px));
+  width: min(380px, calc(100vw - 32px));
   overflow: auto;
   box-sizing: border-box;
   padding: 16px;
@@ -1036,37 +1180,64 @@ onBeforeUnmount(() => {
     bottom: auto;
   }
 
-  header {
-    display: flex;
+  .panel-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-
-    div {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    strong {
-      font-size: 16px;
-    }
-
-    span {
-      font-size: 12px;
-      opacity: 0.56;
-    }
+    gap: 9px;
   }
 }
 
+.panel-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    font-size: 16px;
+  }
+
+  span {
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0.56;
+  }
+}
+
+.back-button,
 .close {
-  border: 0;
-  background: transparent;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+  border-radius: 8px;
+  background: var(--color-secondary-bg-for-transparent);
   color: inherit;
   cursor: pointer;
-  font-size: 22px;
+  font: inherit;
   line-height: 1;
-  opacity: 0.6;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover {
+    border-color: rgba(128, 128, 128, 0.38);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 8%,
+      var(--color-secondary-bg-for-transparent)
+    );
+  }
+}
+
+.back-button {
+  font-size: 17px;
+}
+
+.close {
+  font-size: 20px;
+  opacity: 0.72;
 }
 
 .profile-card {
@@ -1272,6 +1443,174 @@ onBeforeUnmount(() => {
       background: var(--color-body-bg);
       font: inherit;
     }
+  }
+}
+
+.subpage-content {
+  margin-top: 14px;
+}
+
+.settings-card {
+  padding: 12px;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-radius: 11px;
+  background: var(--color-secondary-bg-for-transparent);
+
+  & + & {
+    margin-top: 10px;
+  }
+}
+
+.profile-description {
+  margin-top: 11px;
+  padding: 10px;
+  border-radius: 9px;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 7%,
+    var(--color-secondary-bg-for-transparent)
+  );
+
+  > strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12.5px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    opacity: 0.68;
+  }
+}
+
+.profile-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+
+  span {
+    padding: 3px 7px;
+    border: 1px solid rgba(128, 128, 128, 0.18);
+    border-radius: 999px;
+    background: var(--color-body-bg);
+    font-size: 9.5px;
+    opacity: 0.72;
+  }
+}
+
+.settings-disabled-note {
+  margin-top: 9px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.1);
+  font-size: 10.5px;
+  line-height: 1.45;
+  opacity: 0.68;
+}
+
+.panel-navigation {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nav-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 50px;
+  padding: 9px 11px;
+  border: 1px solid rgba(128, 128, 128, 0.24);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-secondary-bg-for-transparent);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-primary) 48%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 8%,
+      var(--color-secondary-bg-for-transparent)
+    );
+  }
+
+  > span:nth-child(2) {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 12px;
+    }
+
+    small {
+      font-size: 10px;
+      line-height: 1.35;
+      opacity: 0.52;
+    }
+  }
+
+  b {
+    font-size: 20px;
+    font-weight: 400;
+    opacity: 0.42;
+  }
+}
+
+.nav-card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.guide-page {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.guide-group {
+  padding: 11px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+  border-radius: 10px;
+  background: var(--color-secondary-bg-for-transparent);
+
+  > strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  li {
+    margin: 4px 0;
+    font-size: 11.5px;
+    line-height: 1.48;
+    opacity: 0.72;
   }
 }
 
@@ -1630,7 +1969,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 680px) {
   .heart-mode-panel {
-    width: min(340px, calc(100vw - 28px));
+    width: min(360px, calc(100vw - 28px));
     max-height: 64vh;
   }
 }
