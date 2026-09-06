@@ -344,7 +344,9 @@
       "mediumCooldown": "中期冷却（天）",
       "longCooldown": "长期衰减（天）",
       "sameArtistDistance": "同艺人最小间隔（首）",
-      "sameSeedDistance": "同分支最小间隔（首）"
+      "sameSeedDistance": "同分支最小间隔（首）",
+      "algorithmEnabled": "使用自定义心动算法",
+      "algorithmEnabledDesc": "开启后使用多 Seed、个性化评分、反馈学习、多样性重排和滚动补歌；关闭后使用网易云单 Seed 原始推荐顺序"
     },
     "nav": {
       "general": "通用",
