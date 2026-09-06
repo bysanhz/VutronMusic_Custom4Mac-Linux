@@ -1,0 +1,42 @@
+name: One-time Heart Mode explanation formatting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/format-heart-mode-explanations-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format Heart Mode assistant
+        run: |
+          ./node_modules/.bin/prettier --write src/renderer/components/HeartModeAssistant.vue
+          git diff --check
+
+      - name: Commit formatting and remove this workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/components/HeartModeAssistant.vue
+          git rm .github/workflows/format-heart-mode-explanations-once.yml
+          git commit -m "chore: format Heart Mode parameter explanations"
+          git push origin HEAD:main
