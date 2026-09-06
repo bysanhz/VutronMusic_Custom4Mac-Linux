@@ -1063,28 +1063,13 @@
         <div v-if="isElectron" v-show="tab === 'update'" key="update">
           <div class="item">
             <div class="left">
-              <div class="title"> {{ $t('settings.update.autoUpdate') }} </div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="autoUpdate"
-                  v-model="general.autoUpdate"
-                  type="checkbox"
-                  name="autoUpdate"
-                />
-                <label for="autoUpdate"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
               <div class="title"
                 >{{ $t('settings.update.currentVersion') + '：' + appVersion }}
                 <label v-if="latestVersion?.isUpdateAvailable" class="update-ext">{{
                   $t(isDownloading ? 'settings.update.updating' : 'settings.update.updateAvailable')
                 }}</label>
               </div>
+              <div class="description">{{ $t('settings.update.manualOnly') }}</div>
             </div>
             <div class="right">
               <button
