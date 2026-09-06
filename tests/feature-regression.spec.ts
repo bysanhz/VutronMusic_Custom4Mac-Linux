@@ -1250,6 +1250,7 @@ test.describe('desktop feature integration', () => {
     expect(updater).toContain("import { compareVersions } from 'compare-versions'")
     expect(updater).toContain('isUpdateAvailable: compareVersions')
     expect(updater).toContain('showManualUpdateDialog')
+    expect(updater).toContain("title: '发现新版本'")
     expect(updater).toContain("buttons: ['打开下载安装页', '稍后']")
     expect(updater).toContain('autoUpdater.downloadUpdate()')
     expect(updater).toContain('autoUpdater.quitAndInstall()')
