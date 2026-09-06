@@ -354,7 +354,8 @@ const TEXTS = {
     diversityShort: '跳脱',
     familiarityShort: '熟悉',
     seedShort: '分支',
-    profileDisabledHint: '自定义算法当前关闭：这些风格参数会保留，但下一次基础网易云心动模式不会使用它们。',
+    profileDisabledHint:
+      '自定义算法当前关闭：这些风格参数会保留，但下一次基础网易云心动模式不会使用它们。',
     algorithmEnabled: '使用自定义心动算法',
     algorithmOnHint: '已启用：多 Seed、个性化评分、反馈学习和滚动补歌。',
     algorithmOffHint: '已关闭：下次启动将使用网易云单 Seed 原始推荐顺序。',
@@ -462,7 +463,8 @@ const TEXTS = {
     diversityShort: '跳脫',
     familiarityShort: '熟悉',
     seedShort: '分支',
-    profileDisabledHint: '自訂演算法目前關閉：這些風格參數會保留，但下一次基礎網易雲心動模式不會使用它們。',
+    profileDisabledHint:
+      '自訂演算法目前關閉：這些風格參數會保留，但下一次基礎網易雲心動模式不會使用它們。',
     algorithmEnabled: '使用自訂心動演算法',
     algorithmOnHint: '已啟用：多 Seed、個人化評分、回饋學習和滾動補歌。',
     algorithmOffHint: '已關閉：下次啟動將使用網易雲單 Seed 原始推薦順序。',
@@ -822,8 +824,8 @@ const panelSubtitle = computed(() => {
 
 const currentProfileModeLabel = computed(
   () =>
-    profileModeOptions.value.find((option) => option.value === heartModeProfile.value.mode)?.label ??
-    texts.value.modeCustom
+    profileModeOptions.value.find((option) => option.value === heartModeProfile.value.mode)
+      ?.label ?? texts.value.modeCustom
 )
 
 const currentProfileModeDescription = computed(() => {
