@@ -514,11 +514,33 @@
                 <div class="title">{{ $t('settings.autoCacheTrack.sizeLimit') }}</div>
               </div>
               <div class="right">
-                <CustomSelect v-model="autoCacheTrack.sizeLimit" :options="sizeLimitOptions" />
+                <CustomSelect v-model="cacheSizeLimitSelection" :options="sizeLimitOptions" />
+              </div>
+            </div>
+            <div v-if="cacheSizeLimitSelection === 'custom'" class="item">
+              <div class="left">
+                <div class="title">{{ $t('settings.autoCacheTrack.customLimit') }}</div>
+                <div class="description">{{ $t('settings.autoCacheTrack.customLimitDesc') }}</div>
+              </div>
+              <div class="right">
+                <div class="cache-custom-limit">
+                  <input
+                    v-model.number="customCacheLimitGb"
+                    type="number"
+                    min="0.1"
+                    max="1024"
+                    step="0.1"
+                    inputmode="decimal"
+                    @change="commitCustomCacheLimit"
+                  />
+                  <span>GB</span>
+                </div>
               </div>
             </div>
             <div class="item">
-              <div class="left">{{ $t('settings.general.musicQuality.text') }}</div>
+              <div class="left">
+                <div class="title">{{ $t('settings.general.musicQuality.text') }}</div>
+              </div>
               <div class="right">
                 <CustomSelect v-model="musicQuality" :options="musicQualityOptions" />
               </div>
@@ -1344,14 +1366,60 @@ const osdLyricAlignOptions = computed(() => [
 ])
 // =========== newADD end ========
 
+const CACHE_SIZE_PRESETS = [512, 1024, 2048, 4096, 8192] as const
+
 const sizeLimitOptions = computed(() => [
   { label: t('settings.autoCacheTrack.noLimit'), value: false },
   { label: '500M', value: 512 },
   { label: '1G', value: 1024 },
   { label: '2G', value: 2048 },
   { label: '4G', value: 4096 },
-  { label: '8G', value: 8192 }
+  { label: '8G', value: 8192 },
+  { label: t('settings.autoCacheTrack.custom'), value: 'custom' }
 ])
+
+const customCacheLimitGb = ref(
+  Math.max(0.1, Number(autoCacheTrack.value.customSizeLimit || 10240) / 1024)
+)
+
+const cacheSizeLimitSelection = computed<boolean | number | string>({
+  get: () => {
+    const value = autoCacheTrack.value.sizeLimit
+    if (value === false) return false
+    return CACHE_SIZE_PRESETS.includes(value as (typeof CACHE_SIZE_PRESETS)[number])
+      ? value
+      : 'custom'
+  },
+  set: (value) => {
+    if (value === 'custom') {
+      const customLimitMb = Math.max(
+        1,
+        Math.round(Number(autoCacheTrack.value.customSizeLimit || 10240))
+      )
+      autoCacheTrack.value.sizeLimit = customLimitMb
+      customCacheLimitGb.value = customLimitMb / 1024
+      return
+    }
+    autoCacheTrack.value.sizeLimit = value as boolean | number
+  }
+})
+
+const commitCustomCacheLimit = () => {
+  const gb = Number(customCacheLimitGb.value)
+  if (!Number.isFinite(gb)) {
+    customCacheLimitGb.value = Math.max(
+      0.1,
+      Number(autoCacheTrack.value.customSizeLimit || 10240) / 1024
+    )
+    return
+  }
+
+  const clampedGb = Math.min(1024, Math.max(0.1, gb))
+  const limitMb = Math.max(1, Math.round(clampedGb * 1024))
+  customCacheLimitGb.value = Number(clampedGb.toFixed(1))
+  autoCacheTrack.value.customSizeLimit = limitMb
+  autoCacheTrack.value.sizeLimit = limitMb
+}
 
 const musicQualityOptions = computed(() => [
   { label: t('settings.general.musicQuality.low') + ' - 128Kbps', value: 128000 },
@@ -1716,6 +1784,9 @@ onMounted(() => {
   mainStyle.value = {
     marginTop: isMac || !useCustomTitlebar.value ? '20px' : '0'
   }
+  if (!Number.isFinite(Number(autoCacheTrack.value.customSizeLimit))) {
+    autoCacheTrack.value.customSizeLimit = 10240
+  }
   getCacheTracksInfo()
   updatePadding(64)
   getAllOutputDevices()
@@ -1958,6 +2029,16 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   color: var(--color-text);
   padding-bottom: 10px;
+
+  > .right {
+    width: 164px;
+    min-width: 164px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+  }
+
   .left {
     padding-right: 6vw;
   }
@@ -1978,6 +2059,7 @@ onBeforeUnmount(() => {
     display: flex;
     font-size: 16px;
     font-weight: 500;
+    line-height: 1.4;
     opacity: 0.78;
     overflow: hidden;
     -webkit-line-clamp: 1;
@@ -2170,12 +2252,25 @@ select {
   outline: none;
 }
 
+:deep(.select-wrapper) {
+  width: 164px;
+  min-width: 164px;
+  flex: 0 0 164px;
+}
+
 :deep(.custom-select) {
+  width: 164px;
   min-width: 164px;
 }
 
+:deep(.custom-select .custom-text) {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 .toggle {
-  margin: auto;
+  margin: 0;
 }
 .toggle input {
   opacity: 0;
@@ -2251,6 +2346,43 @@ input.text-input {
   height: 40px;
   text-align: center;
   box-sizing: border-box;
+}
+
+.cache-custom-limit {
+  width: 164px;
+  height: 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-secondary-bg);
+
+  input {
+    width: 118px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 0;
+    outline: 0;
+    padding: 0 8px 0 12px;
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  span {
+    width: 46px;
+    padding-right: 12px;
+    box-sizing: border-box;
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: right;
+    opacity: 0.68;
+  }
 }
 
 .version-info {
