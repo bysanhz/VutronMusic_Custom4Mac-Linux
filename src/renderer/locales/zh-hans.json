@@ -657,7 +657,6 @@
       "logoutConfirm": "确定登出{service}吗？"
     },
     "update": {
-      "autoUpdate": "自动检查更新",
       "currentVersion": "当前版本",
       "updateCheck": "检查更新",
       "downloadUpdate": "下载更新",
@@ -701,7 +700,8 @@
         "copied": "诊断信息已复制到剪贴板",
         "exported": "诊断文件已导出",
         "logLocated": "已在文件管理器中定位日志文件"
-      }
+      },
+      "manualOnly": "仅在你点击“检查更新”时联网检查；启动应用不会自动检查。"
     },
     "playerTheme": {
       "title": "播放器样式",
