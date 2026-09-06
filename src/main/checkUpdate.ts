@@ -1,6 +1,7 @@
 import { autoUpdater } from 'electron-updater'
 import { parse } from 'node-html-parser'
 import { BrowserWindow, app, dialog, session, shell } from 'electron'
+import { compareVersions } from 'compare-versions'
 import Constants from './utils/Constants'
 
 // ======== newADD start======
@@ -78,6 +79,7 @@ const checkGitHubRelease = async () => {
   const version = normalizeVersion(latestRelease?.tag_name || latestRelease?.name)
 
   return {
+    isUpdateAvailable: compareVersions(version, normalizeVersion(app.getVersion())) > 0,
     updateInfo: {
       version,
       releaseName: latestRelease?.name || `VutronMusic ${version}`,
@@ -101,6 +103,44 @@ const checkGitHubRelease = async () => {
   }
 }
 // =========== newADD end ========
+
+export const showManualUpdateDialog = async (
+  win: BrowserWindow,
+  result: {
+    isUpdateAvailable?: boolean
+    updateInfo?: {
+      version?: string
+      releaseNotes?: unknown
+    }
+    releaseUrl?: string
+  }
+) => {
+  if (!result?.isUpdateAvailable) {
+    await dialog.showMessageBox(win, {
+      type: 'info',
+      title: '检查更新',
+      message: '当前已经是最新版本。',
+      buttons: ['确定']
+    })
+    return
+  }
+
+  const version = normalizeVersion(result.updateInfo?.version)
+  const detail = releaseNotesToText(result.updateInfo?.releaseNotes)
+  const response = await dialog.showMessageBox(win, {
+    type: 'info',
+    title: '发现新版本',
+    message: `发现新版本 ${version}`,
+    detail: `${detail}\n\n当前安装格式需要通过系统安装器完成升级。`,
+    buttons: ['打开下载安装页', '稍后'],
+    defaultId: 0,
+    cancelId: 1
+  })
+
+  if (response.response === 0) {
+    await shell.openExternal(result.releaseUrl || RELEASE_PAGE_URL)
+  }
+}
 
 export const downloadUpdate = async () => {
   if (!canUseNativeUpdater()) {
