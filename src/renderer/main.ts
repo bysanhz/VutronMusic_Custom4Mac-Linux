@@ -33,8 +33,13 @@ import {
   markPlaybackEndReason,
   playbackFeedback
 } from './utils/playbackFeedback'
-import { heartModeProfile, initializeHeartModeProfile } from './utils/heartModeProfile'
 import {
+  heartModeCustomAlgorithmEnabled,
+  heartModeProfile,
+  initializeHeartModeProfile
+} from './utils/heartModeProfile'
+import {
+  clearCurrentHeartModeSession,
   createHeartModeSession,
   getCurrentHeartModeSession,
   getEffectiveHeartModeProfile,
@@ -439,6 +444,43 @@ const publishHeartModeResult = (
   })
 }
 
+/**
+ * 不启用自定义算法时的基础网易云心动模式。
+ *
+ * 只选择一个喜欢歌曲作为 seed，并严格保留 intelligence/list 的返回顺序；
+ * 不创建自适应 Session，不运行多 Seed、Scorer、Reranker 或 rolling refill。
+ */
+const startBasicHeartModeQueue = async (
+  playlistID: number,
+  likedTrackIDs: number[]
+): Promise<number[]> => {
+  const seedTrackID = selectHeartModeSeedIDs(likedTrackIDs, [], 1)[0]
+  if (!seedTrackID) throw new Error('LIKED_PLAYLIST_EMPTY')
+
+  const recommendations = await fetchHeartModeRecommendations(seedTrackID, playlistID)
+  const trackIDs = Array.from(
+    new Set([
+      seedTrackID,
+      ...recommendations.map((item) => item.id).filter((id) => id !== seedTrackID)
+    ])
+  ).slice(0, HEART_MODE_TARGET_COUNT)
+
+  if (trackIDs.length <= 1) {
+    throw new Error('HEART_MODE_RECOMMENDATION_MISSING')
+  }
+
+  markPlaybackEndReason('heart-mode-restart')
+  clearCurrentHeartModeSession()
+  heartModeLikedTrackIDsCache = []
+  heartModeMetadataCache.clear()
+  playerStore.clearPlayNextList()
+  playerStore.shuffle = false
+  playerStore.repeatMode = 'off'
+
+  await playerStore.replacePlaylist('intelligence', playlistID, trackIDs, 0)
+  return trackIDs
+}
+
 const startHeartModeFromLikes = async (requestId = '') => {
   if (heartModeLoading) {
     publishHeartModeResult(requestId, 'error', i18n.global.t('player.heartMode.loadingWait'))
@@ -466,6 +508,16 @@ const startHeartModeFromLikes = async (requestId = '') => {
     }
 
     const likedTrackIDs = await loadHeartModeLikedTrackIDs(playlistID)
+
+    if (!heartModeCustomAlgorithmEnabled.value) {
+      const basicTrackIDs = await startBasicHeartModeQueue(playlistID, likedTrackIDs)
+      const message = i18n.global.t('player.heartMode.started', {
+        count: basicTrackIDs.length
+      })
+      stateStore.showToast(message)
+      publishHeartModeResult(requestId, 'success', message)
+      return
+    }
 
     try {
       await dataStore.fetchPlayHistory()
@@ -607,7 +659,9 @@ const startHeartModeFromLikes = async (requestId = '') => {
     const message =
       error?.message === 'LIKED_PLAYLIST_EMPTY'
         ? i18n.global.t('player.heartMode.likedPlaylistEmpty')
-        : i18n.global.t('player.heartMode.failed')
+        : error?.message === 'HEART_MODE_RECOMMENDATION_MISSING'
+          ? i18n.global.t('player.heartMode.recommendationMissing')
+          : i18n.global.t('player.heartMode.failed')
     stateStore.showToast(message)
     publishHeartModeResult(requestId, 'error', message)
   } finally {
@@ -671,6 +725,7 @@ const refreshHeartModeRollingCandidates = async (): Promise<void> => {
  */
 const replenishHeartModeRollingQueue = async (): Promise<void> => {
   if (heartModeLoading || heartModeRollingLoading) return
+  if (!heartModeCustomAlgorithmEnabled.value) return
   if (playerStore.playlistSource?.type !== 'intelligence') return
 
   const session = getCurrentHeartModeSession()
