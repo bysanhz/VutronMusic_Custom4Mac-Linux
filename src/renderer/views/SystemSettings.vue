@@ -2008,12 +2008,14 @@ onBeforeUnmount(() => {
   display: unset;
 }
 .item {
+  width: 100%;
+  box-sizing: border-box;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: var(--color-text);
-  padding-bottom: 10px;
+  padding: 0 24px 10px 0;
 
   > .right {
     width: 164px;
