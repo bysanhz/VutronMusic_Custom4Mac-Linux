@@ -81,6 +81,7 @@ export const useSettingsStore = defineStore(
       enable: false,
       path: '',
       sizeLimit: 512 as boolean | number,
+      customSizeLimit: 10240,
       number: 0
     })
 
