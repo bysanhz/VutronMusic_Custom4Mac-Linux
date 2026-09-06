@@ -1178,6 +1178,7 @@ test.describe('desktop feature integration', () => {
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
     const session = readSource('src/renderer/utils/heartModeSession.ts')
     const main = readSource('src/renderer/main.ts')
+    const zhLocale = readSource('src/renderer/locales/zh-hans.json')
 
     expect(profile).toContain('vutronmusic-heart-mode-custom-algorithm-enabled-v1')
     expect(profile).toContain('heartModeCustomAlgorithmEnabled = ref(true)')
@@ -1185,6 +1186,13 @@ test.describe('desktop feature integration', () => {
 
     expect(settings).toContain('v-model="useCustomHeartModeAlgorithm"')
     expect(settings).toContain('settings.heartModeProfile.algorithmEnabled')
+    expect(settings).toContain('settings.heartModeProfile.seedConceptTitle')
+    expect(settings).toContain('settings.heartModeProfile.seedConceptDesc')
+    expect(settings).toContain('control.hint')
+    expect(settings).toContain('settings.heartModeProfile.seedCountHint')
+    expect(settings).toContain('settings.heartModeProfile.shortCooldownHint')
+    expect(settings).toContain('settings.heartModeProfile.sameArtistDistanceHint')
+    expect(settings).toContain('settings.heartModeProfile.sameSeedDistanceHint')
 
     expect(assistant).toContain('v-model="customAlgorithmEnabled"')
     expect(assistant).toContain('v-model="selectedProfileMode"')
@@ -1209,9 +1217,21 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('modeExploreDesc')
     expect(assistant).toContain('modeCustomDesc')
     expect(assistant).toContain('profile-summary')
+    expect(assistant).toContain('profile-control-hint')
+    expect(assistant).toContain('seedConceptTitle')
+    expect(assistant).toContain('seedCountHint')
+    expect(assistant).toContain("branchTitle: '兴趣分支的实时偏好'")
+    expect(assistant).toContain('branchHint')
     expect(assistant).not.toContain('<details class="profile-card"')
     expect(assistant).not.toContain('<details class="strategy-card"')
     expect(assistant).toContain(':disabled="!customAlgorithmEnabled || !session"')
+
+    expect(zhLocale).toContain('"diversityHint"')
+    expect(zhLocale).toContain('"noveltyHint"')
+    expect(zhLocale).toContain('"familiarityHint"')
+    expect(zhLocale).toContain('"repeatToleranceHint"')
+    expect(zhLocale).toContain('"seedConceptTitle"')
+    expect(zhLocale).toContain('"seedCountHint"')
 
     expect(main).toContain('const startBasicHeartModeQueue = async')
     expect(main).toContain('slice(0, HEART_MODE_TARGET_COUNT)')
