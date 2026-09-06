@@ -346,7 +346,19 @@
       "sameArtistDistance": "同艺人最小间隔（首）",
       "sameSeedDistance": "同分支最小间隔（首）",
       "algorithmEnabled": "使用自定义心动算法",
-      "algorithmEnabledDesc": "开启后使用多 Seed、个性化评分、反馈学习、多样性重排和滚动补歌；关闭后使用网易云单 Seed 原始推荐顺序"
+      "algorithmEnabledDesc": "开启后使用多 Seed、个性化评分、反馈学习、多样性重排和滚动补歌；关闭后使用网易云单 Seed 原始推荐顺序",
+      "diversityHint": "低：更集中在相近风格和主兴趣分支；高：更容易跨兴趣分支、跨风格。",
+      "noveltyHint": "低：允许最近听过或推荐过的歌更快回来；高：更偏近期没听过的歌，重复惩罚也更强。",
+      "familiarityHint": "低：减少“已喜欢歌曲”在最终队列中的占比；高：允许更多已喜欢歌曲进入队列，并给予轻度加分。",
+      "repeatToleranceHint": "低：强烈回避近期重复；高：更能接受最近听过或推荐过的歌曲再次出现。",
+      "seedCountHint": "一条兴趣分支（Seed）= 从一首喜欢歌曲出发的一路推荐。1 更聚焦；数量越多，候选方向越广（1–8）。",
+      "shortCooldownHint": "刚推荐过的歌曲在这段时间内受到最强重复惩罚。调大后，短时间内更不容易重复。",
+      "mediumCooldownHint": "控制重复惩罚从“强”降到“中等”需要多久。调大后，中期内重复恢复更慢。",
+      "longCooldownHint": "超过这个天数后，历史重复惩罚归零。调大后，系统会更久记住“最近推荐过”。",
+      "sameArtistDistanceHint": "0=不限制；2=同一艺人再次出现前，中间至少隔 2 首。",
+      "sameSeedDistanceHint": "0=不限制；2=同一兴趣分支再次出现前，中间至少隔 2 首。",
+      "seedConceptTitle": "什么是兴趣分支（Seed）？",
+      "seedConceptDesc": "系统会从“我喜欢的音乐”里选若干首歌作为 Seed。每个 Seed 都代表一条兴趣路线，并各自向网易云扩展候选歌曲；这些分支最后再合并评分。"
     },
     "nav": {
       "general": "通用",
