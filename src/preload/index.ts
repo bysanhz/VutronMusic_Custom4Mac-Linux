@@ -52,6 +52,7 @@ const mainAvailChannels: string[] = [
   'systemPing',
   'get-stream-account',
   'check-update',
+  'show-update-dialog',
   'downloadUpdate',
   'update-powersave',
   'openLogFile',
