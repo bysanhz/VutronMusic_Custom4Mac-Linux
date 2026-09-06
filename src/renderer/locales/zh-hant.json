@@ -650,7 +650,6 @@
       "logoutConfirm": "確定登出 {service} 嗎？"
     },
     "update": {
-      "autoUpdate": "自動檢查更新",
       "currentVersion": "目前版本",
       "updateCheck": "檢查更新",
       "downloadUpdate": "下載更新",
@@ -694,7 +693,8 @@
         "copied": "診斷資訊已複製到剪貼簿",
         "exported": "診斷檔案已匯出",
         "logLocated": "已在檔案管理器中定位日誌檔案"
-      }
+      },
+      "manualOnly": "僅在你點擊「檢查更新」時連線檢查；啟動應用程式不會自動檢查。"
     },
     "playerTheme": {
       "title": "播放器樣式",
