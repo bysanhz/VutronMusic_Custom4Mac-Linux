@@ -1242,6 +1242,7 @@ test.describe('desktop feature integration', () => {
 
   test('supports custom cache limits and keeps settings controls aligned', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const settingsFluidLayout = readSource('src/renderer/assets/css/settings-fluid-layout.scss')
     const settingsStore = readSource('src/renderer/store/settings.ts')
     const mainUtils = readSource('src/main/utils/index.ts')
     const zhLocale = readSource('src/renderer/locales/zh-hans.json')
@@ -1255,6 +1256,8 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain('width: 164px')
     expect(settings).toContain('width: 100%')
     expect(settings).toContain('padding: 0 24px 10px 0')
+    expect(settingsFluidLayout).toContain('justify-self: end')
+    expect(settingsFluidLayout).not.toContain('justify-self: stretch')
     expect(settings).toContain(':deep(.select-wrapper)')
     expect(settings).toContain(':deep(.custom-select .custom-text)')
     expect(settings).toContain(
