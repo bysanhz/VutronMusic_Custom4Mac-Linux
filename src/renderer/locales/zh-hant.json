@@ -344,7 +344,9 @@
       "mediumCooldown": "中期冷卻（天）",
       "longCooldown": "長期衰減（天）",
       "sameArtistDistance": "同藝人最小間隔（首）",
-      "sameSeedDistance": "同分支最小間隔（首）"
+      "sameSeedDistance": "同分支最小間隔（首）",
+      "algorithmEnabled": "使用自訂心動演算法",
+      "algorithmEnabledDesc": "開啟後使用多 Seed、個人化評分、回饋學習、多樣性重排和滾動補歌；關閉後使用網易雲單 Seed 原始推薦順序"
     },
     "nav": {
       "general": "通用",
