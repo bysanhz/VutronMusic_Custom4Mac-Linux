@@ -151,30 +151,18 @@ const TEXTS = {
     reasonFamiliarityCap: '为了控制熟悉歌曲比例，它在重排中获得了更合适的位置',
     reasonRank: '它在当前候选中的综合质量排序较高',
     strategyTitle: '完整策略说明',
-    strategySummary: 'Seed、评分、反馈、重排、补歌与重置规则',
-    strategySeedTitle: '1. 多 Seed 候选池',
-    strategySeedBody:
-      '按 Profile 的 seedCount 从“我喜欢的音乐”中选择 Seed，并行请求网易云 intelligence/list；各 Seed 分支按网易云内部排名 round-robin 交织并全局去重，避免第一个 Seed 垄断候选池。',
-    strategyScoreTitle: '2. 个性化评分',
+    strategySummary: '评分逻辑，以及哪些操作会改变后续推荐',
+    strategyScoreTitle: '推荐是怎么排出来的',
     strategyScoreBody:
-      '每个候选综合考虑网易云原始排名质量、novelty、familiarity、历史播放 behavior、推荐历史 repeat cooldown、近期播放惩罚、Seed 多样性以及本轮 branchPreference。Profile 决定探索、熟悉与重复容忍度的权重。',
-    strategyFeedbackTitle: '3. 隐式播放反馈',
+      '系统会从多个 Seed 的网易云推荐结果中建立候选池，再综合原始推荐排名、新鲜度、熟悉度、历史播放反馈、近期重复情况和当前 Seed 分支偏好进行评分。评分后还会限制同艺人/同 Seed 过密出现。初始播放 12 首，剩余少于 5 首时会按最新状态重新评分并补 8 首。',
+    strategyFeedbackTitle: '哪些播放行为会改变评分',
     strategyFeedbackBody:
-      '手动切歌且有效收听 ≤15 秒记 -4；15–45 秒且完成率 <30% 记 -3；完成率 30–70% 记 -1；手动切歌但完成率 ≥80% 记 +1；自然播完记 +2；播放期间主动点赞额外 +5。Seek 跳转不计入有效收听，播放错误、退出、队列替换等生命周期事件不作为负偏好。',
-    strategyBranchTitle: '4. Session 分支自适应',
-    strategyBranchBody:
-      '每个 Seed 维护 branchScore：播放反馈先归一化，再以旧值 75% + 新信号 25% 更新；连续 quick-skip 会附加递增惩罚，最高 0.3。“多来点这种”按 B_new = B + 0.25 × (1 − B) 提升当前分支；“跳远一点”仅在本轮临时执行 novelty +10、diversity +10、familiarity −10，偏移限制在 ±30。',
-    strategyRerankTitle: '5. 多样性重排',
-    strategyRerankBody:
-      'Scorer 排序后再执行 familiarity 配额、同艺人间隔和同 Seed 间隔约束。若候选不足导致约束无法完全满足，会选择违反程度最小的候选并继续补足队列，而不是截断推荐。',
-    strategyQueueTitle: '6. Rolling Queue',
-    strategyQueueBody:
-      '心动模式启动时先生成 12 首；当当前队列剩余少于 5 首时，使用最新 branchScore、最新播放反馈和当前 effective Profile 重新评分 pending 候选，并追加 8 首。补歌使用 append，不会打断当前歌曲或重建 Session。',
-    strategyExplainTitle: '7. 推荐解释与重置',
-    strategyExplainBody:
-      '歌曲真正入队时冻结 recommendation snapshot，包括来源 Seed、评分拆解、原始/最终排名和 rerank 决策，因此之后分数变化不会改写“当时为什么推荐”。“重置本轮学习”会清空本 Session 的播放反馈、branchStates、显式控制和 steering，同时保留喜欢歌曲、长期 Profile、推荐历史、当前队列与解释快照。',
+      '很快手动跳过会明显降分：≤15 秒为 -4；15–45 秒且完成率低于 30% 为 -3；听到中段后再切歌通常为 -1。手动切歌但完成率 ≥80% 为 +1，自然播完为 +2，播放期间主动点赞额外 +5。单纯听过但没点赞不是负反馈；Seek、播放错误、退出和队列替换也不会被当成负偏好。',
+    strategyControlTitle: '两个按钮会怎样改变推荐',
+    strategyControlBody:
+      '“多来点这种”会提高当前歌曲所属 Seed 的 branchScore，让这个方向在后续补歌时更容易排到前面，但仍受艺人/Seed 间隔约束。“跳远一点”只在当前 Session 临时把 novelty +10、diversity +10、familiarity -10，最多累计到 ±30，让下一轮补歌更探索、更分散。“重置本轮学习”会清掉本 Session 的播放反馈、分支分数和临时调整，但保留喜欢歌曲、长期 Profile、推荐历史和当前队列。',
     strategyNote:
-      '长期 Profile 决定总体风格；播放行为和显式按钮只在当前 Session 内动态修正方向。系统不会把“听过但没点赞”自动当成负反馈。',
+      '长期 Profile 决定整体风格；当前 Session 的播放行为和两个按钮只负责短期纠偏。真正影响后续推荐的是评分变化和 Session 临时参数，不会自动修改你的长期 Profile。',
     reset: '重置本轮学习',
     resetHint: '清除本轮评分与调试误操作，不删除喜欢、长期 Profile、推荐历史或当前队列。',
     resetConfirm:
@@ -216,30 +204,18 @@ const TEXTS = {
     reasonFamiliarityCap: '為了控制熟悉歌曲比例，它在重排中取得更合適的位置',
     reasonRank: '它在目前候選中的綜合品質排序較高',
     strategyTitle: '完整策略說明',
-    strategySummary: 'Seed、評分、回饋、重排、補歌與重置規則',
-    strategySeedTitle: '1. 多 Seed 候選池',
-    strategySeedBody:
-      '依 Profile 的 seedCount 從「我喜歡的音樂」選擇 Seed，平行請求網易雲 intelligence/list；各 Seed 分支依內部排名 round-robin 交織並全域去重，避免第一個 Seed 壟斷候選池。',
-    strategyScoreTitle: '2. 個人化評分',
+    strategySummary: '評分邏輯，以及哪些操作會改變後續推薦',
+    strategyScoreTitle: '推薦是怎麼排出來的',
     strategyScoreBody:
-      '每個候選綜合考慮網易雲原始排名品質、novelty、familiarity、歷史播放 behavior、推薦歷史 repeat cooldown、近期播放懲罰、Seed 多樣性與本輪 branchPreference。Profile 決定探索、熟悉與重複容忍度的權重。',
-    strategyFeedbackTitle: '3. 隱式播放回饋',
+      '系統會從多個 Seed 的網易雲推薦結果建立候選池，再綜合原始推薦排名、新鮮度、熟悉度、歷史播放回饋、近期重複情況和目前 Seed 分支偏好進行評分。評分後還會限制同藝人/同 Seed 過密出現。初始播放 12 首，剩餘少於 5 首時會依最新狀態重新評分並補 8 首。',
+    strategyFeedbackTitle: '哪些播放行為會改變評分',
     strategyFeedbackBody:
-      '手動切歌且有效收聽 ≤15 秒記 -4；15–45 秒且完成率 <30% 記 -3；完成率 30–70% 記 -1；手動切歌但完成率 ≥80% 記 +1；自然播完記 +2；播放期間主動按喜歡額外 +5。Seek 跳轉不計入有效收聽，播放錯誤、退出、佇列替換等生命週期事件不作為負偏好。',
-    strategyBranchTitle: '4. Session 分支自適應',
-    strategyBranchBody:
-      '每個 Seed 維護 branchScore：播放回饋先正規化，再以舊值 75% + 新訊號 25% 更新；連續 quick-skip 會附加遞增懲罰，最高 0.3。「多來點這種」依 B_new = B + 0.25 × (1 − B) 提升目前分支；「跳遠一點」只在本輪暫時執行 novelty +10、diversity +10、familiarity −10，偏移限制在 ±30。',
-    strategyRerankTitle: '5. 多樣性重排',
-    strategyRerankBody:
-      'Scorer 排序後再執行 familiarity 配額、同藝人間隔和同 Seed 間隔限制。若候選不足導致限制無法完全滿足，會選擇違反程度最小的候選並繼續補足佇列，而不是截斷推薦。',
-    strategyQueueTitle: '6. Rolling Queue',
-    strategyQueueBody:
-      '心動模式啟動時先產生 12 首；當目前佇列剩餘少於 5 首時，使用最新 branchScore、最新播放回饋與目前 effective Profile 重新評分 pending 候選，並追加 8 首。補歌使用 append，不會打斷目前歌曲或重建 Session。',
-    strategyExplainTitle: '7. 推薦解釋與重置',
-    strategyExplainBody:
-      '歌曲真正入隊時會凍結 recommendation snapshot，包括來源 Seed、評分拆解、原始/最終排名和 rerank 決策，因此之後分數變化不會改寫「當時為什麼推薦」。「重置本輪學習」會清空本 Session 的播放回饋、branchStates、顯式控制和 steering，同時保留喜歡歌曲、長期 Profile、推薦歷史、目前佇列與解釋快照。',
+      '很快手動跳過會明顯降分：≤15 秒為 -4；15–45 秒且完成率低於 30% 為 -3；聽到中段後再切歌通常為 -1。手動切歌但完成率 ≥80% 為 +1，自然播完為 +2，播放期間主動按喜歡額外 +5。單純聽過但沒按喜歡不是負回饋；Seek、播放錯誤、退出和佇列替換也不會被視為負偏好。',
+    strategyControlTitle: '兩個按鈕會怎樣改變推薦',
+    strategyControlBody:
+      '「多來點這種」會提高目前歌曲所屬 Seed 的 branchScore，讓這個方向在後續補歌時更容易排到前面，但仍受藝人/Seed 間隔限制。「跳遠一點」只在目前 Session 暫時把 novelty +10、diversity +10、familiarity -10，最多累計到 ±30，讓下一輪補歌更探索、更分散。「重置本輪學習」會清掉本 Session 的播放回饋、分支分數和暫時調整，但保留喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
     strategyNote:
-      '長期 Profile 決定整體風格；播放行為和顯式按鈕只在目前 Session 內動態修正方向。系統不會把「聽過但沒按喜歡」自動視為負回饋。',
+      '長期 Profile 決定整體風格；目前 Session 的播放行為和兩個按鈕只負責短期修正。真正影響後續推薦的是評分變化和 Session 暫時參數，不會自動修改你的長期 Profile。',
     reset: '重置本輪學習',
     resetHint: '清除本輪評分與測試誤操作，不刪除喜歡、長期 Profile、推薦歷史或目前佇列。',
     resetConfirm:
@@ -284,30 +260,18 @@ const TEXTS = {
     reasonFamiliarityCap: 'It was repositioned to keep the familiar-track mix under control',
     reasonRank: 'It ranked highly among the current candidates',
     strategyTitle: 'Full strategy',
-    strategySummary: 'Seeds, scoring, feedback, reranking, refills, and reset rules',
-    strategySeedTitle: '1. Multi-seed candidate pool',
-    strategySeedBody:
-      'Seeds are selected from liked tracks according to Profile seedCount. NetEase intelligence/list is fetched for each branch in parallel, then branch-ranked candidates are round-robin interleaved and globally deduplicated so the first seed cannot dominate the pool.',
-    strategyScoreTitle: '2. Personalized scoring',
+    strategySummary: 'How scoring works and which actions change future recommendations',
+    strategyScoreTitle: 'How recommendations are ranked',
     strategyScoreBody:
-      'Each candidate combines NetEase rank quality, novelty, familiarity, historical playback behavior, recommendation-history repeat cooldown, recent-play penalties, seed diversity, and the current session branchPreference. The Profile controls the balance among exploration, familiarity, and repetition tolerance.',
-    strategyFeedbackTitle: '3. Implicit playback feedback',
+      'Candidates are pooled from multiple NetEase seed branches, then scored using original recommendation rank, novelty, familiarity, historical playback feedback, recent repetition, and the current seed branch preference. Reranking also prevents the same artist or seed from appearing too densely. Heart Mode starts with 12 tracks and, when fewer than 5 remain, rescoring uses the latest state to append 8 more.',
+    strategyFeedbackTitle: 'Playback actions that change scores',
     strategyFeedbackBody:
-      'Manual switching at ≤15 active seconds scores -4; 15–45 seconds with <30% completion scores -3; 30–70% completion scores -1; a manual switch at ≥80% scores +1; natural completion scores +2; an active like adds +5. Seek jumps are excluded from active listening, while lifecycle events such as playback errors, app exit, and queue replacement are preference-neutral.',
-    strategyBranchTitle: '4. Session branch adaptation',
-    strategyBranchBody:
-      'Each seed keeps a branchScore. Feedback is normalized and updated with 75% previous value + 25% new signal; consecutive quick skips add a growing penalty capped at 0.3. “More like this” applies B_new = B + 0.25 × (1 − B). “Go further” applies session-only novelty +10, diversity +10, familiarity −10, capped to ±30 offsets.',
-    strategyRerankTitle: '5. Diversity reranking',
-    strategyRerankBody:
-      'After scoring, the queue enforces the familiarity quota plus same-artist and same-seed spacing. If the candidate pool cannot satisfy every constraint, the least-violating candidate is selected so the queue remains complete instead of being truncated.',
-    strategyQueueTitle: '6. Rolling queue',
-    strategyQueueBody:
-      'Heart Mode starts with 12 tracks. When fewer than 5 remain, pending candidates are rescored using the latest branch scores, playback feedback, and effective Profile, then 8 tracks are appended. Refill never replaces the active queue or restarts the session.',
-    strategyExplainTitle: '7. Explanation and reset',
-    strategyExplainBody:
-      'A recommendation-time snapshot is frozen when a track is enqueued, including source seed, score breakdown, original/final rank, and rerank decisions. Later score changes therefore do not rewrite the original explanation. Reset clears this session’s playback feedback, branch states, explicit controls, and steering while preserving likes, long-term Profile, recommendation history, current queue, and explanation snapshots.',
+      'Very fast manual skips are strongly negative: ≤15 active seconds scores -4; 15–45 seconds with <30% completion scores -3; switching after reaching the middle is usually -1. A manual switch at ≥80% completion scores +1, natural completion scores +2, and an active like adds +5. Merely hearing a track without liking it is not negative; seeks, playback errors, app exit, and queue replacement are preference-neutral.',
+    strategyControlTitle: 'How the two controls change recommendations',
+    strategyControlBody:
+      '“More like this” raises the current track’s seed branchScore so that direction can rank higher in later refills, while artist/seed spacing still applies. “Go further” changes only this session by applying novelty +10, diversity +10, familiarity -10 per click, capped at ±30, making the next refill more exploratory. Reset clears this session’s playback feedback, branch scores, and temporary steering while preserving likes, the long-term Profile, recommendation history, and current queue.',
     strategyNote:
-      'The long-term Profile sets the overall style; playback behavior and explicit controls only steer the current session. Merely hearing a track without liking it is not treated as negative feedback.',
+      'The long-term Profile sets the overall style. Playback behavior and the two controls only steer the current session; they do not automatically rewrite your long-term Profile.',
     reset: 'Reset session learning',
     resetHint:
       'Clears session scores and accidental test feedback without changing likes, long-term Profile, recommendation history, or the current queue.',
@@ -395,13 +359,9 @@ const explanationItems = computed(() => {
 })
 
 const strategyItems = computed(() => [
-  { title: texts.value.strategySeedTitle, body: texts.value.strategySeedBody },
   { title: texts.value.strategyScoreTitle, body: texts.value.strategyScoreBody },
   { title: texts.value.strategyFeedbackTitle, body: texts.value.strategyFeedbackBody },
-  { title: texts.value.strategyBranchTitle, body: texts.value.strategyBranchBody },
-  { title: texts.value.strategyRerankTitle, body: texts.value.strategyRerankBody },
-  { title: texts.value.strategyQueueTitle, body: texts.value.strategyQueueBody },
-  { title: texts.value.strategyExplainTitle, body: texts.value.strategyExplainBody }
+  { title: texts.value.strategyControlTitle, body: texts.value.strategyControlBody }
 ])
 
 const loadSeedNames = async () => {
@@ -503,13 +463,13 @@ onBeforeUnmount(() => {
 .heart-mode-trigger {
   width: 42px;
   height: 42px;
-  border: 1px solid rgba(128, 128, 128, 0.34);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 50%;
   cursor: pointer;
   font: inherit;
   font-size: 18px;
-  color: var(--color-text);
-  background: var(--color-body-bg);
+  color: #202124;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.22),
@@ -521,7 +481,7 @@ onBeforeUnmount(() => {
 
   &:hover {
     transform: translateY(-1px);
-    border-color: rgba(128, 128, 128, 0.52);
+    border-color: rgba(0, 0, 0, 0.22);
     box-shadow:
       0 12px 32px rgba(0, 0, 0, 0.26),
       0 0 0 1px rgba(255, 255, 255, 0.06) inset;
@@ -637,16 +597,16 @@ onBeforeUnmount(() => {
   margin-top: 12px;
 
   button {
-    min-height: 40px;
+    min-height: 42px;
     padding: 0 14px;
-    border: 1px solid rgba(128, 128, 128, 0.36);
+    border: 1px solid rgba(255, 255, 255, 0.24);
     border-radius: 10px;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
-    font-weight: 650;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--color-text);
-    background: var(--color-secondary-bg-for-transparent);
+    background: rgba(255, 255, 255, 0.1);
     box-shadow:
       0 3px 10px rgba(0, 0, 0, 0.12),
       0 1px 0 rgba(255, 255, 255, 0.06) inset;
@@ -763,12 +723,12 @@ onBeforeUnmount(() => {
     }
 
     span {
-      font-size: 12px;
-      font-weight: 650;
+      font-size: 13.5px;
+      font-weight: 700;
     }
 
     small {
-      font-size: 10px;
+      font-size: 11px;
       line-height: 1.4;
       opacity: 0.52;
     }
@@ -800,12 +760,13 @@ onBeforeUnmount(() => {
     }
 
     strong {
-      font-size: 11px;
+      font-size: 13px;
       line-height: 1.4;
+      font-weight: 700;
     }
 
     span {
-      font-size: 10.5px;
+      font-size: 11.5px;
       line-height: 1.55;
       opacity: 0.66;
     }
@@ -817,8 +778,8 @@ onBeforeUnmount(() => {
   padding: 9px 10px;
   border-radius: 8px;
   background: rgba(128, 128, 128, 0.1);
-  font-size: 10.5px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.55;
   opacity: 0.72;
 }
 
