@@ -1253,6 +1253,8 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain('commitCustomCacheLimit')
     expect(settings).toContain('CACHE_SIZE_PRESETS')
     expect(settings).toContain('width: 164px')
+    expect(settings).toContain('width: 100%')
+    expect(settings).toContain('padding: 0 24px 10px 0')
     expect(settings).toContain(':deep(.select-wrapper)')
     expect(settings).toContain(':deep(.custom-select .custom-text)')
     expect(settings).toContain(
