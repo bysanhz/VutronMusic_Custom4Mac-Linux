@@ -58,8 +58,7 @@ const { show, type, isLock } = storeToRefs(osdLyricStore)
 
 const stateStore = useNormalStateStore()
 const { extensionCheckResult, showLyrics, isDownloading } = storeToRefs(stateStore)
-const { showToast, checkUpdate, registerInstance, unregisterInstance, updateScroll, getFontList } =
-  stateStore
+const { showToast, registerInstance, unregisterInstance, updateScroll, getFontList } = stateStore
 
 const {
   fetchLikedPlaylist,
@@ -310,9 +309,6 @@ onMounted(async () => {
     theme.value.colors.find((c) => c.selected)?.color || 'rgba(51, 94, 234, 1)'
   )
   fetchData()
-  if (general.value.autoUpdate) {
-    checkUpdate()
-  }
 })
 
 onBeforeUnmount(() => {
