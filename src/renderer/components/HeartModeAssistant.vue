@@ -43,8 +43,14 @@
         </div>
 
         <div class="actions">
-          <button @click="moreLikeThis">{{ texts.moreLikeThis }}</button>
-          <button @click="goFurther">{{ texts.goFurther }}</button>
+          <button class="heart-action-button" @click="moreLikeThis">
+            <span class="heart-action-icon" aria-hidden="true">＋</span>
+            <span>{{ texts.moreLikeThis }}</span>
+          </button>
+          <button class="heart-action-button" @click="goFurther">
+            <span class="heart-action-icon" aria-hidden="true">↗</span>
+            <span>{{ texts.goFurther }}</span>
+          </button>
         </div>
 
         <div v-if="session" class="section session-section">
@@ -109,7 +115,10 @@
         </details>
 
         <div class="reset-zone">
-          <button class="reset-button" @click="resetLearning">{{ texts.reset }}</button>
+          <button class="heart-action-button reset-button" @click="resetLearning">
+            <span class="heart-action-icon" aria-hidden="true">↺</span>
+            <span>{{ texts.reset }}</span>
+          </button>
           <span>{{ texts.resetHint }}</span>
         </div>
       </section>
@@ -844,46 +853,71 @@ onBeforeUnmount(() => {
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 13px;
+}
 
-  button {
-    min-height: 42px;
-    padding: 0 14px;
-    border: 1px solid color-mix(in srgb, var(--color-primary) 58%, transparent);
-    border-radius: 10px;
-    cursor: pointer;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-text);
-    background: color-mix(
-      in srgb,
-      var(--color-primary) 16%,
-      var(--color-secondary-bg-for-transparent)
-    );
+.heart-action-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 78%, #ffffff 22%);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-primary);
+  box-shadow:
+    0 5px 14px color-mix(in srgb, var(--color-primary) 32%, transparent),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.1) inset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  user-select: none;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+    border-color: color-mix(in srgb, var(--color-primary) 58%, #ffffff 42%);
     box-shadow:
-      0 3px 10px rgba(0, 0, 0, 0.12),
-      0 1px 0 color-mix(in srgb, var(--color-primary) 18%, transparent) inset;
-    transition:
-      transform 0.12s ease,
-      border-color 0.12s ease,
-      box-shadow 0.12s ease,
-      filter 0.12s ease;
-
-    &:hover {
-      filter: brightness(1.1);
-      border-color: color-mix(in srgb, var(--color-primary) 78%, transparent);
-      box-shadow:
-        0 5px 14px rgba(0, 0, 0, 0.16),
-        0 1px 0 rgba(255, 255, 255, 0.08) inset;
-    }
-
-    &:active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
+      0 7px 18px color-mix(in srgb, var(--color-primary) 38%, transparent),
+      0 1px 0 rgba(255, 255, 255, 0.24) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.12) inset;
   }
+
+  &:active {
+    transform: translateY(1px) scale(0.985);
+    filter: brightness(0.96);
+    box-shadow:
+      0 2px 7px color-mix(in srgb, var(--color-primary) 24%, transparent),
+      0 1px 2px rgba(0, 0, 0, 0.14) inset;
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 65%, #ffffff 35%);
+    outline-offset: 2px;
+  }
+}
+
+.heart-action-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .metrics {
@@ -1062,36 +1096,27 @@ onBeforeUnmount(() => {
 
 .reset-button {
   align-self: flex-start;
-  min-height: 34px;
+  min-height: 36px;
   padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 44%, transparent);
-  border-radius: 9px;
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 10%,
-    var(--color-secondary-bg-for-transparent)
-  );
+  border-color: rgba(128, 128, 128, 0.42);
   color: var(--color-text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-  transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    transform 0.12s ease;
+  background: var(--color-secondary-bg-for-transparent);
+  box-shadow:
+    0 3px 9px rgba(0, 0, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.08) inset;
 
-  &:hover {
-    border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
-    background: color-mix(
-      in srgb,
-      var(--color-primary) 16%,
-      var(--color-secondary-bg-for-transparent)
-    );
+  .heart-action-icon {
+    background: rgba(128, 128, 128, 0.18);
   }
 
-  &:active {
-    transform: translateY(1px);
+  &:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 62%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 12%,
+      var(--color-secondary-bg-for-transparent)
+    );
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
   }
 }
 
