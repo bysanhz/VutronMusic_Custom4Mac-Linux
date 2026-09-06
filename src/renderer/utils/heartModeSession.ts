@@ -1,4 +1,7 @@
-import type { HeartModeProfile } from './heartModeProfile'
+import {
+  heartModeCustomAlgorithmEnabled,
+  type HeartModeProfile
+} from './heartModeProfile'
 import type { HeartModeScoreBreakdown } from './heartModeScorer'
 import type { HeartModeRerankDecision } from './heartModeReranker'
 
@@ -354,7 +357,7 @@ export const getEffectiveHeartModeProfile = (
 
 export const getHeartModeTrackContext = (trackID: number): HeartModeTrackContext | null => {
   hydrate()
-  if (!currentSession) return null
+  if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null
 
   const id = normalizePositiveID(trackID)
   if (!id || !(String(id) in currentSession.sourceSeedByTrackID)) return null
@@ -387,7 +390,12 @@ export const applyHeartModeFeedbackToSession = (
   signal: HeartModeBranchFeedbackSignal
 ): HeartModeBranchState | null => {
   hydrate()
-  if (!currentSession || signal.sessionId !== currentSession.id || signal.score === null) {
+  if (
+    !heartModeCustomAlgorithmEnabled.value ||
+    !currentSession ||
+    signal.sessionId !== currentSession.id ||
+    signal.score === null
+  ) {
     return null
   }
 
@@ -413,7 +421,7 @@ export const boostHeartModeCurrentBranch = (
   now = Date.now()
 ): HeartModeBranchState | null => {
   hydrate()
-  if (!currentSession) return null
+  if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null
   const id = normalizePositiveID(trackID)
   if (!id) return null
   const seedId = normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)])
@@ -446,7 +454,7 @@ export const steerHeartModeFurther = (
   now = Date.now()
 ): HeartModeSteering | null => {
   hydrate()
-  if (!currentSession) return null
+  if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null
   const id = normalizePositiveID(trackID)
   if (!id) return null
 
