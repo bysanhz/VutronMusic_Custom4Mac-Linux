@@ -346,7 +346,19 @@
       "sameArtistDistance": "Same-artist minimum spacing (tracks)",
       "sameSeedDistance": "Same-branch minimum spacing (tracks)",
       "algorithmEnabled": "Use Custom Heart Mode Algorithm",
-      "algorithmEnabledDesc": "When enabled, use multi-seed personalized scoring, feedback learning, diversity reranking and rolling refills. When disabled, keep NetEase single-seed recommendation order."
+      "algorithmEnabledDesc": "When enabled, use multi-seed personalized scoring, feedback learning, diversity reranking and rolling refills. When disabled, keep NetEase single-seed recommendation order.",
+      "diversityHint": "Low: stay near the main style and seed branch. High: cross seed branches and styles more often.",
+      "noveltyHint": "Low: recently heard or recommended tracks can return sooner. High: prefer less-recent tracks and apply stronger repeat penalties.",
+      "familiarityHint": "Low: reduce the share of already-liked tracks. High: allow more liked tracks into the final queue and give them a small bonus.",
+      "repeatToleranceHint": "Low: strongly avoid recent repeats. High: allow recently heard or recommended tracks to return more easily.",
+      "seedCountHint": "One interest branch (Seed) starts from one liked track and expands its own recommendation path. 1 is focused; more branches broaden the candidate directions (1–8).",
+      "shortCooldownHint": "Tracks just recommended receive the strongest repeat penalty during this window. Higher values suppress short-term repeats for longer.",
+      "mediumCooldownHint": "Controls how long repeat penalties take to decay from strong to medium. Higher values keep mid-term repeats suppressed longer.",
+      "longCooldownHint": "After this many days, historical repeat penalty reaches zero. Higher values remember prior recommendations for longer.",
+      "sameArtistDistanceHint": "0 = no limit; 2 = at least 2 tracks must appear between songs by the same artist.",
+      "sameSeedDistanceHint": "0 = no limit; 2 = at least 2 tracks must appear between songs from the same interest branch.",
+      "seedConceptTitle": "What is an interest branch (Seed)?",
+      "seedConceptDesc": "The system picks several liked tracks as Seeds. Each Seed represents one interest direction and expands its own NetEase candidate list; the branches are then merged and scored together."
     },
     "nav": {
       "general": "General",
