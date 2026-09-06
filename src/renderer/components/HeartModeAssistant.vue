@@ -120,6 +120,7 @@
             </div>
 
             <div class="branch-section-title">{{ texts.branchTitle }}</div>
+            <div class="branch-section-hint">{{ texts.branchHint }}</div>
             <div class="branches">
               <div v-for="branch in branchRows" :key="branch.seedId" class="branch-row">
                 <span class="branch-name">{{ branch.name }}</span>
@@ -190,6 +191,11 @@
                 </div>
               </div>
 
+              <div class="seed-concept">
+                <strong>{{ texts.seedConceptTitle }}</strong>
+                <p>{{ texts.seedConceptDesc }}</p>
+              </div>
+
               <div v-if="!customAlgorithmEnabled" class="settings-disabled-note">
                 {{ texts.profileDisabledHint }}
               </div>
@@ -212,13 +218,17 @@
                     :value="control.value"
                     @input="updateProfileCore(control.key, $event)"
                   />
+                  <small class="profile-control-hint">{{ control.hint }}</small>
                 </label>
 
                 <details class="profile-advanced">
                   <summary>{{ texts.advanced }}</summary>
                   <div class="profile-advanced-grid">
                     <label>
-                      <span>{{ texts.seedCount }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.seedCount }}</strong>
+                        <small>{{ texts.seedCountHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="1"
@@ -229,7 +239,10 @@
                       />
                     </label>
                     <label>
-                      <span>{{ texts.shortCooldown }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.shortCooldown }}</strong>
+                        <small>{{ texts.shortCooldownHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="1"
@@ -240,7 +253,10 @@
                       />
                     </label>
                     <label>
-                      <span>{{ texts.mediumCooldown }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.mediumCooldown }}</strong>
+                        <small>{{ texts.mediumCooldownHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="1"
@@ -251,7 +267,10 @@
                       />
                     </label>
                     <label>
-                      <span>{{ texts.longCooldown }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.longCooldown }}</strong>
+                        <small>{{ texts.longCooldownHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="7"
@@ -262,7 +281,10 @@
                       />
                     </label>
                     <label>
-                      <span>{{ texts.sameArtistDistance }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.sameArtistDistance }}</strong>
+                        <small>{{ texts.sameArtistDistanceHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="0"
@@ -273,7 +295,10 @@
                       />
                     </label>
                     <label>
-                      <span>{{ texts.sameSeedDistance }}</span>
+                      <span class="advanced-field-label">
+                        <strong>{{ texts.sameSeedDistance }}</strong>
+                        <small>{{ texts.sameSeedDistanceHint }}</small>
+                      </span>
                       <input
                         type="number"
                         min="0"
@@ -368,20 +393,33 @@ const TEXTS = {
     modeExplore: '探索',
     modeCustom: '自定义',
     diversityLabel: '风格跳脱度',
+    diversityHint: '低：更集中在相近风格和主兴趣分支；高：更容易跨兴趣分支、跨风格。',
     noveltyLabel: '新鲜度',
+    noveltyHint: '低：最近听过或推荐过的歌可以更快回来；高：更偏近期没听过的歌，重复惩罚也更强。',
     familiarityLabel: '熟悉感',
+    familiarityHint: '低：减少已喜欢歌曲的占比；高：允许更多已喜欢歌曲进入队列，并给予轻度加分。',
     repeatToleranceLabel: '重复容忍度',
+    repeatToleranceHint: '低：强烈回避近期重复；高：更能接受最近听过或推荐过的歌曲再次出现。',
     advanced: '高级参数',
+    seedConceptTitle: '什么是兴趣分支（Seed）？',
+    seedConceptDesc:
+      '系统会从“我喜欢的音乐”中选若干首歌作为 Seed。每个 Seed 代表一条兴趣路线，并各自向网易云扩展候选；这些分支最后再合并评分。',
     seedCount: '兴趣分支数',
+    seedCountHint: '1 更聚焦；数量越多，并行的兴趣路线越多、候选方向越广（1–8）。',
     shortCooldown: '短期强冷却（小时）',
+    shortCooldownHint: '调大后，刚推荐过的歌曲在短时间内更不容易再次出现。',
     mediumCooldown: '中期冷却（天）',
+    mediumCooldownHint: '调大后，中期重复惩罚恢复得更慢。',
     longCooldown: '长期衰减（天）',
+    longCooldownHint: '超过这个天数后历史重复惩罚归零；调大后系统会更久记住“最近推荐过”。',
     sameArtistDistance: '同艺人最小间隔',
-    sameSeedDistance: '同分支最小间隔',
+    sameArtistDistanceHint: '0=不限制；2=同一艺人再次出现前，中间至少隔 2 首。',
+    sameSeedDistance: '同兴趣分支最小间隔',
+    sameSeedDistanceHint: '0=不限制；2=同一兴趣分支再次出现前，中间至少隔 2 首。',
     basicModeReason: '当前使用基础网易云心动模式，不运行自定义评分，因此没有推荐解释快照。',
     why: '为什么推荐这首？',
-    from: '来自这个推荐方向',
-    sourceHint: '当前歌曲由这个 Seed 分支扩展出来，不是歌曲的平台来源。',
+    from: '来自这个兴趣分支',
+    sourceHint: '当前歌曲由这首 Seed 代表的兴趣路线扩展出来，不是歌曲的平台来源。',
     noSnapshot: '这首歌没有解释快照；下一次新生成或补充的歌曲会自动记录。',
     moreLikeThis: '多来点这种',
     goFurther: '跳远一点',
@@ -390,7 +428,8 @@ const TEXTS = {
     explore: '新歌倾向',
     diversity: '风格分散',
     familiarity: '熟歌倾向',
-    branchTitle: '各推荐方向的实时反馈',
+    branchTitle: '兴趣分支的实时偏好',
+    branchHint: '每一行代表由一首 Seed 歌曲扩展出的兴趣路线；右侧状态是整条路线的本轮权重，不是对这首 Seed 歌曲本身的评分。',
     played: '已听',
     queued: '已入队',
     pending: '待选',
@@ -476,20 +515,33 @@ const TEXTS = {
     modeExplore: '探索',
     modeCustom: '自訂',
     diversityLabel: '風格跳脫度',
+    diversityHint: '低：更集中在相近風格和主興趣分支；高：更容易跨興趣分支、跨風格。',
     noveltyLabel: '新鮮度',
+    noveltyHint: '低：最近聽過或推薦過的歌可以更快回來；高：更偏近期沒聽過的歌，重複懲罰也更強。',
     familiarityLabel: '熟悉感',
+    familiarityHint: '低：降低已喜歡歌曲的比例；高：允許更多已喜歡歌曲進入佇列，並給予輕度加分。',
     repeatToleranceLabel: '重複容忍度',
+    repeatToleranceHint: '低：強烈避開近期重複；高：更能接受最近聽過或推薦過的歌曲再次出現。',
     advanced: '進階參數',
+    seedConceptTitle: '什麼是興趣分支（Seed）？',
+    seedConceptDesc:
+      '系統會從「我喜歡的音樂」選若干首歌作為 Seed。每個 Seed 代表一條興趣路線，並各自向網易雲延伸候選；這些分支最後再合併評分。',
     seedCount: '興趣分支數',
+    seedCountHint: '1 更聚焦；數量越多，平行的興趣路線越多、候選方向越廣（1–8）。',
     shortCooldown: '短期強冷卻（小時）',
+    shortCooldownHint: '調大後，剛推薦過的歌曲在短時間內更不容易再次出現。',
     mediumCooldown: '中期冷卻（天）',
+    mediumCooldownHint: '調大後，中期重複懲罰恢復得更慢。',
     longCooldown: '長期衰減（天）',
+    longCooldownHint: '超過這個天數後歷史重複懲罰歸零；調大後系統會更久記住「最近推薦過」。',
     sameArtistDistance: '同藝人最小間隔',
-    sameSeedDistance: '同分支最小間隔',
+    sameArtistDistanceHint: '0=不限制；2=同一藝人再次出現前，中間至少隔 2 首。',
+    sameSeedDistance: '同興趣分支最小間隔',
+    sameSeedDistanceHint: '0=不限制；2=同一興趣分支再次出現前，中間至少隔 2 首。',
     basicModeReason: '目前使用基礎網易雲心動模式，不執行自訂評分，因此沒有推薦解釋快照。',
     why: '為什麼推薦這首？',
-    from: '來自這個推薦方向',
-    sourceHint: '目前歌曲由這個 Seed 分支延伸而來，不是歌曲的平台來源。',
+    from: '來自這個興趣分支',
+    sourceHint: '目前歌曲由這首 Seed 代表的興趣路線延伸而來，不是歌曲的平台來源。',
     noSnapshot: '這首歌沒有解釋快照；下一次新產生或補充的歌曲會自動記錄。',
     moreLikeThis: '多來點這種',
     goFurther: '跳遠一點',
@@ -498,7 +550,8 @@ const TEXTS = {
     explore: '新歌傾向',
     diversity: '風格分散',
     familiarity: '熟歌傾向',
-    branchTitle: '各推薦方向的即時回饋',
+    branchTitle: '興趣分支的即時偏好',
+    branchHint: '每一行代表由一首 Seed 歌曲延伸出的興趣路線；右側狀態是整條路線的本輪權重，不是對這首 Seed 歌曲本身的評分。',
     played: '已聽',
     queued: '已入隊',
     pending: '待選',
@@ -590,22 +643,35 @@ const TEXTS = {
     modeExplore: 'Explore',
     modeCustom: 'Custom',
     diversityLabel: 'Style diversity',
+    diversityHint: 'Low stays near the main style and seed branch; high crosses branches and styles more often.',
     noveltyLabel: 'Novelty',
+    noveltyHint: 'Low lets recent tracks return sooner; high favors less-recent tracks and strengthens repeat penalties.',
     familiarityLabel: 'Familiarity',
+    familiarityHint: 'Low reduces the share of liked tracks; high allows more liked tracks and gives them a small bonus.',
     repeatToleranceLabel: 'Repeat tolerance',
+    repeatToleranceHint: 'Low strongly avoids recent repeats; high allows recently heard or recommended tracks to return more easily.',
     advanced: 'Advanced parameters',
+    seedConceptTitle: 'What is an interest branch (Seed)?',
+    seedConceptDesc:
+      'The system picks liked tracks as Seeds. Each Seed represents one interest route and expands its own NetEase candidates; the branches are then merged and scored together.',
     seedCount: 'Interest branches',
+    seedCountHint: '1 is focused; more branches broaden the parallel interest routes and candidate directions (1–8).',
     shortCooldown: 'Strong cooldown (hours)',
+    shortCooldownHint: 'Higher values keep just-recommended tracks from returning in the short term for longer.',
     mediumCooldown: 'Medium cooldown (days)',
+    mediumCooldownHint: 'Higher values make mid-term repeat penalties recover more slowly.',
     longCooldown: 'Long decay (days)',
+    longCooldownHint: 'After this many days, historical repeat penalty reaches zero; higher values remember prior recommendations longer.',
     sameArtistDistance: 'Same-artist minimum spacing',
-    sameSeedDistance: 'Same-branch minimum spacing',
+    sameArtistDistanceHint: '0 = no limit; 2 = at least 2 tracks must appear between songs by the same artist.',
+    sameSeedDistance: 'Same-interest-branch minimum spacing',
+    sameSeedDistanceHint: '0 = no limit; 2 = at least 2 tracks must appear between songs from the same interest branch.',
     basicModeReason:
       'Basic NetEase Heart Mode is active. Custom scoring is disabled, so no recommendation explanation snapshot is generated.',
     why: 'Why this track?',
-    from: 'From this recommendation direction',
+    from: 'From this interest branch',
     sourceHint:
-      'The current track was expanded from this seed branch; this is not the music platform source.',
+      'The current track was expanded from the interest route represented by this Seed; this is not the music platform source.',
     noSnapshot:
       'No explanation snapshot is available for this track yet. Newly generated or refilled tracks will record one automatically.',
     moreLikeThis: 'More like this',
@@ -616,7 +682,9 @@ const TEXTS = {
     explore: 'New-track tendency',
     diversity: 'Style spread',
     familiarity: 'Familiar-track tendency',
-    branchTitle: 'Live feedback for each recommendation direction',
+    branchTitle: 'Live preference for each interest branch',
+    branchHint:
+      'Each row is an interest route expanded from one Seed track. The state on the right is the weight of the whole route in this session, not a score for the Seed track itself.',
     played: 'Played',
     queued: 'Queued',
     pending: 'Pending',
@@ -709,27 +777,31 @@ const profileModeOptions = computed(() => [
 ])
 
 const profileCoreControls = computed<
-  Array<{ key: HeartModeCoreField; label: string; value: number }>
+  Array<{ key: HeartModeCoreField; label: string; value: number; hint: string }>
 >(() => [
   {
     key: 'diversity',
     label: texts.value.diversityLabel,
-    value: heartModeProfile.value.diversity
+    value: heartModeProfile.value.diversity,
+    hint: texts.value.diversityHint
   },
   {
     key: 'novelty',
     label: texts.value.noveltyLabel,
-    value: heartModeProfile.value.novelty
+    value: heartModeProfile.value.novelty,
+    hint: texts.value.noveltyHint
   },
   {
     key: 'familiarity',
     label: texts.value.familiarityLabel,
-    value: heartModeProfile.value.familiarity
+    value: heartModeProfile.value.familiarity,
+    hint: texts.value.familiarityHint
   },
   {
     key: 'repeatTolerance',
     label: texts.value.repeatToleranceLabel,
-    value: heartModeProfile.value.repeatTolerance
+    value: heartModeProfile.value.repeatTolerance,
+    hint: texts.value.repeatToleranceHint
   }
 ])
 
@@ -1418,6 +1490,31 @@ onBeforeUnmount(() => {
   }
 }
 
+.seed-concept {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-radius: 9px;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    var(--color-secondary-bg-for-transparent)
+  );
+
+  strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11.5px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 10.5px;
+    line-height: 1.48;
+    opacity: 0.66;
+  }
+}
+
 .profile-custom {
   margin-top: 12px;
   padding-top: 11px;
@@ -1443,6 +1540,14 @@ onBeforeUnmount(() => {
   }
 }
 
+.profile-control-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 9.8px;
+  line-height: 1.42;
+  opacity: 0.56;
+}
+
 .profile-advanced {
   margin-top: 10px;
 
@@ -1465,10 +1570,23 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 4px;
 
-    span {
-      font-size: 9.5px;
-      line-height: 1.3;
-      opacity: 0.62;
+    .advanced-field-label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 2px;
+
+      strong {
+        font-size: 9.8px;
+        font-weight: 650;
+        line-height: 1.3;
+      }
+
+      small {
+        font-size: 8.8px;
+        line-height: 1.35;
+        opacity: 0.52;
+      }
     }
 
     input {
@@ -1755,10 +1873,17 @@ onBeforeUnmount(() => {
 
 .branch-section-title {
   margin-top: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   font-size: 11.5px;
   font-weight: 650;
   opacity: 0.68;
+}
+
+.branch-section-hint {
+  margin-bottom: 7px;
+  font-size: 9.8px;
+  line-height: 1.4;
+  opacity: 0.5;
 }
 
 .branches {
