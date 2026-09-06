@@ -51,7 +51,6 @@ export const useSettingsStore = defineStore(
       enabledPlaylistCategories,
       fadeDuration: 0.2, // 音频淡入淡出时长（秒）
       showBanner: true,
-      autoUpdate: true,
       jumpToLyricBegin: false,
       trayColor: 0, // 0: 彩色, 1: 白色, 2: 黑色, 3: 跟随系统
       showChorus: true, // 进度条显示副歌时间
