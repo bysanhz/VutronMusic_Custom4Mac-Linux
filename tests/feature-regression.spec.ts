@@ -1187,7 +1187,7 @@ test.describe('desktop feature integration', () => {
     expect(settings).not.toContain('heartModeProfile')
     expect(settings).not.toContain('heart-mode-custom-algorithm')
     expect(settings).not.toContain('heart-mode-custom-panel')
-    expect(settings).not.toContain("../utils/heartModeProfile")
+    expect(settings).not.toContain('../utils/heartModeProfile')
 
     expect(assistant).toContain('v-model="customAlgorithmEnabled"')
     expect(assistant).toContain('v-model="selectedProfileMode"')
