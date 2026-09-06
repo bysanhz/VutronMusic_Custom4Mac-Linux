@@ -1258,6 +1258,9 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain(
       '<div class="title">{{ $t(\'settings.general.musicQuality.text\') }}</div>'
     )
+    expect(settings).not.toContain(
+      '<div class="left">{{ $t(\'settings.general.musicQuality.text\') }}</div>'
+    )
     expect(zhLocale).toContain('"customLimit"')
     expect(mainUtils).toContain('const limitInBytes = (sizeLimit as number) * 1024 * 1024')
   })
