@@ -429,7 +429,8 @@ const TEXTS = {
     diversity: '风格分散',
     familiarity: '熟歌倾向',
     branchTitle: '兴趣分支的实时偏好',
-    branchHint: '每一行代表由一首 Seed 歌曲扩展出的兴趣路线；右侧状态是整条路线的本轮权重，不是对这首 Seed 歌曲本身的评分。',
+    branchHint:
+      '每一行代表由一首 Seed 歌曲扩展出的兴趣路线；右侧状态是整条路线的本轮权重，不是对这首 Seed 歌曲本身的评分。',
     played: '已听',
     queued: '已入队',
     pending: '待选',
@@ -551,7 +552,8 @@ const TEXTS = {
     diversity: '風格分散',
     familiarity: '熟歌傾向',
     branchTitle: '興趣分支的即時偏好',
-    branchHint: '每一行代表由一首 Seed 歌曲延伸出的興趣路線；右側狀態是整條路線的本輪權重，不是對這首 Seed 歌曲本身的評分。',
+    branchHint:
+      '每一行代表由一首 Seed 歌曲延伸出的興趣路線；右側狀態是整條路線的本輪權重，不是對這首 Seed 歌曲本身的評分。',
     played: '已聽',
     queued: '已入隊',
     pending: '待選',
@@ -643,29 +645,38 @@ const TEXTS = {
     modeExplore: 'Explore',
     modeCustom: 'Custom',
     diversityLabel: 'Style diversity',
-    diversityHint: 'Low stays near the main style and seed branch; high crosses branches and styles more often.',
+    diversityHint:
+      'Low stays near the main style and seed branch; high crosses branches and styles more often.',
     noveltyLabel: 'Novelty',
-    noveltyHint: 'Low lets recent tracks return sooner; high favors less-recent tracks and strengthens repeat penalties.',
+    noveltyHint:
+      'Low lets recent tracks return sooner; high favors less-recent tracks and strengthens repeat penalties.',
     familiarityLabel: 'Familiarity',
-    familiarityHint: 'Low reduces the share of liked tracks; high allows more liked tracks and gives them a small bonus.',
+    familiarityHint:
+      'Low reduces the share of liked tracks; high allows more liked tracks and gives them a small bonus.',
     repeatToleranceLabel: 'Repeat tolerance',
-    repeatToleranceHint: 'Low strongly avoids recent repeats; high allows recently heard or recommended tracks to return more easily.',
+    repeatToleranceHint:
+      'Low strongly avoids recent repeats; high allows recently heard or recommended tracks to return more easily.',
     advanced: 'Advanced parameters',
     seedConceptTitle: 'What is an interest branch (Seed)?',
     seedConceptDesc:
       'The system picks liked tracks as Seeds. Each Seed represents one interest route and expands its own NetEase candidates; the branches are then merged and scored together.',
     seedCount: 'Interest branches',
-    seedCountHint: '1 is focused; more branches broaden the parallel interest routes and candidate directions (1–8).',
+    seedCountHint:
+      '1 is focused; more branches broaden the parallel interest routes and candidate directions (1–8).',
     shortCooldown: 'Strong cooldown (hours)',
-    shortCooldownHint: 'Higher values keep just-recommended tracks from returning in the short term for longer.',
+    shortCooldownHint:
+      'Higher values keep just-recommended tracks from returning in the short term for longer.',
     mediumCooldown: 'Medium cooldown (days)',
     mediumCooldownHint: 'Higher values make mid-term repeat penalties recover more slowly.',
     longCooldown: 'Long decay (days)',
-    longCooldownHint: 'After this many days, historical repeat penalty reaches zero; higher values remember prior recommendations longer.',
+    longCooldownHint:
+      'After this many days, historical repeat penalty reaches zero; higher values remember prior recommendations longer.',
     sameArtistDistance: 'Same-artist minimum spacing',
-    sameArtistDistanceHint: '0 = no limit; 2 = at least 2 tracks must appear between songs by the same artist.',
+    sameArtistDistanceHint:
+      '0 = no limit; 2 = at least 2 tracks must appear between songs by the same artist.',
     sameSeedDistance: 'Same-interest-branch minimum spacing',
-    sameSeedDistanceHint: '0 = no limit; 2 = at least 2 tracks must appear between songs from the same interest branch.',
+    sameSeedDistanceHint:
+      '0 = no limit; 2 = at least 2 tracks must appear between songs from the same interest branch.',
     basicModeReason:
       'Basic NetEase Heart Mode is active. Custom scoring is disabled, so no recommendation explanation snapshot is generated.',
     why: 'Why this track?',
