@@ -1265,6 +1265,25 @@ test.describe('desktop feature integration', () => {
     expect(mainUtils).toContain('const limitInBytes = (sizeLimit as number) * 1024 * 1024')
   })
 
+  test('checks for updates only after an explicit user action', () => {
+    const app = readSource('src/renderer/App.vue')
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const settingsStore = readSource('src/renderer/store/settings.ts')
+    const state = readSource('src/renderer/store/state.ts')
+    const zhLocale = readSource('src/renderer/locales/zh-hans.json')
+
+    expect(app).not.toContain('general.value.autoUpdate')
+    expect(app).not.toContain('checkUpdate()')
+    expect(settings).not.toContain('v-model="general.autoUpdate"')
+    expect(settings).not.toContain("settings.update.autoUpdate")
+    expect(settings).toContain("@click=\"handleUpdate\"")
+    expect(settings).toContain("void checkUpdate()")
+    expect(settings).toContain("settings.update.manualOnly")
+    expect(settingsStore).not.toContain('autoUpdate: true')
+    expect(state).toContain("window.mainApi?.invoke('check-update')")
+    expect(zhLocale).toContain('"manualOnly"')
+  })
+
   test('shows an update prompt for manual packages and preserves native install flow', () => {
     const updater = readSource('src/main/checkUpdate.ts')
     const ipcs = readSource('src/main/IPCs.ts')
