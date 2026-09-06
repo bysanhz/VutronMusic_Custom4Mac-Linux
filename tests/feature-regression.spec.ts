@@ -1172,7 +1172,7 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('v-for="bullet in item.bullets"')
   })
 
-  test('shares Heart Mode profile controls and custom algorithm switch across UI and runtime', () => {
+  test('keeps Heart Mode controls in the assistant only and shares runtime state', () => {
     const assistant = readSource('src/renderer/components/HeartModeAssistant.vue')
     const settings = readSource('src/renderer/views/SystemSettings.vue')
     const profile = readSource('src/renderer/utils/heartModeProfile.ts')
@@ -1184,15 +1184,10 @@ test.describe('desktop feature integration', () => {
     expect(profile).toContain('heartModeCustomAlgorithmEnabled = ref(true)')
     expect(profile).toContain('setHeartModeCustomAlgorithmEnabled')
 
-    expect(settings).toContain('v-model="useCustomHeartModeAlgorithm"')
-    expect(settings).toContain('settings.heartModeProfile.algorithmEnabled')
-    expect(settings).toContain('settings.heartModeProfile.seedConceptTitle')
-    expect(settings).toContain('settings.heartModeProfile.seedConceptDesc')
-    expect(settings).toContain('control.hint')
-    expect(settings).toContain('settings.heartModeProfile.seedCountHint')
-    expect(settings).toContain('settings.heartModeProfile.shortCooldownHint')
-    expect(settings).toContain('settings.heartModeProfile.sameArtistDistanceHint')
-    expect(settings).toContain('settings.heartModeProfile.sameSeedDistanceHint')
+    expect(settings).not.toContain('heartModeProfile')
+    expect(settings).not.toContain('heart-mode-custom-algorithm')
+    expect(settings).not.toContain('heart-mode-custom-panel')
+    expect(settings).not.toContain("../utils/heartModeProfile")
 
     expect(assistant).toContain('v-model="customAlgorithmEnabled"')
     expect(assistant).toContain('v-model="selectedProfileMode"')
@@ -1243,5 +1238,25 @@ test.describe('desktop feature integration', () => {
     expect(session).toContain(
       'if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null'
     )
+  })
+
+  test('shows an update prompt for manual packages and preserves native install flow', () => {
+    const updater = readSource('src/main/checkUpdate.ts')
+    const ipcs = readSource('src/main/IPCs.ts')
+    const preload = readSource('src/preload/index.ts')
+    const state = readSource('src/renderer/store/state.ts')
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+
+    expect(updater).toContain("import { compareVersions } from 'compare-versions'")
+    expect(updater).toContain('isUpdateAvailable: compareVersions')
+    expect(updater).toContain('showManualUpdateDialog')
+    expect(updater).toContain("buttons: ['打开下载安装页', '稍后']")
+    expect(updater).toContain('autoUpdater.downloadUpdate()')
+    expect(updater).toContain('autoUpdater.quitAndInstall()')
+
+    expect(ipcs).toContain("ipcMain.handle('show-update-dialog'")
+    expect(preload).toContain("'show-update-dialog'")
+    expect(state).toContain("window.mainApi?.invoke('show-update-dialog', result)")
+    expect(settings).toContain("window.mainApi?.invoke('show-update-dialog', latestVersion.value)")
   })
 })
