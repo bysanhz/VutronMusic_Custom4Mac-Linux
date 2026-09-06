@@ -4,7 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional existing vX.Y.Z tag to publish as a formal release'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -28,15 +33,22 @@ jobs:
           node-version: '22'
           cache: yarn
 
-      - name: Verify tag matches package version
-        if: github.event_name == 'push'
+      - name: Verify release tag matches package version
+        if: github.event_name == 'push' || inputs.release_tag != ''
         shell: bash
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_NAME="${GITHUB_REF_NAME}"
+          if [[ -n "${RELEASE_TAG_INPUT}" ]]; then
+            TAG_NAME="${RELEASE_TAG_INPUT}"
+          fi
+          [[ "${TAG_NAME}" =~ ^v[0-9]+.[0-9]+.[0-9]+$ ]]
+          TAG_VERSION="${TAG_NAME#v}"
           echo "package.json version: ${PACKAGE_VERSION}"
-          echo "tag version: ${TAG_VERSION}"
+          echo "release tag version: ${TAG_VERSION}"
           test "${PACKAGE_VERSION}" = "${TAG_VERSION}"
 
       - name: Install dependencies without native rebuild
@@ -292,8 +304,13 @@ jobs:
 
       - name: Resolve release tag
         shell: bash
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${RELEASE_TAG_INPUT}" ]]; then
+            echo "RELEASE_TAG=${RELEASE_TAG_INPUT}" >> "$GITHUB_ENV"
+            echo "RELEASE_IS_DRAFT=false" >> "$GITHUB_ENV"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             echo "RELEASE_TAG=v-draft-$(date +'%Y%m%d%H%M')" >> "$GITHUB_ENV"
             echo "RELEASE_IS_DRAFT=true" >> "$GITHUB_ENV"
           else
@@ -302,12 +319,12 @@ jobs:
           fi
 
       - name: Verify formal release notes
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.release_tag != ''
         shell: bash
         run: test -f ".github/release-notes/${RELEASE_TAG}.md"
 
       - name: Upload and publish formal release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.release_tag != ''
         uses: softprops/action-gh-release@v3
         with:
           files: upload/*
@@ -319,7 +336,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Upload draft release
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.release_tag == ''
         uses: softprops/action-gh-release@v3
         with:
           files: upload/*
