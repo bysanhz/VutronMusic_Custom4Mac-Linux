@@ -33,6 +33,7 @@
             <div class="source">
               <span>{{ texts.from }}</span>
               <strong>{{ sourceSeedName }}</strong>
+              <small>{{ texts.sourceHint }}</small>
             </div>
             <ul>
               <li v-for="item in explanationItems" :key="item">{{ item }}</li>
@@ -48,6 +49,7 @@
 
         <div v-if="session" class="section session-section">
           <div class="section-title">{{ texts.session }}</div>
+          <div class="section-hint">{{ texts.sessionHint }}</div>
 
           <div class="metrics">
             <div>
@@ -70,6 +72,7 @@
             {{ session.pendingTrackIDs.length }}
           </div>
 
+          <div class="branch-section-title">{{ texts.branchTitle }}</div>
           <div class="branches">
             <div v-for="branch in branchRows" :key="branch.seedId" class="branch-row">
               <span class="branch-name">{{ branch.name }}</span>
@@ -142,14 +145,17 @@ const TEXTS = {
     close: '关闭',
     dragHint: '点击打开；拖动可移动位置',
     why: '为什么推荐这首？',
-    from: '推荐来源',
+    from: '来自这个推荐方向',
+    sourceHint: '当前歌曲由这个 Seed 分支扩展出来，不是歌曲的平台来源。',
     noSnapshot: '这首歌没有解释快照；下一次新生成或补充的歌曲会自动记录。',
     moreLikeThis: '多来点这种',
     goFurther: '跳远一点',
-    session: '本轮状态',
-    explore: '探索',
-    diversity: '跳脱',
-    familiarity: '熟悉',
+    session: '本轮推荐偏好',
+    sessionHint: '只影响当前这轮心动模式；长期 Profile 不会被自动改写。',
+    explore: '新歌倾向',
+    diversity: '风格分散',
+    familiarity: '熟歌倾向',
+    branchTitle: '各推荐方向的实时反馈',
     played: '已听',
     queued: '已入队',
     pending: '待选',
@@ -192,11 +198,11 @@ const TEXTS = {
       '确认重置本轮心动学习？\n\n会清除本 Session 已记录的播放反馈、分支评分和临时控制；不会影响喜欢歌曲、长期 Profile、推荐历史和当前队列。',
     resetDone: '本轮学习已重置',
     removedFeedback: '已移除 {count} 条本轮播放反馈',
-    strongDown: '强烈降低',
-    down: '降低',
-    neutral: '中性',
-    up: '偏好',
-    strongUp: '强偏好'
+    strongDown: '明显减少',
+    down: '减少',
+    neutral: '正常',
+    up: '多推荐',
+    strongUp: '明显多推荐'
   },
   zht: {
     title: '目前心動模式',
@@ -204,14 +210,17 @@ const TEXTS = {
     close: '關閉',
     dragHint: '點擊開啟；拖動可移動位置',
     why: '為什麼推薦這首？',
-    from: '推薦來源',
+    from: '來自這個推薦方向',
+    sourceHint: '目前歌曲由這個 Seed 分支延伸而來，不是歌曲的平台來源。',
     noSnapshot: '這首歌沒有解釋快照；下一次新產生或補充的歌曲會自動記錄。',
     moreLikeThis: '多來點這種',
     goFurther: '跳遠一點',
-    session: '本輪狀態',
-    explore: '探索',
-    diversity: '跳脫',
-    familiarity: '熟悉',
+    session: '本輪推薦偏好',
+    sessionHint: '只影響目前這輪心動模式；長期 Profile 不會被自動改寫。',
+    explore: '新歌傾向',
+    diversity: '風格分散',
+    familiarity: '熟歌傾向',
+    branchTitle: '各推薦方向的即時回饋',
     played: '已聽',
     queued: '已入隊',
     pending: '待選',
@@ -254,11 +263,11 @@ const TEXTS = {
       '確認重置本輪心動學習？\n\n會清除本 Session 已記錄的播放回饋、分支評分和暫時控制；不會影響喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
     resetDone: '本輪學習已重置',
     removedFeedback: '已移除 {count} 條本輪播放回饋',
-    strongDown: '強烈降低',
-    down: '降低',
-    neutral: '中性',
-    up: '偏好',
-    strongUp: '強偏好'
+    strongDown: '明顯減少',
+    down: '減少',
+    neutral: '正常',
+    up: '多推薦',
+    strongUp: '明顯多推薦'
   },
   en: {
     title: 'Heart Mode',
@@ -266,15 +275,20 @@ const TEXTS = {
     close: 'Close',
     dragHint: 'Click to open; drag to move',
     why: 'Why this track?',
-    from: 'Recommendation source',
+    from: 'From this recommendation direction',
+    sourceHint:
+      'The current track was expanded from this seed branch; this is not the music platform source.',
     noSnapshot:
       'No explanation snapshot is available for this track yet. Newly generated or refilled tracks will record one automatically.',
     moreLikeThis: 'More like this',
     goFurther: 'Go further',
-    session: 'Session status',
-    explore: 'Explore',
-    diversity: 'Diversity',
-    familiarity: 'Familiarity',
+    session: 'Current recommendation preference',
+    sessionHint:
+      'These values only steer this Heart Mode session; your long-term Profile is not rewritten automatically.',
+    explore: 'New-track tendency',
+    diversity: 'Style spread',
+    familiarity: 'Familiar-track tendency',
+    branchTitle: 'Live feedback for each recommendation direction',
     played: 'Played',
     queued: 'Queued',
     pending: 'Pending',
@@ -321,11 +335,11 @@ const TEXTS = {
       'Reset learning for this Heart Mode session?\n\nThis removes recorded playback feedback, branch scores, and temporary steering for this session. Likes, long-term Profile, recommendation history, and the current queue remain unchanged.',
     resetDone: 'Session learning reset',
     removedFeedback: 'Removed {count} session feedback entries',
-    strongDown: 'Strongly down',
-    down: 'Down',
-    neutral: 'Neutral',
-    up: 'Preferred',
-    strongUp: 'Strongly preferred'
+    strongDown: 'Much less',
+    down: 'Less',
+    neutral: 'Normal',
+    up: 'More',
+    strongUp: 'Much more'
   }
 } as const
 
@@ -770,10 +784,17 @@ onBeforeUnmount(() => {
 }
 
 .section-title {
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   font-size: 13px;
   font-weight: 650;
-  opacity: 0.78;
+  opacity: 0.82;
+}
+
+.section-hint {
+  margin-bottom: 9px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  opacity: 0.52;
 }
 
 .reason-card {
@@ -795,6 +816,13 @@ onBeforeUnmount(() => {
     strong {
       font-size: 13px;
       line-height: 1.35;
+    }
+
+    small {
+      margin-top: 2px;
+      font-size: 10.5px;
+      line-height: 1.45;
+      opacity: 0.52;
     }
   }
 
@@ -890,8 +918,16 @@ onBeforeUnmount(() => {
   opacity: 0.62;
 }
 
+.branch-section-title {
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 650;
+  opacity: 0.68;
+}
+
 .branches {
-  margin-top: 10px;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
