@@ -1147,4 +1147,23 @@ test.describe('desktop feature integration', () => {
     expect(playPage).toContain('<PlaybackHistoryModal />')
     expect(playPage).toContain('<TrackLyricOffsetModal />')
   })
+
+  test('keeps Heart Mode assistant draggable, theme-aware and visually consistent', () => {
+    const assistant = readSource('src/renderer/components/HeartModeAssistant.vue')
+
+    expect(assistant).toContain('@pointerdown="startDrag"')
+    expect(assistant).toContain('vutronmusic-heart-mode-assistant-position-v1')
+    expect(assistant).toContain('clampAssistantPosition')
+    expect(assistant).toContain('panelHorizontalClass')
+    expect(assistant).toContain('panelVerticalClass')
+    expect(assistant).toContain('settingsStore.theme.appearance')
+    expect(assistant).toContain('.heart-mode-assistant.is-dark .heart-mode-trigger')
+    expect(assistant).toContain('color-mix(in srgb, var(--color-primary) 58%, transparent)')
+    expect(assistant).not.toContain('button:first-child')
+    expect(assistant).not.toContain('button:last-child')
+    expect(assistant).toContain('strategyScoreBullets')
+    expect(assistant).toContain('strategyFeedbackBullets')
+    expect(assistant).toContain('strategyControlBullets')
+    expect(assistant).toContain('v-for="bullet in item.bullets"')
+  })
 })
