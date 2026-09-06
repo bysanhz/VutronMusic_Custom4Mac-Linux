@@ -20,20 +20,42 @@
         :style="panelStyle"
       >
         <header class="panel-header">
-          <button
-            v-if="panelPage !== 'main'"
-            class="back-button"
-            :title="texts.back"
-            @click="panelPage = 'main'"
-          >
-            ←
-          </button>
           <div class="panel-heading">
-            <strong>{{ panelTitle }}</strong>
-            <span>{{ panelSubtitle }}</span>
+            <strong>{{ texts.title }}</strong>
+            <span>{{ texts.subtitle }}</span>
           </div>
           <button class="close" :title="texts.close" @click="panelOpen = false">×</button>
         </header>
+
+        <nav class="panel-tabs" role="tablist" :aria-label="texts.tabsLabel">
+          <button
+            class="panel-tab"
+            :class="{ active: panelPage === 'main' }"
+            role="tab"
+            :aria-selected="panelPage === 'main'"
+            @click="panelPage = 'main'"
+          >
+            {{ texts.currentTab }}
+          </button>
+          <button
+            class="panel-tab"
+            :class="{ active: panelPage === 'settings' }"
+            role="tab"
+            :aria-selected="panelPage === 'settings'"
+            @click="panelPage = 'settings'"
+          >
+            {{ texts.profileSettings }}
+          </button>
+          <button
+            class="panel-tab"
+            :class="{ active: panelPage === 'guide' }"
+            role="tab"
+            :aria-selected="panelPage === 'guide'"
+            @click="panelPage = 'guide'"
+          >
+            {{ texts.guideTitle }}
+          </button>
+        </nav>
 
         <template v-if="panelPage === 'main'">
           <div class="section">
@@ -115,25 +137,6 @@
             >
               {{ texts.sessionAdjusted }}
             </div>
-          </div>
-
-          <div class="panel-navigation">
-            <button class="nav-card" @click="panelPage = 'settings'">
-              <span class="nav-card-icon" aria-hidden="true">⚙</span>
-              <span>
-                <strong>{{ texts.profileSettings }}</strong>
-                <small>{{ texts.profileSettingsHint }}</small>
-              </span>
-              <b aria-hidden="true">›</b>
-            </button>
-            <button class="nav-card" @click="panelPage = 'guide'">
-              <span class="nav-card-icon" aria-hidden="true">?</span>
-              <span>
-                <strong>{{ texts.guideTitle }}</strong>
-                <small>{{ texts.guideHint }}</small>
-              </span>
-              <b aria-hidden="true">›</b>
-            </button>
           </div>
 
           <div class="reset-zone">
@@ -338,13 +341,12 @@ const TEXTS = {
     subtitle: '推荐解释与本轮控制',
     close: '关闭',
     dragHint: '点击打开；拖动可移动位置',
+    tabsLabel: '心动模式分页',
+    currentTab: '当前',
     profileSettings: '心动模式设置',
     profileSettingsHint: '算法开关、风格和自定义参数',
     guideTitle: '操作说明',
     guideHint: '评分、播放反馈和快捷操作规则',
-    back: '返回',
-    settingsPageSubtitle: '调整长期心动模式配置',
-    guidePageSubtitle: '了解哪些行为会改变后续推荐',
     modeContinuousDesc: '更强调熟悉和连贯，分支少、重复容忍更高，适合长时间顺听。',
     modeBalancedDesc: '在熟悉歌曲与新发现之间保持中间状态，适合作为稳妥的日常模式。',
     modeDiverseDesc: '明显增加风格跨度并减少熟歌比例，适合想听到更多不同方向时使用。',
@@ -447,13 +449,12 @@ const TEXTS = {
     subtitle: '推薦解釋與本輪控制',
     close: '關閉',
     dragHint: '點擊開啟；拖動可移動位置',
+    tabsLabel: '心動模式分頁',
+    currentTab: '目前',
     profileSettings: '心動模式設定',
     profileSettingsHint: '演算法開關、風格和自訂參數',
     guideTitle: '操作說明',
     guideHint: '評分、播放回饋和快捷操作規則',
-    back: '返回',
-    settingsPageSubtitle: '調整長期心動模式設定',
-    guidePageSubtitle: '了解哪些行為會改變後續推薦',
     modeContinuousDesc: '更強調熟悉和連貫，分支少、重複容忍較高，適合長時間順聽。',
     modeBalancedDesc: '在熟悉歌曲與新發現之間保持中間狀態，適合作為穩妥的日常模式。',
     modeDiverseDesc: '明顯增加風格跨度並降低熟歌比例，適合想聽到更多不同方向時使用。',
@@ -556,13 +557,12 @@ const TEXTS = {
     subtitle: 'Recommendation explanation and session controls',
     close: 'Close',
     dragHint: 'Click to open; drag to move',
+    tabsLabel: 'Heart Mode tabs',
+    currentTab: 'Current',
     profileSettings: 'Heart Mode settings',
     profileSettingsHint: 'Algorithm switch, style, and custom parameters',
     guideTitle: 'How it works',
     guideHint: 'Scoring, playback feedback, and quick-control rules',
-    back: 'Back',
-    settingsPageSubtitle: 'Adjust long-term Heart Mode preferences',
-    guidePageSubtitle: 'See which actions change future recommendations',
     modeContinuousDesc:
       'Prioritizes familiarity and continuity with fewer branches and higher repeat tolerance; good for long listening sessions.',
     modeBalancedDesc:
@@ -810,18 +810,6 @@ const panelStyle = computed(() => {
 
 const texts = computed(() => TEXTS[resolveFeatureLanguage()])
 
-const panelTitle = computed(() => {
-  if (panelPage.value === 'settings') return texts.value.profileSettings
-  if (panelPage.value === 'guide') return texts.value.guideTitle
-  return texts.value.title
-})
-
-const panelSubtitle = computed(() => {
-  if (panelPage.value === 'settings') return texts.value.settingsPageSubtitle
-  if (panelPage.value === 'guide') return texts.value.guidePageSubtitle
-  return texts.value.subtitle
-})
-
 const currentProfileModeLabel = computed(
   () =>
     profileModeOptions.value.find((option) => option.value === heartModeProfile.value.mode)
@@ -973,7 +961,6 @@ const togglePanel = () => {
     return
   }
   panelOpen.value = !panelOpen.value
-  if (panelOpen.value) panelPage.value = 'main'
 }
 
 const handleViewportResize = () => {
@@ -1184,7 +1171,7 @@ onBeforeUnmount(() => {
 
   .panel-header {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-start;
     gap: 9px;
   }
@@ -1207,7 +1194,6 @@ onBeforeUnmount(() => {
   }
 }
 
-.back-button,
 .close {
   min-width: 30px;
   height: 30px;
@@ -1218,7 +1204,9 @@ onBeforeUnmount(() => {
   color: inherit;
   cursor: pointer;
   font: inherit;
+  font-size: 20px;
   line-height: 1;
+  opacity: 0.72;
   transition:
     background 0.12s ease,
     border-color 0.12s ease;
@@ -1233,13 +1221,62 @@ onBeforeUnmount(() => {
   }
 }
 
-.back-button {
-  font-size: 17px;
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 0.78fr 1.22fr 1fr;
+  align-items: end;
+  gap: 3px;
+  margin: 14px -4px 0;
+  padding: 0 4px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.24);
 }
 
-.close {
-  font-size: 20px;
-  opacity: 0.72;
+.panel-tab {
+  position: relative;
+  min-width: 0;
+  height: 35px;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.58;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease;
+
+  &:hover {
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 7%,
+      var(--color-secondary-bg-for-transparent)
+    );
+    opacity: 0.86;
+  }
+
+  &.active {
+    top: 1px;
+    border-color: rgba(128, 128, 128, 0.28);
+    border-bottom-color: var(--color-body-bg);
+    background: var(--color-body-bg);
+    font-weight: 700;
+    opacity: 1;
+    box-shadow: 0 -2px 7px rgba(0, 0, 0, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    outline-offset: -2px;
+  }
 }
 
 .profile-card {
@@ -1511,78 +1548,6 @@ onBeforeUnmount(() => {
   font-size: 10.5px;
   line-height: 1.45;
   opacity: 0.68;
-}
-
-.panel-navigation {
-  display: grid;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.nav-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 50px;
-  padding: 9px 11px;
-  border: 1px solid rgba(128, 128, 128, 0.24);
-  border-radius: 10px;
-  color: var(--color-text);
-  background: var(--color-secondary-bg-for-transparent);
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  transition:
-    transform 0.12s ease,
-    border-color 0.12s ease,
-    background 0.12s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--color-primary) 48%, transparent);
-    background: color-mix(
-      in srgb,
-      var(--color-primary) 8%,
-      var(--color-secondary-bg-for-transparent)
-    );
-  }
-
-  > span:nth-child(2) {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 2px;
-
-    strong {
-      font-size: 12px;
-    }
-
-    small {
-      font-size: 10px;
-      line-height: 1.35;
-      opacity: 0.52;
-    }
-  }
-
-  b {
-    font-size: 20px;
-    font-weight: 400;
-    opacity: 0.42;
-  }
-}
-
-.nav-card-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .guide-page {
