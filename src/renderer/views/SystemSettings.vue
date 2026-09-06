@@ -669,148 +669,6 @@
             </div>
             <div class="item">
               <div class="left">
-                <div class="title">{{ $t('settings.heartModeProfile.algorithmEnabled') }}</div>
-                <div class="description">
-                  {{ $t('settings.heartModeProfile.algorithmEnabledDesc') }}
-                </div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="heart-mode-custom-algorithm"
-                    v-model="useCustomHeartModeAlgorithm"
-                    type="checkbox"
-                    name="heart-mode-custom-algorithm"
-                  />
-                  <label for="heart-mode-custom-algorithm"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item heart-mode-profile-row">
-              <div class="left">
-                <div class="title">{{ $t('settings.heartModeProfile.title') }}</div>
-                <div class="description">{{ $t('settings.heartModeProfile.desc') }}</div>
-              </div>
-              <div class="right heart-mode-profile-select">
-                <CustomSelect v-model="selectedHeartModeMode" :options="heartModeModeOptions" />
-              </div>
-            </div>
-            <div class="heart-mode-seed-concept">
-              <strong>{{ $t('settings.heartModeProfile.seedConceptTitle') }}</strong>
-              <span>{{ $t('settings.heartModeProfile.seedConceptDesc') }}</span>
-            </div>
-            <div v-if="heartModeProfile.mode === 'custom'" class="heart-mode-custom-panel">
-              <div
-                v-for="control in heartModeCoreControls"
-                :key="control.key"
-                class="heart-mode-control"
-              >
-                <div class="heart-mode-control-header">
-                  <span>{{ control.label }}</span>
-                  <strong>{{ control.value }}</strong>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  :value="control.value"
-                  @input="updateHeartModeCore(control.key, $event)"
-                />
-                <div class="heart-mode-control-hint">{{ control.hint }}</div>
-              </div>
-              <details class="heart-mode-advanced">
-                <summary>{{ $t('settings.heartModeProfile.advanced') }}</summary>
-                <div class="heart-mode-advanced-grid">
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.seedCount') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.seedCountHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="8"
-                      step="1"
-                      :value="heartModeProfile.seedCount"
-                      @change="updateHeartModeAdvanced('seedCount', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.shortCooldown') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.shortCooldownHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="168"
-                      step="1"
-                      :value="heartModeProfile.shortCooldownHours"
-                      @change="updateHeartModeAdvanced('shortCooldownHours', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.mediumCooldown') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.mediumCooldownHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      step="1"
-                      :value="heartModeProfile.mediumCooldownDays"
-                      @change="updateHeartModeAdvanced('mediumCooldownDays', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.longCooldown') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.longCooldownHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="7"
-                      max="365"
-                      step="1"
-                      :value="heartModeProfile.longCooldownDays"
-                      @change="updateHeartModeAdvanced('longCooldownDays', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.sameArtistDistance') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.sameArtistDistanceHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="1"
-                      :value="heartModeProfile.maxSameArtistDistance"
-                      @change="updateHeartModeAdvanced('maxSameArtistDistance', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="heart-mode-advanced-label">
-                      <strong>{{ $t('settings.heartModeProfile.sameSeedDistance') }}</strong>
-                      <small>{{ $t('settings.heartModeProfile.sameSeedDistanceHint') }}</small>
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="1"
-                      :value="heartModeProfile.maxSameSeedDistance"
-                      @change="updateHeartModeAdvanced('maxSameSeedDistance', $event)"
-                    />
-                  </label>
-                </div>
-              </details>
-            </div>
-            <div class="item">
-              <div class="left">
                 <div class="title">{{ $t('settings.general.outputDevice.text') }}</div>
               </div>
               <div class="right">
@@ -1212,7 +1070,11 @@
                 @click="handleUpdate"
                 >{{
                   latestVersion?.isUpdateAvailable
-                    ? $t(isMac ? 'settings.update.goToDownload' : 'settings.update.downloadUpdate')
+                    ? $t(
+                        latestVersion?.manualDownload
+                          ? 'settings.update.goToDownload'
+                          : 'settings.update.downloadUpdate'
+                      )
                     : $t(
                         updateStatus
                           ? 'settings.update.updateChecking'
@@ -1274,14 +1136,6 @@ import imageUrl from '../utils/settingImg.dataurl?raw'
 import { useRouter } from 'vue-router'
 import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d'
 import { setFeatureLanguage, type SupportedLanguage } from '../utils/v327FeatureShared'
-import {
-  applyHeartModePreset,
-  heartModeCustomAlgorithmEnabled,
-  heartModeProfile,
-  setHeartModeCustomAlgorithmEnabled,
-  updateHeartModeProfile,
-  type HeartModeMode
-} from '../utils/heartModeProfile'
 
 const router = useRouter()
 const { locale, t } = useI18n()
@@ -1358,72 +1212,6 @@ const playerStore = usePlayerStore()
 const { resetPlayer } = playerStore
 const { outputDevice, currentTrack } = storeToRefs(playerStore)
 
-type HeartModeCoreField = 'diversity' | 'novelty' | 'familiarity' | 'repeatTolerance'
-type HeartModeAdvancedField =
-  | 'seedCount'
-  | 'shortCooldownHours'
-  | 'mediumCooldownDays'
-  | 'longCooldownDays'
-  | 'maxSameArtistDistance'
-  | 'maxSameSeedDistance'
-
-const heartModeModeOptions = computed(() => [
-  { label: t('settings.heartModeProfile.modes.continuous'), value: 'continuous' },
-  { label: t('settings.heartModeProfile.modes.balanced'), value: 'balanced' },
-  { label: t('settings.heartModeProfile.modes.diverse'), value: 'diverse' },
-  { label: t('settings.heartModeProfile.modes.explore'), value: 'explore' },
-  { label: t('settings.heartModeProfile.modes.custom'), value: 'custom' }
-])
-
-const useCustomHeartModeAlgorithm = computed({
-  get: () => heartModeCustomAlgorithmEnabled.value,
-  set: (value: boolean) => setHeartModeCustomAlgorithmEnabled(value)
-})
-
-const selectedHeartModeMode = computed<HeartModeMode>({
-  get: () => heartModeProfile.value.mode,
-  set: (value) => applyHeartModePreset(value)
-})
-
-const heartModeCoreControls = computed<
-  Array<{ key: HeartModeCoreField; label: string; value: number; hint: string }>
->(() => [
-  {
-    key: 'diversity',
-    label: t('settings.heartModeProfile.diversity'),
-    value: heartModeProfile.value.diversity,
-    hint: t('settings.heartModeProfile.diversityHint')
-  },
-  {
-    key: 'novelty',
-    label: t('settings.heartModeProfile.novelty'),
-    value: heartModeProfile.value.novelty,
-    hint: t('settings.heartModeProfile.noveltyHint')
-  },
-  {
-    key: 'familiarity',
-    label: t('settings.heartModeProfile.familiarity'),
-    value: heartModeProfile.value.familiarity,
-    hint: t('settings.heartModeProfile.familiarityHint')
-  },
-  {
-    key: 'repeatTolerance',
-    label: t('settings.heartModeProfile.repeatTolerance'),
-    value: heartModeProfile.value.repeatTolerance,
-    hint: t('settings.heartModeProfile.repeatToleranceHint')
-  }
-])
-
-const updateHeartModeCore = (field: HeartModeCoreField, event: Event) => {
-  const value = Number((event.target as HTMLInputElement).value)
-  updateHeartModeProfile({ mode: 'custom', [field]: value })
-}
-
-const updateHeartModeAdvanced = (field: HeartModeAdvancedField, event: Event) => {
-  const value = Number((event.target as HTMLInputElement).value)
-  updateHeartModeProfile({ mode: 'custom', [field]: value })
-}
-
 const localMusicStore = useLocalMusicStore()
 const { resetLocalMusic } = localMusicStore
 
@@ -1466,16 +1254,18 @@ const serviceTitle = (platform: serviceType) => {
 
 const handleUpdate = () => {
   if (isDownloading.value) return
-  if (latestVersion.value?.isUpdateAvailable) {
-    if (isMac) {
-      const url = `https://github.com/stark81/VutronMusic/releases/tag/${latestVersion.value!.updateInfo.releaseName}`
-      openOnBrowser(url)
-    } else {
-      window.mainApi?.send('downloadUpdate')
-    }
-  } else {
-    checkUpdate()
+
+  if (!latestVersion.value?.isUpdateAvailable) {
+    void checkUpdate()
+    return
   }
+
+  if (latestVersion.value.manualDownload) {
+    void window.mainApi?.invoke('show-update-dialog', latestVersion.value)
+    return
+  }
+
+  window.mainApi?.send('downloadUpdate')
 }
 
 const loginOrlogout = (platform: serviceType) => {
@@ -2558,131 +2348,4 @@ input.text-input {
   font-weight: 700;
 }
 /* =========== newADD end ======== */
-.heart-mode-profile-select {
-  width: min(240px, 100%);
-}
-
-.heart-mode-seed-concept {
-  margin: -4px 0 12px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-secondary-bg));
-
-  strong {
-    display: block;
-    margin-bottom: 3px;
-    font-size: 13px;
-    color: var(--color-text);
-  }
-
-  span {
-    display: block;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--color-text-secondary);
-  }
-}
-
-.heart-mode-custom-panel {
-  margin: -6px 0 18px;
-  padding: 14px 18px 16px;
-  border-radius: 12px;
-  background: var(--color-secondary-bg);
-}
-
-.heart-mode-control + .heart-mode-control {
-  margin-top: 14px;
-}
-
-.heart-mode-control-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 6px;
-  color: var(--color-text);
-
-  strong {
-    min-width: 28px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.heart-mode-control input[type='range'] {
-  width: 100%;
-  accent-color: var(--color-primary);
-}
-
-.heart-mode-control-hint {
-  margin-top: 5px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--color-text-secondary);
-}
-
-.heart-mode-advanced {
-  margin-top: 16px;
-  color: var(--color-text);
-
-  summary {
-    cursor: pointer;
-    color: var(--color-text-secondary);
-  }
-}
-
-.heart-mode-advanced-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
-  margin-top: 12px;
-
-  label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--color-text-secondary);
-  }
-
-  .heart-mode-advanced-label {
-    display: flex;
-    min-width: 0;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-
-    strong {
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.35;
-      color: var(--color-text);
-    }
-
-    small {
-      font-size: 10.5px;
-      line-height: 1.35;
-      color: var(--color-text-secondary);
-    }
-  }
-
-  input[type='number'] {
-    width: 84px;
-    box-sizing: border-box;
-    padding: 7px 8px;
-    border: 1px solid var(--color-border);
-    border-radius: 7px;
-    outline: none;
-    background: var(--color-body-bg, rgba(127, 127, 127, 0.08));
-    color: var(--color-text);
-    font: inherit;
-  }
-}
-
-@media (max-width: 720px) {
-  .heart-mode-advanced-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
