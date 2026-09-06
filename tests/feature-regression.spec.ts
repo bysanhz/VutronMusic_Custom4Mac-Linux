@@ -1240,6 +1240,26 @@ test.describe('desktop feature integration', () => {
     )
   })
 
+  test('supports custom cache limits and keeps settings controls aligned', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const settingsStore = readSource('src/renderer/store/settings.ts')
+    const mainUtils = readSource('src/main/utils/index.ts')
+    const zhLocale = readSource('src/renderer/locales/zh-hans.json')
+
+    expect(settingsStore).toContain('customSizeLimit: 10240')
+    expect(settings).toContain('v-model="cacheSizeLimitSelection"')
+    expect(settings).toContain("cacheSizeLimitSelection === 'custom'")
+    expect(settings).toContain('v-model.number="customCacheLimitGb"')
+    expect(settings).toContain('commitCustomCacheLimit')
+    expect(settings).toContain('CACHE_SIZE_PRESETS')
+    expect(settings).toContain('width: 164px')
+    expect(settings).toContain(':deep(.select-wrapper)')
+    expect(settings).toContain(':deep(.custom-select .custom-text)')
+    expect(settings).toContain('<div class="title">{{ $t(\'settings.general.musicQuality.text\') }}</div>')
+    expect(zhLocale).toContain('"customLimit"')
+    expect(mainUtils).toContain('const limitInBytes = (sizeLimit as number) * 1024 * 1024')
+  })
+
   test('shows an update prompt for manual packages and preserves native install flow', () => {
     const updater = readSource('src/main/checkUpdate.ts')
     const ipcs = readSource('src/main/IPCs.ts')
