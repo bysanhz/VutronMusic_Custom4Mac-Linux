@@ -344,7 +344,9 @@
       "mediumCooldown": "Medium Cooldown (days)",
       "longCooldown": "Long Decay (days)",
       "sameArtistDistance": "Same-artist minimum spacing (tracks)",
-      "sameSeedDistance": "Same-branch minimum spacing (tracks)"
+      "sameSeedDistance": "Same-branch minimum spacing (tracks)",
+      "algorithmEnabled": "Use Custom Heart Mode Algorithm",
+      "algorithmEnabledDesc": "When enabled, use multi-seed personalized scoring, feedback learning, diversity reranking and rolling refills. When disabled, keep NetEase single-seed recommendation order."
     },
     "nav": {
       "general": "General",
