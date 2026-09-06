@@ -629,6 +629,23 @@ onBeforeUnmount(() => {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
     }
   }
+
+  button:first-child {
+    color: #fff;
+    border-color: transparent;
+    background: var(--color-primary, #3f6df6);
+    box-shadow: 0 5px 16px rgba(63, 109, 246, 0.28);
+
+    &:hover {
+      border-color: transparent;
+      box-shadow: 0 7px 18px rgba(63, 109, 246, 0.34);
+    }
+  }
+
+  button:last-child {
+    border-color: rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.16);
+  }
 }
 
 .metrics {
