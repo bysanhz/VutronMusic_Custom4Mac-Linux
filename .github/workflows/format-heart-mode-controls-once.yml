@@ -1,0 +1,42 @@
+name: One-time Heart Mode controls formatting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/format-heart-mode-controls-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format Heart Mode control files
+        run: |
+          ./node_modules/.bin/prettier --write             src/renderer/components/HeartModeAssistant.vue             src/renderer/views/SystemSettings.vue             src/renderer/utils/heartModeProfile.ts             src/renderer/utils/heartModeSession.ts             src/renderer/main.ts             src/renderer/locales/zh-hans.json             src/renderer/locales/zh-hant.json             src/renderer/locales/en.json             tests/feature-regression.spec.ts
+          git diff --check
+
+      - name: Commit formatting and remove this workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             src/renderer/components/HeartModeAssistant.vue             src/renderer/views/SystemSettings.vue             src/renderer/utils/heartModeProfile.ts             src/renderer/utils/heartModeSession.ts             src/renderer/main.ts             src/renderer/locales/zh-hans.json             src/renderer/locales/zh-hant.json             src/renderer/locales/en.json             tests/feature-regression.spec.ts
+          git rm .github/workflows/format-heart-mode-controls-once.yml
+          git commit -m "chore: format Heart Mode profile controls"
+          git push origin HEAD:main
