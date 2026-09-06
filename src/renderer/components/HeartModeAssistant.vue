@@ -1,11 +1,24 @@
 <template>
-  <div v-if="isHeartMode" class="heart-mode-assistant">
-    <button class="heart-mode-trigger" :title="texts.title" @click="panelOpen = !panelOpen">
+  <div
+    v-if="isHeartMode"
+    :class="['heart-mode-assistant', { 'is-dark': isDarkMode, dragging: isDragging }]"
+    :style="assistantStyle"
+  >
+    <button
+      class="heart-mode-trigger"
+      :title="texts.dragHint"
+      @pointerdown="startDrag"
+      @click="togglePanel"
+    >
       ✨
     </button>
 
     <transition name="heart-mode-panel">
-      <section v-if="panelOpen" class="heart-mode-panel">
+      <section
+        v-if="panelOpen"
+        :class="['heart-mode-panel', panelHorizontalClass, panelVerticalClass]"
+        :style="panelStyle"
+      >
         <header>
           <div>
             <strong>{{ texts.title }}</strong>
@@ -82,12 +95,12 @@
             <small>{{ texts.strategySummary }}</small>
           </summary>
           <div class="strategy-content">
-            <ol>
-              <li v-for="item in strategyItems" :key="item.title">
-                <strong>{{ item.title }}</strong>
-                <span>{{ item.body }}</span>
-              </li>
-            </ol>
+            <div v-for="item in strategyItems" :key="item.title" class="strategy-group">
+              <strong>{{ item.title }}</strong>
+              <ul>
+                <li v-for="bullet in item.bullets" :key="bullet">{{ bullet }}</li>
+              </ul>
+            </div>
             <div class="strategy-note">{{ texts.strategyNote }}</div>
           </div>
         </details>
@@ -106,6 +119,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
+import { useSettingsStore } from '../store/settings'
 import { getTrackDetail } from '../api/track'
 import {
   HEART_MODE_SESSION_CHANGE_EVENT,
@@ -126,6 +140,7 @@ const TEXTS = {
     title: '当前心动模式',
     subtitle: '推荐解释与本轮控制',
     close: '关闭',
+    dragHint: '点击打开；拖动可移动位置',
     why: '为什么推荐这首？',
     from: '推荐来源',
     noSnapshot: '这首歌没有解释快照；下一次新生成或补充的歌曲会自动记录。',
@@ -152,17 +167,25 @@ const TEXTS = {
     reasonRank: '它在当前候选中的综合质量排序较高',
     strategyTitle: '完整策略说明',
     strategySummary: '评分逻辑，以及哪些操作会改变后续推荐',
-    strategyScoreTitle: '推荐是怎么排出来的',
-    strategyScoreBody:
-      '系统会从多个 Seed 的网易云推荐结果中建立候选池，再综合原始推荐排名、新鲜度、熟悉度、历史播放反馈、近期重复情况和当前 Seed 分支偏好进行评分。评分后还会限制同艺人/同 Seed 过密出现。初始播放 12 首，剩余少于 5 首时会按最新状态重新评分并补 8 首。',
-    strategyFeedbackTitle: '哪些播放行为会改变评分',
-    strategyFeedbackBody:
-      '很快手动跳过会明显降分：≤15 秒为 -4；15–45 秒且完成率低于 30% 为 -3；听到中段后再切歌通常为 -1。手动切歌但完成率 ≥80% 为 +1，自然播完为 +2，播放期间主动点赞额外 +5。单纯听过但没点赞不是负反馈；Seek、播放错误、退出和队列替换也不会被当成负偏好。',
-    strategyControlTitle: '两个按钮会怎样改变推荐',
-    strategyControlBody:
-      '“多来点这种”会提高当前歌曲所属 Seed 的 branchScore，让这个方向在后续补歌时更容易排到前面，但仍受艺人/Seed 间隔约束。“跳远一点”只在当前 Session 临时把 novelty +10、diversity +10、familiarity -10，最多累计到 ±30，让下一轮补歌更探索、更分散。“重置本轮学习”会清掉本 Session 的播放反馈、分支分数和临时调整，但保留喜欢歌曲、长期 Profile、推荐历史和当前队列。',
-    strategyNote:
-      '长期 Profile 决定整体风格；当前 Session 的播放行为和两个按钮只负责短期纠偏。真正影响后续推荐的是评分变化和 Session 临时参数，不会自动修改你的长期 Profile。',
+    strategyScoreTitle: '推荐排序',
+    strategyScoreBullets: [
+      '多 Seed 并行取得网易云候选，并统一去重。',
+      '综合原始排名、新鲜度、熟悉度、历史播放反馈、重复冷却和当前分支偏好进行评分。',
+      '初始 12 首；剩余少于 5 首时按最新状态重排并补 8 首，同时继续限制同艺人/同 Seed 过密出现。'
+    ],
+    strategyFeedbackTitle: '播放行为如何改分',
+    strategyFeedbackBullets: [
+      '快速手动跳过：≤15 秒 -4；15–45 秒且完成率 <30% 为 -3；听到中段后切歌通常 -1。',
+      '高完成度后切歌 +1；自然播完 +2；播放期间主动点赞额外 +5。',
+      '听过但没点赞不算负反馈；Seek、播放错误、退出和队列替换也不扣分。'
+    ],
+    strategyControlTitle: '显式控制',
+    strategyControlBullets: [
+      '“多来点这种”：提高当前 Seed 分支分数，让同方向歌曲在后续补歌中更容易靠前。',
+      '“跳远一点”：当前 Session 每次 novelty +10、diversity +10、familiarity -10，累计最多 ±30。',
+      '“重置本轮学习”：清除本 Session 的播放反馈、分支分数和临时调整；喜欢歌曲、长期 Profile、推荐历史和当前队列保留。'
+    ],
+    strategyNote: '长期 Profile 管整体风格；播放行为和这些按钮只负责当前 Session 的短期纠偏。',
     reset: '重置本轮学习',
     resetHint: '清除本轮评分与调试误操作，不删除喜欢、长期 Profile、推荐历史或当前队列。',
     resetConfirm:
@@ -179,6 +202,7 @@ const TEXTS = {
     title: '目前心動模式',
     subtitle: '推薦解釋與本輪控制',
     close: '關閉',
+    dragHint: '點擊開啟；拖動可移動位置',
     why: '為什麼推薦這首？',
     from: '推薦來源',
     noSnapshot: '這首歌沒有解釋快照；下一次新產生或補充的歌曲會自動記錄。',
@@ -205,17 +229,25 @@ const TEXTS = {
     reasonRank: '它在目前候選中的綜合品質排序較高',
     strategyTitle: '完整策略說明',
     strategySummary: '評分邏輯，以及哪些操作會改變後續推薦',
-    strategyScoreTitle: '推薦是怎麼排出來的',
-    strategyScoreBody:
-      '系統會從多個 Seed 的網易雲推薦結果建立候選池，再綜合原始推薦排名、新鮮度、熟悉度、歷史播放回饋、近期重複情況和目前 Seed 分支偏好進行評分。評分後還會限制同藝人/同 Seed 過密出現。初始播放 12 首，剩餘少於 5 首時會依最新狀態重新評分並補 8 首。',
-    strategyFeedbackTitle: '哪些播放行為會改變評分',
-    strategyFeedbackBody:
-      '很快手動跳過會明顯降分：≤15 秒為 -4；15–45 秒且完成率低於 30% 為 -3；聽到中段後再切歌通常為 -1。手動切歌但完成率 ≥80% 為 +1，自然播完為 +2，播放期間主動按喜歡額外 +5。單純聽過但沒按喜歡不是負回饋；Seek、播放錯誤、退出和佇列替換也不會被視為負偏好。',
-    strategyControlTitle: '兩個按鈕會怎樣改變推薦',
-    strategyControlBody:
-      '「多來點這種」會提高目前歌曲所屬 Seed 的 branchScore，讓這個方向在後續補歌時更容易排到前面，但仍受藝人/Seed 間隔限制。「跳遠一點」只在目前 Session 暫時把 novelty +10、diversity +10、familiarity -10，最多累計到 ±30，讓下一輪補歌更探索、更分散。「重置本輪學習」會清掉本 Session 的播放回饋、分支分數和暫時調整，但保留喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
-    strategyNote:
-      '長期 Profile 決定整體風格；目前 Session 的播放行為和兩個按鈕只負責短期修正。真正影響後續推薦的是評分變化和 Session 暫時參數，不會自動修改你的長期 Profile。',
+    strategyScoreTitle: '推薦排序',
+    strategyScoreBullets: [
+      '多 Seed 平行取得網易雲候選，並統一去重。',
+      '綜合原始排名、新鮮度、熟悉度、歷史播放回饋、重複冷卻和目前分支偏好進行評分。',
+      '初始 12 首；剩餘少於 5 首時依最新狀態重排並補 8 首，同時繼續限制同藝人/同 Seed 過密出現。'
+    ],
+    strategyFeedbackTitle: '播放行為如何改分',
+    strategyFeedbackBullets: [
+      '快速手動跳過：≤15 秒 -4；15–45 秒且完成率 <30% 為 -3；聽到中段後切歌通常 -1。',
+      '高完成度後切歌 +1；自然播完 +2；播放期間主動按喜歡額外 +5。',
+      '聽過但沒按喜歡不算負回饋；Seek、播放錯誤、退出和佇列替換也不扣分。'
+    ],
+    strategyControlTitle: '顯式控制',
+    strategyControlBullets: [
+      '「多來點這種」：提高目前 Seed 分支分數，讓同方向歌曲在後續補歌中更容易靠前。',
+      '「跳遠一點」：目前 Session 每次 novelty +10、diversity +10、familiarity -10，累計最多 ±30。',
+      '「重置本輪學習」：清除本 Session 的播放回饋、分支分數和暫時調整；喜歡歌曲、長期 Profile、推薦歷史和目前佇列保留。'
+    ],
+    strategyNote: '長期 Profile 管整體風格；播放行為和這些按鈕只負責目前 Session 的短期修正。',
     reset: '重置本輪學習',
     resetHint: '清除本輪評分與測試誤操作，不刪除喜歡、長期 Profile、推薦歷史或目前佇列。',
     resetConfirm:
@@ -232,6 +264,7 @@ const TEXTS = {
     title: 'Heart Mode',
     subtitle: 'Recommendation explanation and session controls',
     close: 'Close',
+    dragHint: 'Click to open; drag to move',
     why: 'Why this track?',
     from: 'Recommendation source',
     noSnapshot:
@@ -261,17 +294,25 @@ const TEXTS = {
     reasonRank: 'It ranked highly among the current candidates',
     strategyTitle: 'Full strategy',
     strategySummary: 'How scoring works and which actions change future recommendations',
-    strategyScoreTitle: 'How recommendations are ranked',
-    strategyScoreBody:
-      'Candidates are pooled from multiple NetEase seed branches, then scored using original recommendation rank, novelty, familiarity, historical playback feedback, recent repetition, and the current seed branch preference. Reranking also prevents the same artist or seed from appearing too densely. Heart Mode starts with 12 tracks and, when fewer than 5 remain, rescoring uses the latest state to append 8 more.',
+    strategyScoreTitle: 'Recommendation ranking',
+    strategyScoreBullets: [
+      'Fetch and deduplicate candidates from multiple NetEase seed branches.',
+      'Score candidates using original rank, novelty, familiarity, playback feedback, repeat cooldown, and current branch preference.',
+      'Start with 12 tracks; when fewer than 5 remain, rescore the latest state and append 8 while preserving artist/seed spacing.'
+    ],
     strategyFeedbackTitle: 'Playback actions that change scores',
-    strategyFeedbackBody:
-      'Very fast manual skips are strongly negative: ≤15 active seconds scores -4; 15–45 seconds with <30% completion scores -3; switching after reaching the middle is usually -1. A manual switch at ≥80% completion scores +1, natural completion scores +2, and an active like adds +5. Merely hearing a track without liking it is not negative; seeks, playback errors, app exit, and queue replacement are preference-neutral.',
-    strategyControlTitle: 'How the two controls change recommendations',
-    strategyControlBody:
-      '“More like this” raises the current track’s seed branchScore so that direction can rank higher in later refills, while artist/seed spacing still applies. “Go further” changes only this session by applying novelty +10, diversity +10, familiarity -10 per click, capped at ±30, making the next refill more exploratory. Reset clears this session’s playback feedback, branch scores, and temporary steering while preserving likes, the long-term Profile, recommendation history, and current queue.',
-    strategyNote:
-      'The long-term Profile sets the overall style. Playback behavior and the two controls only steer the current session; they do not automatically rewrite your long-term Profile.',
+    strategyFeedbackBullets: [
+      'Fast manual skips: ≤15 seconds -4; 15–45 seconds with <30% completion -3; switching around the middle is usually -1.',
+      'High-completion manual switch +1; natural completion +2; an active like adds +5.',
+      'Heard-but-not-liked is neutral; seeks, playback errors, app exit, and queue replacement do not lower preference.'
+    ],
+    strategyControlTitle: 'Explicit controls',
+    strategyControlBullets: [
+      '“More like this” raises the current seed branch score so that direction can rank higher in later refills.',
+      '“Go further” applies session-only novelty +10, diversity +10, familiarity -10 per click, capped at ±30.',
+      '“Reset session learning” clears this session’s playback feedback, branch scores, and temporary steering while preserving likes, long-term Profile, recommendation history, and current queue.'
+    ],
+    strategyNote: 'The long-term Profile sets the overall style; playback behavior and these controls only steer the current session.',
     reset: 'Reset session learning',
     resetHint:
       'Clears session scores and accidental test feedback without changing likes, long-term Profile, recommendation history, or the current queue.',
@@ -289,11 +330,72 @@ const TEXTS = {
 
 const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
+const settingsStore = useSettingsStore()
 const { currentTrack, playlistSource } = storeToRefs(playerStore)
 
 const panelOpen = ref(false)
 const sessionVersion = ref(0)
 const seedNames = ref<Record<string, string>>({})
+
+const HEART_MODE_ASSISTANT_POSITION_KEY = 'vutronmusic-heart-mode-assistant-position-v1'
+const ASSISTANT_SIZE = 42
+const VIEWPORT_MARGIN = 10
+const DRAG_THRESHOLD = 4
+
+const systemDark = ref(window.matchMedia('(prefers-color-scheme: dark)').matches)
+const viewport = ref({ width: window.innerWidth, height: window.innerHeight })
+const assistantPosition = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
+const suppressNextClick = ref(false)
+let dragStart:
+  | {
+      pointerId: number
+      originX: number
+      originY: number
+      clientX: number
+      clientY: number
+    }
+  | null = null
+
+const isDarkMode = computed(() => {
+  const appearance = settingsStore.theme.appearance
+  return appearance === 'dark' || (appearance === 'auto' && systemDark.value)
+})
+
+const clampAssistantPosition = (x: number, y: number) => ({
+  x: Math.min(
+    Math.max(VIEWPORT_MARGIN, x),
+    Math.max(VIEWPORT_MARGIN, viewport.value.width - ASSISTANT_SIZE - VIEWPORT_MARGIN)
+  ),
+  y: Math.min(
+    Math.max(VIEWPORT_MARGIN, y),
+    Math.max(VIEWPORT_MARGIN, viewport.value.height - ASSISTANT_SIZE - VIEWPORT_MARGIN)
+  )
+})
+
+const defaultAssistantPosition = () =>
+  clampAssistantPosition(viewport.value.width - ASSISTANT_SIZE - 24, viewport.value.height - 128)
+
+const assistantStyle = computed(() => ({
+  left: `${assistantPosition.value.x}px`,
+  top: `${assistantPosition.value.y}px`
+}))
+
+const panelHorizontalClass = computed(() =>
+  assistantPosition.value.x > viewport.value.width / 2 ? 'open-left' : 'open-right'
+)
+const panelVerticalClass = computed(() =>
+  assistantPosition.value.y > viewport.value.height / 2 ? 'open-up' : 'open-down'
+)
+const panelStyle = computed(() => {
+  const availableHeight =
+    panelVerticalClass.value === 'open-up'
+      ? assistantPosition.value.y - 20
+      : viewport.value.height - assistantPosition.value.y - ASSISTANT_SIZE - 20
+  return {
+    maxHeight: `${Math.max(180, Math.min(620, availableHeight))}px`
+  }
+})
 
 const texts = computed(() => TEXTS[resolveFeatureLanguage()])
 const isHeartMode = computed(() => playlistSource.value?.type === 'intelligence')
@@ -359,10 +461,94 @@ const explanationItems = computed(() => {
 })
 
 const strategyItems = computed(() => [
-  { title: texts.value.strategyScoreTitle, body: texts.value.strategyScoreBody },
-  { title: texts.value.strategyFeedbackTitle, body: texts.value.strategyFeedbackBody },
-  { title: texts.value.strategyControlTitle, body: texts.value.strategyControlBody }
+  { title: texts.value.strategyScoreTitle, bullets: texts.value.strategyScoreBullets },
+  { title: texts.value.strategyFeedbackTitle, bullets: texts.value.strategyFeedbackBullets },
+  { title: texts.value.strategyControlTitle, bullets: texts.value.strategyControlBullets }
 ])
+
+const persistAssistantPosition = () => {
+  try {
+    localStorage.setItem(HEART_MODE_ASSISTANT_POSITION_KEY, JSON.stringify(assistantPosition.value))
+  } catch (error) {
+    console.warn('[HeartModeAssistant] 保存浮动按钮位置失败：', error)
+  }
+}
+
+const restoreAssistantPosition = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(HEART_MODE_ASSISTANT_POSITION_KEY) || 'null')
+    if (
+      stored &&
+      Number.isFinite(Number(stored.x)) &&
+      Number.isFinite(Number(stored.y))
+    ) {
+      assistantPosition.value = clampAssistantPosition(Number(stored.x), Number(stored.y))
+      return
+    }
+  } catch {
+    // 使用默认位置。
+  }
+  assistantPosition.value = defaultAssistantPosition()
+}
+
+const startDrag = (event: PointerEvent) => {
+  if (event.button !== 0) return
+  dragStart = {
+    pointerId: event.pointerId,
+    originX: assistantPosition.value.x,
+    originY: assistantPosition.value.y,
+    clientX: event.clientX,
+    clientY: event.clientY
+  }
+  isDragging.value = false
+  ;(event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId)
+}
+
+const moveDrag = (event: PointerEvent) => {
+  if (!dragStart || event.pointerId !== dragStart.pointerId) return
+  const dx = event.clientX - dragStart.clientX
+  const dy = event.clientY - dragStart.clientY
+  if (!isDragging.value && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
+
+  isDragging.value = true
+  panelOpen.value = false
+  assistantPosition.value = clampAssistantPosition(
+    dragStart.originX + dx,
+    dragStart.originY + dy
+  )
+}
+
+const endDrag = (event: PointerEvent) => {
+  if (!dragStart || event.pointerId !== dragStart.pointerId) return
+  if (isDragging.value) {
+    persistAssistantPosition()
+    suppressNextClick.value = true
+  }
+  dragStart = null
+  isDragging.value = false
+}
+
+const togglePanel = () => {
+  if (suppressNextClick.value) {
+    suppressNextClick.value = false
+    return
+  }
+  panelOpen.value = !panelOpen.value
+}
+
+const handleViewportResize = () => {
+  viewport.value = { width: window.innerWidth, height: window.innerHeight }
+  assistantPosition.value = clampAssistantPosition(
+    assistantPosition.value.x,
+    assistantPosition.value.y
+  )
+  persistAssistantPosition()
+}
+
+const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)')
+const handleColorSchemeChange = (event: MediaQueryListEvent) => {
+  systemDark.value = event.matches
+}
 
 const loadSeedNames = async () => {
   const ids = session.value?.seedIds ?? []
@@ -441,20 +627,29 @@ watch(
 const onSessionChange = () => refreshSession()
 
 onMounted(() => {
+  restoreAssistantPosition()
   window.addEventListener(HEART_MODE_SESSION_CHANGE_EVENT, onSessionChange)
+  window.addEventListener('pointermove', moveDrag)
+  window.addEventListener('pointerup', endDrag)
+  window.addEventListener('pointercancel', endDrag)
+  window.addEventListener('resize', handleViewportResize)
+  colorSchemeQuery.addEventListener('change', handleColorSchemeChange)
   void loadSeedNames()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener(HEART_MODE_SESSION_CHANGE_EVENT, onSessionChange)
+  window.removeEventListener('pointermove', moveDrag)
+  window.removeEventListener('pointerup', endDrag)
+  window.removeEventListener('pointercancel', endDrag)
+  window.removeEventListener('resize', handleViewportResize)
+  colorSchemeQuery.removeEventListener('change', handleColorSchemeChange)
 })
 </script>
 
 <style scoped lang="scss">
 .heart-mode-assistant {
   position: fixed;
-  right: 24px;
-  bottom: 86px;
   z-index: 520;
   color: var(--color-text);
   -webkit-app-region: no-drag;
@@ -465,7 +660,8 @@ onBeforeUnmount(() => {
   height: 42px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 50%;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   font: inherit;
   font-size: 18px;
   color: #202124;
@@ -492,12 +688,27 @@ onBeforeUnmount(() => {
   }
 }
 
+.heart-mode-assistant.dragging .heart-mode-trigger {
+  cursor: grabbing;
+  transform: scale(1.03);
+}
+
+.heart-mode-assistant.is-dark .heart-mode-trigger {
+  color: #f5f6f7;
+  background: rgba(34, 36, 40, 0.96);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
 .heart-mode-panel {
   position: absolute;
-  right: 0;
-  bottom: 52px;
   width: min(360px, calc(100vw - 32px));
-  max-height: min(70vh, 620px);
   overflow: auto;
   box-sizing: border-box;
   padding: 16px;
@@ -508,6 +719,26 @@ onBeforeUnmount(() => {
     0 18px 48px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.035) inset;
   backdrop-filter: blur(22px);
+
+  &.open-left {
+    right: 0;
+    left: auto;
+  }
+
+  &.open-right {
+    left: 0;
+    right: auto;
+  }
+
+  &.open-up {
+    bottom: 52px;
+    top: auto;
+  }
+
+  &.open-down {
+    top: 52px;
+    bottom: auto;
+  }
 
   header {
     display: flex;
@@ -599,17 +830,21 @@ onBeforeUnmount(() => {
   button {
     min-height: 42px;
     padding: 0 14px;
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 58%, transparent);
     border-radius: 10px;
     cursor: pointer;
     font: inherit;
     font-size: 13px;
     font-weight: 700;
     color: var(--color-text);
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 16%,
+      var(--color-secondary-bg-for-transparent)
+    );
     box-shadow:
       0 3px 10px rgba(0, 0, 0, 0.12),
-      0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      0 1px 0 color-mix(in srgb, var(--color-primary) 18%, transparent) inset;
     transition:
       transform 0.12s ease,
       border-color 0.12s ease,
@@ -618,7 +853,7 @@ onBeforeUnmount(() => {
 
     &:hover {
       filter: brightness(1.1);
-      border-color: rgba(128, 128, 128, 0.55);
+      border-color: color-mix(in srgb, var(--color-primary) 78%, transparent);
       box-shadow:
         0 5px 14px rgba(0, 0, 0, 0.16),
         0 1px 0 rgba(255, 255, 255, 0.08) inset;
@@ -630,22 +865,6 @@ onBeforeUnmount(() => {
     }
   }
 
-  button:first-child {
-    color: #fff;
-    border-color: transparent;
-    background: var(--color-primary, #3f6df6);
-    box-shadow: 0 5px 16px rgba(63, 109, 246, 0.28);
-
-    &:hover {
-      border-color: transparent;
-      box-shadow: 0 7px 18px rgba(63, 109, 246, 0.34);
-    }
-  }
-
-  button:last-child {
-    border-color: rgba(255, 255, 255, 0.34);
-    background: rgba(255, 255, 255, 0.16);
-  }
 }
 
 .metrics {
@@ -758,35 +977,34 @@ onBeforeUnmount(() => {
 
 .strategy-content {
   padding: 4px 12px 12px;
+}
 
-  ol {
+.strategy-group {
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+
+  &:last-of-type {
+    border-bottom: 0;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  ul {
     margin: 0;
-    padding: 0;
-    list-style: none;
+    padding-left: 17px;
   }
 
   li {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 9px 0;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.12);
-
-    &:last-child {
-      border-bottom: 0;
-    }
-
-    strong {
-      font-size: 13px;
-      line-height: 1.4;
-      font-weight: 700;
-    }
-
-    span {
-      font-size: 11.5px;
-      line-height: 1.55;
-      opacity: 0.66;
-    }
+    margin: 3px 0;
+    font-size: 11.5px;
+    line-height: 1.48;
+    opacity: 0.7;
   }
 }
 
@@ -817,19 +1035,36 @@ onBeforeUnmount(() => {
 
 .reset-button {
   align-self: flex-start;
-  border: 0;
-  background: transparent;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 44%, transparent);
+  border-radius: 9px;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 10%,
+    var(--color-secondary-bg-for-transparent)
+  );
   color: var(--color-text);
   cursor: pointer;
-  padding: 0;
   font: inherit;
   font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  opacity: 0.62;
+  font-weight: 650;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    transform 0.12s ease;
 
   &:hover {
-    opacity: 0.95;
+    border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 16%,
+      var(--color-secondary-bg-for-transparent)
+    );
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 }
 
@@ -847,11 +1082,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 680px) {
-  .heart-mode-assistant {
-    right: 14px;
-    bottom: 78px;
-  }
-
   .heart-mode-panel {
     width: min(340px, calc(100vw - 28px));
     max-height: 64vh;
