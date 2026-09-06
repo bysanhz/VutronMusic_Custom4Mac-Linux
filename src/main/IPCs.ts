@@ -2,7 +2,7 @@ import { app, ipcMain, IpcMainEvent, BrowserWindow } from 'electron'
 import type { OpenDialogOptions } from 'electron'
 import { YPMTray } from './tray'
 import { MprisImpl } from './mpris'
-import { checkUpdate, downloadUpdate } from './checkUpdate'
+import { checkUpdate, downloadUpdate, showManualUpdateDialog } from './checkUpdate'
 import Constants from './utils/Constants'
 import store from './store'
 import fs from 'fs'
@@ -766,6 +766,9 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
   ipcMain.handle('check-update', async () => {
     const info = await checkUpdate()
     return info
+  })
+  ipcMain.handle('show-update-dialog', async (_event, result) => {
+    await showManualUpdateDialog(win, result)
   })
   ipcMain.on('downloadUpdate', () => {
     downloadUpdate()
