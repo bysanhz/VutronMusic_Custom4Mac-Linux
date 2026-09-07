@@ -1093,6 +1093,23 @@ test.describe('desktop feature integration', () => {
     expect(updater).not.toContain('await fetch(RELEASE_API_URL')
   })
 
+  test('restores auto-hidden Windows desktop lyrics after the pointer leaves', () => {
+    const mainIndex = readSource('src/main/index.ts')
+    const osdPreload = readSource('src/preload/osdWin.ts')
+
+    expect(mainIndex).toContain('const pollInterval = Constants.IS_WINDOWS ? 32')
+    expect(mainIndex).toContain('screen.getCursorScreenPoint()')
+    expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', isInWindow)")
+    expect(mainIndex).toContain('this.checkOsdMouseLeave()')
+    expect(mainIndex).toContain('this.checkInterval = setInterval(updateMouseInWindowState, pollInterval)')
+
+    expect(osdPreload).toContain('const restoreRootVisibility = () => {')
+    expect(osdPreload).toContain("ipcRenderer.on('mouseInWindow', handleMouseInWindow)")
+    expect(osdPreload).toContain('if (value === false) restoreRootVisibility()')
+    expect(osdPreload).toContain("root.style.opacity = '1'")
+    expect(osdPreload).toContain("root.addEventListener('mouseleave', restoreRootVisibility)")
+  })
+
   test('keeps desktop lyric playback independent from main-window input focus', () => {
     const ipcs = readSource('src/main/IPCs.ts')
     const preload = readSource('src/preload/index.ts')
