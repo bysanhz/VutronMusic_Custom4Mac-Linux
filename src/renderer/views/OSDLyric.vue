@@ -401,8 +401,8 @@ onBeforeUnmount(() => {
    * resize-corner-size：
    * 四个角的检测尺寸。
    */
-  --resize-edge-size: 4px;
-  --resize-corner-size: 14px;
+  --resize-edge-size: 2px;
+  --resize-corner-size: 8px;
   /* =========== newADD end ======== */
 
   position: relative;
@@ -543,11 +543,11 @@ onBeforeUnmount(() => {
 /*
  * 底部移动条的透明鼠标命中区域。
  *
- * 整体高度为 12px，方便鼠标定位；
- * 实际显示出来的细条由 ::before 绘制。
+ * 命中区域刻意做得比可见把手更宽、更高，降低定位难度；
+ * 实际显示出来的把手由 ::before 绘制。
  *
  * 层级 10002 高于窗口下边缘和角落命中层，
- * 因此底部中央优先识别为移动操作。
+ * 因此底部中央优先识别为移动操作，避免误触窗口拉伸。
  */
 .osd-drag-bar {
   position: absolute;
@@ -556,8 +556,8 @@ onBeforeUnmount(() => {
 
   transform: translateX(-50%);
 
-  width: 72px;
-  height: 12px;
+  width: 112px;
+  height: 20px;
 
   z-index: 10002;
 
@@ -575,18 +575,18 @@ onBeforeUnmount(() => {
 
   position: absolute;
   left: 50%;
-  bottom: 2px;
+  bottom: 4px;
 
   transform: translateX(-50%);
 
-  width: 52px;
-  height: 4px;
+  width: 84px;
+  height: 6px;
 
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0);
+  background: rgba(255, 255, 255, 0.2);
 
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.2);
 
   pointer-events: none;
 
@@ -596,7 +596,7 @@ onBeforeUnmount(() => {
 }
 
 .osd-drag-bar:hover::before {
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .osd-drag-bar:active {
@@ -613,13 +613,26 @@ onBeforeUnmount(() => {
   cursor: grabbing !important;
 }
 
-/* 普通模式使用更宽的移动条。 */
+/*
+ * 拖动开始后暂时关闭窗口拉伸热区的命中。
+ *
+ * 即使鼠标经过窗口边缘或角落，也保持 grabbing 光标和移动语义，
+ * 不让 resize cursor 在拖动过程中闪烁或抢占命中。
+ */
+#main.is-custom-dragging .resize-edge,
+#main.is-custom-dragging .resize-corner {
+  pointer-events: none !important;
+}
+
+/* 普通模式使用更宽、更明显的移动把手。 */
 #main.normal-mode .osd-drag-bar {
-  width: 90px;
+  width: 144px;
+  height: 22px;
 }
 
 #main.normal-mode .osd-drag-bar::before {
-  width: 72px;
+  width: 110px;
+  height: 7px;
 }
 
 /*
