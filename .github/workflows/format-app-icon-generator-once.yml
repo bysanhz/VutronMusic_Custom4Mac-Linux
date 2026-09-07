@@ -1,0 +1,44 @@
+name: One-time app icon generator formatting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/format-app-icon-generator-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format app icon generator
+        run: |
+          ./node_modules/.bin/prettier --write tools/generate-app-icons.js
+          ./node_modules/.bin/prettier --check tools/generate-app-icons.js
+          git diff --check
+
+      - name: Commit formatting and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/generate-app-icons.js
+          git rm .github/workflows/format-app-icon-generator-once.yml
+          git commit -m "chore: format app icon generator"
+          git push origin HEAD:main
