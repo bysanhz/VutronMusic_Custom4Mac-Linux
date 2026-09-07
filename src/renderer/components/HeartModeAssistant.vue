@@ -851,6 +851,7 @@ const seedNames = ref<Record<string, string>>({})
 const HEART_MODE_ASSISTANT_POSITION_KEY = 'vutronmusic-heart-mode-assistant-position-v1'
 const ASSISTANT_SIZE = 42
 const VIEWPORT_MARGIN = 10
+const EDGE_STICK_THRESHOLD = 56
 const DRAG_THRESHOLD = 4
 
 const systemDark = ref(window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -883,7 +884,10 @@ const clampAssistantPosition = (x: number, y: number) => ({
 })
 
 const defaultAssistantPosition = () =>
-  clampAssistantPosition(viewport.value.width - ASSISTANT_SIZE - 24, viewport.value.height - 128)
+  clampAssistantPosition(
+    viewport.value.width - ASSISTANT_SIZE - VIEWPORT_MARGIN,
+    viewport.value.height - 128
+  )
 
 const assistantStyle = computed(() => ({
   left: `${assistantPosition.value.x}px`,
@@ -1062,11 +1066,31 @@ const togglePanel = () => {
 }
 
 const handleViewportResize = () => {
+  const previousViewport = viewport.value
+  const previousPosition = assistantPosition.value
+
+  const previousRightGap =
+    previousViewport.width - ASSISTANT_SIZE - previousPosition.x
+  const previousBottomGap =
+    previousViewport.height - ASSISTANT_SIZE - previousPosition.y
+
+  const stickToRight = previousRightGap <= EDGE_STICK_THRESHOLD
+  const stickToBottom = previousBottomGap <= EDGE_STICK_THRESHOLD
+
   viewport.value = { width: window.innerWidth, height: window.innerHeight }
-  assistantPosition.value = clampAssistantPosition(
-    assistantPosition.value.x,
-    assistantPosition.value.y
-  )
+
+  const nextX = stickToRight
+    ? viewport.value.width -
+      ASSISTANT_SIZE -
+      Math.max(VIEWPORT_MARGIN, previousRightGap)
+    : previousPosition.x
+  const nextY = stickToBottom
+    ? viewport.value.height -
+      ASSISTANT_SIZE -
+      Math.max(VIEWPORT_MARGIN, previousBottomGap)
+    : previousPosition.y
+
+  assistantPosition.value = clampAssistantPosition(nextX, nextY)
   persistAssistantPosition()
 }
 
