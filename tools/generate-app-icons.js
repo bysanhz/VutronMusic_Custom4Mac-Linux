@@ -5,8 +5,7 @@ const sharp = require('sharp')
 
 const projectRoot = path.resolve(__dirname, '..')
 const sourceIconDirectory = path.join(projectRoot, 'buildAssets', 'icon-source')
-const expectedSourceIconSha256 =
-  '0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6'
+const expectedSourceIconSha256 = '0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6'
 const generatedRoot = path.join(projectRoot, 'buildAssets', 'generated-icons')
 const linuxIconDirectory = path.join(generatedRoot, 'linux')
 const trayIconDirectory = path.join(generatedRoot, 'tray')
