@@ -289,8 +289,11 @@ jobs:
           mkdir -p upload
           while IFS= read -r -d '' file; do
             base="$(basename "$file")"
-            artifact_dir="$(basename "$(dirname "$file")")"
+            relative="${file#all-artifacts/}"
+            artifact_dir="${relative%%/*}"
 
+            # actions/download-artifact 会在 artifact 目录下保留原始 release/... 层级，
+            # 因此必须从 all-artifacts 后的第一个路径分量读取 artifact 名，不能取文件父目录。
             # Windows x64 与 ARM64 的 electron-builder 元数据都叫 latest.yml。
             # 发布汇总时必须保留为不同 channel，否则后上传/更大的文件会覆盖另一架构。
             if [[ "$artifact_dir" == "VutronMusic-win-x64-metadata" && "$base" == "latest.yml" ]]; then
