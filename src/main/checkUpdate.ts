@@ -12,6 +12,12 @@ const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE
 
 let nativeUpdaterConfigured = false
 
+const isWindowsPortable = () =>
+  Constants.IS_WINDOWS && Boolean(process.env.PORTABLE_EXECUTABLE_FILE)
+
+const getWindowsUpdateChannel = () =>
+  process.arch === 'arm64' ? 'latest-win-arm64' : 'latest-win-x64'
+
 /**
  * 判断当前安装格式是否支持 electron-updater 原生下载安装。
  *
@@ -24,6 +30,7 @@ let nativeUpdaterConfigured = false
 const canUseNativeUpdater = () => {
   if (!app.isPackaged || Constants.IS_MAC) return false
   if (Constants.IS_LINUX) return Boolean(process.env.APPIMAGE)
+  if (isWindowsPortable()) return false
   return true
 }
 
@@ -37,6 +44,13 @@ const configureNativeUpdater = () => {
     private: false
   })
   autoUpdater.autoDownload = false
+
+  if (Constants.IS_WINDOWS) {
+    // Windows x64 / ARM64 发布物使用独立更新元数据，避免 latest.yml 在
+    // Release 汇总时被另一架构覆盖，进而下载到错误架构的安装程序。
+    autoUpdater.channel = getWindowsUpdateChannel()
+  }
+
   nativeUpdaterConfigured = true
 }
 
@@ -99,7 +113,9 @@ const checkGitHubRelease = async () => {
           : 'linux-package'
         : Constants.IS_MAC
           ? 'macos-unsigned'
-          : 'package'
+          : isWindowsPortable()
+            ? 'windows-portable'
+            : 'package'
   }
 }
 // =========== newADD end ========
@@ -202,7 +218,9 @@ export const initAutoUpdater = (win: BrowserWindow) => {
       })
       .then((result) => {
         if (result.response === 0) {
-          autoUpdater.quitAndInstall()
+          // 强制安装完成后重新启动应用。Windows NSIS 自动更新路径如果不显式
+          // 要求重新运行，安装完成后可能停留在“已安装但未重新打开”的状态。
+          autoUpdater.quitAndInstall(false, true)
         }
       })
       .catch((error) => {
