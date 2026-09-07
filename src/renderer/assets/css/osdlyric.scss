@@ -85,10 +85,10 @@ body {
   transform: translateX(4px);
 }
 
-/* 未锁定时缩小边缘拉伸热区。 */
+/* 未锁定时进一步缩小紧凑模式的边缘拉伸热区，降低误触。 */
 #main.compact-mode:not(.is-lock) {
-  --resize-edge-size: 2px;
-  --resize-corner-size: 7px;
+  --resize-edge-size: 1px;
+  --resize-corner-size: 5px;
 }
 
 /*
