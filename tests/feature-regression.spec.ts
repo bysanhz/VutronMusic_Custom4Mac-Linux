@@ -1101,7 +1101,9 @@ test.describe('desktop feature integration', () => {
     expect(mainIndex).toContain('screen.getCursorScreenPoint()')
     expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', isInWindow)")
     expect(mainIndex).toContain('this.checkOsdMouseLeave()')
-    expect(mainIndex).toContain('this.checkInterval = setInterval(updateMouseInWindowState, pollInterval)')
+    expect(mainIndex).toContain(
+      'this.checkInterval = setInterval(updateMouseInWindowState, pollInterval)'
+    )
 
     expect(osdPreload).toContain('const restoreRootVisibility = () => {')
     expect(osdPreload).toContain("ipcRenderer.on('mouseInWindow', handleMouseInWindow)")
