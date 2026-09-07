@@ -35,7 +35,7 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 正式版本由 GitHub Actions 根据版本标签自动构建并发布到
 [Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)。
 
-**当前正式版本：[`v3.3.0`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.0)**（2026-09-07）。
+**当前正式版本：[`v3.3.1`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.1)**（2026-09-07）。
 
 | 平台 | 架构 | 安装包 | 更新方式 |
 | --- | --- | --- | --- |
@@ -43,8 +43,19 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 | Linux | ARM64 | AppImage / Deb / RPM | 应用内检查版本，跳转 Release 手动下载 |
 | macOS | Apple Silicon | 本机源码构建（推荐）/ 未签名 DMG arm64 | 应用内检查版本，跳转 Release |
 | macOS | Intel | 本机源码构建（推荐）/ 未签名 DMG x64 | 应用内检查版本，跳转 Release |
-| Windows | x64 | 安装版 / Portable | 支持应用内更新 |
+| Windows | x64 | 安装版 / Portable | 安装版支持应用内更新；Portable 跳转 Release 手动下载 |
 | Windows | ARM64 | 安装版 | 支持应用内更新 |
+
+### v3.3.1 稳定性更新
+
+- 优化桌面歌词底部拖拽 Bar：继续保持较大的鼠标命中区，同时缩短可见长度；拖动时禁用 resize 热区，减少误触窗口拉伸；
+- 修复 Windows 下 Heart Mode 助手“多来点这种”“跳远一点”等按钮无法稳定交互的问题；
+- Heart Mode 的 Seed 解析新增候选映射、推荐解释和 Seed 本身三级 fallback，修复部分会话点击后无反应；
+- 修复打开 / 关闭 DevTools 或窗口尺寸变化后 ✨ Heart Mode 浮动按钮不能重新贴回右侧的问题；
+- Windows x64 / ARM64 使用独立 updater metadata：`latest-win-x64.yml` 与 `latest-win-arm64.yml`，避免更新时拿到错误架构安装包；
+- Windows Portable 不再进入 NSIS 自动安装流程；Windows 安装版更新完成后明确要求重新启动应用。
+
+完整版本说明见 [`v3.3.1 Release`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.1)。
 
 ### v3.3.0 重点更新
 
@@ -208,7 +219,7 @@ Heart Mode 需要登录网易云账号，并且“我喜欢的音乐”中至少
 
 - 软件启动时不会自动访问更新服务，也不会自动检查新版本；
 - 只有用户进入“软件更新”并点击“检查更新”后，应用才会主动联网检查；
-- Windows 与 Linux AppImage 继续使用 `electron-updater` 处理可用更新的下载与安装；
+- Windows 安装版与 Linux AppImage 使用 `electron-updater` 处理可用更新的下载与安装；Windows Portable 版发现新版本后跳转 Release 手动下载；
 - Linux Deb / RPM、macOS 未签名 DMG 等手动安装格式在发现新版本后会提示用户，并提供打开 GitHub Release 下载页的入口；
 - 非 AppImage Linux 环境不会误调用 AppImage 更新器；
 - 设置页提供一键诊断快照，汇总版本、系统、GPU、播放状态、桌面歌词、定时器、队列和最近错误；
@@ -401,7 +412,7 @@ git push origin "v${VERSION}"
 - Heart Mode 需要登录网易云账号，并且“我喜欢的音乐”中至少有一首歌曲；关闭“使用自定义心动算法”后，新的 Heart Mode 会话回到网易云原始单 Seed 推荐顺序；
 - 修改 preload、桌面歌词窗口或 Electron 主进程后，需要完整退出并重新启动；
 - 播放页右键菜单包含本曲歌词时间校正、播放历史与队列、睡眠定时器等入口；
-- Linux Deb / RPM 与未签名 macOS 构建只在用户主动点击“检查更新”后检查新版本，不执行静默安装；
+- Linux Deb / RPM、Windows Portable 与未签名 macOS 构建只在用户主动点击“检查更新”后检查新版本，不执行静默安装；
 - macOS 下载版 DMG 被 Gatekeeper 拦截时，请按本文“macOS 下载版安装（未签名 DMG）”处理，或使用本机构建流程；
 - 出现问题时，可在设置页复制一键诊断快照并打开日志文件；
 - 网易云账号登录和通用功能可参考[上游 Wiki](https://github.com/stark81/VutronMusic/wiki/)。
