@@ -289,6 +289,21 @@ jobs:
           mkdir -p upload
           while IFS= read -r -d '' file; do
             base="$(basename "$file")"
+            artifact_dir="$(basename "$(dirname "$file")")"
+
+            # Windows x64 与 ARM64 的 electron-builder 元数据都叫 latest.yml。
+            # 发布汇总时必须保留为不同 channel，否则后上传/更大的文件会覆盖另一架构。
+            if [[ "$artifact_dir" == "VutronMusic-win-x64-metadata" && "$base" == "latest.yml" ]]; then
+              cp "$file" upload/latest-win-x64.yml
+              # 保留 generic latest.yml 供旧版 x64 客户端完成一次过渡更新。
+              cp "$file" upload/latest.yml
+              continue
+            fi
+            if [[ "$artifact_dir" == "VutronMusic-win-arm64-metadata" && "$base" == "latest.yml" ]]; then
+              cp "$file" upload/latest-win-arm64.yml
+              continue
+            fi
+
             dest="upload/$base"
             if [[ "$base" == latest*.yml && -f "$dest" ]]; then
               old_size="$(stat -c%s "$dest")"
