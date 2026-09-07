@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - '.github/workflows/validate-v3.3.0-icon-once.yml'
+      - 'buildAssets/icon-source/**'
+      - 'tools/generate-app-icons.js'
 
 permissions:
   contents: write
