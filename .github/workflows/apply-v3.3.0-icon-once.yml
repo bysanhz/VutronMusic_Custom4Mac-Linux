@@ -38,7 +38,7 @@ jobs:
           import re
           from pathlib import Path
 
-          expected = '724e045dca4a5e74e5832b602d79caa478c8add1b1b80860c167887390a9e792'
+          expected = '0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6'
           paths = sorted(glob.glob('.github/icon-upload-v330/chunk*.b64'))
           if not paths:
               raise SystemExit('no icon chunks found')
@@ -87,7 +87,7 @@ jobs:
               raise SystemExit('no decoding strategy matched the expected icon SHA-256')
           PY
 
-          echo '724e045dca4a5e74e5832b602d79caa478c8add1b1b80860c167887390a9e792  /tmp/vutron-icon.webp' | sha256sum -c -
+          echo '0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6  /tmp/vutron-icon.webp' | sha256sum -c -
 
           node - <<'NODE'
           const sharp = require('sharp')
