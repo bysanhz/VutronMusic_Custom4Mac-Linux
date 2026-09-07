@@ -556,8 +556,8 @@ onBeforeUnmount(() => {
 
   transform: translateX(-50%);
 
-  width: 112px;
-  height: 20px;
+  width: clamp(150px, 34vw, 260px);
+  height: 28px;
 
   z-index: 10002;
 
@@ -575,18 +575,18 @@ onBeforeUnmount(() => {
 
   position: absolute;
   left: 50%;
-  bottom: 4px;
+  bottom: 5px;
 
   transform: translateX(-50%);
 
-  width: 84px;
-  height: 6px;
+  width: calc(100% - 28px);
+  height: 8px;
 
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.28);
 
-  box-shadow: 0 0 7px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.22);
 
   pointer-events: none;
 
@@ -626,13 +626,13 @@ onBeforeUnmount(() => {
 
 /* 普通模式使用更宽、更明显的移动把手。 */
 #main.normal-mode .osd-drag-bar {
-  width: 144px;
-  height: 22px;
+  width: clamp(190px, 32vw, 320px);
+  height: 30px;
 }
 
 #main.normal-mode .osd-drag-bar::before {
-  width: 110px;
-  height: 7px;
+  width: calc(100% - 34px);
+  height: 9px;
 }
 
 /*
