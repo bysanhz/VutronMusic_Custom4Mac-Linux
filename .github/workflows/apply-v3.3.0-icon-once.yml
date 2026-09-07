@@ -30,10 +30,63 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : > /tmp/vutron-icon.webp
-          for chunk in .github/icon-upload-v330/chunk*.b64; do
-            base64 -d -i "$chunk" >> /tmp/vutron-icon.webp
-          done
+
+          python - <<'PY'
+          import base64
+          import glob
+          import hashlib
+          import re
+          from pathlib import Path
+
+          expected = '724e045dca4a5e74e5832b602d79caa478c8add1b1b80860c167887390a9e792'
+          paths = sorted(glob.glob('.github/icon-upload-v330/chunk*.b64'))
+          if not paths:
+              raise SystemExit('no icon chunks found')
+
+          allowed = re.compile(r'[^A-Za-z0-9+/=]')
+          chunks = [allowed.sub('', Path(path).read_text()) for path in paths]
+
+          def padded(text: str) -> str:
+              return text + ('=' * ((4 - len(text) % 4) % 4))
+
+          candidates = []
+
+          # Strategy 1: chunks are slices of one long Base64 string.
+          joined = ''.join(chunks)
+          try:
+              candidates.append(('joined', base64.b64decode(padded(joined), validate=False)))
+          except Exception:
+              pass
+
+          # Strategy 2: remove any intermediate padding, then decode as one stream.
+          joined_no_padding = ''.join(chunk.replace('=', '') for chunk in chunks)
+          try:
+              candidates.append(
+                  ('joined-no-padding', base64.b64decode(padded(joined_no_padding), validate=False))
+              )
+          except Exception:
+              pass
+
+          # Strategy 3: each chunk was independently Base64-encoded.
+          try:
+              decoded = b''.join(
+                  base64.b64decode(padded(chunk), validate=False) for chunk in chunks
+              )
+              candidates.append(('per-chunk', decoded))
+          except Exception:
+              pass
+
+          for name, data in candidates:
+              digest = hashlib.sha256(data).hexdigest()
+              print(f'{name}: bytes={len(data)} sha256={digest}')
+              if digest == expected:
+                  Path('/tmp/vutron-icon.webp').write_bytes(data)
+                  print(f'matched strategy: {name}')
+                  break
+          else:
+              raise SystemExit('no decoding strategy matched the expected icon SHA-256')
+          PY
+
           echo '724e045dca4a5e74e5832b602d79caa478c8add1b1b80860c167887390a9e792  /tmp/vutron-icon.webp' | sha256sum -c -
 
           node - <<'NODE'
