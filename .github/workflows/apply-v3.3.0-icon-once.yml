@@ -30,7 +30,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .github/icon-upload-v330/chunk*.b64 | base64 -d -i > /tmp/vutron-icon.webp
+          : > /tmp/vutron-icon.webp
+          for chunk in .github/icon-upload-v330/chunk*.b64; do
+            base64 -d -i "$chunk" >> /tmp/vutron-icon.webp
+          done
           echo '724e045dca4a5e74e5832b602d79caa478c8add1b1b80860c167887390a9e792  /tmp/vutron-icon.webp' | sha256sum -c -
 
           node - <<'NODE'
