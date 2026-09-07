@@ -357,11 +357,13 @@ export const getHeartModeTrackContext = (trackID: number): HeartModeTrackContext
   if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null
 
   const id = normalizePositiveID(trackID)
-  if (!id || !(String(id) in currentSession.sourceSeedByTrackID)) return null
+  if (!id) return null
+  const sourceSeedId = resolveHeartModeSourceSeedId(currentSession, id)
+  if (!sourceSeedId) return null
 
   return {
     heartModeSessionId: currentSession.id,
-    sourceSeedId: currentSession.sourceSeedByTrackID[String(id)]
+    sourceSeedId
   }
 }
 
@@ -372,6 +374,28 @@ export const getHeartModeRecommendationReason = (
   const id = normalizePositiveID(trackID)
   if (!currentSession || !id) return null
   return currentSession.recommendationReasons[String(id)] ?? null
+}
+
+/**
+ * 解析当前歌曲所属的 Heart Mode Seed 分支。
+ *
+ * 优先使用候选池显式映射；旧会话或首个 Seed 歌曲缺少映射时，
+ * 回退到推荐解释快照，再回退到“当前歌曲本身就是 Seed”的情况。
+ */
+export const resolveHeartModeSourceSeedId = (
+  session: HeartModeSessionState,
+  trackID: number
+): number | null => {
+  const id = normalizePositiveID(trackID)
+  if (!id) return null
+
+  const mappedSeedId = normalizePositiveID(session.sourceSeedByTrackID[String(id)])
+  if (mappedSeedId) return mappedSeedId
+
+  const reasonSeedId = normalizePositiveID(session.recommendationReasons[String(id)]?.sourceSeedId)
+  if (reasonSeedId) return reasonSeedId
+
+  return session.seedIds.includes(id) ? id : null
 }
 
 export const getHeartModeBranchScoreMap = (): Map<number, number> => {
@@ -421,7 +445,7 @@ export const boostHeartModeCurrentBranch = (
   if (!heartModeCustomAlgorithmEnabled.value || !currentSession) return null
   const id = normalizePositiveID(trackID)
   if (!id) return null
-  const seedId = normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)])
+  const seedId = resolveHeartModeSourceSeedId(currentSession, id)
   if (!seedId) return null
 
   const key = String(seedId)
@@ -464,7 +488,7 @@ export const steerHeartModeFurther = (
   const explicitFeedback: HeartModeExplicitFeedback = {
     sessionId: currentSession.id,
     trackId: id,
-    sourceSeedId: normalizePositiveID(currentSession.sourceSeedByTrackID[String(id)]) ?? undefined,
+    sourceSeedId: resolveHeartModeSourceSeedId(currentSession, id) ?? undefined,
     type: 'go-further',
     createdAt: now
   }
