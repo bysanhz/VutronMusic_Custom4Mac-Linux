@@ -1,0 +1,44 @@
+name: One-time README icon asset
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/add-readme-icon-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  add-icon:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Rebuild validated v3.3.0 icon asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          mkdir -p .github/resources
+          cat buildAssets/icon-source/*.b64 |
+            tr -d '\r\n\t ' |
+            base64 --decode > .github/resources/vutron-icon-v3.3.0.webp
+          echo "0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6  .github/resources/vutron-icon-v3.3.0.webp" |
+            sha256sum -c -
+
+      - name: Commit icon asset and remove temporary upload residue
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/resources/vutron-icon-v3.3.0.webp
+          if [[ -f .github/icon-upload/chunk00.b64 ]]; then
+            git rm .github/icon-upload/chunk00.b64
+          fi
+          git rm .github/workflows/add-readme-icon-once.yml
+          git commit -m "docs: add v3.3.0 app icon asset"
+          git push origin HEAD:main
