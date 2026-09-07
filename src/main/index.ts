@@ -491,35 +491,42 @@ class BackGround {
   }
 
   checkOsdMouseLeave(inter = 16) {
-    if (!this.isInWindow) {
-      this.lyricWin?.webContents.send('mouseInWindow', true)
-      this.isInWindow = true
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+      this.checkInterval = null
     }
-    if (this.checkInterval) clearInterval(this.checkInterval)
-    this.checkInterval = setInterval(() => {
-      if (!this.lyricWin) {
-        clearInterval(this.checkInterval)
+
+    const pollInterval = Constants.IS_WINDOWS ? 32 : Math.max(16, inter)
+
+    const updateMouseInWindowState = () => {
+      const lyricWin = this.lyricWin
+      if (!lyricWin || lyricWin.isDestroyed()) {
+        if (this.checkInterval) clearInterval(this.checkInterval)
+        this.checkInterval = null
+        this.isInWindow = false
         return
       }
+
       const mousePos = screen.getCursorScreenPoint()
-      if (
-        mousePos.x !== this.lastKnownMousePosition.x ||
-        mousePos.y !== this.lastKnownMousePosition.y
-      ) {
-        this.lastKnownMousePosition = { x: mousePos.x, y: mousePos.y }
-        const bounds = this.lyricWin?.getBounds() || { x: 0, y: 0, width: 0, height: 0 }
-        const isInWindow =
-          mousePos.x >= bounds.x - 10 &&
-          mousePos.x <= bounds.x + bounds.width + 10 &&
-          mousePos.y >= bounds.y - 10 &&
-          mousePos.y <= bounds.y + bounds.height + 10
-        if (!isInWindow) {
-          this.lyricWin?.webContents.send('mouseInWindow', false)
-          clearInterval(this.checkInterval)
-        }
-        this.isInWindow = isInWindow
-      }
-    }, inter)
+      this.lastKnownMousePosition = { x: mousePos.x, y: mousePos.y }
+
+      const bounds = lyricWin.getBounds()
+      const isInWindow =
+        mousePos.x >= bounds.x - 10 &&
+        mousePos.x <= bounds.x + bounds.width + 10 &&
+        mousePos.y >= bounds.y - 10 &&
+        mousePos.y <= bounds.y + bounds.height + 10
+
+      if (isInWindow === this.isInWindow) return
+
+      this.isInWindow = isInWindow
+      lyricWin.webContents.send('mouseInWindow', isInWindow)
+    }
+
+    // Windows 的 setIgnoreMouseEvents(true, { forward: true }) 不保证 DOM mouseleave
+    // 在所有穿透场景都可靠触发，因此由主进程持续根据屏幕坐标判断是否离开窗口。
+    updateMouseInWindowState()
+    this.checkInterval = setInterval(updateMouseInWindowState, pollInterval)
   }
 
   updateLyricInfo(data: any) {
@@ -533,6 +540,7 @@ class BackGround {
     this.lyricWin.webContents.on('did-finish-load', () => {
       this.initMessageChannel()
       this.toggleMouseIgnore()
+      this.checkOsdMouseLeave()
       setTimeout(() => {
         this.lyricWin.setFocusable(false)
         // this.lyricWin.setAlwaysOnTop(true)
@@ -569,6 +577,12 @@ class BackGround {
   }
 
   hideOSDWindow() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+      this.checkInterval = null
+    }
+    this.isInWindow = false
+
     if (this.lyricWin) {
       this.lyricWin.close()
       this.lyricWin = null
