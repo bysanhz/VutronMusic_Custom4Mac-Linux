@@ -469,6 +469,17 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(result.decisions['3'].movedForSeedSpacing).toBe(true)
   })
 
+  test('keeps the Heart Mode assistant docked when DevTools changes the viewport', () => {
+    const assistant = readSource('src/renderer/components/HeartModeAssistant.vue')
+
+    expect(assistant).toContain('const EDGE_STICK_THRESHOLD = 56')
+    expect(assistant).toContain('const previousRightGap =')
+    expect(assistant).toContain('const stickToRight = previousRightGap <= EDGE_STICK_THRESHOLD')
+    expect(assistant).toContain('viewport.value.width -')
+    expect(assistant).toContain('Math.max(VIEWPORT_MARGIN, previousRightGap)')
+    expect(assistant).toContain('viewport.value.width - ASSISTANT_SIZE - VIEWPORT_MARGIN')
+  })
+
   test('resolves Heart Mode branch actions for mapped, explained, and seed tracks', () => {
     const base: HeartModeSessionState = {
       id: 'session',
@@ -1346,9 +1357,9 @@ test.describe('desktop feature integration', () => {
     const osd = readSource('src/renderer/views/OSDLyric.vue')
     const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
 
-    expect(osd).toContain('width: clamp(150px, 34vw, 260px);')
+    expect(osd).toContain('width: clamp(132px, 29vw, 220px);')
     expect(osd).toContain('height: 28px;')
-    expect(osd).toContain('width: clamp(190px, 32vw, 320px);')
+    expect(osd).toContain('width: clamp(168px, 28vw, 270px);')
     expect(osd).toContain('height: 30px;')
     expect(osd).toContain('#main.is-custom-dragging .resize-edge')
     expect(osd).toContain('pointer-events: none !important;')
