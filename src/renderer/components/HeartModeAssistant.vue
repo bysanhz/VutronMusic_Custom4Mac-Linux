@@ -1069,10 +1069,8 @@ const handleViewportResize = () => {
   const previousViewport = viewport.value
   const previousPosition = assistantPosition.value
 
-  const previousRightGap =
-    previousViewport.width - ASSISTANT_SIZE - previousPosition.x
-  const previousBottomGap =
-    previousViewport.height - ASSISTANT_SIZE - previousPosition.y
+  const previousRightGap = previousViewport.width - ASSISTANT_SIZE - previousPosition.x
+  const previousBottomGap = previousViewport.height - ASSISTANT_SIZE - previousPosition.y
 
   const stickToRight = previousRightGap <= EDGE_STICK_THRESHOLD
   const stickToBottom = previousBottomGap <= EDGE_STICK_THRESHOLD
@@ -1080,14 +1078,10 @@ const handleViewportResize = () => {
   viewport.value = { width: window.innerWidth, height: window.innerHeight }
 
   const nextX = stickToRight
-    ? viewport.value.width -
-      ASSISTANT_SIZE -
-      Math.max(VIEWPORT_MARGIN, previousRightGap)
+    ? viewport.value.width - ASSISTANT_SIZE - Math.max(VIEWPORT_MARGIN, previousRightGap)
     : previousPosition.x
   const nextY = stickToBottom
-    ? viewport.value.height -
-      ASSISTANT_SIZE -
-      Math.max(VIEWPORT_MARGIN, previousBottomGap)
+    ? viewport.value.height - ASSISTANT_SIZE - Math.max(VIEWPORT_MARGIN, previousBottomGap)
     : previousPosition.y
 
   assistantPosition.value = clampAssistantPosition(nextX, nextY)
