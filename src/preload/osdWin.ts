@@ -155,6 +155,26 @@ document.addEventListener('DOMContentLoaded', () => {
   let timeoutId: number | null = null
   let lastMoveTime = 0
 
+  const restoreRootVisibility = () => {
+    if (timeoutId !== null) window.clearTimeout(timeoutId)
+    timeoutId = null
+    root.style.opacity = '1'
+    if (lockEl) lockEl.style.opacity = '0'
+  }
+
+  const handleMouseInWindow = (_event: IpcRendererEvent, value: boolean) => {
+    if (value === false) restoreRootVisibility()
+  }
+
+  ipcRenderer.on('mouseInWindow', handleMouseInWindow)
+  window.addEventListener(
+    'unload',
+    () => {
+      ipcRenderer.off('mouseInWindow', handleMouseInWindow)
+    },
+    { once: true }
+  )
+
   titleBar?.addEventListener('mousedown', (event: MouseEvent) => {
     if (!(event.target instanceof Element) || !event.target.classList.contains('header')) return
 
@@ -197,12 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lockEl) lockEl.style.opacity = '1'
   })
 
-  root.addEventListener('mouseleave', () => {
-    if (timeoutId !== null) window.clearTimeout(timeoutId)
-    timeoutId = null
-    if (lockEl) lockEl.style.opacity = '0'
-    root.style.opacity = '1'
-  })
+  root.addEventListener('mouseleave', restoreRootVisibility)
 
   root.addEventListener('mousemove', () => {
     if (!root.classList.contains('is-lock')) return
