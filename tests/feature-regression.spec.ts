@@ -31,7 +31,9 @@ import {
 import { getHeartModePresetProfile } from '../src/renderer/utils/heartModeProfile'
 import {
   calculateNextHeartModeBranchState,
-  type HeartModeBranchState
+  resolveHeartModeSourceSeedId,
+  type HeartModeBranchState,
+  type HeartModeSessionState
 } from '../src/renderer/utils/heartModeSession'
 import {
   HEART_MODE_INITIAL_QUEUE_SIZE,
@@ -465,6 +467,54 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(result.trackIDs).toEqual([1, 3, 2])
     expect(result.decisions['3'].finalRank).toBe(1)
     expect(result.decisions['3'].movedForSeedSpacing).toBe(true)
+  })
+
+  test('resolves Heart Mode branch actions for mapped, explained, and seed tracks', () => {
+    const base: HeartModeSessionState = {
+      id: 'session',
+      profile: getHeartModePresetProfile('balanced'),
+      seedIds: [100, 200],
+      playlistId: 1,
+      startedAt: 1,
+      sourceSeedByTrackID: { '10': 100 },
+      playedTrackIDs: [],
+      enqueuedTrackIDs: [],
+      pendingTrackIDs: [],
+      branchStates: {},
+      steering: { noveltyOffset: 0, diversityOffset: 0, familiarityOffset: 0 },
+      explicitFeedback: [],
+      recommendationReasons: {
+        '20': {
+          trackId: 20,
+          sourceSeedId: 200,
+          score: {
+            neteaseRank: 0,
+            freshness: 0,
+            familiarity: 0,
+            feedback: 0,
+            repeatPenalty: 0,
+            branchPreference: 0,
+            total: 0
+          },
+          originalRank: 0,
+          finalRank: 0,
+          likedAtRecommendation: false,
+          rerank: {
+            artistViolation: 0,
+            seedViolation: 0,
+            movedForArtistSpacing: false,
+            movedForSeedSpacing: false,
+            familiarityDeferred: false
+          },
+          recommendedAt: 1
+        }
+      }
+    }
+
+    expect(resolveHeartModeSourceSeedId(base, 10)).toBe(100)
+    expect(resolveHeartModeSourceSeedId(base, 20)).toBe(200)
+    expect(resolveHeartModeSourceSeedId(base, 100)).toBe(100)
+    expect(resolveHeartModeSourceSeedId(base, 999)).toBeNull()
   })
 
   test('wires explainability, steering, and safe session-learning reset into the player', () => {
@@ -1292,6 +1342,20 @@ test.describe('desktop feature integration', () => {
     expect(zhLocale).toContain('"manualOnly"')
   })
 
+  test('keeps the desktop lyric drag handle large and dominant over resize hit zones', () => {
+    const osd = readSource('src/renderer/views/OSDLyric.vue')
+    const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
+
+    expect(osd).toContain('width: clamp(150px, 34vw, 260px);')
+    expect(osd).toContain('height: 28px;')
+    expect(osd).toContain('width: clamp(190px, 32vw, 320px);')
+    expect(osd).toContain('height: 30px;')
+    expect(osd).toContain('#main.is-custom-dragging .resize-edge')
+    expect(osd).toContain('pointer-events: none !important;')
+    expect(osdCss).toContain('--resize-edge-size: 1px;')
+    expect(osdCss).toContain('--resize-corner-size: 5px;')
+  })
+
   test('shows an update prompt for manual packages and preserves native install flow', () => {
     const updater = readSource('src/main/checkUpdate.ts')
     const ipcs = readSource('src/main/IPCs.ts')
@@ -1305,7 +1369,14 @@ test.describe('desktop feature integration', () => {
     expect(updater).toContain("title: '发现新版本'")
     expect(updater).toContain("buttons: ['打开下载安装页', '稍后']")
     expect(updater).toContain('autoUpdater.downloadUpdate()')
-    expect(updater).toContain('autoUpdater.quitAndInstall()')
+    expect(updater).toContain('autoUpdater.quitAndInstall(false, true)')
+    expect(updater).toContain('PORTABLE_EXECUTABLE_FILE')
+    expect(updater).toContain("process.arch === 'arm64' ? 'latest-win-arm64' : 'latest-win-x64'")
+
+    const releaseWorkflow = readSource('.github/workflows/build.yml')
+    expect(releaseWorkflow).toContain('upload/latest-win-x64.yml')
+    expect(releaseWorkflow).toContain('upload/latest-win-arm64.yml')
+    expect(releaseWorkflow).toContain('upload/latest.yml')
 
     expect(ipcs).toContain("ipcMain.handle('show-update-dialog'")
     expect(preload).toContain("'show-update-dialog'")
