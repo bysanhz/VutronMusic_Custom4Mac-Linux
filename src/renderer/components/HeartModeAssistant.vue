@@ -5,6 +5,7 @@
     :style="assistantStyle"
   >
     <button
+      type="button"
       class="heart-mode-trigger"
       :title="texts.dragHint"
       @pointerdown="startDrag"
@@ -24,11 +25,14 @@
             <strong>{{ texts.title }}</strong>
             <span>{{ texts.subtitle }}</span>
           </div>
-          <button class="close" :title="texts.close" @click="panelOpen = false">×</button>
+          <button type="button" class="close" :title="texts.close" @click.stop="panelOpen = false">
+            ×
+          </button>
         </header>
 
         <nav class="panel-tabs" role="tablist" :aria-label="texts.tabsLabel">
           <button
+            type="button"
             class="panel-tab"
             :class="{ active: panelPage === 'main' }"
             role="tab"
@@ -38,6 +42,7 @@
             {{ texts.currentTab }}
           </button>
           <button
+            type="button"
             class="panel-tab"
             :class="{ active: panelPage === 'settings' }"
             role="tab"
@@ -47,6 +52,7 @@
             {{ texts.profileSettings }}
           </button>
           <button
+            type="button"
             class="panel-tab"
             :class="{ active: panelPage === 'guide' }"
             role="tab"
@@ -77,17 +83,21 @@
 
           <div class="actions">
             <button
+              type="button"
               class="heart-action-button"
               :disabled="!customAlgorithmEnabled || !session"
-              @click="moreLikeThis"
+              @pointerdown.stop
+              @click.stop="moreLikeThis"
             >
               <span class="heart-action-icon" aria-hidden="true">＋</span>
               <span>{{ texts.moreLikeThis }}</span>
             </button>
             <button
+              type="button"
               class="heart-action-button"
               :disabled="!customAlgorithmEnabled || !session"
-              @click="goFurther"
+              @pointerdown.stop
+              @click.stop="goFurther"
             >
               <span class="heart-action-icon" aria-hidden="true">↗</span>
               <span>{{ texts.goFurther }}</span>
@@ -141,7 +151,12 @@
           </div>
 
           <div class="reset-zone">
-            <button class="heart-action-button reset-button" @click="resetLearning">
+            <button
+              type="button"
+              class="heart-action-button reset-button"
+              @pointerdown.stop
+              @click.stop="resetLearning"
+            >
               <span class="heart-action-icon" aria-hidden="true">↺</span>
               <span>{{ texts.reset }}</span>
             </button>
@@ -1167,6 +1182,15 @@ onBeforeUnmount(() => {
   -webkit-app-region: no-drag;
 }
 
+.heart-mode-panel,
+.heart-mode-panel button,
+.heart-mode-panel input,
+.heart-mode-panel select,
+.heart-mode-panel label,
+.heart-mode-panel summary {
+  -webkit-app-region: no-drag;
+}
+
 .heart-mode-trigger {
   width: 42px;
   height: 42px;
@@ -1220,6 +1244,8 @@ onBeforeUnmount(() => {
 
 .heart-mode-panel {
   position: absolute;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
   width: min(380px, calc(100vw - 32px));
   overflow: auto;
   box-sizing: border-box;
@@ -1780,7 +1806,11 @@ onBeforeUnmount(() => {
 }
 
 .heart-action-button {
+  position: relative;
+  z-index: 1;
   min-height: 42px;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
   padding: 0 14px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 78%, #ffffff 22%);
   border-radius: 10px;
