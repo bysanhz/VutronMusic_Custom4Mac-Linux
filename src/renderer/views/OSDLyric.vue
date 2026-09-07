@@ -556,7 +556,7 @@ onBeforeUnmount(() => {
 
   transform: translateX(-50%);
 
-  width: clamp(150px, 34vw, 260px);
+  width: clamp(132px, 29vw, 220px);
   height: 28px;
 
   z-index: 10002;
@@ -626,7 +626,7 @@ onBeforeUnmount(() => {
 
 /* 普通模式使用更宽、更明显的移动把手。 */
 #main.normal-mode .osd-drag-bar {
-  width: clamp(190px, 32vw, 320px);
+  width: clamp(168px, 28vw, 270px);
   height: 30px;
 }
 
