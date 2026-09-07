@@ -1,9 +1,12 @@
 const fs = require('fs/promises')
+const crypto = require('crypto')
 const path = require('path')
 const sharp = require('sharp')
 
 const projectRoot = path.resolve(__dirname, '..')
-const sourceIconPath = path.join(projectRoot, 'new_icon.png')
+const sourceIconDirectory = path.join(projectRoot, 'buildAssets', 'icon-source')
+const expectedSourceIconSha256 =
+  '0ca928df122f8e3c9eb390671226edee98bd8993ef42c703f9f3d62f4ba4e6c6'
 const generatedRoot = path.join(projectRoot, 'buildAssets', 'generated-icons')
 const linuxIconDirectory = path.join(generatedRoot, 'linux')
 const trayIconDirectory = path.join(generatedRoot, 'tray')
@@ -28,15 +31,15 @@ const validateSourceIcon = (metadata) => {
   const height = Number(metadata.height)
 
   if (!Number.isFinite(width) || !Number.isFinite(height)) {
-    throw new Error('无法读取 new_icon.png 的尺寸')
+    throw new Error('无法读取 approved icon source 的尺寸')
   }
 
   if (width !== height) {
-    throw new Error(`new_icon.png 必须为正方形，当前为 ${width}x${height}`)
+    throw new Error(`approved icon source 必须为正方形，当前为 ${width}x${height}`)
   }
 
   if (width < 512) {
-    throw new Error(`new_icon.png 至少需要 512x512，当前为 ${width}x${height}`)
+    throw new Error(`approved icon source 至少需要 512x512，当前为 ${width}x${height}`)
   }
 }
 
@@ -134,6 +137,44 @@ const removeConnectedWhiteBackground = (data, width, height) => {
 }
 
 /**
+ * 从分片 Base64 文件重建并校验已批准的应用图标源。
+ *
+ * Returns:
+ *   校验通过的 WebP 二进制 Buffer。
+ *
+ * Raises:
+ *   分片缺失、解码失败或 SHA-256 与批准版本不一致时抛出异常。
+ */
+const readApprovedSourceIconBuffer = async () => {
+  const fileNames = (await fs.readdir(sourceIconDirectory))
+    .filter((fileName) => fileName.endsWith('.b64'))
+    .sort()
+
+  if (fileNames.length === 0) {
+    throw new Error('未找到 approved icon source 分片')
+  }
+
+  const encodedChunks = await Promise.all(
+    fileNames.map(async (fileName) => {
+      const filePath = path.join(sourceIconDirectory, fileName)
+      const text = await fs.readFile(filePath, 'utf8')
+      return text.replace(/[^A-Za-z0-9+/=]/g, '')
+    })
+  )
+
+  const sourceBuffer = Buffer.from(encodedChunks.join(''), 'base64')
+  const sourceSha256 = crypto.createHash('sha256').update(sourceBuffer).digest('hex')
+
+  if (sourceSha256 !== expectedSourceIconSha256) {
+    throw new Error(
+      `approved icon source SHA-256 校验失败：期望 ${expectedSourceIconSha256}，实际 ${sourceSha256}`
+    )
+  }
+
+  return sourceBuffer
+}
+
+/**
  * 读取图标并生成透明外部背景的原始像素数据。
  *
  * Returns:
@@ -142,8 +183,8 @@ const removeConnectedWhiteBackground = (data, width, height) => {
  * Raises:
  *   图标读取失败时向外抛出异常。
  */
-const readTransparentSourceIcon = async () => {
-  const { data, info } = await sharp(sourceIconPath)
+const readTransparentSourceIcon = async (sourceBuffer) => {
+  const { data, info } = await sharp(sourceBuffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
@@ -183,14 +224,15 @@ const createTransparentIconImage = (source) => {
  *   图标读取、校验或写入失败时向外抛出异常并终止构建。
  */
 const generateAppIcons = async () => {
-  const metadata = await sharp(sourceIconPath).metadata()
+  const sourceBuffer = await readApprovedSourceIconBuffer()
+  const metadata = await sharp(sourceBuffer).metadata()
   validateSourceIcon(metadata)
 
   await fs.rm(generatedRoot, { recursive: true, force: true })
   await fs.mkdir(linuxIconDirectory, { recursive: true })
   await fs.mkdir(trayIconDirectory, { recursive: true })
 
-  const transparentSource = await readTransparentSourceIcon()
+  const transparentSource = await readTransparentSourceIcon(sourceBuffer)
 
   await createTransparentIconImage(transparentSource)
     .resize(1024, 1024, { fit: 'contain' })
