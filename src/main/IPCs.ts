@@ -22,7 +22,6 @@ import { Track, Album, Artist, scanTrack, serviceName } from '@/types/music'
 import _ from 'lodash'
 import { requestUserAuth, scrobbleTrack, updateNowPlaying } from './utils/lastfm'
 
-let isLock = store.get('osdWin.isLock') as boolean
 let blockerId: number | null = null
 let coverWorker: Worker | null = null
 let cacheWorker: Worker | null = null
@@ -255,7 +254,6 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
     } else if (key === 'type') {
       lrc.switchOSDWindow(value)
     } else if (key === 'isLock') {
-      isLock = value
       lrc.toggleMouseIgnore()
     }
   })
@@ -298,14 +296,9 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
       }
     }
   })
-  ipcMain.on('set-ignore-mouse', (event, ignore) => {
-    store.set('osdWin.isLock', ignore)
-    lrc.toggleMouseIgnore()
-  })
-  ipcMain.on('mouseleave', () => {
-    store.set('osdWin.isLock', isLock)
-    lrc.toggleMouseIgnore()
-  })
+  // set-ignore-mouse / mouseleave 只用于锁定窗口内的临时交互切换。
+  // 真正的锁定状态不得在 hover 时写回 electron-store；
+  // 穿透切换统一由 osdPartialMousePassthrough.ts 管理。
   ipcMain.on('window-drag', (event, data: any) => {
     lrc.dragOsdWindow(data)
   })
