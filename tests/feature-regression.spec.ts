@@ -1093,23 +1093,54 @@ test.describe('desktop feature integration', () => {
     expect(updater).not.toContain('await fetch(RELEASE_API_URL')
   })
 
-  test('restores auto-hidden Windows desktop lyrics after the pointer leaves', () => {
+  test('restores auto-hidden Windows desktop lyrics and keeps idle hiding active', () => {
     const mainIndex = readSource('src/main/index.ts')
     const osdPreload = readSource('src/preload/osdWin.ts')
 
     expect(mainIndex).toContain('const pollInterval = Constants.IS_WINDOWS ? 32')
     expect(mainIndex).toContain('screen.getCursorScreenPoint()')
+    expect(mainIndex).toContain('const moved =')
     expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', isInWindow)")
+    expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', true)")
+    expect(mainIndex).toContain('Constants.IS_WINDOWS && isInWindow && moved')
     expect(mainIndex).toContain('this.checkOsdMouseLeave()')
     expect(mainIndex).toContain(
       'this.checkInterval = setInterval(updateMouseInWindowState, pollInterval)'
     )
 
     expect(osdPreload).toContain('const restoreRootVisibility = () => {')
+    expect(osdPreload).toContain('const scheduleLockedAutoHide = () => {')
     expect(osdPreload).toContain("ipcRenderer.on('mouseInWindow', handleMouseInWindow)")
-    expect(osdPreload).toContain('if (value === false) restoreRootVisibility()')
+    expect(osdPreload).toContain('if (value === false) {')
+    expect(osdPreload).toContain('scheduleLockedAutoHide()')
+    expect(osdPreload).toContain("root.style.opacity = '0.02'")
     expect(osdPreload).toContain("root.style.opacity = '1'")
     expect(osdPreload).toContain("root.addEventListener('mouseleave', restoreRootVisibility)")
+    expect(osdPreload).toContain("root.addEventListener('mousemove', scheduleLockedAutoHide)")
+    expect(osdPreload).toContain('const lockClassObserver = new MutationObserver')
+  })
+
+  test('fully restores desktop lyric interaction after unlock', () => {
+    const passthrough = readSource('src/main/osdPartialMousePassthrough.ts')
+    const ipcs = readSource('src/main/IPCs.ts')
+    const osd = readSource('src/renderer/views/OSDLyric.vue')
+    const header = readSource('src/renderer/components/OsdHeader.vue')
+    const preload = readSource('src/preload/osdWin.ts')
+
+    expect(passthrough).toContain("store.get('osdWin.isLock')")
+    expect(passthrough).toContain('temporaryIgnoreOverride')
+    expect(passthrough).toContain('setIgnoreMouse(state, false)')
+    expect(passthrough).toContain('setIgnoreMouse(state, true)')
+    expect(passthrough).not.toContain('let globalLocked = false')
+    expect(passthrough).not.toContain('globalLocked = payload.locked')
+
+    expect(ipcs).not.toContain("store.set('osdWin.isLock', ignore)")
+    expect(ipcs).not.toContain("store.set('osdWin.isLock', isLock)")
+
+    expect(preload).toContain("'updateOsdState'")
+    expect(osd).toContain("window.mainApi?.send('updateOsdState', { isLock: nextLocked })")
+    expect(osd).toContain("window.mainApi?.send('osd-control-hit-region'")
+    expect(header).toContain("window.mainApi?.send('updateOsdState', { isLock: true })")
   })
 
   test('keeps desktop lyric playback independent from main-window input focus', () => {
