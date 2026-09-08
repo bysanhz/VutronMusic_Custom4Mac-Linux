@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           TEST_VERSION="3.3.2-test.${GITHUB_RUN_NUMBER}"
-          node -e "const fs=require('fs');const p=require('./package.json');p.version=process.env.TEST_VERSION;fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n')"             TEST_VERSION="${TEST_VERSION}"
+          TEST_VERSION="${TEST_VERSION}" node -e "const fs=require('fs');const p=require('./package.json');p.version=process.env.TEST_VERSION;fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\\n')"
           echo "version=${TEST_VERSION}" >> "${GITHUB_OUTPUT}"
           echo "Test version: ${TEST_VERSION}"
 
