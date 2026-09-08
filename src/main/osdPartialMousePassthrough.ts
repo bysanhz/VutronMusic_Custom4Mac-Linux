@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, screen, type IpcMainEvent } from 'electron'
+import store from './store'
 import { isPointInsideRectangle } from './osdHitRegion'
 
 const POLL_INTERVAL_MS = 16
@@ -19,13 +20,12 @@ type RegionPayload = Partial<NormalizedRegion> & {
 type OsdWindowState = {
   window: BrowserWindow
   region: NormalizedRegion | null
-  locked: boolean
   ignoringMouse: boolean | null
+  temporaryIgnoreOverride: boolean | null
 }
 
 const states = new Map<number, OsdWindowState>()
 let pollTimer: ReturnType<typeof setInterval> | null = null
-let globalLocked = false
 
 const clampUnit = (value: unknown): number => {
   const number = Number(value)
@@ -95,21 +95,30 @@ const isCursorInsideRegion = (state: OsdWindowState): boolean => {
 }
 
 function updateMousePassthrough(): void {
+  const locked = Boolean(store.get('osdWin.isLock'))
+
   for (const [webContentsId, state] of states) {
     if (state.window.isDestroyed()) {
       states.delete(webContentsId)
       continue
     }
 
-    state.locked = globalLocked
-    if (!state.locked) {
+    if (!locked) {
+      state.temporaryIgnoreOverride = null
       setIgnoreMouse(state, false)
       continue
     }
 
+    if (state.temporaryIgnoreOverride !== null) {
+      setIgnoreMouse(state, state.temporaryIgnoreOverride)
+      continue
+    }
+
     if (!state.region?.enabled) {
-      // 普通模式或左侧控件被隐藏时，继续使用原项目的完整穿透/解锁按钮逻辑。
-      state.ignoringMouse = null
+      // 普通模式或左侧控件隐藏时，整个歌词窗口穿透。
+      // Windows 使用 forward:true，因此解锁按钮仍能收到 mousemove/mouseenter，
+      // 再通过 set-ignore-mouse 临时恢复交互。
+      setIgnoreMouse(state, true)
       continue
     }
 
@@ -133,12 +142,6 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
   const window = BrowserWindow.fromWebContents(event.sender)
   if (!window || window.isDestroyed()) return
 
-  const payload =
-    regionValue && typeof regionValue === 'object' ? (regionValue as RegionPayload) : null
-  if (typeof payload?.locked === 'boolean') {
-    globalLocked = payload.locked
-  }
-
   const region = normalizeRegion(regionValue)
   const existing = states.get(event.sender.id)
   if (existing) {
@@ -149,8 +152,8 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
     states.set(event.sender.id, {
       window,
       region,
-      locked: globalLocked,
-      ignoringMouse: null
+      ignoringMouse: null,
+      temporaryIgnoreOverride: null
     })
 
     const webContentsId = event.sender.id
@@ -170,15 +173,40 @@ ipcMain.on('updateOsdState', (_event, data: unknown) => {
   const value = data as Record<string, unknown>
   if (typeof value.isLock !== 'boolean') return
 
-  globalLocked = value.isLock
-  // 原有 OSD 逻辑也会在同一 IPC 中调用 setIgnoreMouseEvents；清除缓存后再覆盖为局部策略。
+  // 主进程 electron-store 是锁定状态的唯一真值来源。
+  // updateOsdState 的 store 写入由 IPCs 完成；延迟到本轮事件监听结束后再读取，避免监听顺序竞态。
+  for (const state of states.values()) {
+    state.temporaryIgnoreOverride = null
+  }
   invalidateMouseState()
 })
 
-// 这些旧 IPC 会直接改写 BrowserWindow 的穿透状态；监听后清除缓存，避免局部策略被覆盖。
-ipcMain.on('set-ignore-mouse', invalidateMouseState)
-ipcMain.on('mouseleave', invalidateMouseState)
-ipcMain.on('windowMouseleave', invalidateMouseState)
+ipcMain.on('set-ignore-mouse', (event, ignore: unknown) => {
+  const state = states.get(event.sender.id)
+  if (!state) return
+
+  state.temporaryIgnoreOverride = Boolean(ignore)
+  state.ignoringMouse = null
+  setTimeout(updateMousePassthrough, 0)
+})
+
+ipcMain.on('mouseleave', (event) => {
+  const state = states.get(event.sender.id)
+  if (!state) return
+
+  state.temporaryIgnoreOverride = null
+  state.ignoringMouse = null
+  setTimeout(updateMousePassthrough, 0)
+})
+
+ipcMain.on('windowMouseleave', (event) => {
+  const state = states.get(event.sender.id)
+  if (!state) return
+
+  state.temporaryIgnoreOverride = null
+  state.ignoringMouse = null
+  setTimeout(updateMousePassthrough, 0)
+})
 
 app.on('before-quit', () => {
   if (pollTimer) clearInterval(pollTimer)
