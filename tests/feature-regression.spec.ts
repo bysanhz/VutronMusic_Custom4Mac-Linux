@@ -1183,6 +1183,16 @@ test.describe('desktop feature integration', () => {
     expect(tray).toContain('this.applyContextMenuBinding()')
   })
 
+  test('binds Linux and macOS tray menus without recursive helper calls', () => {
+    const tray = readSource('src/main/tray.ts')
+    const helperStart = tray.indexOf('private applyContextMenuBinding()')
+    const helperEnd = tray.indexOf('\n  createTray()', helperStart)
+    const helper = tray.slice(helperStart, helperEnd)
+
+    expect(helper).toContain('this._tray.setContextMenu(this._contextMenu)')
+    expect(helper).not.toContain('this.applyContextMenuBinding()')
+  })
+
   test('toggles the main window by visibility rather than transient focus', () => {
     const ipcs = readSource('src/main/IPCs.ts')
 
