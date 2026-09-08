@@ -248,7 +248,6 @@ const toggleMainWindowFromOsd = (win: BrowserWindow): void => {
 function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function }): void {
   ipcMain.on('updateOsdState', (event, data) => {
     const [key, value] = Object.entries(data)[0] as [string, any]
-    const previousLock = key === 'isLock' ? Boolean(store.get('osdWin.isLock')) : false
 
     store.set(`osdWin.${key}`, value)
     if (key === 'show') {
@@ -256,11 +255,6 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
     } else if (key === 'type') {
       lrc.switchOSDWindow(value)
     } else if (key === 'isLock') {
-      if (Constants.IS_WINDOWS && previousLock && !Boolean(value)) {
-        lrc.recreateOSDWindow()
-        return
-      }
-
       const lyricWin =
         BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
       lyricWin?.webContents.send('set-isLock', Boolean(value))
