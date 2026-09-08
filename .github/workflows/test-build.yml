@@ -1,6 +1,11 @@
 name: Test Build
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/test-build.yml'
   workflow_dispatch:
     inputs:
       note:
