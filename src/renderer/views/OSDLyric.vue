@@ -364,11 +364,16 @@ const handleMouseInWindow = (_event: unknown, value: boolean) => {
   hover.value = value
 }
 
+const handleSetIsLock = (_event: unknown, value: boolean) => {
+  isLock.value = Boolean(value)
+}
+
 document.addEventListener('mouseleave', handleDocumentMouseLeave)
 
 window.addEventListener('message', handleOsdStatusMessage)
 
 window.mainApi?.on('mouseInWindow', handleMouseInWindow)
+window.mainApi?.on('set-isLock', handleSetIsLock)
 
 onMounted(() => {
   if (isLinux) {
@@ -400,6 +405,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('mouseup', stopCustomOsdDrag)
 
   window.removeEventListener('blur', stopCustomOsdDrag)
+
+  window.mainApi?.off('mouseInWindow', handleMouseInWindow)
+  window.mainApi?.off('set-isLock', handleSetIsLock)
 })
 </script>
 
