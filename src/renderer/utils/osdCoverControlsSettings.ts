@@ -44,6 +44,30 @@ const injectStyle = () => {
   const style = document.createElement('style')
   style.id = STYLE_ID
   style.textContent = `
+    #${CONTROL_ID} {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--color-text);
+      padding: 0 24px 10px 0;
+    }
+
+    #${CONTROL_ID} > .left {
+      padding-right: 6vw;
+    }
+
+    #${CONTROL_ID} > .right {
+      width: 164px;
+      min-width: 164px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      box-sizing: border-box;
+    }
+
     #${CONTROL_ID} .osd-cover-controls-toggle {
       position: relative;
       width: 44px;
