@@ -22,6 +22,7 @@ type OsdWindowState = {
   region: NormalizedRegion | null
   ignoringMouse: boolean | null
   temporaryIgnoreOverride: boolean | null
+  appliedLocked: boolean | null
 }
 
 const states = new Map<number, OsdWindowState>()
@@ -103,26 +104,16 @@ function updateMousePassthrough(): void {
       continue
     }
 
+    if (state.appliedLocked !== locked) {
+      state.window.setVisibleOnAllWorkspaces(locked)
+      state.appliedLocked = locked
+    }
+
     if (!locked) {
       state.temporaryIgnoreOverride = null
       setIgnoreMouse(state, false)
-
-      if (process.platform === 'win32') {
-        // 桌面歌词原有稳定行为一直是非聚焦浮窗；锁定/解锁不再切换 focusable。
-        // 显式恢复 movable/resizable，防止 Windows 在透明穿透后留下陈旧的
-        // frameless non-client hit-test 状态。
-        state.window.setFocusable(false)
-        state.window.setMovable(true)
-        state.window.setResizable(true)
-      }
-      state.window.setVisibleOnAllWorkspaces(false)
       continue
     }
-
-    if (process.platform === 'win32') {
-      state.window.setFocusable(false)
-    }
-    state.window.setVisibleOnAllWorkspaces(true)
 
     if (state.temporaryIgnoreOverride !== null) {
       setIgnoreMouse(state, state.temporaryIgnoreOverride)
@@ -168,7 +159,8 @@ const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
       window,
       region,
       ignoringMouse: null,
-      temporaryIgnoreOverride: null
+      temporaryIgnoreOverride: null,
+      appliedLocked: null
     })
 
     const webContentsId = event.sender.id
