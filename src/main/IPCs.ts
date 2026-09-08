@@ -254,7 +254,9 @@ function initOSDWindowIpcMain(win: BrowserWindow, lrc: { [key: string]: Function
     } else if (key === 'type') {
       lrc.switchOSDWindow(value)
     } else if (key === 'isLock') {
-      lrc.toggleMouseIgnore()
+      const lyricWin =
+        BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
+      lyricWin?.webContents.send('set-isLock', Boolean(value))
     }
   })
   ipcMain.on('from-osd', (event, message: string) => {
