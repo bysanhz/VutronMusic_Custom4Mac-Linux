@@ -61,17 +61,30 @@
 
     <!-- ======== newADD start====== -->
     <!--
-      底部自定义移动条。
+      统一的底部窗口工具区。
 
-      实际鼠标命中区域高于视觉细条，方便鼠标定位。
-      移动使用 mousemove + IPC，不使用 -webkit-app-region: drag。
+      拖动条负责移动窗口；锁按钮属于同一组窗口管理操作，
+      普通模式和紧凑模式共用这一入口，避免顶部工具栏重复出现锁定按钮。
     -->
-    <div
-      v-show="!isLock"
-      class="osd-drag-bar"
-      title="拖动桌面歌词窗口"
-      @mousedown="startCustomOsdDrag"
-    />
+    <div v-show="!isLock" class="osd-bottom-tools">
+      <div
+        class="osd-drag-bar"
+        title="拖动桌面歌词窗口"
+        @mousedown="startCustomOsdDrag"
+      />
+
+      <button
+        v-if="!isLinux"
+        type="button"
+        class="osd-lock-button"
+        :class="{ visible: hover }"
+        title="锁定桌面歌词"
+        aria-label="锁定桌面歌词"
+        @click.stop="handleLock"
+      >
+        <SvgIcon icon-class="lock" />
+      </button>
+    </div>
 
     <!--
       无边框窗口四边透明命中区域。
@@ -563,25 +576,40 @@ onBeforeUnmount(() => {
 }
 
 /*
- * 底部移动条的透明鼠标命中区域。
+ * 底部窗口工具区。
  *
- * 命中区域刻意做得比可见把手更宽、更高，降低定位难度；
- * 实际显示出来的把手由 ::before 绘制。
- *
- * 层级 10002 高于窗口下边缘和角落命中层，
- * 因此底部中央优先识别为移动操作，避免误触窗口拉伸。
+ * 父容器本身不抢鼠标事件，只有拖动条与锁按钮可交互；
+ * 层级高于底部 resize 热区，避免拖动或锁定时误触拉伸。
  */
-.osd-drag-bar {
+.osd-bottom-tools {
   position: absolute;
   left: 50%;
   bottom: 0;
 
+  z-index: 10002;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+
   transform: translateX(-50%);
+
+  pointer-events: none;
+
+  -webkit-app-region: no-drag;
+}
+
+/*
+ * 底部移动条的透明鼠标命中区域。
+ *
+ * 命中区域刻意做得比可见把手更宽、更高，降低定位难度；
+ * 实际显示出来的把手由 ::before 绘制。
+ */
+.osd-drag-bar {
+  position: relative;
 
   width: clamp(132px, 29vw, 220px);
   height: 28px;
-
-  z-index: 10002;
 
   background: transparent;
 
@@ -589,6 +617,63 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 
   -webkit-app-region: no-drag;
+}
+
+/*
+ * 低干扰锁定按钮。
+ *
+ * 默认仅保留位置，不接受点击；鼠标进入桌面歌词后渐显，
+ * 避免长期占据歌词视觉区域。点击区 24px，图标保持 13px。
+ */
+.osd-lock-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 24px;
+  height: 24px;
+  margin: 0 0 2px;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 7px;
+
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(0, 0, 0, 0.2);
+
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.22);
+
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.12s ease;
+
+  -webkit-app-region: no-drag;
+}
+
+.osd-lock-button.visible {
+  opacity: 0.68;
+  pointer-events: auto;
+}
+
+.osd-lock-button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.osd-lock-button:active {
+  transform: scale(0.9);
+}
+
+.osd-lock-button :deep(.svg-icon) {
+  width: 13px;
+  height: 13px;
 }
 
 /* 实际可见的底部移动细条。 */
@@ -630,9 +715,14 @@ onBeforeUnmount(() => {
  * 避免移动经过封面、歌词、按钮时光标发生跳变。
  */
 #main.is-custom-dragging,
-#main.is-custom-dragging *,
-#main.is-custom-dragging .osd-drag-bar {
+#main.is-custom-dragging .osd-drag-bar,
+#main.is-custom-dragging .osd-drag-bar * {
   cursor: grabbing !important;
+}
+
+#main.is-custom-dragging .osd-lock-button {
+  pointer-events: none !important;
+  opacity: 0 !important;
 }
 
 /*
