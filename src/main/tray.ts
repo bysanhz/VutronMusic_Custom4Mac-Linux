@@ -240,6 +240,19 @@ class TrayImpl implements YPMTray {
     })
   }
 
+  private applyContextMenuBinding() {
+    if (!this._tray) return
+
+    // Windows 上显式使用 right-click + popUpContextMenu。
+    // 这样托盘菜单不依赖主窗口当前是否可见/获得焦点。
+    if (Constants.IS_WINDOWS) {
+      this._tray.setContextMenu(null)
+      return
+    }
+
+    this.applyContextMenuBinding()
+  }
+
   createTray() {
     if (Constants.IS_MAC) {
       const tray = new Tray(nativeImage.createEmpty())
@@ -292,6 +305,13 @@ class TrayImpl implements YPMTray {
         this._win.show()
       }
     })
+
+    if (Constants.IS_WINDOWS) {
+      this._tray.on('right-click', () => {
+        if (!this._tray || !this._contextMenu) return
+        this._tray.popUpContextMenu(this._contextMenu)
+      })
+    }
   }
 
   destroyTray() {
@@ -324,10 +344,10 @@ class TrayImpl implements YPMTray {
     if (setMenu) {
       const template = createMenuTemplate(this._win)
       this._contextMenu = Menu.buildFromTemplate(template)
-      this._tray.setContextMenu(this._contextMenu)
+      this.applyContextMenuBinding()
     } else {
       this._contextMenu = null
-      this._tray.setContextMenu(null)
+      this.applyContextMenuBinding()
     }
   }
 
@@ -335,7 +355,7 @@ class TrayImpl implements YPMTray {
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById('openOSD').visible = !show
     this._contextMenu.getMenuItemById('closeOSD').visible = show
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   setOSDLock(lock: boolean) {
@@ -343,7 +363,7 @@ class TrayImpl implements YPMTray {
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById('lockOSD').visible = !lock
     this._contextMenu.getMenuItemById('unlockOSD').visible = lock
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   setPlayState(isPlaying: boolean) {
@@ -351,28 +371,28 @@ class TrayImpl implements YPMTray {
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById('play').visible = !isPlaying
     this._contextMenu.getMenuItemById('pause').visible = isPlaying
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   setLikeState(isLiked: boolean) {
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById('like').visible = !isLiked
     this._contextMenu.getMenuItemById('unlike').visible = isLiked
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   setRepeatMode(mode: 'on' | 'one' | 'off') {
     repeatMode = mode
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById(repeatMode).checked = true
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   setShuffleMode(isShuffle: boolean) {
     shuffleMode = isShuffle
     if (!this._contextMenu) return
     this._contextMenu.getMenuItemById('shuffle').checked = isShuffle
-    this._tray.setContextMenu(this._contextMenu)
+    this.applyContextMenuBinding()
   }
 
   updateTooltip(title: string) {
