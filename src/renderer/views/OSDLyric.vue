@@ -179,7 +179,9 @@ const headerStyle = computed(() => {
  *   不抛出异常。
  */
 const handleLock = () => {
-  isLock.value = !isLock.value
+  const nextLocked = !isLock.value
+  isLock.value = nextLocked
+  window.mainApi?.send('updateOsdState', { isLock: nextLocked })
 }
 
 // ======== newADD start======
@@ -371,6 +373,18 @@ window.mainApi?.on('mouseInWindow', handleMouseInWindow)
 onMounted(() => {
   if (isLinux) {
     isLock.value = false
+  }
+
+  // 普通模式没有 CompactCoverControls，因此主动注册一个“无局部交互区”的窗口状态。
+  // 紧凑模式由 CompactCoverControls 上报真实控制区，避免父组件覆盖子组件的命中区域。
+  if (!isCompactMode.value) {
+    window.mainApi?.send('osd-control-hit-region', {
+      enabled: false,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    })
   }
 })
 
