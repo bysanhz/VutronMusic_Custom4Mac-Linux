@@ -155,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let isDragging = false
   let timeoutId: number | null = null
   let lastMoveTime = 0
+  let osdLocked = root.classList.contains('is-lock')
+  let mouseInside = false
 
   const restoreRootVisibility = () => {
     if (timeoutId !== null) window.clearTimeout(timeoutId)
@@ -167,22 +169,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (timeoutId !== null) window.clearTimeout(timeoutId)
     timeoutId = null
 
-    if (!root.classList.contains('is-lock')) return
+    if (!osdLocked || !mouseInside) return
 
-    let osdLyric: { staticTime?: number } | null = null
+    let osdLyric: { staticTime?: number; showButtonWhenLock?: boolean } | null = null
     try {
       osdLyric = JSON.parse(localStorage.getItem('osdLyric') || 'null')
     } catch {
       osdLyric = null
     }
 
+    const showButtonWhenLock = osdLyric?.showButtonWhenLock ?? true
     const staticTime = Number(osdLyric?.staticTime ?? 1500)
-    if (!Number.isFinite(staticTime) || staticTime <= 0) return
+    if (!showButtonWhenLock || !Number.isFinite(staticTime) || staticTime <= 0) return
 
     lastMoveTime = Date.now()
     timeoutId = window.setTimeout(() => {
       const now = Date.now()
-      if (root.classList.contains('is-lock') && now - lastMoveTime >= staticTime) {
+      if (osdLocked && mouseInside && now - lastMoveTime >= staticTime) {
         root.style.opacity = '0.02'
       }
       timeoutId = null
@@ -190,7 +193,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const handleMouseInWindow = (_event: IpcRendererEvent, value: boolean) => {
-    if (value === false) {
+    mouseInside = Boolean(value)
+    if (!mouseInside) {
+      restoreRootVisibility()
+      return
+    }
+
+    scheduleLockedAutoHide()
+  }
+
+  const handleSetIsLock = (_event: IpcRendererEvent, value: boolean) => {
+    osdLocked = Boolean(value)
+    if (!osdLocked) {
       restoreRootVisibility()
       return
     }
@@ -199,10 +213,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   ipcRenderer.on('mouseInWindow', handleMouseInWindow)
+  ipcRenderer.on('set-isLock', handleSetIsLock)
   window.addEventListener(
     'unload',
     () => {
       ipcRenderer.off('mouseInWindow', handleMouseInWindow)
+      ipcRenderer.off('set-isLock', handleSetIsLock)
     },
     { once: true }
   )
@@ -246,25 +262,18 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
   root.addEventListener('mouseenter', () => {
+    mouseInside = true
     if (lockEl) lockEl.style.opacity = '1'
+    scheduleLockedAutoHide()
   })
 
-  root.addEventListener('mouseleave', restoreRootVisibility)
-
-  root.addEventListener('mousemove', scheduleLockedAutoHide)
-
-  const lockClassObserver = new MutationObserver(() => {
-    if (!root.classList.contains('is-lock')) {
-      restoreRootVisibility()
-    }
+  root.addEventListener('mouseleave', () => {
+    mouseInside = false
+    restoreRootVisibility()
   })
-  lockClassObserver.observe(root, { attributes: true, attributeFilter: ['class'] })
 
-  window.addEventListener(
-    'unload',
-    () => {
-      lockClassObserver.disconnect()
-    },
-    { once: true }
-  )
+  root.addEventListener('mousemove', () => {
+    mouseInside = true
+    scheduleLockedAutoHide()
+  })
 })
