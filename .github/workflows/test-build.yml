@@ -1,0 +1,106 @@
+name: Test Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'Optional note shown in build-info.txt'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-x64:
+    name: Windows x64 test package
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        shell: bash
+        env:
+          SKIP_REBUILD: true
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Set non-release test version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEST_VERSION="3.3.2-test.${GITHUB_RUN_NUMBER}"
+          node -e "const fs=require('fs');const p=require('./package.json');p.version=process.env.TEST_VERSION;fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n')"             TEST_VERSION="${TEST_VERSION}"
+          echo "version=${TEST_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Test version: ${TEST_VERSION}"
+
+      - name: Fix taglib-wasm
+        shell: bash
+        run: npm run fix-taglib
+
+      - name: Rebuild native dependencies
+        shell: bash
+        run: |
+          npm rebuild
+          ./node_modules/.bin/electron-rebuild
+
+      - name: Build Windows x64 installer and portable package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: x64
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: yarn build --x64 -p never --win nsis portable
+
+      - name: Write build information
+        shell: bash
+        env:
+          TEST_NOTE: ${{ inputs.note }}
+          TEST_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "VutronMusic Test Build"
+            echo "Version: ${TEST_VERSION}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Branch/Ref: ${GITHUB_REF}"
+            echo "Run: ${GITHUB_RUN_ID}"
+            echo "Built at: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Note: ${TEST_NOTE}"
+            echo
+            echo "This package is an Actions test artifact only."
+            echo "It is not a GitHub Release and is not used by the auto-updater."
+          } > test-build-info.txt
+
+      - name: Upload Windows x64 installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: VutronMusic-test-win-x64-installer-${{ github.run_number }}
+          path: |
+            release/*/VutronMusic*_win_x64.exe
+            test-build-info.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Windows x64 portable package
+        uses: actions/upload-artifact@v6
+        with:
+          name: VutronMusic-test-win-x64-portable-${{ github.run_number }}
+          path: |
+            release/*/VutronMusic*_win_x64-Portable.exe
+            test-build-info.txt
+          if-no-files-found: error
+          retention-days: 14
