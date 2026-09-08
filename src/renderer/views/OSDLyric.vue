@@ -67,11 +67,7 @@
       普通模式和紧凑模式共用这一入口，避免顶部工具栏重复出现锁定按钮。
     -->
     <div v-show="!isLock" class="osd-bottom-tools">
-      <div
-        class="osd-drag-bar"
-        title="拖动桌面歌词窗口"
-        @mousedown="startCustomOsdDrag"
-      />
+      <div class="osd-drag-bar" title="拖动桌面歌词窗口" @mousedown="startCustomOsdDrag" />
 
       <button
         v-if="!isLinux"
