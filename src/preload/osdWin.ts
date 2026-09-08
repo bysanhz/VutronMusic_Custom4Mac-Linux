@@ -163,8 +163,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lockEl) lockEl.style.opacity = '0'
   }
 
+  const scheduleLockedAutoHide = () => {
+    if (timeoutId !== null) window.clearTimeout(timeoutId)
+    timeoutId = null
+
+    if (!root.classList.contains('is-lock')) return
+
+    let osdLyric: { staticTime?: number } | null = null
+    try {
+      osdLyric = JSON.parse(localStorage.getItem('osdLyric') || 'null')
+    } catch {
+      osdLyric = null
+    }
+
+    const staticTime = Number(osdLyric?.staticTime ?? 1500)
+    if (!Number.isFinite(staticTime) || staticTime <= 0) return
+
+    lastMoveTime = Date.now()
+    timeoutId = window.setTimeout(() => {
+      const now = Date.now()
+      if (root.classList.contains('is-lock') && now - lastMoveTime >= staticTime) {
+        root.style.opacity = '0.02'
+      }
+      timeoutId = null
+    }, staticTime)
+  }
+
   const handleMouseInWindow = (_event: IpcRendererEvent, value: boolean) => {
-    if (value === false) restoreRootVisibility()
+    if (value === false) {
+      restoreRootVisibility()
+      return
+    }
+
+    scheduleLockedAutoHide()
   }
 
   ipcRenderer.on('mouseInWindow', handleMouseInWindow)
@@ -220,27 +251,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   root.addEventListener('mouseleave', restoreRootVisibility)
 
-  root.addEventListener('mousemove', () => {
-    if (!root.classList.contains('is-lock')) return
-    if (timeoutId !== null) window.clearTimeout(timeoutId)
+  root.addEventListener('mousemove', scheduleLockedAutoHide)
 
-    let osdLyric: { staticTime?: number } | null = null
-    try {
-      osdLyric = JSON.parse(localStorage.getItem('osdLyric') || 'null')
-    } catch {
-      osdLyric = null
+  const lockClassObserver = new MutationObserver(() => {
+    if (!root.classList.contains('is-lock')) {
+      restoreRootVisibility()
     }
-
-    const staticTime = Number(osdLyric?.staticTime ?? 1500)
-    if (!Number.isFinite(staticTime) || staticTime <= 0) return
-
-    lastMoveTime = Date.now()
-    timeoutId = window.setTimeout(() => {
-      const now = Date.now()
-      if (root.classList.contains('is-lock') && now - lastMoveTime >= staticTime) {
-        root.style.opacity = '0.02'
-      }
-      timeoutId = null
-    }, staticTime)
   })
+  lockClassObserver.observe(root, { attributes: true, attributeFilter: ['class'] })
+
+  window.addEventListener(
+    'unload',
+    () => {
+      lockClassObserver.disconnect()
+    },
+    { once: true }
+  )
 })
