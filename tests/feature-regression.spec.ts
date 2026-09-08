@@ -1137,12 +1137,13 @@ test.describe('desktop feature integration', () => {
 
     expect(passthrough).toContain("store.get('osdWin.isLock')")
     expect(passthrough).toContain('temporaryIgnoreOverride')
+    expect(passthrough).toContain('appliedLocked')
     expect(passthrough).toContain('setIgnoreMouse(state, false)')
     expect(passthrough).toContain('setIgnoreMouse(state, true)')
-    expect(passthrough).toContain('state.window.setFocusable(true)')
-    expect(passthrough).toContain('state.window.setFocusable(false)')
-    expect(passthrough).toContain('state.window.setVisibleOnAllWorkspaces(false)')
-    expect(passthrough).toContain('state.window.setVisibleOnAllWorkspaces(true)')
+    expect(passthrough).toContain('state.window.setVisibleOnAllWorkspaces(locked)')
+    expect(passthrough).not.toContain('state.window.setFocusable(')
+    expect(passthrough).not.toContain('state.window.setMovable(')
+    expect(passthrough).not.toContain('state.window.setResizable(')
     expect(passthrough).not.toContain('let globalLocked = false')
     expect(passthrough).not.toContain('globalLocked = payload.locked')
 
@@ -1170,6 +1171,16 @@ test.describe('desktop feature integration', () => {
     expect(preload).toContain("'play-from-osd'")
     expect(player).toContain("window.mainApi?.on('play-from-osd'")
     expect(player).toContain("window.mainApi?.on('play', () => {")
+  })
+
+  test('shows the Windows tray context menu without requiring the main window', () => {
+    const tray = readSource('src/main/tray.ts')
+
+    expect(tray).toContain("this._tray.on('right-click'")
+    expect(tray).toContain('this._tray.popUpContextMenu(this._contextMenu)')
+    expect(tray).toContain('if (Constants.IS_WINDOWS) {')
+    expect(tray).toContain('this._tray.setContextMenu(null)')
+    expect(tray).toContain('this.applyContextMenuBinding()')
   })
 
   test('toggles the main window by visibility rather than transient focus', () => {
