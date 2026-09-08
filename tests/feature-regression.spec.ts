@@ -1450,10 +1450,8 @@ test.describe('desktop feature integration', () => {
 
     expect(lyricLine).toContain('const lineStart = props.item.start * 1000')
     expect(lyricLine).toContain('const duration = Math.max(end - lineStart, 1)')
-    expect(lyricLine).toContain("(font.start - lineStart) / duration")
-    expect(lyricLine).toContain(
-      "const keyframes = [{ backgroundPosition: '100% 0%', offset: 0 }]"
-    )
+    expect(lyricLine).toContain('(font.start - lineStart) / duration')
+    expect(lyricLine).toContain("const keyframes = [{ backgroundPosition: '100% 0%', offset: 0 }]")
     expect(lyricLine).toContain('const timeOffset = timeMs - lineStartMs')
     expect(lyricLine).not.toContain('const start = info[0].start || props.item.start * 1000')
   })
