@@ -604,8 +604,8 @@ onBeforeUnmount(() => {
 .osd-drag-bar {
   position: relative;
 
-  width: clamp(132px, 29vw, 220px);
-  height: 28px;
+  width: clamp(112px, 24vw, 180px);
+  height: 26px;
 
   background: transparent;
 
@@ -682,24 +682,31 @@ onBeforeUnmount(() => {
 
   transform: translateX(-50%);
 
-  width: calc(100% - 28px);
-  height: 8px;
+  width: 66%;
+  height: 6px;
 
   border-radius: 999px;
 
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.22);
 
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.22);
+  opacity: 0.34;
+
+  box-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035);
 
   pointer-events: none;
 
   transition:
+    width 0.16s ease,
     background-color 0.15s ease,
     opacity 0.15s ease;
 }
 
 .osd-drag-bar:hover::before {
-  background: rgba(255, 255, 255, 0.62);
+  width: 72%;
+  background: rgba(255, 255, 255, 0.58);
+  opacity: 0.9;
 }
 
 .osd-drag-bar:active {
@@ -734,13 +741,17 @@ onBeforeUnmount(() => {
 
 /* 普通模式使用更宽、更明显的移动把手。 */
 #main.normal-mode .osd-drag-bar {
-  width: clamp(168px, 28vw, 270px);
-  height: 30px;
+  width: clamp(138px, 22vw, 220px);
+  height: 28px;
 }
 
 #main.normal-mode .osd-drag-bar::before {
-  width: calc(100% - 34px);
-  height: 9px;
+  width: 68%;
+  height: 7px;
+}
+
+#main.normal-mode .osd-drag-bar:hover::before {
+  width: 74%;
 }
 
 /*
