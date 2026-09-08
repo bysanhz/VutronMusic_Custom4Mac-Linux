@@ -1103,7 +1103,7 @@ test.describe('desktop feature integration', () => {
     expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', isInWindow)")
     expect(mainIndex).toContain("lyricWin.webContents.send('mouseInWindow', true)")
     expect(mainIndex).toContain('Constants.IS_WINDOWS && isInWindow && moved')
-    expect(mainIndex).toContain("this.lyricWin.webContents.send(")
+    expect(mainIndex).toContain('this.lyricWin.webContents.send(')
     expect(mainIndex).toContain("'set-isLock'")
     expect(mainIndex).toContain('this.checkOsdMouseLeave()')
     expect(mainIndex).toContain(

@@ -549,10 +549,7 @@ class BackGround {
     })
     this.lyricWin.webContents.on('did-finish-load', () => {
       this.initMessageChannel()
-      this.lyricWin.webContents.send(
-        'set-isLock',
-        Boolean(store.get('osdWin.isLock'))
-      )
+      this.lyricWin.webContents.send('set-isLock', Boolean(store.get('osdWin.isLock')))
       this.checkOsdMouseLeave()
       setTimeout(() => {
         // 鼠标穿透与 focusable 状态统一由 osdPartialMousePassthrough.ts 管理。
