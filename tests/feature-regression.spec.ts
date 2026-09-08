@@ -1158,7 +1158,8 @@ test.describe('desktop feature integration', () => {
     expect(osd).toContain("window.mainApi?.send('updateOsdState', { isLock: nextLocked })")
     expect(osd).toContain("window.mainApi?.on('set-isLock', handleSetIsLock)")
     expect(osd).toContain("window.mainApi?.send('osd-control-hit-region'")
-    expect(header).toContain("window.mainApi?.send('updateOsdState', { isLock: true })")
+    expect(header).not.toContain('@click="lockLyrics"')
+    expect(header).not.toContain("window.mainApi?.send('updateOsdState', { isLock: true })")
   })
 
   test('keeps desktop lyric playback independent from main-window input focus', () => {
@@ -1454,6 +1455,25 @@ test.describe('desktop feature integration', () => {
     expect(lyricLine).toContain("const keyframes = [{ backgroundPosition: '100% 0%', offset: 0 }]")
     expect(lyricLine).toContain('const timeOffset = timeMs - lineStartMs')
     expect(lyricLine).not.toContain('const start = info[0].start || props.item.start * 1000')
+  })
+
+  test('uses one shared bottom lock action for normal and compact desktop lyrics', () => {
+    const osd = readSource('src/renderer/views/OSDLyric.vue')
+    const header = readSource('src/renderer/components/OsdHeader.vue')
+
+    expect(osd).toContain('class="osd-bottom-tools"')
+    expect(osd).toContain('class="osd-lock-button"')
+    expect(osd).toContain(':class="{ visible: hover }"')
+    expect(osd).toContain('title="锁定桌面歌词"')
+    expect(osd).toContain('@click.stop="handleLock"')
+    expect(osd).toContain('width: 24px;')
+    expect(osd).toContain('height: 24px;')
+    expect(osd).toContain('gap: 10px;')
+    expect(osd).toContain('.osd-lock-button.visible')
+    expect(osd).toContain('pointer-events: none;')
+    expect(osd).toContain('pointer-events: auto;')
+    expect(header).not.toContain('icon-class="lock"')
+    expect(header).not.toContain('lockLyrics')
   })
 
   test('keeps the desktop lyric drag handle large and dominant over resize hit zones', () => {
