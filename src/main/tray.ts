@@ -243,14 +243,15 @@ class TrayImpl implements YPMTray {
   private applyContextMenuBinding() {
     if (!this._tray) return
 
-    // Windows 上显式使用 right-click + popUpContextMenu。
-    // 这样托盘菜单不依赖主窗口当前是否可见/获得焦点。
+    // Windows 上显式使用 right-click + popUpContextMenu，
+    // 因此不把 Menu 直接绑定给 Tray。
     if (Constants.IS_WINDOWS) {
       this._tray.setContextMenu(null)
       return
     }
 
-    this.applyContextMenuBinding()
+    // Linux / macOS 保持 Electron 原生 Tray context menu 绑定。
+    this._tray.setContextMenu(this._contextMenu)
   }
 
   createTray() {
