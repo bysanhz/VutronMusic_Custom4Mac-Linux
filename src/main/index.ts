@@ -509,8 +509,7 @@ class BackGround {
 
       const mousePos = screen.getCursorScreenPoint()
       const moved =
-        mousePos.x !== this.lastKnownMousePosition.x ||
-        mousePos.y !== this.lastKnownMousePosition.y
+        mousePos.x !== this.lastKnownMousePosition.x || mousePos.y !== this.lastKnownMousePosition.y
       this.lastKnownMousePosition = { x: mousePos.x, y: mousePos.y }
 
       const bounds = lyricWin.getBounds()
