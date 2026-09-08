@@ -20,7 +20,7 @@
       class="btn"
       :style="{ color: unplayLrcColor }"
       tabindex="-1"
-      @click="isLock = true"
+      @click="lockLyrics"
       ><svg-icon icon-class="lock"
     /></button>
     <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="show = !show"
@@ -52,6 +52,11 @@ const playOrPause = () => {
 }
 const playNext = () => {
   window.mainApi?.send('from-osd', 'playNext')
+}
+
+const lockLyrics = () => {
+  isLock.value = true
+  window.mainApi?.send('updateOsdState', { isLock: true })
 }
 
 const switchMode = () => {
