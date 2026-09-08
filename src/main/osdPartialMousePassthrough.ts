@@ -106,8 +106,20 @@ function updateMousePassthrough(): void {
     if (!locked) {
       state.temporaryIgnoreOverride = null
       setIgnoreMouse(state, false)
+
+      // Windows 从 WS_EX_TRANSPARENT / ignoreMouse 状态恢复时，
+      // 同时恢复 focusable 能强制 Electron 重新应用可交互窗口样式。
+      if (process.platform === 'win32') {
+        state.window.setFocusable(true)
+      }
+      state.window.setVisibleOnAllWorkspaces(false)
       continue
     }
+
+    if (process.platform === 'win32') {
+      state.window.setFocusable(false)
+    }
+    state.window.setVisibleOnAllWorkspaces(true)
 
     if (state.temporaryIgnoreOverride !== null) {
       setIgnoreMouse(state, state.temporaryIgnoreOverride)
