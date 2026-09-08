@@ -1234,6 +1234,10 @@ test.describe('desktop feature integration', () => {
     expect(coverControls).toContain('width: 18px;')
     expect(coverControls).toContain('height: 18px;')
     expect(coverControls).toContain('border-radius: 50%;')
+    expect(coverControls).toContain('padding: 0 24px 10px 0;')
+    expect(coverControls).toContain('width: 164px;')
+    expect(coverControls).toContain('min-width: 164px;')
+    expect(coverControls).toContain('justify-content: flex-end;')
   })
 
   test('matches the Linux desktop launcher to Electron actual WM_CLASS', () => {
