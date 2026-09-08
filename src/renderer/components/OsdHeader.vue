@@ -15,14 +15,6 @@
     <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="switchMode"
       ><svg-icon :icon-class="type === 'small' ? 'normal-mode' : 'mini-mode'"
     /></button>
-    <button
-      type="button"
-      class="btn"
-      :style="{ color: unplayLrcColor }"
-      tabindex="-1"
-      @click="lockLyrics"
-      ><svg-icon icon-class="lock"
-    /></button>
     <button type="button" class="btn" :style="{ color: unplayLrcColor }" @click="show = !show"
       ><svg-icon icon-class="close"
     /></button>
@@ -38,7 +30,7 @@ import SvgIcon from './SvgIcon.vue'
 const isPlaying = ref(false)
 
 const osdLyricStore = useOsdLyricStore()
-const { isLock, type, show, unplayLrcColor } = storeToRefs(osdLyricStore)
+const { type, show, unplayLrcColor } = storeToRefs(osdLyricStore)
 
 const showMain = () => {
   window.mainApi?.send('from-osd', 'showMainWin')
@@ -54,11 +46,6 @@ const playNext = () => {
   window.mainApi?.send('from-osd', 'playNext')
 }
 
-const lockLyrics = () => {
-  isLock.value = true
-  window.mainApi?.send('updateOsdState', { isLock: true })
-}
-
 const switchMode = () => {
   type.value = type.value === 'small' ? 'normal' : 'small'
 }
@@ -68,7 +55,6 @@ const handlePlayingStatus = (_event: unknown, value: boolean) => {
 }
 
 onMounted(() => {
-  isLock.value = window.env?.isLinux ? false : isLock.value
   try {
     const player = JSON.parse(localStorage.getItem('player') || '{}')
     isPlaying.value = Boolean(player.playing)
