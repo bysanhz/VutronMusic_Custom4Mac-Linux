@@ -107,10 +107,13 @@ function updateMousePassthrough(): void {
       state.temporaryIgnoreOverride = null
       setIgnoreMouse(state, false)
 
-      // Windows 从 WS_EX_TRANSPARENT / ignoreMouse 状态恢复时，
-      // 同时恢复 focusable 能强制 Electron 重新应用可交互窗口样式。
       if (process.platform === 'win32') {
-        state.window.setFocusable(true)
+        // 桌面歌词原有稳定行为一直是非聚焦浮窗；锁定/解锁不再切换 focusable。
+        // 显式恢复 movable/resizable，防止 Windows 在透明穿透后留下陈旧的
+        // frameless non-client hit-test 状态。
+        state.window.setFocusable(false)
+        state.window.setMovable(true)
+        state.window.setResizable(true)
       }
       state.window.setVisibleOnAllWorkspaces(false)
       continue
