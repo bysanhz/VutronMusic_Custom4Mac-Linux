@@ -490,36 +490,6 @@ class BackGround {
     this.showOSDWindow(showMode)
   }
 
-  /**
-   * Recreate the desktop lyric BrowserWindow without losing its current bounds.
-   *
-   * Windows can keep stale native hit-test / resize state after a transparent
-   * frameless window transitions out of setIgnoreMouseEvents(true). Recreating
-   * only on locked -> unlocked gives the unlocked OSD the same clean native
-   * state as a freshly opened window.
-   */
-  recreateOSDWindow() {
-    const lyricWin = this.lyricWin
-    if (!lyricWin || lyricWin.isDestroyed()) return
-
-    const type = this.osdMode
-    const bounds = lyricWin.getBounds()
-    const isSmall = type === 'small'
-
-    store.set(isSmall ? 'osdWin.x' : 'osdWin.x2', bounds.x)
-    store.set(isSmall ? 'osdWin.y' : 'osdWin.y2', bounds.y)
-    store.set(isSmall ? 'osdWin.width' : 'osdWin.width2', bounds.width)
-    store.set(isSmall ? 'osdWin.height' : 'osdWin.height2', bounds.height)
-
-    this.hideOSDWindow()
-
-    setTimeout(() => {
-      if ((store.get('osdWin.show') as boolean) || false) {
-        this.showOSDWindow(type)
-      }
-    }, 0)
-  }
-
   checkOsdMouseLeave(inter = 16) {
     if (this.checkInterval) {
       clearInterval(this.checkInterval)
@@ -926,7 +896,6 @@ class BackGround {
         toggleMouseIgnore: () => this.toggleMouseIgnore(),
         updateLyricInfo: (data: any) => this.updateLyricInfo(data),
         switchOSDWindow: (showMode: string) => this.switchOSDWindow(showMode),
-        recreateOSDWindow: () => this.recreateOSDWindow(),
         updateOSDPlayingState: (state: boolean) => this.updateOSDPlayingState(state),
         updateOsdHeight: (height: number) => this.updateOsdHeight(height),
         dragOsdWindow: (data: any) => this.dragOsdWindow(data),
