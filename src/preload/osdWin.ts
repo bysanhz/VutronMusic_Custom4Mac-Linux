@@ -7,6 +7,7 @@ const mainAvailChannels: string[] = [
   'windowMouseleave',
   'drag-osd-window-absolute',
   'osd-control-hit-region',
+  'updateOsdState',
   'getFontList'
 ]
 
