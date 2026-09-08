@@ -92,18 +92,36 @@ const measureDom = async (dom: HTMLElement, info: word[]) => {
 }
 
 const buildWordKeyFrame = (info: word[], spanWidths: number[]) => {
-  const start = info[0].start || props.item.start * 1000
-  const end = Math.min(info.at(-1)?.end || 0, props.item.end * 1000) || props.item.end * 1000
-  const duration = Math.max(end - start, 1)
+  /**
+   * WAAPI animation.currentTime is driven by the parent with:
+   *   songTimeMs - lineStartMs
+   *
+   * Therefore the animation timeline must use the lyric line start as the same
+   * zero point. The old implementation used info[0].start (first word start)
+   * as zero while updateCurrentTime used lineStart, which advanced word-by-word
+   * highlighting by the lead-in between the line timestamp and the first word.
+   * That lead-in is commonly several hundred milliseconds and caused both the
+   * apparent ~0.7 s global timing error and first-word jumping/flashing.
+   */
+  const lineStart = props.item.start * 1000
+  const lineEnd = props.item.end * 1000
+  const lastWordEnd = info.at(-1)?.end || 0
+  const end = Math.min(lastWordEnd || lineEnd, lineEnd) || lineEnd
+  const duration = Math.max(end - lineStart, 1)
   let curWidth = 0
   const totalWidth = spanWidths.reduce((acc, cur) => acc + cur, 0)
+  if (!totalWidth) return null
 
-  const keyframes = info.map((font, index) => {
-    const _start = font.start
-    const offset = Math.min(Math.max(0, (_start - start) / duration), 1)
-    const result = { backgroundPosition: `${100 - (100 * curWidth) / totalWidth}% 0%`, offset }
-    curWidth += spanWidths.length ? spanWidths[index] || 0 : 0
-    return result
+  // Keep the whole line unplayed during any lead-in before the first timed word.
+  const keyframes = [{ backgroundPosition: '100% 0%', offset: 0 }]
+
+  info.forEach((font, index) => {
+    const offset = Math.min(Math.max(0, (font.start - lineStart) / duration), 1)
+    keyframes.push({
+      backgroundPosition: `${100 - (100 * curWidth) / totalWidth}% 0%`,
+      offset
+    })
+    curWidth += spanWidths[index] || 0
   })
 
   for (let i = 1; i < keyframes.length; i++) {
@@ -111,8 +129,9 @@ const buildWordKeyFrame = (info: word[], spanWidths: number[]) => {
       keyframes[i].offset = keyframes[i - 1].offset
     }
   }
+
   keyframes.push({ backgroundPosition: '0% 0%', offset: 1 })
-  return { duration, keyframes, start }
+  return { duration, keyframes, start: lineStart }
 }
 
 /**
@@ -124,6 +143,7 @@ const buildWordKeyFrame = (info: word[], spanWidths: number[]) => {
  */
 const buildWordAnimation = (dom: HTMLElement, info: word[], offsetWidths: number[]) => {
   const result = buildWordKeyFrame(info, offsetWidths)
+  if (!result) return null
 
   const span = dom.querySelector('span')
   const effect = new KeyframeEffect(span, result.keyframes, {
