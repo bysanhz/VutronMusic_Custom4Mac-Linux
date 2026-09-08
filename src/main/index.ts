@@ -508,6 +508,9 @@ class BackGround {
       }
 
       const mousePos = screen.getCursorScreenPoint()
+      const moved =
+        mousePos.x !== this.lastKnownMousePosition.x ||
+        mousePos.y !== this.lastKnownMousePosition.y
       this.lastKnownMousePosition = { x: mousePos.x, y: mousePos.y }
 
       const bounds = lyricWin.getBounds()
@@ -517,10 +520,18 @@ class BackGround {
         mousePos.y >= bounds.y - 10 &&
         mousePos.y <= bounds.y + bounds.height + 10
 
-      if (isInWindow === this.isInWindow) return
+      if (isInWindow !== this.isInWindow) {
+        this.isInWindow = isInWindow
+        lyricWin.webContents.send('mouseInWindow', isInWindow)
+        return
+      }
 
-      this.isInWindow = isInWindow
-      lyricWin.webContents.send('mouseInWindow', isInWindow)
+      // Windows 锁定后窗口会处于鼠标穿透状态，DOM mousemove 不一定持续触发。
+      // 鼠标仍在歌词窗口内移动时，重复发送 true 作为“活动”信号，
+      // 让 preload 可以继续重置静止隐藏计时器。
+      if (Constants.IS_WINDOWS && isInWindow && moved) {
+        lyricWin.webContents.send('mouseInWindow', true)
+      }
     }
 
     // Windows 的 setIgnoreMouseEvents(true, { forward: true }) 不保证 DOM mouseleave
