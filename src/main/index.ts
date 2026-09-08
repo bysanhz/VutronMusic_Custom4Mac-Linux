@@ -549,10 +549,13 @@ class BackGround {
     })
     this.lyricWin.webContents.on('did-finish-load', () => {
       this.initMessageChannel()
-      this.toggleMouseIgnore()
+      this.lyricWin.webContents.send(
+        'set-isLock',
+        Boolean(store.get('osdWin.isLock'))
+      )
       this.checkOsdMouseLeave()
       setTimeout(() => {
-        this.lyricWin.setFocusable(false)
+        // 鼠标穿透与 focusable 状态统一由 osdPartialMousePassthrough.ts 管理。
         // this.lyricWin.setAlwaysOnTop(true)
         // ======== newADD start======
         // 提高桌面歌词窗口层级。
