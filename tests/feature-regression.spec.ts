@@ -1445,6 +1445,19 @@ test.describe('desktop feature integration', () => {
     expect(zhLocale).toContain('"manualOnly"')
   })
 
+  test('uses one shared line-relative timeline for word-by-word lyric animation', () => {
+    const lyricLine = readSource('src/renderer/components/LyricLine.vue')
+
+    expect(lyricLine).toContain('const lineStart = props.item.start * 1000')
+    expect(lyricLine).toContain('const duration = Math.max(end - lineStart, 1)')
+    expect(lyricLine).toContain("(font.start - lineStart) / duration")
+    expect(lyricLine).toContain(
+      "const keyframes = [{ backgroundPosition: '100% 0%', offset: 0 }]"
+    )
+    expect(lyricLine).toContain('const timeOffset = timeMs - lineStartMs')
+    expect(lyricLine).not.toContain('const start = info[0].start || props.item.start * 1000')
+  })
+
   test('keeps the desktop lyric drag handle large and dominant over resize hit zones', () => {
     const osd = readSource('src/renderer/views/OSDLyric.vue')
     const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
