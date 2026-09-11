@@ -162,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (timeoutId !== null) window.clearTimeout(timeoutId)
     timeoutId = null
     root.style.opacity = '1'
-    if (lockEl) lockEl.style.opacity = '0'
   }
 
   const scheduleLockedAutoHide = () => {
@@ -263,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   root.addEventListener('mouseenter', () => {
     mouseInside = true
-    if (lockEl) lockEl.style.opacity = '1'
     scheduleLockedAutoHide()
   })
 

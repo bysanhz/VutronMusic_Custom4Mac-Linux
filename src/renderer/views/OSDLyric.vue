@@ -27,22 +27,6 @@
       </div>
     </div>
 
-    <!-- 普通模式锁定后的解锁按钮 -->
-    <div v-show="isLock && !isCompactMode" class="control-lock" tabindex="-1">
-      <button
-        v-if="!isLinux"
-        v-show="showButtonWhenLock"
-        id="osd-lock"
-        class="btn btn-lock"
-        :style="lockStyle"
-        tabindex="-1"
-        @click="handleLock"
-      >
-        <SvgIcon icon-class="lock" style="margin-right: 4px" tabindex="-1" />
-        解锁
-      </button>
-    </div>
-
     <!-- ======== newADD start====== -->
     <!-- 紧凑桌面歌词布局 -->
     <div v-if="isCompactMode" class="compact-osd-layout">
@@ -66,19 +50,30 @@
       拖动条负责移动窗口；锁按钮属于同一组窗口管理操作，
       普通模式和紧凑模式共用这一入口，避免顶部工具栏重复出现锁定按钮。
     -->
-    <div v-show="!isLock" class="osd-bottom-tools">
-      <div class="osd-drag-bar" title="拖动桌面歌词窗口" @mousedown="startCustomOsdDrag" />
+    <div
+      v-show="!isLock || (!isLinux && showButtonWhenLock)"
+      class="osd-bottom-tools"
+      :class="{ 'is-locked': isLock }"
+    >
+      <div
+        class="osd-drag-bar"
+        :class="{ disabled: isLock }"
+        title="拖动桌面歌词窗口"
+        @mousedown="startCustomOsdDrag"
+      />
 
       <button
         v-if="!isLinux"
+        v-show="!isLock || showButtonWhenLock"
+        id="osd-lock"
         type="button"
         class="osd-lock-button"
         :class="{ visible: hover }"
-        title="锁定桌面歌词"
-        aria-label="锁定桌面歌词"
+        :title="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
+        :aria-label="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
         @click.stop="handleLock"
       >
-        <SvgIcon icon-class="lock" />
+        <SvgIcon :icon-class="isLock ? 'unlock' : 'lock'" />
       </button>
     </div>
 
@@ -119,8 +114,7 @@ const isLinux = window.env?.isLinux
 
 const osdLyricStore = useOsdLyricStore()
 
-const { isLock, type, playedLrcColor, backgroundColor, showButtonWhenLock } =
-  storeToRefs(osdLyricStore)
+const { isLock, type, backgroundColor, showButtonWhenLock } = storeToRefs(osdLyricStore)
 
 const hover = ref(false)
 const title = ref('听你想听的音乐')
@@ -141,15 +135,6 @@ const title = ref('听你想听的音乐')
  */
 const isCompactMode = computed(() => type.value === 'small')
 // =========== newADD end ========
-
-const lockStyle = computed(() => {
-  const textColor = playedLrcColor.value === 'white' ? '#222' : 'white'
-
-  return {
-    color: textColor,
-    backgroundColor: playedLrcColor.value
-  }
-})
 
 const bground = computed(() => {
   const parts = backgroundColor.value.slice(5, -1).split(',')
@@ -228,7 +213,7 @@ const customOsdDragStart = ref({
  *   不抛出异常。
  */
 const startCustomOsdDrag = (event: MouseEvent) => {
-  if (event.button !== 0) return
+  if (isLock.value || event.button !== 0) return
 
   event.preventDefault()
   event.stopPropagation()
@@ -491,30 +476,6 @@ onBeforeUnmount(() => {
   opacity: 1 !important;
 }
 
-.control-lock {
-  width: 100%;
-  height: 34px;
-  z-index: 1;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.btn {
-  display: flex;
-  padding: 4px 10px;
-
-  cursor: pointer;
-
-  border: none;
-  outline: none;
-  background: none;
-  border-radius: 4px;
-
-  transition: opacity 0.3s ease;
-}
-
 /* ======== newADD start====== */
 /*
  * 紧凑桌面歌词整体布局。
@@ -615,11 +576,18 @@ onBeforeUnmount(() => {
   -webkit-app-region: no-drag;
 }
 
+.osd-drag-bar.disabled {
+  visibility: hidden;
+  pointer-events: none;
+  cursor: default !important;
+}
+
 /*
- * 低干扰锁定按钮。
+ * 低干扰锁定/解锁按钮。
  *
- * 默认仅保留位置，不接受点击；鼠标进入桌面歌词后渐显，
- * 避免长期占据歌词视觉区域。点击区 24px，图标保持 13px。
+ * 未锁定时位于拖动条右侧；锁定后拖动条保留不可交互占位，
+ * 因而解锁按钮保持在同一位置。锁定后的显示由
+ * `showButtonWhenLock` 控制。点击区 24px，图标保持 13px。
  */
 .osd-lock-button {
   display: flex;
