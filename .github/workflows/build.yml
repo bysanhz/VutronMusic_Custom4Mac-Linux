@@ -45,7 +45,7 @@ jobs:
           if [[ -n "${RELEASE_TAG_INPUT}" ]]; then
             TAG_NAME="${RELEASE_TAG_INPUT}"
           fi
-          [[ "${TAG_NAME}" =~ ^v[0-9]+.[0-9]+.[0-9]+$ ]]
+          [[ "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           TAG_VERSION="${TAG_NAME#v}"
           echo "package.json version: ${PACKAGE_VERSION}"
           echo "release tag version: ${TAG_VERSION}"
@@ -67,47 +67,40 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
 
-  Release:
-    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+  package:
+    name: Release ${{ matrix.label }}
     needs: verify
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-15-intel
-            arch: x64
-            platform: darwin
-          - os: macos-14
-            arch: arm64
-            platform: darwin
           - os: windows-2022
+            platform: win32
             arch: x64
-            platform: win32
-          - os: windows-11-arm
-            arch: arm64
-            platform: win32
+            label: Windows x64 EXE
+            artifact: VutronMusic-release-win-x64
+            output: release/*/VutronMusic*_win_x64.exe
           - os: ubuntu-22.04
+            platform: linux
             arch: x64
-            platform: linux
-          - os: ubuntu-22.04-arm
+            label: Linux amd64 DEB
+            artifact: VutronMusic-release-linux-amd64-deb
+            output: release/*/VutronMusic*_linux_amd64.deb
+          - os: macos-14
+            platform: darwin
             arch: arm64
-            platform: linux
+            label: macOS arm64 DMG
+            artifact: VutronMusic-release-mac-arm64-dmg
+            output: release/*/VutronMusic*_mac_arm64.dmg
 
     runs-on: ${{ matrix.os }}
     env:
       XVFB_PFX: ${{ (matrix.platform == 'linux' && 'xvfb-run --auto-servernum -- ') || '' }}
 
     steps:
-      - name: Validate architecture match
-        run: |
-          echo "Runner OS: ${{ matrix.os }}"
-          echo "Target architecture: ${{ matrix.arch }}"
-          echo "Architecture validation passed"
-
       - name: Checkout source
         uses: actions/checkout@v6
         with:
@@ -119,25 +112,11 @@ jobs:
           node-version: '22'
           cache: yarn
 
-      - name: Install build essentials on macOS
-        if: matrix.platform == 'darwin'
-        run: brew install rpm
-
-      - name: Install build essentials on Linux x64
-        if: matrix.platform == 'linux' && matrix.arch == 'x64'
+      - name: Install Linux DEB build dependencies
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm fakeroot snapd libnss3-dev libgtk-3-dev libxss-dev libgconf-2-4 libasound2
-          sudo snap install snapcraft --classic
-
-      - name: Install build essentials on Linux ARM64
-        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot libnss3 libgtk-3-0 libxss1 libgconf-2-4 libasound2
-          sudo gem install fpm
-          rm -rf ~/.cache/electron-builder/fpm || true
-          fpm --version
+          sudo apt-get install -y fakeroot libnss3-dev libgtk-3-dev libxss-dev libgconf-2-4 libasound2
 
       - name: Install dependencies
         env:
@@ -147,177 +126,70 @@ jobs:
       - name: Fix taglib-wasm
         run: ${{ env.XVFB_PFX }}npm run fix-taglib
 
-      - name: Fix app-builder permissions on Linux ARM64
-        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
-        run: chmod +x node_modules/app-builder-bin/linux/arm64/app-builder || true
-
       - name: Rebuild native dependencies
+        shell: bash
         run: |
           ${{ env.XVFB_PFX }}npm rebuild
           ${{ env.XVFB_PFX }}./node_modules/.bin/electron-rebuild
 
-      - name: Build Linux ARM64 packages
-        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
+      - name: Build Windows x64 EXE
+        if: matrix.platform == 'win32'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCH: ${{ matrix.arch }}
-          USE_SYSTEM_FPM: 'true'
-        run: yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage
-
-      - name: Build Linux x64 packages
-        if: matrix.platform == 'linux' && matrix.arch == 'x64'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARCH: ${{ matrix.arch }}
-        run: yarn build --${{ matrix.arch }} -p never --linux deb --linux rpm --linux AppImage --linux snap
-
-      - name: Build macOS or Windows packages
-        if: matrix.platform != 'linux'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARCH: ${{ matrix.arch }}
+          ARCH: x64
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: yarn build --${{ matrix.arch }} -p never
+        run: yarn build --x64 -p never --win nsis
 
-      - name: Upload Windows installer
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'win32'
-        with:
-          name: VutronMusic-win-${{ matrix.arch }}-installer
-          path: release/*/VutronMusic*_${{ matrix.arch }}.exe
-          if-no-files-found: ignore
+      - name: Build Linux amd64 DEB
+        if: matrix.platform == 'linux'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: x64
+        run: yarn build --x64 -p never --linux deb
 
-      - name: Upload Windows portable package
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'win32'
-        with:
-          name: VutronMusic-win-${{ matrix.arch }}-portable
-          path: release/*/VutronMusic*_${{ matrix.arch }}-Portable.exe
-          if-no-files-found: ignore
-
-      - name: Upload Windows metadata
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'win32'
-        with:
-          name: VutronMusic-win-${{ matrix.arch }}-metadata
-          path: |
-            release/*/VutronMusic*.blockmap
-            release/*/latest*.yml
-          if-no-files-found: ignore
-
-      - name: Upload macOS DMG
-        uses: actions/upload-artifact@v6
+      - name: Build macOS arm64 DMG
         if: matrix.platform == 'darwin'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: arm64
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: yarn build --arm64 -p never --mac dmg
+
+      - name: Upload formal release package
+        uses: actions/upload-artifact@v6
         with:
-          name: VutronMusic-mac-${{ matrix.arch }}-dmg
-          path: release/*/VutronMusic*_${{ matrix.arch }}.dmg
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.output }}
           if-no-files-found: error
-
-      - name: Upload macOS metadata
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'darwin'
-        with:
-          name: VutronMusic-mac-${{ matrix.arch }}-metadata
-          path: |
-            release/*/VutronMusic*.blockmap
-            release/*/latest*.yml
-          if-no-files-found: ignore
-
-      - name: Upload Linux AppImage
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'linux'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-AppImage
-          path: release/*/VutronMusic*.AppImage
-          if-no-files-found: error
-
-      - name: Upload Linux Deb
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'linux'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-deb
-          path: release/*/VutronMusic*.deb
-          if-no-files-found: error
-
-      - name: Upload Linux RPM
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'linux'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-rpm
-          path: release/*/VutronMusic*.rpm
-          if-no-files-found: ignore
-
-      - name: Upload Linux Snap
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'linux' && matrix.arch == 'x64'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-snap
-          path: release/*/VutronMusic*.snap
-          if-no-files-found: ignore
-
-      - name: Upload Linux metadata
-        uses: actions/upload-artifact@v6
-        if: matrix.platform == 'linux'
-        with:
-          name: VutronMusic-linux-${{ matrix.arch }}-metadata
-          path: |
-            release/*/VutronMusic*.blockmap
-            release/*/latest*.yml
-          if-no-files-found: ignore
 
   publish-release:
     name: Publish GitHub Release
-    needs: Release
+    needs: package
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout release metadata
         uses: actions/checkout@v6
 
-      - name: Download all artifacts
+      - name: Download all packages
         uses: actions/download-artifact@v6
         with:
           path: all-artifacts
 
-      - name: Flatten release assets
+      - name: Collect exactly three release assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p upload
           while IFS= read -r -d '' file; do
-            base="$(basename "$file")"
-            relative="${file#all-artifacts/}"
-            artifact_dir="${relative%%/*}"
-
-            # actions/download-artifact 会在 artifact 目录下保留原始 release/... 层级，
-            # 因此必须从 all-artifacts 后的第一个路径分量读取 artifact 名，不能取文件父目录。
-            # Windows x64 与 ARM64 的 electron-builder 元数据都叫 latest.yml。
-            # 发布汇总时必须保留为不同 channel，否则后上传/更大的文件会覆盖另一架构。
-            if [[ "$artifact_dir" == "VutronMusic-win-x64-metadata" && "$base" == "latest.yml" ]]; then
-              cp "$file" upload/latest-win-x64.yml
-              # 保留 generic latest.yml 供旧版 x64 客户端完成一次过渡更新。
-              cp "$file" upload/latest.yml
-              continue
-            fi
-            if [[ "$artifact_dir" == "VutronMusic-win-arm64-metadata" && "$base" == "latest.yml" ]]; then
-              cp "$file" upload/latest-win-arm64.yml
-              continue
-            fi
-
-            dest="upload/$base"
-            if [[ "$base" == latest*.yml && -f "$dest" ]]; then
-              old_size="$(stat -c%s "$dest")"
-              new_size="$(stat -c%s "$file")"
-              if (( new_size > old_size )); then
-                cp "$file" "$dest"
-              fi
-            else
-              cp "$file" "$dest"
-            fi
+            cp "$file" "upload/$(basename "$file")"
           done < <(find all-artifacts -type f -print0)
+          count="$(find upload -maxdepth 1 -type f | wc -l | tr -d ' ')"
+          echo "Release asset count: ${count}"
+          test "${count}" = "3"
           find upload -maxdepth 1 -type f -print
 
       - name: Resolve release tag
@@ -327,13 +199,10 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${RELEASE_TAG_INPUT}" ]]; then
             echo "RELEASE_TAG=${RELEASE_TAG_INPUT}" >> "$GITHUB_ENV"
-            echo "RELEASE_IS_DRAFT=false" >> "$GITHUB_ENV"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             echo "RELEASE_TAG=v-draft-$(date +'%Y%m%d%H%M')" >> "$GITHUB_ENV"
-            echo "RELEASE_IS_DRAFT=true" >> "$GITHUB_ENV"
           else
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
-            echo "RELEASE_IS_DRAFT=false" >> "$GITHUB_ENV"
           fi
 
       - name: Verify formal release notes
