@@ -86,7 +86,8 @@ export const normalizeTrack = (value: any) => {
     value
 
   const id = source?.id ?? source?.songId ?? source?.resourceId ?? value?.resourceId
-  const name = source?.name ?? source?.songName ?? source?.title ?? value?.uiElement?.mainTitle?.title
+  const name =
+    source?.name ?? source?.songName ?? source?.title ?? value?.uiElement?.mainTitle?.title
   const artists = normalizeArtists(
     source?.ar ?? source?.artists ?? (source?.artist ? [source.artist] : [])
   )
@@ -159,7 +160,12 @@ export const normalizeAlbum = (value: any) => {
 export const normalizeArtist = (value: any) => {
   const ext = value?.resourceExtInfo ?? value?.extInfo ?? {}
   const source =
-    value?.artist ?? ext?.artistData ?? ext?.artist ?? value?.resource?.artist ?? value?.data ?? value
+    value?.artist ??
+    ext?.artistData ??
+    ext?.artist ??
+    value?.resource?.artist ??
+    value?.data ??
+    value
   const id = source?.id ?? source?.artistId ?? source?.resourceId ?? value?.resourceId
   const name = source?.name ?? source?.artistName ?? value?.uiElement?.mainTitle?.title
   const picUrl =
