@@ -1,0 +1,60 @@
+name: One-time v3.3.2 publisher
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-v3.3.2-once.yml
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve validated release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_SHA="$(git rev-parse HEAD^)"
+          echo "TARGET_SHA=${TARGET_SHA}" >> "$GITHUB_ENV"
+          echo "Validated release source: ${TARGET_SHA}"
+
+      - name: Verify v3.3.2 release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${TARGET_SHA}" = "df60dbdebdc10fe14740d10e122ef30cc8df5f72"
+          test "$(git show "${TARGET_SHA}:package.json" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).version))")" = "3.3.2"
+          git cat-file -e "${TARGET_SHA}:.github/release-notes/v3.3.2.md"
+          git cat-file -e "${TARGET_SHA}:.github/workflows/build.yml"
+          git cat-file -e "${TARGET_SHA}:README.md"
+
+      - name: Create and push annotated release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify refs/tags/v3.3.2 >/dev/null; then
+            echo "v3.3.2 already exists; refusing to move it."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a v3.3.2 "${TARGET_SHA}" -m "VutronMusic v3.3.2"
+          git push origin refs/tags/v3.3.2
+
+      - name: Dispatch formal Release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run build.yml --repo "${GITHUB_REPOSITORY}" --ref v3.3.2 -f release_tag=v3.3.2
