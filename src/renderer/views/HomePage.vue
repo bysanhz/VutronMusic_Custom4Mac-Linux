@@ -199,7 +199,9 @@ const loadPersonalizedHome = async (revision: number) => {
 }
 
 const loadFallbackArtists = async (revision: number) => {
-  const data = await toplistOfArtists(toplistOfArtistsAreaTable[general.value.musicLanguage ?? 'all'])
+  const data = await toplistOfArtists(
+    toplistOfArtistsAreaTable[general.value.musicLanguage ?? 'all']
+  )
   if (revision !== loadRevision.value || recommendArtists.value.items.length) return
 
   const list = data?.list?.artists ?? []
@@ -253,7 +255,9 @@ const loadData = async () => {
   jobs.push(
     toplists().then((data: any) => {
       if (revision !== loadRevision.value) return
-      topList.value.items = (data?.list ?? []).filter((item: any) => topList.value.ids.includes(item.id))
+      topList.value.items = (data?.list ?? []).filter((item: any) =>
+        topList.value.ids.includes(item.id)
+      )
     })
   )
 
@@ -378,7 +382,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   color: var(--color-text);
   background:
-    radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--color-primary) 42%, transparent), transparent 34%),
+    radial-gradient(
+      circle at 85% 18%,
+      color-mix(in srgb, var(--color-primary) 42%, transparent),
+      transparent 34%
+    ),
     var(--color-secondary-bg);
   transition: transform 0.2s ease;
   &:hover {
