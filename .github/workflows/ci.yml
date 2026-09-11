@@ -33,19 +33,6 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Format integration sources for verification
-        run: >-
-          yarn prettier
-          src/renderer/api/modern.ts
-          src/renderer/components/SideNav.vue
-          src/renderer/services/neteaseModern.ts
-          src/renderer/views/HomePage.vue
-          src/renderer/views/MusicInsights.vue
-          --write
-
-      - name: Show formatter diff
-        run: git diff -- src/renderer/api/modern.ts src/renderer/components/SideNav.vue src/renderer/services/neteaseModern.ts src/renderer/views/HomePage.vue src/renderer/views/MusicInsights.vue
-
       - name: Check formatting
         run: yarn run format:check
 
@@ -58,6 +45,7 @@ jobs:
       - name: Run security and feature regression tests
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
