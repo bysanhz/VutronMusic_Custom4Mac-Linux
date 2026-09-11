@@ -19,13 +19,49 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply source patches
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Apply final source patches
         run: python tools/apply-netease-enhancements-once.py
 
-      - name: Commit source patches
+      - name: Format changed source
+        run: >-
+          yarn prettier
+          src/main/utils/index.ts
+          src/renderer/api/discovery.ts
+          src/renderer/components/NavBar.vue
+          src/renderer/components/SearchBox.vue
+          src/renderer/components/VirtualTrackList.vue
+          src/renderer/store/data.ts
+          src/renderer/store/settings.ts
+          src/renderer/views/DailyTracks.vue
+          src/renderer/views/ExplorePage.vue
+          src/renderer/views/SearchPage.vue
+          src/renderer/views/SystemSettings.vue
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run feature regression tests
+        run: yarn playwright test tests/feature-regression.spec.ts
+
+      - name: Commit final source changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/renderer/components/NavBar.vue src/renderer/components/VirtualTrackList.vue src/renderer/store/data.ts src/renderer/store/settings.ts src/renderer/views/SystemSettings.vue src/main/utils/index.ts
-          git commit -m "feat: integrate modern NetEase discovery and playback APIs"
+          git add src tests package.json yarn.lock
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git commit -m "feat: finalize modern NetEase API integration"
           git push origin HEAD:main
