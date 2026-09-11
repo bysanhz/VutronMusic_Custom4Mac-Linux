@@ -87,7 +87,9 @@ export const normalizeTrack = (value: any) => {
 
   const id = source?.id ?? source?.songId ?? source?.resourceId ?? value?.resourceId
   const name = source?.name ?? source?.songName ?? source?.title ?? value?.uiElement?.mainTitle?.title
-  const artists = normalizeArtists(source?.ar ?? source?.artists ?? source?.artist ? [source.artist] : [])
+  const artists = normalizeArtists(
+    source?.ar ?? source?.artists ?? (source?.artist ? [source.artist] : [])
+  )
   const album = source?.al ?? source?.album
   const looksLikeTrack =
     id &&
@@ -129,7 +131,9 @@ export const normalizePlaylist = (value: any) => {
   const looksLikePlaylist =
     id &&
     name &&
-    (source?.trackCount !== undefined || source?.creator || /playlist/i.test(String(value?.resourceType)))
+    (source?.trackCount !== undefined ||
+      source?.creator ||
+      /playlist/i.test(String(value?.resourceType)))
 
   if (!looksLikePlaylist) return null
   return { ...source, id, name, coverImgUrl, picUrl: source?.picUrl ?? coverImgUrl }
@@ -161,7 +165,9 @@ export const normalizeArtist = (value: any) => {
   const picUrl =
     source?.picUrl ?? source?.img1v1Url ?? source?.coverUrl ?? value?.uiElement?.image?.imageUrl
   const looksLikeArtist =
-    id && name && (source?.albumSize !== undefined || source?.musicSize !== undefined || source?.img1v1Url)
+    id &&
+    name &&
+    (source?.albumSize !== undefined || source?.musicSize !== undefined || source?.img1v1Url)
   if (!looksLikeArtist) return null
   return { ...source, id, name, picUrl, img1v1Url: source?.img1v1Url ?? picUrl }
 }
