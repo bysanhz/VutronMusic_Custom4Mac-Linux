@@ -1,31 +1,61 @@
 <template>
   <div v-show="show">
-    <div v-if="general.showBanner" ref="bannerRef" class="banner">
-      <div v-for="item in banner" :key="item.id" class="banner-item">
+    <div v-if="general.showBanner && banner.length" ref="bannerRef" class="banner">
+      <div v-for="item in banner" :key="item.id ?? item.targetId" class="banner-item">
         <img :src="imgFilter(item.imageUrl ?? item.pic)" alt="" />
         <div class="subtitle" :style="{ backgroundColor: item.titleColor || 'red' }">{{
           item.typeTitle
         }}</div>
       </div>
     </div>
+
     <div class="index-row">
-      <div class="title">
-        {{ $t('home.recommendPlaylist') }}
-        <a @click="toExplore('playlist', '推荐歌单')">{{ $t('home.seeMore') }}</a>
-      </div>
-      <CoverRow :items="recommendPlaylist.items" type="playlist" sub-text="copywriter" />
-    </div>
-    <div class="index-row">
-      <div class="title"> For You </div>
+      <div class="title">For You</div>
       <div class="for-you-row">
         <DailyTracksCard ref="DailyTracksCardRef" />
         <FMCard />
+        <button class="insights-card" @click="router.push('/insights')">
+          <div class="insights-eyebrow">NEW</div>
+          <div class="insights-title">音乐洞察</div>
+          <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>
+          <div class="insights-link">打开 →</div>
+        </button>
       </div>
     </div>
+
+    <div v-if="personalizedTracks.length" class="index-row">
+      <div class="title">
+        猜你喜欢
+        <a @click="router.push('/insights')">查看更多</a>
+      </div>
+      <TrackList
+        id="home-personalized-tracks"
+        :items="personalizedTracks"
+        :colunm-number="1"
+        :height="Math.min(360, Math.max(180, personalizedTracks.length * 60))"
+        :item-height="60"
+        type="playlist"
+        :is-end="true"
+      />
+    </div>
+
+    <div class="index-row">
+      <div class="title">
+        {{ personalizedPlaylists.length ? '为你定制' : $t('home.recommendPlaylist') }}
+        <a @click="toExplore('playlist', '推荐歌单')">{{ $t('home.seeMore') }}</a>
+      </div>
+      <CoverRow
+        :items="personalizedPlaylists.length ? personalizedPlaylists : recommendPlaylist.items"
+        type="playlist"
+        sub-text="copywriter"
+      />
+    </div>
+
     <div class="index-row">
       <div class="title">{{ $t('home.recommendArtist') }}</div>
       <CoverRow :items="recommendArtists.items" type="artist" :colunm-number="6" />
     </div>
+
     <div class="index-row">
       <div class="title">
         {{ $t('home.newAlbum') }}
@@ -33,6 +63,7 @@
       </div>
       <CoverRow :items="newReleasesAlbum.items" type="album" sub-text="artist" />
     </div>
+
     <div class="index-row">
       <div class="title">
         {{ $t('home.charts') }}
@@ -49,9 +80,12 @@ import { getBanner } from '../api/other'
 import { toplistOfArtists } from '../api/artist'
 import { newAlbums } from '../api/album'
 import { toplists } from '../api/playlist'
+import { homepageBlockPage } from '../api/modern'
+import { extractArtists, extractPlaylists, extractTracks } from '../services/neteaseModern'
 import { getRecommendPlayList } from '../utils/playlist'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import CoverRow from '../components/CoverRow.vue'
+import TrackList from '../components/VirtualTrackList.vue'
 import DailyTracksCard from '../components/DailyTracksCard.vue'
 import FMCard from '../components/FMCard.vue'
 import { useRouter } from 'vue-router'
@@ -74,27 +108,22 @@ const { addTrackToPlayNext } = usePlayerStore()
 
 const router = useRouter()
 
-// banner
 const banner = ref<any[]>([])
 const bannerRef = ref<HTMLElement>()
 const left = ref(-1)
 const current = ref(0)
 const timer = ref<any>(null)
 const show = ref(false)
+const loadRevision = ref(0)
 
-// 推荐歌单
 const recommendPlaylist = ref<{ items: any[] }>({ items: [] })
-
-// 推荐歌手
+const personalizedPlaylists = ref<any[]>([])
+const personalizedTracks = ref<any[]>([])
 const recommendArtists = ref<{ items: any[]; indexs: any[] }>({
   items: [],
   indexs: []
 })
-
-// 新专速递
 const newReleasesAlbum = ref<{ items: any[] }>({ items: [] })
-
-// 排行榜
 const topList = ref<{ items: any[]; ids: number[] }>({
   items: [],
   ids: [19723756, 180106, 60198, 3812895, 60131]
@@ -106,121 +135,155 @@ const toExplore = (tab: string, Category = '全部') => {
 }
 
 const bannerChange = () => {
-  left.value =
-    (current.value - 1 + bannerRef.value!.children.length) % bannerRef.value!.children.length
-  const right = (current.value + 1) % bannerRef.value!.children.length
-  if (bannerRef.value) {
-    Array.from(bannerRef.value.children).forEach((item) => {
-      item.className = 'banner-item'
-    })
-    bannerRef.value.children[left.value].className = 'banner-item left'
-    bannerRef.value.children[current.value].className = 'banner-item center'
-    bannerRef.value?.children[current.value].addEventListener('click', () => {
-      handleBannerClick(banner.value[current.value])
-    })
-    bannerRef.value.children[right].className = 'banner-item right'
-  }
+  if (!bannerRef.value || bannerRef.value.children.length === 0) return
+  const length = bannerRef.value.children.length
+  current.value = current.value % length
+  left.value = (current.value - 1 + length) % length
+  const right = (current.value + 1) % length
+
+  Array.from(bannerRef.value.children).forEach((item) => {
+    item.className = 'banner-item'
+  })
+  bannerRef.value.children[left.value].className = 'banner-item left'
+  bannerRef.value.children[current.value].className = 'banner-item center'
+  bannerRef.value.children[current.value].addEventListener('click', () => {
+    handleBannerClick(banner.value[current.value])
+  })
+  bannerRef.value.children[right].className = 'banner-item right'
 }
 
 const bannerNext = () => {
+  if (!banner.value.length || !bannerRef.value?.children.length) return
   current.value = (current.value + 1) % banner.value.length
   bannerChange()
   setTimeout(() => {
-    const newNode = bannerRef.value!.children[left.value].cloneNode(true)
-    bannerRef.value!.children[left.value].replaceWith(newNode)
+    if (!bannerRef.value || left.value < 0 || !bannerRef.value.children[left.value]) return
+    const newNode = bannerRef.value.children[left.value].cloneNode(true)
+    bannerRef.value.children[left.value].replaceWith(newNode)
   }, 800)
 }
 
-const handleBannerClick = (banner: any) => {
-  if (['新歌首发', '热歌推荐'].includes(banner.typeTitle)) {
-    addTrackToPlayNext(banner.targetId, true, true)
-  } else if (banner.typeTitle === '新碟首发') {
-    router.push(`/album/${banner.targetId}`)
-  } else if (banner.typeTitle === '数字专辑') {
-    // 数字专辑，跳转至数字专辑详情
-    const url = new URL(banner.url)
+const handleBannerClick = (item: any) => {
+  if (!item) return
+  if (['新歌首发', '热歌推荐'].includes(item.typeTitle)) {
+    addTrackToPlayNext(item.targetId, true, true)
+  } else if (item.typeTitle === '新碟首发') {
+    router.push(`/album/${item.targetId}`)
+  } else if (item.typeTitle === '数字专辑' && item.url) {
+    const url = new URL(item.url)
     const id = url.searchParams.get('id')
-    router.push(`/album/${id}`)
-  } else if (banner.typeTitle === '歌单推荐') {
-    router.push(`/playlist/${banner.targetId}`)
-  } else if (banner.typeTitle === 'MV首发') {
-    router.push(`/mv/${banner.targetId}`)
-  } else if (banner.url) {
-    Utils.openExternal(banner.url)
+    if (id) router.push(`/album/${id}`)
+  } else if (item.typeTitle === '歌单推荐') {
+    router.push(`/playlist/${item.targetId}`)
+  } else if (item.typeTitle === 'MV首发') {
+    router.push(`/mv/${item.targetId}`)
+  } else if (item.url) {
+    Utils.openExternal(item.url)
   }
 }
 
-const imgFilter = (img: string) => {
-  return img.replace('http://', 'https://')
+const imgFilter = (img?: string) => (img ? img.replace('http://', 'https://') : '')
+
+const loadPersonalizedHome = async (revision: number) => {
+  const result = await homepageBlockPage({ refresh: false })
+  if (revision !== loadRevision.value || !result) return
+
+  personalizedTracks.value = extractTracks(result, 12)
+  personalizedPlaylists.value = extractPlaylists(result, 10)
+
+  const artists = extractArtists(result, 6)
+  if (artists.length) {
+    recommendArtists.value.items = artists
+    recommendArtists.value.indexs = []
+  }
 }
 
-const loadData = () => {
-  setTimeout(() => {
-    if (!show.value) tricklingProgress.start()
-  }, 1000)
+const loadFallbackArtists = async (revision: number) => {
+  const data = await toplistOfArtists(toplistOfArtistsAreaTable[general.value.musicLanguage ?? 'all'])
+  if (revision !== loadRevision.value || recommendArtists.value.items.length) return
+
+  const list = data?.list?.artists ?? []
+  const indexes: number[] = []
+  while (indexes.length < Math.min(6, list.length)) {
+    const index = ~~(Math.random() * list.length)
+    if (!indexes.includes(index)) indexes.push(index)
+  }
+  recommendArtists.value.indexs = indexes
+  recommendArtists.value.items = list.filter((_: any, index: number) => indexes.includes(index))
+}
+
+const loadData = async () => {
+  const revision = ++loadRevision.value
+  show.value = false
+  tricklingProgress.start()
+
+  personalizedTracks.value = []
+  personalizedPlaylists.value = []
+  recommendArtists.value.items = []
+
+  const jobs: Promise<any>[] = []
+
   if (general.value.showBanner) {
-    getBanner({ type: 0 }).then((res) => {
-      banner.value = res.banners.filter((item: any) => item.typeTitle !== '广告')
-      setTimeout(bannerChange)
-      handleBanner()
-    })
+    jobs.push(
+      getBanner({ type: 0 }).then((res) => {
+        if (revision !== loadRevision.value) return
+        banner.value = (res?.banners ?? []).filter((item: any) => item.typeTitle !== '广告')
+        current.value = 0
+        setTimeout(bannerChange)
+        handleBanner()
+      })
+    )
   }
 
-  getRecommendPlayList(10, false).then((items) => {
-    recommendPlaylist.value.items = items
+  jobs.push(
+    getRecommendPlayList(10, false).then((items) => {
+      if (revision === loadRevision.value) recommendPlaylist.value.items = items
+    })
+  )
+
+  jobs.push(loadPersonalizedHome(revision))
+  jobs.push(loadFallbackArtists(revision))
+
+  jobs.push(
+    newAlbums({ area: general.value.musicLanguage ?? 'all', limit: 10 }).then((data) => {
+      if (revision === loadRevision.value) newReleasesAlbum.value.items = data?.albums ?? []
+    })
+  )
+
+  jobs.push(
+    toplists().then((data: any) => {
+      if (revision !== loadRevision.value) return
+      topList.value.items = (data?.list ?? []).filter((item: any) => topList.value.ids.includes(item.id))
+    })
+  )
+
+  await Promise.allSettled(jobs)
+  if (revision === loadRevision.value) {
     tricklingProgress.done()
     show.value = true
-  })
-
-  toplistOfArtists(toplistOfArtistsAreaTable[general.value.musicLanguage ?? 'all']).then((data) => {
-    const indexs: any[] = []
-    while (indexs.length < 6) {
-      const tmp = ~~(Math.random() * 100)
-      if (!indexs.includes(tmp)) indexs.push(tmp)
-    }
-    recommendArtists.value.indexs = indexs
-    recommendArtists.value.items = data.list.artists.filter((l, index) => indexs.includes(index))
-  })
-
-  newAlbums({
-    area: general.value.musicLanguage ?? 'all',
-    limit: 10
-  }).then((data) => {
-    newReleasesAlbum.value.items = data.albums
-  })
-
-  toplists().then((data: any) => {
-    topList.value.items = data.list.filter((l: any) => topList.value.ids.includes(l.id))
-  })
+  }
 }
 
 const handleBanner = () => {
   if (timer.value) clearInterval(timer.value)
-  timer.value = setInterval(() => {
-    bannerNext()
-  }, 8000)
+  if (!banner.value.length) return
+  timer.value = setInterval(bannerNext, 8000)
 }
 
 const handleVisibleChange = () => {
-  if (document.hidden) {
-    clearInterval(timer.value)
-  } else {
-    handleBanner()
-  }
+  if (document.hidden) clearInterval(timer.value)
+  else handleBanner()
 }
 
 watch(showLyrics, (value) => {
-  if (value) {
-    handleBanner()
-  } else {
-    clearInterval(timer.value)
-  }
+  if (value) clearInterval(timer.value)
+  else handleBanner()
 })
 
 document.addEventListener('visibilitychange', handleVisibleChange)
 
 onActivated(() => {
-  loadData()
+  void loadData()
 })
 
 onDeactivated(() => {
@@ -279,9 +342,9 @@ onBeforeUnmount(() => {
     z-index: 1;
   }
 }
+
 .index-row {
   margin-top: 50px;
-
   .title {
     display: flex;
     justify-content: space-between;
@@ -294,13 +357,72 @@ onBeforeUnmount(() => {
       font-size: 13px;
       font-weight: 600;
       opacity: 0.68;
+      cursor: pointer;
     }
   }
 }
+
 .for-you-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   margin-bottom: 78px;
+}
+
+.insights-card {
+  min-height: 178px;
+  padding: 24px;
+  border: 0;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--color-primary) 42%, transparent), transparent 34%),
+    var(--color-secondary-bg);
+  transition: transform 0.2s ease;
+  &:hover {
+    transform: translateY(-3px);
+  }
+}
+
+.insights-eyebrow {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: white;
+  background: var(--color-primary);
+}
+
+.insights-title {
+  margin-top: 15px;
+  font-size: 25px;
+  font-weight: 760;
+}
+
+.insights-desc {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.58;
+}
+
+.insights-link {
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+@media (max-width: 1000px) {
+  .for-you-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .insights-card {
+    grid-column: 1 / -1;
+  }
 }
 </style>
