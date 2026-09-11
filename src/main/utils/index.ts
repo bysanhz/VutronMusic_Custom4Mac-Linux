@@ -585,38 +585,76 @@ const isTrackPlayable = (track: any) => {
   return result
 }
 
-const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: any }> => {
-  const getBr = () => {
-    const quality = store.get('settings.musicQuality')
-    return quality === 'flac' ? 350000 : quality
+type NetEaseSoundQuality =
+  | 'standard'
+  | 'higher'
+  | 'exhigh'
+  | 'lossless'
+  | 'hires'
+  | 'jyeffect'
+  | 'sky'
+  | 'vivid'
+  | 'jymaster'
+
+const NETEASE_QUALITY_ORDER: NetEaseSoundQuality[] = [
+  'jymaster',
+  'vivid',
+  'sky',
+  'jyeffect',
+  'hires',
+  'lossless',
+  'exhigh',
+  'higher',
+  'standard'
+]
+
+const normalizeNeteaseQuality = (quality: unknown): NetEaseSoundQuality => {
+  const legacyQualityMap = new Map<unknown, NetEaseSoundQuality>([
+    [128000, 'standard'],
+    [192000, 'higher'],
+    [320000, 'exhigh'],
+    ['flac', 'lossless'],
+    [999000, 'hires']
+  ])
+  if (legacyQualityMap.has(quality)) return legacyQualityMap.get(quality)!
+  if (NETEASE_QUALITY_ORDER.includes(quality as NetEaseSoundQuality)) {
+    return quality as NetEaseSoundQuality
   }
-  const getMP3 = async (id: string) => {
-    return request({
-      url: '/song/url',
-      method: 'get',
-      params: {
-        id,
-        br: getBr()
+  return 'exhigh'
+}
+
+const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: any }> => {
+  const requestedLevel = normalizeNeteaseQuality(store.get('settings.musicQuality'))
+  const startIndex = NETEASE_QUALITY_ORDER.indexOf(requestedLevel)
+  const fallbackLevels = NETEASE_QUALITY_ORDER.slice(Math.max(0, startIndex))
+
+  for (const level of fallbackLevels) {
+    try {
+      const result = await request({
+        url: '/song/url/v1',
+        method: 'get',
+        params: { id: track.id, level }
+      })
+      const item = result?.data?.[0]
+      const br = item?.br || 128000
+      const gain = item?.gain || 0
+      const peak = item?.peak || 1
+      if (!item?.url || item.freeTrialInfo !== null) continue
+
+      return {
+        url: item.url.replace(/^http:/, 'https:'),
+        br,
+        gain,
+        peak,
+        level: item.level || level
       }
-    })
+    } catch (error) {
+      log.warn(`[NetEase] ${level} 音质获取失败，尝试较低音质`, error)
+    }
   }
 
-  return getMP3(track.id)
-    .then((result: any) => {
-      const br = result.data[0]?.br || 128000
-      const gain = result.data[0]?.gain || 0
-      const peak = result.data[0]?.peak || 1
-      // if (!result.data[0]) return null
-      if (!result.data[0] || !result.data[0].url || result.data[0].freeTrialInfo !== null) {
-        return { url: null, br, gain, peak }
-      }
-      const source = result.data[0].url.replace(/^http:/, 'https:')
-      return { url: source, br, gain, peak }
-    })
-    .catch(() => {
-      const url = `https://music.163.com/song/media/outer/url?id=${track.id}`
-      return { url, br: 128000, gain: 0, peak: 1 }
-    })
+  const url = `https://music.163.com/song/media/outer/url?id=${track.id}`
+  return { url, br: 128000, gain: 0, peak: 1, level: 'standard' }
 }
 
 export const getAudioSource = async (track: any) => {

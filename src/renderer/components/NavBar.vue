@@ -66,9 +66,26 @@
           @click="toExplore('artist')"
           >{{ $t('nav.artist') }}</div
         >
+        <div
+          class="item"
+          :class="{ active: exploreTab === 'style' }"
+          @click="toExplore('style')"
+          >曲风</div
+        >
+        <div
+          class="item"
+          :class="{ active: exploreTab === 'following' }"
+          @click="toExplore('following')"
+          >关注新作</div
+        >
       </div>
       <div class="right-part">
-        <SearchBox ref="searchBoxRef" :clear-keywords="true" @keydown-enter="doSearch($event)" />
+        <SearchBox
+          ref="searchBoxRef"
+          :clear-keywords="true"
+          :suggestions="true"
+          @keydown-enter="doSearch($event)"
+        />
         <img class="avatar" :src="avatarUrl" loading="lazy" @click="showUserProfileMenu" />
       </div>
     </nav>

@@ -41,7 +41,7 @@ export const useSettingsStore = defineStore(
       language: 'zh',
       subTitleDefault: true,
       showTrackTimeOrID: 'time',
-      musicQuality: 320000,
+      musicQuality: 'exhigh' as string | number,
       musicLanguage: 'all',
       closeAppOption: 'ask',
       useCustomTitlebar: false,

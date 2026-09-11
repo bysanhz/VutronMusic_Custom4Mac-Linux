@@ -1407,11 +1407,15 @@ const commitCustomCacheLimit = () => {
 }
 
 const musicQualityOptions = computed(() => [
-  { label: t('settings.general.musicQuality.low') + ' - 128Kbps', value: 128000 },
-  { label: t('settings.general.musicQuality.medium') + ' - 192Kbps', value: 192000 },
-  { label: t('settings.general.musicQuality.high') + ' - 320Kbps', value: 320000 },
-  { label: t('settings.general.musicQuality.lossless') + ' - FLAC', value: 'flac' },
-  { label: 'Hi-Res', value: 999000 }
+  { label: t('settings.general.musicQuality.low') + ' - 标准', value: 'standard' },
+  { label: t('settings.general.musicQuality.medium') + ' - 较高', value: 'higher' },
+  { label: t('settings.general.musicQuality.high') + ' - 极高', value: 'exhigh' },
+  { label: t('settings.general.musicQuality.lossless') + ' - 无损', value: 'lossless' },
+  { label: 'Hi-Res', value: 'hires' },
+  { label: '高清环绕声', value: 'jyeffect' },
+  { label: '沉浸环绕声', value: 'sky' },
+  { label: '臻音全景声', value: 'vivid' },
+  { label: '超清母带', value: 'jymaster' }
 ])
 
 const embedCoverArtOption = computed(() => [

@@ -60,6 +60,12 @@
       @click="openComment"
       >{{ $t('contextMenu.showComment') }}</div
     >
+    <div v-if="id === '/daily/songs'" class="item" @click="dislikeDailyRecommendation">
+      不感兴趣
+    </div>
+    <div v-if="type === 'cloudDisk'" class="item danger" @click="deleteFromCloudDisk">
+      从云盘删除
+    </div>
     <div
       v-if="extraContextMenuItem.includes('accurateMatch')"
       class="item"
@@ -142,6 +148,8 @@ import { isAccountLoggedIn } from '../utils/auth'
 import { useStreamMusicStore } from '../store/streamingMusic'
 import SvgIcon from './SvgIcon.vue'
 import { serviceName, Track } from '@/types/music.d'
+import { deleteCloudSong, dislikeRecommendSong } from '../api/discovery'
+import { useDataStore } from '../store/data'
 
 const props = withDefaults(
   defineProps<{
@@ -218,6 +226,7 @@ const { replacePlaylist, addTrackToPlayNext } = playerStore
 const stateStore = useNormalStateStore()
 const { showToast } = stateStore
 const { addTrackToPlaylistModal, accurateMatchModal } = storeToRefs(stateStore)
+const dataStore = useDataStore()
 
 const { addOrRemoveTrackFromStreamPlaylist } = useStreamMusicStore()
 
@@ -467,6 +476,42 @@ const openComment = () => {
   showComment.value = true
 }
 
+const dislikeDailyRecommendation = async () => {
+  const trackId = Number(rightClickedTrack.value.id)
+  if (!Number.isFinite(trackId) || trackId <= 0) return
+  if (!isAccountLoggedIn()) {
+    showToast(t('toast.needToLogin'))
+    return
+  }
+  try {
+    await dislikeRecommendSong(trackId)
+    removeTrack(rightClickedTrackIndex.value)
+    trackListMenuRef.value?.closeMenu?.()
+    showToast('已减少此类推荐')
+  } catch (error) {
+    console.warn('[DailyTracks] 提交不感兴趣失败:', error)
+    showToast('操作失败，请稍后重试')
+  }
+}
+
+const deleteFromCloudDisk = async () => {
+  const rawTrack: any = rightClickedTrack.value
+  const trackId = Number(rawTrack.songId ?? rawTrack.simpleSong?.id ?? rawTrack.id)
+  const trackName = rawTrack.simpleSong?.name ?? rawTrack.name ?? '这首歌曲'
+  if (!Number.isFinite(trackId) || trackId <= 0) return
+  if (!confirm(`确定要从网易云云盘删除 ${trackName}？此操作会同步到网易云账号。`)) return
+
+  try {
+    await deleteCloudSong(trackId)
+    await dataStore.fetchCloudDisk()
+    trackListMenuRef.value?.closeMenu?.()
+    showToast('已从云盘删除')
+  } catch (error) {
+    console.warn('[CloudDisk] 删除云盘歌曲失败:', error)
+    showToast('云盘删除失败，请稍后重试')
+  }
+}
+
 const closeComment = () => {
   showComment.value = false
   rightClickedTrack.value = {
@@ -518,6 +563,10 @@ onBeforeUnmount(() => {
 .track-item {
   width: 100%;
   // padding-bottom: 4px;
+}
+
+.danger {
+  color: #d94a4a;
 }
 .comment {
   background-color: rgba(0, 0, 0, 0.38);

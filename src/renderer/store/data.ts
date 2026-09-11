@@ -14,6 +14,7 @@ import { useNormalStateStore } from './state'
 import { isAccountLoggedIn } from '../utils/auth'
 import { useI18n } from 'vue-i18n'
 import { getPlaylistDetail } from '../api/playlist'
+import { recentSongs } from '../api/discovery'
 
 interface User {
   userId: number | null
@@ -231,26 +232,43 @@ export const useDataStore = defineStore(
         })
     }
 
-    const fetchPlayHistory = () => {
+    const normalizeHistoryTrack = (item: any) => {
+      const track = item?.data ?? item?.song ?? item
+      if (!track?.id) return null
+      return {
+        ...track,
+        type: 'online',
+        matched: true,
+        playCount: item?.playCount ?? track.playCount
+      }
+    }
+
+    const fetchPlayHistory = async () => {
       if (!isAccountLoggedIn()) return
-      return Promise.all([
-        userPlayHistory({ uid: user.value.userId as number, type: 0 }),
-        userPlayHistory({ uid: user.value.userId as number, type: 1 })
-      ]).then((result) => {
-        const data: { allData: any[]; weekData: any[] } = { allData: [], weekData: [] }
-        const dataType = { 0: 'allData', 1: 'weekData' }
-        if (result[0] && result[1]) {
-          for (let i = 0; i < result.length; i++) {
-            const songData = result[i][dataType[i]].map((item) => {
-              const song = item.song
-              song.playCount = item.playCount
-              return song
-            })
-            data[dataType[i] as 'weekData' | 'allData'] = songData
-          }
-          liked.playHistory = data
-        }
+
+      const weekPromise = userPlayHistory({ uid: user.value.userId as number, type: 1 })
+      const recentPromise = recentSongs(100).catch(async (error) => {
+        console.warn('[Data] 新版最近播放接口失败，回退旧版全部记录：', error)
+        return await userPlayHistory({ uid: user.value.userId as number, type: 0 })
       })
+
+      const [weekResult, recentResult] = await Promise.all([weekPromise, recentPromise])
+      const weekData = Array.isArray(weekResult?.weekData)
+        ? weekResult.weekData.map(normalizeHistoryTrack).filter(Boolean)
+        : []
+
+      const recentItems = Array.isArray(recentResult?.data?.list)
+        ? recentResult.data.list
+        : Array.isArray(recentResult?.data)
+          ? recentResult.data
+          : Array.isArray(recentResult?.list)
+            ? recentResult.list
+            : Array.isArray(recentResult?.allData)
+              ? recentResult.allData
+              : []
+      const allData = recentItems.map(normalizeHistoryTrack).filter(Boolean)
+
+      liked.playHistory = { weekData, allData }
     }
 
     const resetUserInfo = () => {
