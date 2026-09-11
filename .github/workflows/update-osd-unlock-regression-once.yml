@@ -1,5 +1,6 @@
 name: One-time update OSD unlock regression
 
+# Retry after fixing updater-script quoting.
 on:
   push:
     branches: [main]
