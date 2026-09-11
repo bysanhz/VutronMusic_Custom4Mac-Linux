@@ -67,6 +67,7 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
 
