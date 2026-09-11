@@ -33,6 +33,15 @@ const routes = [
     }
   },
   {
+    path: '/insights',
+    name: 'musicInsights',
+    component: () => import('../views/MusicInsights.vue'),
+    meta: {
+      requireLogin: true,
+      keepAlive: true
+    }
+  },
+  {
     path: '/streamLogin/:service',
     name: 'streamLogin',
     component: () => import('../views/StreamLogin.vue')
