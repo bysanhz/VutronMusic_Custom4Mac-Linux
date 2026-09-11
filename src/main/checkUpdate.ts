@@ -19,20 +19,11 @@ const getWindowsUpdateChannel = () =>
   process.arch === 'arm64' ? 'latest-win-arm64' : 'latest-win-x64'
 
 /**
- * 判断当前安装格式是否支持 electron-updater 原生下载安装。
- *
- * 详细说明：
- * 1. Windows 安装包继续使用 electron-updater；
- * 2. Linux 只有 AppImage 存在 APPIMAGE 环境变量时才调用 electron-updater；
- * 3. Linux Deb、源码开发环境和未签名 macOS 构建仅检查 GitHub Release，下载时打开发布页；
- * 4. 这样可以避免非 AppImage 环境反复输出 APPIMAGE env is not defined。
+ * v3.3.2 起正式 Release 只发布 Windows x64 EXE、Linux amd64 DEB 和 macOS arm64 DMG。
+ * Release 不再附带 electron-updater 所需的 latest*.yml / blockmap，因此所有正式安装格式
+ * 都统一走 GitHub Release 只读检查，并在用户主动确认后打开发布页完成系统安装器升级。
  */
-const canUseNativeUpdater = () => {
-  if (!app.isPackaged || Constants.IS_MAC) return false
-  if (Constants.IS_LINUX) return Boolean(process.env.APPIMAGE)
-  if (isWindowsPortable()) return false
-  return true
-}
+const canUseNativeUpdater = () => false
 
 const configureNativeUpdater = () => {
   if (nativeUpdaterConfigured || !canUseNativeUpdater()) return

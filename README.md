@@ -35,16 +35,24 @@ VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐�
 正式版本由 GitHub Actions 根据版本标签自动构建并发布到
 [Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)。
 
-**当前正式版本：[`v3.3.1`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.1)**（2026-09-07）。
+**当前正式版本：[`v3.3.2`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.2)**（2026-09-11）。
 
-| 平台 | 架构 | 安装包 | 更新方式 |
+| 平台 | 架构 | 正式 Release 安装包 | 更新方式 |
 | --- | --- | --- | --- |
-| Linux | x86_64 | AppImage / Deb / RPM / Snap | AppImage 支持应用内更新；其他格式跳转 Release |
-| Linux | ARM64 | AppImage / Deb / RPM | 应用内检查版本，跳转 Release 手动下载 |
-| macOS | Apple Silicon | 本机源码构建（推荐）/ 未签名 DMG arm64 | 应用内检查版本，跳转 Release |
-| macOS | Intel | 本机源码构建（推荐）/ 未签名 DMG x64 | 应用内检查版本，跳转 Release |
-| Windows | x64 | 安装版 / Portable | 安装版支持应用内更新；Portable 跳转 Release 手动下载 |
-| Windows | ARM64 | 安装版 | 支持应用内更新 |
+| Windows | x64 | `VutronMusic-*_win_x64.exe` | 应用内主动检查版本，跳转 Release 手动下载安装 |
+| Linux | x86_64 / amd64 | `VutronMusic-*_linux_amd64.deb` | 应用内主动检查版本，跳转 Release 手动下载安装 |
+| macOS | Apple Silicon / arm64 | `VutronMusic-*_mac_arm64.dmg` | 应用内主动检查版本，跳转 Release 手动下载安装 |
+
+### v3.3.2 桌面歌词与跨平台稳定性更新
+
+- 修复 Windows 锁定桌面歌词后鼠标穿透自动隐藏无法可靠恢复的问题；
+- 统一桌面歌词底部锁定 / 解锁入口，并继续优化拖动、拉伸命中区与底部拖动 Bar 的视觉干扰；
+- 修复逐字歌词第一词闪烁和时间轴零点不一致导致的系统性提前问题；
+- 修复 Windows 主窗口隐藏时托盘菜单无法正常打开的问题；
+- 修复 Linux 托盘菜单递归导致的主进程栈溢出及后续桌面歌词 / IPC 初始化失败；
+- 正式 Release 从本版本起固定只发布 Windows x64 EXE、Linux amd64 DEB、macOS arm64 DMG 三个安装包；应用内更新改为用户主动检查后跳转 Release 手动安装。
+
+完整版本说明见 [`v3.3.2 Release`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.2)。
 
 ### v3.3.1 稳定性更新
 
@@ -74,10 +82,7 @@ macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，�
 
 > 仅建议对从本仓库 [Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases) 下载、并且你确认来源可信的 VutronMusic 安装包执行以下操作。下面的方法只移除 VutronMusic 自身的下载隔离属性，不会关闭 macOS 全局 Gatekeeper。
 
-先根据 Mac 架构选择正确的安装包：
-
-- Apple Silicon（M1/M2/M3/M4/M5 等）下载 `arm64` DMG；
-- Intel Mac 下载 `x64` DMG。
+当前正式 Release 仅提供 Apple Silicon（M1/M2/M3/M4/M5 等）的 `arm64` DMG。Intel Mac 暂不提供预构建 DMG，可继续按本文“macOS 本机构建”说明从源码构建。
 
 不确定当前机器架构时，在“终端”中执行：
 
