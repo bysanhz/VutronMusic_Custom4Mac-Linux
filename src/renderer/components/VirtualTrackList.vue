@@ -488,7 +488,7 @@ const dislikeDailyRecommendation = async () => {
     if (!result || (result.code !== undefined && Number(result.code) !== 200)) {
       throw new Error(result?.message || 'recommend dislike failed')
     }
-    removeTrack(rightClickedTrackIndex.value)
+    removeTrack(trackId)
     trackListMenuRef.value?.closeMenu?.()
     showToast('已减少此类推荐')
   } catch (error) {

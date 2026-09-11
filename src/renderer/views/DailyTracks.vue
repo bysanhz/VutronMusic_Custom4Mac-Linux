@@ -176,10 +176,11 @@ const play = () => {
 
 const formatDate = (date: string) => date.replace(/-/g, '.')
 
-provide('removeTrack', (index: number) => {
-  if (!Number.isInteger(index) || index < 0) return
-  if (mode.value === 'today') dailyTracks.value.splice(index, 1)
-  else historyTracks.value.splice(index, 1)
+provide('removeTrack', (trackId: number) => {
+  if (!Number.isFinite(trackId) || trackId <= 0) return
+  const target = mode.value === 'today' ? dailyTracks.value : historyTracks.value
+  const index = target.findIndex((track) => Number(track.id) === Number(trackId))
+  if (index >= 0) target.splice(index, 1)
 })
 
 onMounted(async () => {
