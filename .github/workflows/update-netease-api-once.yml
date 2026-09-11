@@ -1,0 +1,43 @@
+name: Update NetEase API Once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/update-netease-api-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Upgrade NetEase API package and lockfile
+        run: >-
+          yarn add @neteasecloudmusicapienhanced/api@4.40.1
+          --exact --ignore-scripts --network-timeout 600000
+
+      - name: Commit dependency upgrade
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json yarn.lock
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: upgrade NetEase API to 4.40.1"
+          git push origin HEAD:main
