@@ -1,11 +1,6 @@
 name: Test Build
 
-# Temporary push trigger for the requested test package. Remove it after the run starts.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/test-build.yml'
   workflow_dispatch:
     inputs:
       note:
