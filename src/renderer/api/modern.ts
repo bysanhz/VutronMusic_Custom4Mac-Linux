@@ -24,10 +24,12 @@ export function listenTodaySongs() {
   })
 }
 
-export function listenSongPlayRank(params: {
-  type?: Exclude<ListenReportType, 'year'>
-  endTime?: string | number
-} = {}) {
+export function listenSongPlayRank(
+  params: {
+    type?: Exclude<ListenReportType, 'year'>
+    endTime?: string | number
+  } = {}
+) {
   return request({
     url: '/listen/data/song/play/rank',
     method: 'get',
