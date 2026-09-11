@@ -13,21 +13,7 @@ export function getLyric(id: number) {
 }
 
 /**
- * 喜欢音乐（旧接口，作为新版接口异常时的兼容回退）。
- */
-export function likeTrack(params: { id: number; like?: boolean }) {
-  return request({
-    url: '/like',
-    method: 'get',
-    params: {
-      ...params,
-      timestamp: Date.now()
-    }
-  })
-}
-
-/**
- * 新版红心接口。网易云当前桌面/移动接口会返回更明确的操作结果。
+ * 新版红心接口。
  */
 export function likeTrackV1(params: { id: number; like?: boolean }) {
   return request({
@@ -41,7 +27,7 @@ export function likeTrackV1(params: { id: number; like?: boolean }) {
 }
 
 /**
- * 批量校验歌曲红心状态，用于 optimistic update 后和服务端最终状态对齐。
+ * 批量校验歌曲红心状态，用于需要精确服务端状态时的局部同步。
  */
 export function checkTrackLiked(ids: Array<number | string>) {
   return request({
@@ -52,6 +38,32 @@ export function checkTrackLiked(ids: Array<number | string>) {
       timestamp: Date.now()
     }
   })
+}
+
+/**
+ * 喜欢/取消喜欢歌曲。
+ *
+ * 现有调用点无需改动：优先走 `/like/v1`，失败后自动回退旧 `/like`。
+ * 两个接口都失败时显式抛错，让上层保持原来的失败提示和本地状态。
+ */
+export async function likeTrack(params: { id: number; like?: boolean }) {
+  const modernResult = await likeTrackV1(params)
+  if (isSuccessfulResponse(modernResult)) {
+    const verified = await checkTrackLiked([params.id])
+    return { ...modernResult, likeCheck: verified }
+  }
+
+  const legacyResult = await request({
+    url: '/like',
+    method: 'get',
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
+  })
+  if (isSuccessfulResponse(legacyResult)) return legacyResult
+
+  throw new Error('like track failed')
 }
 
 /**
