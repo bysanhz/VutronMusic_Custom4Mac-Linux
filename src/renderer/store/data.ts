@@ -247,10 +247,17 @@ export const useDataStore = defineStore(
       if (!isAccountLoggedIn()) return
 
       const weekPromise = userPlayHistory({ uid: user.value.userId as number, type: 1 })
-      const recentPromise = recentSongs(100).catch(async (error) => {
-        console.warn('[Data] 新版最近播放接口失败，回退旧版全部记录：', error)
+      const recentPromise = (async () => {
+        const modernResult = await recentSongs(100)
+        const hasModernList =
+          Array.isArray(modernResult?.data?.list) ||
+          Array.isArray(modernResult?.data) ||
+          Array.isArray(modernResult?.list)
+        if (hasModernList) return modernResult
+
+        console.warn('[Data] 新版最近播放接口不可用，回退旧版全部记录')
         return await userPlayHistory({ uid: user.value.userId as number, type: 0 })
-      })
+      })()
 
       const [weekResult, recentResult] = await Promise.all([weekPromise, recentPromise])
       const weekData = Array.isArray(weekResult?.weekData)

@@ -3,11 +3,15 @@
     <div class="special-playlist1">
       <div class="title gradient">每日歌曲推荐</div>
       <div class="subtitle">
-        {{ mode === 'today' ? '根据你的音乐口味生成 · 每天6:00更新' : `历史日推 · ${selectedDate}` }}
+        {{
+          mode === 'today' ? '根据你的音乐口味生成 · 每天6:00更新' : `历史日推 · ${selectedDate}`
+        }}
       </div>
       <div class="mode-row">
         <button :class="{ active: mode === 'today' }" @click="switchMode('today')">今日推荐</button>
-        <button :class="{ active: mode === 'history' }" @click="switchMode('history')">历史日推</button>
+        <button :class="{ active: mode === 'history' }" @click="switchMode('history')"
+          >历史日推</button
+        >
       </div>
       <div v-if="mode === 'history' && historyDates.length" class="history-dates">
         <button
@@ -25,7 +29,9 @@
         </ButtonTwoTone>
         <SearchBox ref="pSearchBoxRef" :placeholder="$t('playlist.search')" />
       </div>
-      <div v-if="mode === 'today'" class="feedback-hint">右键歌曲可选择“不感兴趣”，反馈会同步给网易云推荐。</div>
+      <div v-if="mode === 'today'" class="feedback-hint"
+        >右键歌曲可选择“不感兴趣”，反馈会同步给网易云推荐。</div
+      >
     </div>
 
     <TrackList
@@ -47,10 +53,7 @@ import TrackList from '../components/VirtualTrackList.vue'
 import ButtonTwoTone from '../components/ButtonTwoTone.vue'
 import SearchBox from '../components/SearchBox.vue'
 import { dailyRecommendTracks } from '../api/playlist'
-import {
-  historyRecommendSongs,
-  historyRecommendSongsDetail
-} from '../api/discovery'
+import { historyRecommendSongs, historyRecommendSongsDetail } from '../api/discovery'
 import { usePlayerStore } from '../store/player'
 
 const show = ref(false)
@@ -65,7 +68,9 @@ const { _shuffle } = storeToRefs(playerStore)
 const { replacePlaylist } = playerStore
 const pSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
 
-const activeTracks = computed(() => (mode.value === 'today' ? dailyTracks.value : historyTracks.value))
+const activeTracks = computed(() =>
+  mode.value === 'today' ? dailyTracks.value : historyTracks.value
+)
 const keyword = computed(() => pSearchBoxRef.value?.keywords || '')
 const filterTracks = computed(() => {
   const searchWord = keyword.value?.toLowerCase() ?? ''

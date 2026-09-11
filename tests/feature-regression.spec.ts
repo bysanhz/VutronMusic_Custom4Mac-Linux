@@ -1538,3 +1538,47 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain("window.mainApi?.invoke('show-update-dialog', latestVersion.value)")
   })
 })
+
+test.describe('modern NetEase API integration', () => {
+  test('pins the upgraded API and uses level-based playback quality', () => {
+    const packageJson = readSource('package.json')
+    const mainUtils = readSource('src/main/utils/index.ts')
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+
+    expect(packageJson).toContain('"@neteasecloudmusicapienhanced/api": "4.40.1"')
+    expect(mainUtils).toContain("url: '/song/url/v1'")
+    expect(mainUtils).toContain("'jymaster'")
+    expect(mainUtils).toContain("'vivid'")
+    expect(mainUtils).toContain("'sky'")
+    expect(settings).toContain("value: 'lossless'")
+    expect(settings).toContain("value: 'hires'")
+  })
+
+  test('uses cloud search plus default and hot NetEase suggestions', () => {
+    const searchPage = readSource('src/renderer/views/SearchPage.vue')
+    const searchBox = readSource('src/renderer/components/SearchBox.vue')
+    const navBar = readSource('src/renderer/components/NavBar.vue')
+
+    expect(searchPage).toContain('cloudSearch')
+    expect(searchPage).not.toContain("import { search } from '../api/other'")
+    expect(searchBox).toContain('searchDefault')
+    expect(searchBox).toContain('searchHotDetail')
+    expect(navBar).toContain(':suggestions="true"')
+  })
+
+  test('exposes daily history, recommendation feedback, styles, new works, and cloud management', () => {
+    const dailyTracks = readSource('src/renderer/views/DailyTracks.vue')
+    const trackList = readSource('src/renderer/components/VirtualTrackList.vue')
+    const explore = readSource('src/renderer/views/ExplorePage.vue')
+    const dataStore = readSource('src/renderer/store/data.ts')
+
+    expect(dailyTracks).toContain('historyRecommendSongsDetail')
+    expect(trackList).toContain('dislikeRecommendSong')
+    expect(trackList).toContain('deleteCloudSong')
+    expect(explore).toContain('stylePreference')
+    expect(explore).toContain('styleSongs')
+    expect(explore).toContain('followedArtistNewSongs')
+    expect(explore).toContain('followedArtistNewMvs')
+    expect(dataStore).toContain('recentSongs(100)')
+  })
+})

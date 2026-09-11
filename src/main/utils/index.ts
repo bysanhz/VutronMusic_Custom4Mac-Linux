@@ -658,7 +658,8 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
 }
 
 export const getAudioSource = async (track: any) => {
-  const enableUNM = (store.get('settings.unblockNeteaseMusic.enable') as boolean) || true
+  const enableUNM =
+    (store.get('settings.unblockNeteaseMusic.enable') as boolean | undefined) ?? true
   let source = 'netease'
 
   // 缓存里没有，从网易云里获取

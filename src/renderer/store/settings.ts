@@ -309,6 +309,16 @@ export const useSettingsStore = defineStore(
     })
 
     onMounted(() => {
+      const legacyMusicQualityMap = new Map<string | number, string>([
+        [128000, 'standard'],
+        [192000, 'higher'],
+        [320000, 'exhigh'],
+        ['flac', 'lossless'],
+        [999000, 'hires']
+      ])
+      const migratedMusicQuality = legacyMusicQualityMap.get(general.musicQuality)
+      if (migratedMusicQuality) general.musicQuality = migratedMusicQuality
+
       const path = localMusic.scanDir as unknown
       if (typeof path === 'string') {
         localMusic.scanDir = path ? [path] : []

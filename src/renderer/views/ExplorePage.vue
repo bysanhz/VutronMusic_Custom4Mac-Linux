@@ -180,7 +180,9 @@
         <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">本月新碟</div>
         <CoverRow
           v-if="show"
-          :items="albumType === '热门' ? newAlbumInfo.topAlbum.monthData : newAlbumInfo.newAlbums.albums"
+          :items="
+            albumType === '热门' ? newAlbumInfo.topAlbum.monthData : newAlbumInfo.newAlbums.albums
+          "
           type="album"
           sub-text="artist"
           :show-play-button="false"
@@ -326,7 +328,10 @@ const goToCategory = (tab: string, category: string) => {
 
 const updateType = (itemType: string) => {
   albumType.value = itemType
-  router.push({ name: 'explore', query: { tab: 'newAlbum', category: activeCategory.value, type: itemType } })
+  router.push({
+    name: 'explore',
+    query: { tab: 'newAlbum', category: activeCategory.value, type: itemType }
+  })
 }
 
 const toggleArtistCategory = (category: any) => {
@@ -339,8 +344,10 @@ const toggleArtistCategory = (category: any) => {
   void getPlaylist()
 }
 
-const getCatsByBigCat = (bigCat: string) => playlistCategories.filter((cat) => cat.bigCat === bigCat)
-const getArtistCatsByBigCat = (bigCat: string) => artistCategories.filter((cat) => cat.bigCat === bigCat)
+const getCatsByBigCat = (bigCat: string) =>
+  playlistCategories.filter((cat) => cat.bigCat === bigCat)
+const getArtistCatsByBigCat = (bigCat: string) =>
+  artistCategories.filter((cat) => cat.bigCat === bigCat)
 const getTrack = (items: any[] = []) => items.map((track) => [track.first, track.second])
 
 const updatePlaylist = (playlistList: any[] = []) => {
@@ -367,7 +374,9 @@ const loadMore = () => {
 const getTopLists = () => {
   toplistDetail().then((data) => {
     const names = ['飙升榜', '新歌榜', '原创榜', '热歌榜']
-    showList.value = names.map((name) => data.list.find((item) => item.name === name)).filter(Boolean)
+    showList.value = names
+      .map((name) => data.list.find((item) => item.name === name))
+      .filter(Boolean)
   })
   return toplists().then((data) => {
     playlists.value = []
@@ -387,7 +396,13 @@ const getNewTrack = () => {
 }
 
 const getNewAlbum = () => {
-  const albumMap: Record<string, string> = { 全部: 'ALL', 华语: 'ZH', 欧美: 'EA', 日本: 'JP', 韩国: 'KR' }
+  const albumMap: Record<string, string> = {
+    全部: 'ALL',
+    华语: 'ZH',
+    欧美: 'EA',
+    日本: 'JP',
+    韩国: 'KR'
+  }
   if (albumType.value === '热门') {
     if (!newAlbumInfo.topAlbum.hasMore) return
     return topAlbum({ area: albumMap[activeCategory.value] ?? 'ALL' }).then((data) => {
@@ -441,7 +456,11 @@ const collectStyleTags = (value: any, output: StyleTag[] = [], depth = 0): Style
 
   const id = value.tagId ?? value.id
   const name = value.tagName ?? value.name
-  if ((typeof id === 'number' || typeof id === 'string') && typeof name === 'string' && name.trim()) {
+  if (
+    (typeof id === 'number' || typeof id === 'string') &&
+    typeof name === 'string' &&
+    name.trim()
+  ) {
     if (!output.some((item) => String(item.id) === String(id))) {
       output.push({ id, name: name.trim() })
     }
@@ -450,8 +469,10 @@ const collectStyleTags = (value: any, output: StyleTag[] = [], depth = 0): Style
   return output
 }
 
-const unwrapTrack = (item: any) => item?.song ?? item?.resource?.song ?? item?.resource ?? item?.data ?? item
-const unwrapMv = (item: any) => item?.mv ?? item?.resource?.mv ?? item?.resource ?? item?.data ?? item
+const unwrapTrack = (item: any) =>
+  item?.song ?? item?.resource?.song ?? item?.resource ?? item?.data ?? item
+const unwrapMv = (item: any) =>
+  item?.mv ?? item?.resource?.mv ?? item?.resource ?? item?.data ?? item
 
 const findFirstArray = (source: any, keys: string[]): any[] => {
   for (const key of keys) {
@@ -483,7 +504,10 @@ const selectStyle = (tag: StyleTag) => {
 
 const getStyles = async () => {
   try {
-    const [listResult, preferenceResult] = await Promise.allSettled([styleList(), stylePreference()])
+    const [listResult, preferenceResult] = await Promise.allSettled([
+      styleList(),
+      stylePreference()
+    ])
     const tags = listResult.status === 'fulfilled' ? collectStyleTags(listResult.value) : []
     const preferred =
       preferenceResult.status === 'fulfilled'
@@ -525,12 +549,28 @@ const getFollowingWorks = async () => {
   try {
     if (followingMode.value === 'song') {
       const result = await followedArtistNewSongs({ limit: 100 })
-      const raw = findFirstArray(result, ['data.newWorks', 'data.list', 'data.songs', 'newWorks', 'list', 'songs', 'data'])
+      const raw = findFirstArray(result, [
+        'data.newWorks',
+        'data.list',
+        'data.songs',
+        'newWorks',
+        'list',
+        'songs',
+        'data'
+      ])
       tracks.value = raw.map(unwrapTrack).filter((item) => item?.id)
       followingMvs.value = []
     } else {
       const result = await followedArtistNewMvs({ limit: 100 })
-      const raw = findFirstArray(result, ['data.newWorks', 'data.list', 'data.mvs', 'newWorks', 'list', 'mvs', 'data'])
+      const raw = findFirstArray(result, [
+        'data.newWorks',
+        'data.list',
+        'data.mvs',
+        'newWorks',
+        'list',
+        'mvs',
+        'data'
+      ])
       followingMvs.value = raw.map(normalizeMv).filter((item) => item.id && item.cover)
       tracks.value = []
     }
@@ -563,12 +603,14 @@ const getPlaylist = () => {
       })
     }
     if (activeCategory.value === '精品歌单') return getHighQualityPlaylist()
-    return topPlaylist({ cat: activeCategory.value, offset: playlists.value.length }).then((data) => {
-      playlistInfo.more = data.more
-      playlistInfo.total = data.total
-      playlistInfo.lasttime = 0
-      updatePlaylist(data.playlists)
-    })
+    return topPlaylist({ cat: activeCategory.value, offset: playlists.value.length }).then(
+      (data) => {
+        playlistInfo.more = data.more
+        playlistInfo.total = data.total
+        playlistInfo.lasttime = 0
+        updatePlaylist(data.playlists)
+      }
+    )
   }
   if (exploreTab.value === 'newTrack') {
     show.value = false

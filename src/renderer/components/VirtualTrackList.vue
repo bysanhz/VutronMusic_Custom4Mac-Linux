@@ -484,7 +484,10 @@ const dislikeDailyRecommendation = async () => {
     return
   }
   try {
-    await dislikeRecommendSong(trackId)
+    const result = await dislikeRecommendSong(trackId)
+    if (!result || (result.code !== undefined && Number(result.code) !== 200)) {
+      throw new Error(result?.message || 'recommend dislike failed')
+    }
     removeTrack(rightClickedTrackIndex.value)
     trackListMenuRef.value?.closeMenu?.()
     showToast('已减少此类推荐')
@@ -502,7 +505,10 @@ const deleteFromCloudDisk = async () => {
   if (!confirm(`确定要从网易云云盘删除 ${trackName}？此操作会同步到网易云账号。`)) return
 
   try {
-    await deleteCloudSong(trackId)
+    const result = await deleteCloudSong(trackId)
+    if (!result || (result.code !== undefined && Number(result.code) !== 200)) {
+      throw new Error(result?.message || 'cloud delete failed')
+    }
     await dataStore.fetchCloudDisk()
     trackListMenuRef.value?.closeMenu?.()
     showToast('已从云盘删除')

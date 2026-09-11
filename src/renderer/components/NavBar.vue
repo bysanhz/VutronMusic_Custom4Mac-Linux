@@ -66,10 +66,7 @@
           @click="toExplore('artist')"
           >{{ $t('nav.artist') }}</div
         >
-        <div
-          class="item"
-          :class="{ active: exploreTab === 'style' }"
-          @click="toExplore('style')"
+        <div class="item" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')"
           >曲风</div
         >
         <div
@@ -248,11 +245,13 @@ nav.has-custom-titlebar {
   justify-content: center;
   align-items: center;
   .item {
-    padding: 8px 14px;
+    flex: none;
+    padding: 8px 10px;
     cursor: pointer;
-    margin: 0 10px;
+    margin: 0 5px;
     border-radius: 8px;
-    font-size: 18px;
+    white-space: nowrap;
+    font-size: 16px;
     font-weight: 600;
     -webkit-app-region: no-drag;
     &:hover {
