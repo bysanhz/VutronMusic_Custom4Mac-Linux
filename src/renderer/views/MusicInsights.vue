@@ -48,7 +48,10 @@
       </div>
 
       <div class="sub-tabs">
-        <button :class="{ active: footprintRankMode === 'week' }" @click="footprintRankMode = 'week'">
+        <button
+          :class="{ active: footprintRankMode === 'week' }"
+          @click="footprintRankMode = 'week'"
+        >
           本周常听
         </button>
         <button
@@ -73,7 +76,9 @@
       <div class="section-head">
         <div>
           <h2>曲风漫游 2.0</h2>
-          <p>{{ styleDescription || '基于网易云曲风标签和账号偏好，按歌曲、专辑、歌手、歌单继续探索。' }}</p>
+          <p>{{
+            styleDescription || '基于网易云曲风标签和账号偏好，按歌曲、专辑、歌手、歌单继续探索。'
+          }}</p>
         </div>
         <select v-model="styleSort" @change="loadStyleResources(true)">
           <option :value="0">综合 / 热门</option>
@@ -155,7 +160,11 @@
           <span>云盘歌曲</span>
           <select v-model="selectedCloudSongId">
             <option value="">请选择</option>
-            <option v-for="track in cloudTracks" :key="cloudSongId(track)" :value="cloudSongId(track)">
+            <option
+              v-for="track in cloudTracks"
+              :key="cloudSongId(track)"
+              :value="cloudSongId(track)"
+            >
               {{ cloudSongName(track) }} · {{ cloudSongId(track) }}
             </option>
           </select>
@@ -187,7 +196,11 @@
           <span>我的歌单</span>
           <select v-model="selectedPlaylistId">
             <option value="">请选择</option>
-            <option v-for="playlist in ownPlaylists" :key="playlist.id" :value="String(playlist.id)">
+            <option
+              v-for="playlist in ownPlaylists"
+              :key="playlist.id"
+              :value="String(playlist.id)"
+            >
               {{ playlist.name }} · {{ playlist.trackCount ?? 0 }} 首
             </option>
           </select>
@@ -196,7 +209,9 @@
       <div class="action-row">
         <button @click="loadFullPlaylist">完整加载歌曲</button>
         <button @click="pinPlaylistFirst">置顶当前歌单</button>
-        <button v-if="selectedPlaylist?.privacy === 10" @click="makePlaylistPublic">公开此歌单</button>
+        <button v-if="selectedPlaylist?.privacy === 10" @click="makePlaylistPublic"
+          >公开此歌单</button
+        >
       </div>
       <TrackList
         v-if="fullPlaylistTracks.length"
@@ -402,7 +417,8 @@ const loadFootprint = async () => {
 
   const todayTracks = extractTracks(today, 500)
   footprint.todayCount =
-    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ?? todayTracks.length
+    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??
+    todayTracks.length
   footprint.weekSeconds = normalizeDuration(
     extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   )
@@ -463,8 +479,9 @@ const loadStyleResources = async (reset = true) => {
 const selectStyle = async (id: number | string) => {
   activeStyleId.value = id
   const detail = await styleDetail(id)
-  styleDescription.value =
-    String(deepFindValue(detail, ['desc', 'description', 'tagDesc', 'intro']) ?? '')
+  styleDescription.value = String(
+    deepFindValue(detail, ['desc', 'description', 'tagDesc', 'intro']) ?? ''
+  )
   await loadStyleResources(true)
 }
 
@@ -476,7 +493,8 @@ const switchStyleResource = async (type: StyleResourceType) => {
 
 const cloudSongId = (track: any) =>
   String(track?.songId ?? track?.simpleSong?.id ?? track?.id ?? '')
-const cloudSongName = (track: any) => track?.simpleSong?.name ?? track?.songName ?? track?.name ?? '未知歌曲'
+const cloudSongName = (track: any) =>
+  track?.simpleSong?.name ?? track?.songName ?? track?.name ?? '未知歌曲'
 
 const matchCloudSong = async () => {
   const uid = user.value.userId
