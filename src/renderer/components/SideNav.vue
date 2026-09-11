@@ -22,6 +22,13 @@
       <svg-icon class="icon" icon-class="library" />
     </button-icon>
     <button-icon
+      :class="{ active: isCurrentRoute('/insights') }"
+      data-tip="音乐洞察"
+      @click="handleRoute('/insights')"
+    >
+      <svg-icon class="icon" icon-class="insights" />
+    </button-icon>
+    <button-icon
       v-if="enable"
       :class="{ active: isCurrentRoute('/stream') }"
       :data-tip="`${$t('nav.stream')}`"

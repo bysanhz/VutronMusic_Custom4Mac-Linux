@@ -1,6 +1,9 @@
 import { lyricLine } from '@/types/music'
 import request from '../utils/request'
 
+const isSuccessfulResponse = (result: any) =>
+  Boolean(result) && (result.code === undefined || Number(result.code) === 200)
+
 export function getLyric(id: number) {
   return request({
     url: '/lyric/new',
@@ -10,27 +13,61 @@ export function getLyric(id: number) {
 }
 
 /**
- * 喜欢音乐
- * 说明 : 调用此接口 , 传入音乐 id, 可喜欢该音乐
- * - id - 歌曲 id
- * - like - 默认为 true 即喜欢 , 若传 false, 则取消喜欢
- * @param {Object} params
- * @param {number} params.id
- * @param {boolean=} [params.like]
+ * 新版红心接口。
  */
-export function likeTrack(params: any) {
-  params.timestamp = new Date().getTime()
+export function likeTrackV1(params: { id: number; like?: boolean }) {
   return request({
-    url: '/like',
-    method: 'get',
-    params
+    url: '/like/v1',
+    method: 'post',
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
   })
 }
 
 /**
- * 获取歌曲详情
- * 说明 : 调用此接口 , 传入音乐 id(支持多个 id, 用 , 隔开), 可获得歌曲详情(注意:歌曲封面现在需要通过专辑内容接口获取)
- * @param {string} ids - 音乐 id, 例如 ids=405998841,33894312
+ * 批量校验歌曲红心状态，用于需要精确服务端状态时的局部同步。
+ */
+export function checkTrackLiked(ids: Array<number | string>) {
+  return request({
+    url: '/song/like/check',
+    method: 'get',
+    params: {
+      ids: ids.join(','),
+      timestamp: Date.now()
+    }
+  })
+}
+
+/**
+ * 喜欢/取消喜欢歌曲。
+ *
+ * 现有调用点无需改动：优先走 `/like/v1`，失败后自动回退旧 `/like`。
+ * 两个接口都失败时显式抛错，让上层保持原来的失败提示和本地状态。
+ */
+export async function likeTrack(params: { id: number; like?: boolean }) {
+  const modernResult = await likeTrackV1(params)
+  if (isSuccessfulResponse(modernResult)) {
+    const verified = await checkTrackLiked([params.id])
+    return { ...modernResult, likeCheck: verified }
+  }
+
+  const legacyResult = await request({
+    url: '/like',
+    method: 'get',
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
+  })
+  if (isSuccessfulResponse(legacyResult)) return legacyResult
+
+  throw new Error('like track failed')
+}
+
+/**
+ * 获取歌曲详情。
  */
 export function getTrackDetail(ids: string) {
   return request({
@@ -42,30 +79,52 @@ export function getTrackDetail(ids: string) {
   })
 }
 
+export type ScrobbleParams = {
+  id: number
+  sourceid: number | string
+  time?: number
+  total?: number
+  name?: string
+  artist?: string
+  bitrate?: number
+  level?: string
+  source?: string
+  vip?: boolean
+}
+
 /**
- * 听歌打卡
- * 说明 : 调用此接口 , 传入音乐 id, 来源 id，歌曲时间 time，更新听歌排行数据
- * - id - 歌曲 id
- * - sourceid - 歌单或专辑 id
- * - time - 歌曲播放时间,单位为秒
- * @param {Object} params
- * @param {number} params.id
- * @param {number} params.sourceid
- * @param {number=} params.time
+ * 听歌打卡。
+ *
+ * 优先使用 NCBL `/scrobble/v1`，让桌面客户端的播放记录更贴近网易云当前
+ * 客户端上报方式；若新版接口因 Cookie、服务端能力或风控失败，则无感回退到
+ * 传统 `/scrobble`，不影响现有播放流程。
  */
-export function scrobble(params) {
-  params.timestamp = new Date().getTime()
+export async function scrobble(params: ScrobbleParams) {
+  const modernResult = await request({
+    url: '/scrobble/v1',
+    method: 'post',
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
+  })
+
+  if (isSuccessfulResponse(modernResult)) return modernResult
+
   return request({
     url: '/scrobble',
     method: 'get',
-    params
+    params: {
+      id: params.id,
+      sourceid: params.sourceid,
+      time: params.time,
+      timestamp: Date.now()
+    }
   })
 }
 
 /**
- * 新歌速递
- * 说明 : 调用此接口 , 可获取新歌速递
- * @param {number} type - 地区类型 id, 对应以下: 全部:0 华语:7 欧美:96 日本:8 韩国:16
+ * 新歌速递。
  */
 export function topSong(type: number) {
   return request({
@@ -78,14 +137,7 @@ export function topSong(type: number) {
 }
 
 /**
- * 新碟上架
- * 说明 : 调用此接口 , 可获取新碟上架
- * @param {string} params.area - ALL: 全部,ZH: 华语,EA: 欧美, KR: 韩国, JP: 日本
- * @param {string=} params.type - new: 全部，hot：热门，默认为new
- * @param {number=} params.year - 年，默认本年
- * @param {number=} params.month -月，默认本月
- * @param {number} params.limit
- * @param {number} params.offset
+ * 新碟上架。
  */
 export function topAlbum(params: any) {
   return request({
