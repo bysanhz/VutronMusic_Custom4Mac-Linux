@@ -1,0 +1,272 @@
+name: One-time patch unified desktop lyric unlock
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/patch-osd-unlock-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Patch unified lock and unlock controls
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          osd_path = Path('src/renderer/views/OSDLyric.vue')
+          osd = osd_path.read_text()
+
+          old_unlock = '''    <!-- 普通模式锁定后的解锁按钮 -->
+              <div v-show="isLock && !isCompactMode" class="control-lock" tabindex="-1">
+                <button
+                  v-if="!isLinux"
+                  v-show="showButtonWhenLock"
+                  id="osd-lock"
+                  class="btn btn-lock"
+                  :style="lockStyle"
+                  tabindex="-1"
+                  @click="handleLock"
+                >
+                  <SvgIcon icon-class="lock" style="margin-right: 4px" tabindex="-1" />
+                  解锁
+                </button>
+              </div>
+
+          '''
+          old_unlock = old_unlock.replace('              ', '    ')
+          if old_unlock not in osd:
+              raise SystemExit('old normal-mode unlock block not found')
+          osd = osd.replace(old_unlock, '', 1)
+
+          old_bottom = '''    <div v-show="!isLock" class="osd-bottom-tools">
+              <div class="osd-drag-bar" title="拖动桌面歌词窗口" @mousedown="startCustomOsdDrag" />
+
+              <button
+                v-if="!isLinux"
+                type="button"
+                class="osd-lock-button"
+                :class="{ visible: hover }"
+                title="锁定桌面歌词"
+                aria-label="锁定桌面歌词"
+                @click.stop="handleLock"
+              >
+                <SvgIcon icon-class="lock" />
+              </button>
+            </div>'''
+          old_bottom = old_bottom.replace('              ', '    ')
+          new_bottom = '''    <div
+              v-show="!isLock || (!isLinux && showButtonWhenLock)"
+              class="osd-bottom-tools"
+              :class="{ 'is-locked': isLock }"
+            >
+              <div
+                class="osd-drag-bar"
+                :class="{ disabled: isLock }"
+                title="拖动桌面歌词窗口"
+                @mousedown="startCustomOsdDrag"
+              />
+
+              <button
+                v-if="!isLinux"
+                v-show="!isLock || showButtonWhenLock"
+                id="osd-lock"
+                type="button"
+                class="osd-lock-button"
+                :class="{ visible: hover }"
+                :title="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
+                :aria-label="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
+                @click.stop="handleLock"
+              >
+                <SvgIcon :icon-class="isLock ? 'unlock' : 'lock'" />
+              </button>
+            </div>'''
+          old_bottom = old_bottom.replace('              ', '    ')
+          new_bottom = new_bottom.replace('              ', '    ')
+          if old_bottom not in osd:
+              raise SystemExit('bottom lock block not found')
+          osd = osd.replace(old_bottom, new_bottom, 1)
+
+          old_refs = '''const { isLock, type, playedLrcColor, backgroundColor, showButtonWhenLock } =
+            storeToRefs(osdLyricStore)'''
+          new_refs = '''const { isLock, type, backgroundColor, showButtonWhenLock } = storeToRefs(osdLyricStore)'''
+          if old_refs not in osd:
+              raise SystemExit('store refs block not found')
+          osd = osd.replace(old_refs, new_refs, 1)
+
+          lock_style = re.compile(
+              r"\nconst lockStyle = computed\(\(\) => \{.*?\n\}\)\n",
+              re.S,
+          )
+          osd, count = lock_style.subn('\n', osd, count=1)
+          if count != 1:
+              raise SystemExit('lockStyle block not found exactly once')
+
+          old_guard = 'const startCustomOsdDrag = (event: MouseEvent) => {\n  if (event.button !== 0) return'
+          new_guard = 'const startCustomOsdDrag = (event: MouseEvent) => {\n  if (isLock.value || event.button !== 0) return'
+          if old_guard not in osd:
+              raise SystemExit('drag guard not found')
+          osd = osd.replace(old_guard, new_guard, 1)
+
+          obsolete_css = re.compile(
+              r"\n\.control-lock \{.*?\n\}\n\n\.btn \{.*?\n\}\n",
+              re.S,
+          )
+          osd, count = obsolete_css.subn('\n', osd, count=1)
+          if count != 1:
+              raise SystemExit('obsolete control-lock CSS not found exactly once')
+
+          drag_anchor = '''.osd-drag-bar {
+            position: relative;
+
+            width: clamp(112px, 24vw, 180px);
+            height: 26px;
+
+            background: transparent;
+
+            cursor: grab !important;
+            pointer-events: auto;
+
+            -webkit-app-region: no-drag;
+          }
+          '''
+          drag_anchor = drag_anchor.replace('          ', '')
+          drag_replacement = drag_anchor + '''
+.osd-drag-bar.disabled {
+  visibility: hidden;
+  pointer-events: none;
+  cursor: default !important;
+}
+'''
+          if drag_anchor not in osd:
+              raise SystemExit('drag CSS anchor not found')
+          osd = osd.replace(drag_anchor, drag_replacement, 1)
+
+          lock_comment_old = ''' * 低干扰锁定按钮。
+           *
+           * 默认仅保留位置，不接受点击；鼠标进入桌面歌词后渐显，
+           * 避免长期占据歌词视觉区域。点击区 24px，图标保持 13px。
+           */'''.replace('          ', '')
+          lock_comment_new = ''' * 低干扰锁定/解锁按钮。
+ *
+ * 未锁定时位于拖动条右侧；锁定后拖动条仅保留不可交互占位，
+ * 因而解锁按钮保持在同一位置。是否在锁定后出现由
+ * `showButtonWhenLock` 控制。点击区 24px，图标保持 13px。
+ */'''
+          if lock_comment_old not in osd:
+              raise SystemExit('lock button comment not found')
+          osd = osd.replace(lock_comment_old, lock_comment_new, 1)
+
+          osd_path.write_text(osd)
+
+          preload_path = Path('src/preload/osdWin.ts')
+          preload = preload_path.read_text()
+          old_restore = '''    root.style.opacity = '1'
+              if (lockEl) lockEl.style.opacity = '0' '''.replace('              ', '')
+          if old_restore not in preload:
+              raise SystemExit('preload lock opacity reset not found')
+          preload = preload.replace(old_restore, "    root.style.opacity = '1'", 1)
+
+          old_enter = '''  root.addEventListener('mouseenter', () => {
+              mouseInside = true
+              if (lockEl) lockEl.style.opacity = '1'
+              scheduleLockedAutoHide()
+            })'''.replace('              ', '  ')
+          new_enter = '''  root.addEventListener('mouseenter', () => {
+              mouseInside = true
+              scheduleLockedAutoHide()
+            })'''.replace('              ', '  ')
+          if old_enter not in preload:
+              raise SystemExit('preload root mouseenter block not found')
+          preload = preload.replace(old_enter, new_enter, 1)
+          preload_path.write_text(preload)
+
+          unlock_path = Path('src/renderer/assets/icons/unlock.svg')
+          if unlock_path.exists():
+              raise SystemExit('unlock.svg already exists unexpectedly')
+          unlock_path.write_text(
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+              '<path fill="currentColor" d="M8 10V7a4 4 0 0 1 7.87-1H14a2 2 0 0 0-4 0v4h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1Zm4 4a2 2 0 0 0-1 3.73V19h2v-1.27A2 2 0 0 0 12 14Z"/>'
+              '</svg>\n'
+          )
+
+          tests_path = Path('tests/feature-regression.spec.ts')
+          tests = tests_path.read_text()
+          pattern = re.compile(
+              r"  test\('uses one shared bottom lock action for normal and compact desktop lyrics', \(\) => \{.*?\n  \}\)\n\n",
+              re.S,
+          )
+          replacement = '''  test('uses one shared bottom lock and unlock action for normal and compact desktop lyrics', () => {
+            const osd = readSource('src/renderer/views/OSDLyric.vue')
+            const header = readSource('src/renderer/components/OsdHeader.vue')
+            const preload = readSource('src/preload/osdWin.ts')
+            const unlockIcon = readSource('src/renderer/assets/icons/unlock.svg')
+
+            expect(osd).toContain('class="osd-bottom-tools"')
+            expect(osd).toContain(":class=\"{ 'is-locked': isLock }\"")
+            expect(osd).toContain('v-show="!isLock || (!isLinux && showButtonWhenLock)"')
+            expect(osd).toContain('id="osd-lock"')
+            expect(osd).toContain(':class="{ disabled: isLock }"')
+            expect(osd).toContain("isLock ? '解锁桌面歌词' : '锁定桌面歌词'")
+            expect(osd).toContain(":icon-class=\"isLock ? 'unlock' : 'lock'\"")
+            expect(osd).toContain('@click.stop="handleLock"')
+            expect(osd).toContain('.osd-drag-bar.disabled')
+            expect(osd).toContain('visibility: hidden;')
+            expect(osd).not.toContain('class="control-lock"')
+            expect(osd).not.toContain('const lockStyle = computed')
+            expect(header).not.toContain('icon-class="lock"')
+            expect(header).not.toContain('lockLyrics')
+            expect(preload).toContain("lockEl?.addEventListener('mouseenter'")
+            expect(preload).not.toContain("lockEl.style.opacity = '1'")
+            expect(preload).not.toContain("lockEl.style.opacity = '0'")
+            expect(unlockIcon).toContain('viewBox="0 0 24 24"')
+          })
+
+          '''
+          replacement = replacement.replace('          ', '')
+          tests, count = pattern.subn(replacement, tests, count=1)
+          if count != 1:
+              raise SystemExit('bottom lock regression test not found exactly once')
+          tests_path.write_text(tests)
+          PY
+
+      - name: Install dependencies
+        env:
+          SKIP_REBUILD: true
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Format changed files
+        run: >-
+          yarn prettier
+          src/renderer/views/OSDLyric.vue
+          src/preload/osdWin.ts
+          src/renderer/assets/icons/unlock.svg
+          tests/feature-regression.spec.ts
+          --write
+
+      - name: Commit patch and cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/renderer/views/OSDLyric.vue src/preload/osdWin.ts src/renderer/assets/icons/unlock.svg tests/feature-regression.spec.ts
+          git rm .github/workflows/patch-osd-unlock-once.yml
+          git commit -m "feat: unify desktop lyric lock and unlock controls"
+          git push origin HEAD:main
