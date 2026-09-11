@@ -56,6 +56,14 @@ export function historyRecommendSongs() {
   })
 }
 
+export function historyRecommendSongsDetail(date: string) {
+  return request({
+    url: '/history/recommend/songs/detail',
+    method: 'get',
+    params: { date, timestamp: Date.now() }
+  })
+}
+
 export function dislikeRecommendSong(id: number) {
   return request({
     url: '/recommend/songs/dislike',
