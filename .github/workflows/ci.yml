@@ -33,6 +33,11 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
+      - name: Format insights patch and print diff
+        run: |
+          yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
+          git diff -- src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts
+
       - name: Check formatting
         run: yarn run format:check
 
@@ -44,8 +49,7 @@ jobs:
 
       - name: Run security and feature regression tests
         run: >-
-          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
-
+          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/music-insights-stability.spec.ts
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
