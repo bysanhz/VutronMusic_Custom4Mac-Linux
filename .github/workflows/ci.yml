@@ -32,8 +32,19 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Format insights patch
-        run: yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
+      - name: Normalize insights patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/renderer/views/MusicInsightsStable.vue')
+          text = path.read_text()
+          text = text.replace(
+              'const safeRequest = async <T>(request: Promise<T>, label: string): Promise<T | undefined> => {',
+              'const safeRequest = async <T>(request: Promise<T> | T, label: string): Promise<T | undefined> => {'
+          )
+          path.write_text(text)
+          PY
+          yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
 
       - name: Lint source
         run: yarn lint
@@ -47,7 +58,7 @@ jobs:
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
 
-      - name: Persist formatter output
+      - name: Persist normalized source
         run: |
           if git diff --quiet -- src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts; then
             exit 0
@@ -55,5 +66,5 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts
-          git commit -m "style: format music insights stability fix"
+          git commit -m "fix: normalize stable insights implementation"
           git push origin HEAD:${{ github.head_ref }}
