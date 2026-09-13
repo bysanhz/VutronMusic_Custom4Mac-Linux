@@ -35,7 +35,7 @@ const routes = [
   {
     path: '/insights',
     name: 'musicInsights',
-    component: () => import('../views/MusicInsights.vue'),
+    component: () => import('../views/MusicInsightsStable.vue'),
     meta: {
       requireLogin: true,
       keepAlive: true
