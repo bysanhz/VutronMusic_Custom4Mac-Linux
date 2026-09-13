@@ -12,7 +12,9 @@ test.describe('music insights rendering stability', () => {
 
     expect(router).toContain("import('../views/MusicInsightsStable.vue')")
     expect(view).toContain("import InsightsTrackList from '../components/InsightsTrackList.vue'")
-    expect(view).toContain("import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'")
+    expect(view).toContain(
+      "import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'"
+    )
     expect(view).not.toContain('VirtualTrackList')
     expect(view).not.toContain('VirtualCoverRow')
     expect(view).not.toContain('clearStyleResources')

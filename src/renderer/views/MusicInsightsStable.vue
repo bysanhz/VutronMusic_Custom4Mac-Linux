@@ -50,10 +50,16 @@
       </div>
 
       <div class="sub-tabs">
-        <button :class="{ active: footprintRankMode === 'week' }" @click="footprintRankMode = 'week'">
+        <button
+          :class="{ active: footprintRankMode === 'week' }"
+          @click="footprintRankMode = 'week'"
+        >
           本周常听
         </button>
-        <button :class="{ active: footprintRankMode === 'month' }" @click="footprintRankMode = 'month'">
+        <button
+          :class="{ active: footprintRankMode === 'month' }"
+          @click="footprintRankMode = 'month'"
+        >
           本月常听
         </button>
       </div>
@@ -76,7 +82,9 @@
       <div class="section-head">
         <div>
           <h2>曲风漫游 2.0</h2>
-          <p>{{ styleDescription || '基于网易云曲风标签与账号偏好，继续探索歌曲、专辑、歌手和歌单。' }}</p>
+          <p>{{
+            styleDescription || '基于网易云曲风标签与账号偏好，继续探索歌曲、专辑、歌手和歌单。'
+          }}</p>
         </div>
         <select v-model="styleSort" :disabled="styleLoading" @change="loadStyleResources(true)">
           <option :value="0">综合 / 热门</option>
@@ -160,7 +168,11 @@
           <span>云盘歌曲</span>
           <select v-model="selectedCloudSongId">
             <option value="">请选择</option>
-            <option v-for="track in cloudTracks" :key="cloudSongId(track)" :value="cloudSongId(track)">
+            <option
+              v-for="track in cloudTracks"
+              :key="cloudSongId(track)"
+              :value="cloudSongId(track)"
+            >
               {{ cloudSongName(track) }} · {{ cloudSongId(track) }}
             </option>
           </select>
@@ -192,7 +204,11 @@
           <span>我的歌单</span>
           <select v-model="selectedPlaylistId">
             <option value="">请选择</option>
-            <option v-for="playlist in ownPlaylists" :key="playlist.id" :value="String(playlist.id)">
+            <option
+              v-for="playlist in ownPlaylists"
+              :key="playlist.id"
+              :value="String(playlist.id)"
+            >
               {{ playlist.name }} · {{ playlist.trackCount ?? 0 }} 首
             </option>
           </select>
@@ -201,7 +217,9 @@
       <div class="action-row">
         <button @click="loadFullPlaylist">完整加载歌曲</button>
         <button @click="pinPlaylistFirst">置顶当前歌单</button>
-        <button v-show="selectedPlaylist?.privacy === 10" @click="makePlaylistPublic">公开此歌单</button>
+        <button v-show="selectedPlaylist?.privacy === 10" @click="makePlaylistPublic"
+          >公开此歌单</button
+        >
       </div>
 
       <InsightsTrackList
@@ -239,7 +257,12 @@
           <strong class="summary-text">{{ songInsight.summary || '暂无' }}</strong>
         </div>
       </div>
-      <img v-show="songInsight.cover" :src="songInsight.cover" class="dynamic-cover" alt="动态封面" />
+      <img
+        v-show="songInsight.cover"
+        :src="songInsight.cover"
+        class="dynamic-cover"
+        alt="动态封面"
+      />
 
       <h3>相似歌曲</h3>
       <InsightsTrackList :items="similarTracks" empty-text="暂时没有相似歌曲。" />
@@ -378,7 +401,7 @@ const normalizeDuration = (value?: number): number | undefined => {
   return number > 315_360_000 ? number / 1000 : number
 }
 
-const safeRequest = async <T>(request: Promise<T>, label: string): Promise<T | undefined> => {
+const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<T | undefined> => {
   try {
     return await request
   } catch (error) {
@@ -399,7 +422,8 @@ const loadFootprint = async (): Promise<void> => {
 
   const todayTracks = extractTracks(today, 500)
   footprint.todayCount =
-    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ?? todayTracks.length
+    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??
+    todayTracks.length
   footprint.weekSeconds = normalizeDuration(
     extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   )
