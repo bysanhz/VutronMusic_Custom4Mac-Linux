@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -21,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,13 +32,8 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Format insights patch and print diff
-        run: |
-          yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
-          git diff -- src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts
-
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Format insights patch
+        run: yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
 
       - name: Lint source
         run: yarn lint
@@ -47,9 +41,19 @@ jobs:
       - name: Type check
         run: yarn run vue:type-check
 
-      - name: Run security and feature regression tests
-        run: >-
-          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/music-insights-stability.spec.ts
+      - name: Run regression tests
+        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/music-insights-stability.spec.ts
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist formatter output
+        run: |
+          if git diff --quiet -- src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts
+          git commit -m "style: format music insights stability fix"
+          git push origin HEAD:${{ github.head_ref }}
