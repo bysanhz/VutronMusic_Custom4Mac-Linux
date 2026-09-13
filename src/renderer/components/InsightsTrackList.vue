@@ -15,7 +15,11 @@
         </div>
       </div>
       <div class="track-duration">{{ trackDuration(track) }}</div>
-      <button class="play-button" :aria-label="`播放 ${track?.name || '歌曲'}`" @click="playTrack(track)">
+      <button
+        class="play-button"
+        :aria-label="`播放 ${track?.name || '歌曲'}`"
+        @click="playTrack(track)"
+      >
         <span aria-hidden="true">▶</span>
       </button>
     </div>
@@ -60,7 +64,12 @@ const trackCover = (track: any): string => {
 const trackArtists = (track: any): string => {
   const artists = track?.ar ?? track?.artists ?? track?.simpleSong?.ar ?? []
   if (!Array.isArray(artists) || !artists.length) return '未知歌手'
-  return artists.map((artist: any) => artist?.name).filter(Boolean).join(' / ') || '未知歌手'
+  return (
+    artists
+      .map((artist: any) => artist?.name)
+      .filter(Boolean)
+      .join(' / ') || '未知歌手'
+  )
 }
 
 const trackAlbum = (track: any): string =>
@@ -152,7 +161,9 @@ const playTrack = (track: any): void => {
   color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-body-bg));
   cursor: pointer;
-  transition: transform 0.16s ease, background 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease;
 
   &:hover {
     transform: scale(1.06);
