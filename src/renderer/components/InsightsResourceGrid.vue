@@ -83,7 +83,9 @@ const resourceSubtitle = (item: any): string => {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.2s ease, filter 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      filter 0.2s ease;
   }
 }
 
@@ -100,7 +102,9 @@ const resourceSubtitle = (item: any): string => {
   background: rgba(0, 0, 0, 0.58);
   opacity: 0;
   transform: translateY(4px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .resource-card:hover {
