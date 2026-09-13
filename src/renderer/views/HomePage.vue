@@ -1,7 +1,17 @@
 <template>
   <div v-show="show">
-    <div v-if="general.showBanner && banner.length" ref="bannerRef" class="banner">
-      <div v-for="item in banner" :key="item.id ?? item.targetId" class="banner-item">
+    <div v-if="general.showBanner && banner.length" class="banner">
+      <div
+        v-for="(item, index) in banner"
+        :key="item.id ?? item.targetId"
+        class="banner-item"
+        :class="{
+          left: index === left,
+          center: index === current,
+          right: index === right
+        }"
+        @click="index === current && handleBannerClick(item)"
+      >
         <img :src="imgFilter(item.imageUrl ?? item.pic)" alt="" />
         <div class="subtitle" :style="{ backgroundColor: item.titleColor || 'red' }">{{
           item.typeTitle
@@ -109,9 +119,9 @@ const { addTrackToPlayNext } = usePlayerStore()
 const router = useRouter()
 
 const banner = ref<any[]>([])
-const bannerRef = ref<HTMLElement>()
 const left = ref(-1)
 const current = ref(0)
+const right = ref(-1)
 const timer = ref<any>(null)
 const show = ref(false)
 const loadRevision = ref(0)
@@ -135,32 +145,22 @@ const toExplore = (tab: string, Category = '全部') => {
 }
 
 const bannerChange = () => {
-  if (!bannerRef.value || bannerRef.value.children.length === 0) return
-  const length = bannerRef.value.children.length
+  const length = banner.value.length
+  if (!length) {
+    left.value = -1
+    right.value = -1
+    return
+  }
+
   current.value = current.value % length
   left.value = (current.value - 1 + length) % length
-  const right = (current.value + 1) % length
-
-  Array.from(bannerRef.value.children).forEach((item) => {
-    item.className = 'banner-item'
-  })
-  bannerRef.value.children[left.value].className = 'banner-item left'
-  bannerRef.value.children[current.value].className = 'banner-item center'
-  bannerRef.value.children[current.value].addEventListener('click', () => {
-    handleBannerClick(banner.value[current.value])
-  })
-  bannerRef.value.children[right].className = 'banner-item right'
+  right.value = (current.value + 1) % length
 }
 
 const bannerNext = () => {
-  if (!banner.value.length || !bannerRef.value?.children.length) return
+  if (!banner.value.length) return
   current.value = (current.value + 1) % banner.value.length
   bannerChange()
-  setTimeout(() => {
-    if (!bannerRef.value || left.value < 0 || !bannerRef.value.children[left.value]) return
-    const newNode = bannerRef.value.children[left.value].cloneNode(true)
-    bannerRef.value.children[left.value].replaceWith(newNode)
-  }, 800)
 }
 
 const handleBannerClick = (item: any) => {
@@ -231,7 +231,7 @@ const loadData = async () => {
         if (revision !== loadRevision.value) return
         banner.value = (res?.banners ?? []).filter((item: any) => item.typeTitle !== '广告')
         current.value = 0
-        setTimeout(bannerChange)
+        bannerChange()
         handleBanner()
       })
     )
@@ -315,6 +315,7 @@ onBeforeUnmount(() => {
     overflow: hidden;
     z-index: 0;
     transition: all 0.45s ease-in-out;
+    pointer-events: none;
     img {
       width: 100%;
       border-radius: 8px;
@@ -334,6 +335,7 @@ onBeforeUnmount(() => {
   }
   .banner-item.center {
     cursor: pointer;
+    pointer-events: auto;
     transform: scale(1.2);
     z-index: 2;
   }
