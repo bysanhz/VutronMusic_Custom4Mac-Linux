@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -18,10 +21,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -32,19 +33,8 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Normalize insights patch
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('src/renderer/views/MusicInsightsStable.vue')
-          text = path.read_text()
-          text = text.replace(
-              'const safeRequest = async <T>(request: Promise<T>, label: string): Promise<T | undefined> => {',
-              'const safeRequest = async <T>(request: Promise<T> | T, label: string): Promise<T | undefined> => {'
-          )
-          path.write_text(text)
-          PY
-          yarn prettier src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts --write
+      - name: Check formatting
+        run: yarn run format:check
 
       - name: Lint source
         run: yarn lint
@@ -52,19 +42,10 @@ jobs:
       - name: Type check
         run: yarn run vue:type-check
 
-      - name: Run regression tests
-        run: yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/music-insights-stability.spec.ts
+      - name: Run security and feature regression tests
+        run: >-
+          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist normalized source
-        run: |
-          if git diff --quiet -- src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/renderer/components/InsightsResourceGrid.vue src/renderer/components/InsightsTrackList.vue src/renderer/views/MusicInsightsStable.vue tests/music-insights-stability.spec.ts
-          git commit -m "fix: normalize stable insights implementation"
-          git push origin HEAD:${{ github.head_ref }}
