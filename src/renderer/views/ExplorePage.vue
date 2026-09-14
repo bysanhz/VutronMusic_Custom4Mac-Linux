@@ -313,6 +313,7 @@ const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
 const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
+const loadingMore = ref(false)
 
 const subText = computed(() => {
   if (activeCategory.value === '排行榜') return 'updateFrequency'
@@ -352,7 +353,16 @@ const getTrack = (items: any[] = []) => items.map((track) => [track.first, track
 
 const updatePlaylist = (playlistList: any[] = []) => {
   tracks.value = []
-  playlists.value.push(...playlistList)
+  const existingIds = new Set(
+    playlists.value.map((item) => (item?.id == null ? '' : String(item.id))).filter(Boolean)
+  )
+  for (const item of playlistList) {
+    const id = item?.id == null ? '' : String(item.id)
+    if (!id || !existingIds.has(id)) {
+      playlists.value.push(item)
+      if (id) existingIds.add(id)
+    }
+  }
   tricklingProgress.done()
   show.value = true
 }
@@ -367,8 +377,29 @@ const getHighQualityPlaylist = () => {
   })
 }
 
-const loadMore = () => {
-  if (!['推荐歌单', '排行榜'].includes(activeCategory.value)) void getPlaylist()
+const canLoadMore = () => {
+  if (exploreTab.value === 'playlist') {
+    return !['推荐歌单', '排行榜'].includes(activeCategory.value) && playlistInfo.more
+  }
+  if (exploreTab.value === 'artist') return artistInfo.more
+  if (exploreTab.value === 'newAlbum') {
+    if (albumType.value !== '全部') return false
+    const { albums, total } = newAlbumInfo.newAlbums
+    return total <= 0 || albums.length < total
+  }
+  return false
+}
+
+const loadMore = async () => {
+  if (loadingMore.value || !canLoadMore()) return
+  loadingMore.value = true
+  try {
+    await getPlaylist()
+  } catch (error) {
+    console.warn('[Explore] 加载下一页失败:', error)
+  } finally {
+    loadingMore.value = false
+  }
 }
 
 const getTopLists = () => {
@@ -442,7 +473,7 @@ const getArtists = () => {
   }
   return getArtistList(params).then((data) => {
     updatePlaylist(data.artists)
-    artistInfo.more = data.more
+    artistInfo.more = Boolean(data.more) && Boolean(data.artists?.length)
   })
 }
 
@@ -603,14 +634,16 @@ const getPlaylist = () => {
       })
     }
     if (activeCategory.value === '精品歌单') return getHighQualityPlaylist()
-    return topPlaylist({ cat: activeCategory.value, offset: playlists.value.length }).then(
-      (data) => {
-        playlistInfo.more = data.more
-        playlistInfo.total = data.total
-        playlistInfo.lasttime = 0
-        updatePlaylist(data.playlists)
-      }
-    )
+    return topPlaylist({
+      cat: activeCategory.value,
+      limit: 50,
+      offset: playlists.value.length
+    }).then((data) => {
+      playlistInfo.more = Boolean(data.more) && Boolean(data.playlists?.length)
+      playlistInfo.total = data.total
+      playlistInfo.lasttime = 0
+      updatePlaylist(data.playlists)
+    })
   }
   if (exploreTab.value === 'newTrack') {
     show.value = false
@@ -631,6 +664,7 @@ const resetViewData = () => {
   playlistInfo.more = true
   playlistInfo.lasttime = 0
   artistInfo.more = true
+  loadingMore.value = false
 }
 
 const syncRoute = (target = route) => {
