@@ -350,7 +350,7 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .compact-cover-controls {
   position: relative;
-  width: 45px;
+  width: 35px;
   height: 35px;
   flex-shrink: 0;
   overflow: hidden;

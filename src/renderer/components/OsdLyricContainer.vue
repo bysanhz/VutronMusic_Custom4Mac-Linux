@@ -6,7 +6,8 @@
       lineMode,
       mini: type === 'small',
       'one-line': type === 'small' && mode === 'oneLine',
-      'two-line': type === 'small' && mode === 'twoLines'
+      'two-line': type === 'small' && mode === 'twoLines',
+      'fallback-track-title': isFallbackTrackTitle
     }"
     :style="containerStyle"
   >
@@ -66,6 +67,32 @@ const seek = ref(0)
 const lyricOffset = ref(0)
 const isMini = computed(() => type.value === 'small')
 const playbackRate = ref(1.0)
+const isFallbackTrackTitle = ref(false)
+
+/**
+ * Pure-instrumental tracks can legitimately have no lyric payload. In that case we
+ * render one informational line using the user's configured unplayed-lyric color
+ * instead of treating the title as a played lyric or falling back to a legacy green.
+ */
+const applyFallbackTrackTitle = (player: Record<string, any>) => {
+  const track = player.currentTrack
+  if (!track) {
+    isFallbackTrackTitle.value = false
+    return
+  }
+  const artists = track.artists ?? track.ar ?? []
+  lyrics.value = [
+    {
+      start: 0,
+      end: 0,
+      lyric: {
+        text: `${artists[0]?.name || '未知歌手'} - ${track.name || '听你想听的音乐'}`
+      }
+    }
+  ]
+  currentIndex.value = 0
+  isFallbackTrackTitle.value = true
+}
 
 const containerStyle = computed(() => {
   const result: Record<string, any> = {}
@@ -323,7 +350,18 @@ window.addEventListener('message', (event: MessageEvent) => {
   const data = event.data.data as Partial<statusMap>
 
   if (data.lyrics !== undefined) {
-    lyrics.value = data.lyrics
+    if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
+      lyrics.value = data.lyrics
+      isFallbackTrackTitle.value = false
+    } else {
+      let player: Record<string, any> = {}
+      try {
+        player = JSON.parse(localStorage.getItem('player') || '{}')
+      } catch {
+        player = {}
+      }
+      applyFallbackTrackTitle(player)
+    }
   }
 
   if (data.playing !== undefined) {
@@ -382,14 +420,9 @@ onMounted(async () => {
   }
 
   if (!lyrics.value.length && player.currentTrack) {
-    const artists = player.currentTrack.artists ?? player.currentTrack.ar ?? []
-    lyrics.value[0] = {
-      start: 0,
-      end: 0,
-      lyric: {
-        text: `${artists[0]?.name || '未知歌手'} - ${player.currentTrack.name || '听你想听的音乐'}`
-      }
-    }
+    applyFallbackTrackTitle(player)
+  } else {
+    isFallbackTrackTitle.value = false
   }
 
   scheduleAnimation()
@@ -501,6 +534,16 @@ onBeforeUnmount(() => {
         background-position: 100% 0% !important;
       }
     }
+  }
+}
+
+.container.fallback-track-title {
+  :deep(.lyric-line span) {
+    background: none !important;
+    background-image: none !important;
+    color: v-bind('`${unplayLrcColor}`') !important;
+    -webkit-text-fill-color: v-bind('`${unplayLrcColor}`') !important;
+    text-shadow: 0 0 2px v-bind('textShadow');
   }
 }
 

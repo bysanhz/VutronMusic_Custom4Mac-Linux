@@ -413,7 +413,7 @@ const onScrollToBottom = () => {
     listHeight: listHeight.value
   })
 
-  const loadMoreThreshold = Math.min(96, Math.max(24, containerHeight * 0.12))
+  const loadMoreThreshold = Math.min(720, Math.max(320, containerHeight * 0.8))
   if (scrollTop + containerHeight >= contentHeight - loadMoreThreshold) {
     void requestLoadMore()
   }
@@ -510,7 +510,7 @@ const observeLoadMoreSentinel = () => {
     },
     {
       root: element,
-      rootMargin: '0px 0px 180px 0px',
+      rootMargin: '0px 0px 640px 0px',
       threshold: 0
     }
   )

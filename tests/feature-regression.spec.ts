@@ -1605,3 +1605,26 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(transferPreview).not.toContain("playedLrcColor: '#37cf88'")
   })
 })
+
+test.describe('OSD fallback palette and nested scroll ergonomics', () => {
+  test('uses configured lyric color for no-lyric track-title fallback', () => {
+    const source = readSource('src/renderer/components/OsdLyricContainer.vue')
+    expect(source).toContain("'fallback-track-title': isFallbackTrackTitle")
+    expect(source).toContain("color: v-bind('`${unplayLrcColor}`') !important")
+    expect(source).toContain('applyFallbackTrackTitle(player)')
+  })
+
+  test('keeps compact cover narrow and restores native nested wheel scrolling', () => {
+    const osd = readSource('src/renderer/views/OSDLyric.vue')
+    const cover = readSource('src/renderer/components/CompactCoverControls.vue')
+    const interaction = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+
+    expect(osd).toContain('    35px\n    minmax(0, 1fr)')
+    expect(cover).toContain('width: 35px;')
+    expect(interaction).toContain("scroller.style.overflowY = 'auto'")
+    expect(interaction).toContain('native scrolling is much faster and smoother')
+    expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')
+    expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")
+  })
+})
