@@ -714,7 +714,7 @@ onMounted(() => {
 .insights-page {
   max-width: 1380px;
   margin: 0 auto;
-  padding: 10px 0 60px;
+  padding: 4px 0 92px;
 }
 
 .hero,
@@ -726,7 +726,7 @@ onMounted(() => {
 }
 
 .hero {
-  padding: 28px 32px;
+  padding: 24px 28px;
   border-radius: 18px;
   background: var(--color-secondary-bg);
 
@@ -776,7 +776,7 @@ button:disabled {
 .tabs {
   display: flex;
   gap: 8px;
-  margin: 24px 0;
+  margin: 18px 0;
   flex-wrap: wrap;
 
   button {
@@ -793,7 +793,7 @@ button:disabled {
 }
 
 .panel {
-  padding: 26px 28px;
+  padding: 24px 26px 30px;
   border-radius: 18px;
   background: var(--color-secondary-bg);
 
@@ -815,8 +815,8 @@ button:disabled {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin: 24px 0;
+  gap: 12px;
+  margin: 20px 0 18px;
 }
 
 .metric-grid.compact {
@@ -824,29 +824,42 @@ button:disabled {
 }
 
 .metric-card {
-  min-height: 105px;
-  padding: 17px;
+  min-height: 128px;
+  padding: 18px 20px;
   border-radius: 14px;
   background: var(--color-body-bg);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: grid;
+  grid-template-rows: auto minmax(48px, 1fr) 20px;
+  align-items: end;
+  box-sizing: border-box;
+  min-width: 0;
 
   span {
+    align-self: start;
     font-size: 12px;
     opacity: 0.58;
   }
 
   strong {
-    font-size: 25px;
+    align-self: end;
+    font-size: clamp(21px, 2vw, 25px);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
   }
 
   small {
-    margin-top: 6px;
+    align-self: end;
+    margin-top: 0;
     font-size: 12px;
     font-weight: 650;
+    line-height: 20px;
     opacity: 0.58;
   }
+}
+
+.metric-grid:not(.compact) .metric-card:nth-child(4) strong {
+  white-space: nowrap;
+  font-size: clamp(19px, 1.8vw, 24px);
 }
 
 .metric-card.wide strong,
@@ -862,7 +875,7 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin: 18px 0;
+  margin: 14px 0;
 }
 
 .sub-tabs button,

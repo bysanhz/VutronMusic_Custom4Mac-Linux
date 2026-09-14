@@ -113,7 +113,7 @@ const handleEventBus = () => {
   })
 }
 
-const padding = ref(96)
+const padding = ref(120)
 const userSelectNone = ref(false)
 const settingsStore = useSettingsStore()
 const { theme, localMusic, general } = storeToRefs(settingsStore)
