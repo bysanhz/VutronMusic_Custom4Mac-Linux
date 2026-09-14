@@ -98,6 +98,16 @@ const scrollToIndex = ref(0)
 const instanceId = ref('')
 const { list, itemSize } = toRefs(props)
 
+/**
+ * Vue can briefly clear template refs while v-show/v-if/route transitions settle.
+ * IntersectionObserver requires a real Element and throws synchronously for null refs,
+ * so every observer lifecycle path resolves the element defensively.
+ */
+const getListElement = (): HTMLElement | null => {
+  const element = listRef.value
+  return element instanceof HTMLElement ? element : null
+}
+
 const normalState = useNormalStateStore()
 const { enableScrolling, virtualScrolling } = storeToRefs(normalState)
 const { registerInstance, unregisterInstance, updateScroll } = normalState
@@ -460,12 +470,14 @@ const unbindParentScrollListener = () => {
  */
 const observer = new IntersectionObserver(
   (entries) => {
+    const element = getListElement()
+    if (!element) return
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        listRef.value.style.overflowY = 'scroll'
+        element.style.overflowY = 'scroll'
         styleBefore.value = 'scroll'
       } else {
-        listRef.value.style.overflowY = 'hidden'
+        element.style.overflowY = 'hidden'
         styleBefore.value = 'hidden'
       }
     })
@@ -486,7 +498,9 @@ let loadMoreObserver: IntersectionObserver | null = null
  */
 const observeLoadMoreSentinel = () => {
   loadMoreObserver?.disconnect()
-  if (!listRef.value || !loadMoreSentinelRef.value) return
+  const element = getListElement()
+  const sentinel = loadMoreSentinelRef.value
+  if (!element || !(sentinel instanceof Element)) return
 
   loadMoreObserver = new IntersectionObserver(
     (entries) => {
@@ -495,12 +509,12 @@ const observeLoadMoreSentinel = () => {
       }
     },
     {
-      root: listRef.value,
+      root: element,
       rootMargin: '0px 0px 180px 0px',
       threshold: 0
     }
   )
-  loadMoreObserver.observe(loadMoreSentinelRef.value)
+  loadMoreObserver.observe(sentinel)
 }
 
 const updateWindowHeight = () => {
@@ -508,10 +522,12 @@ const updateWindowHeight = () => {
 }
 
 watch(enableScrolling, (value) => {
+  const element = getListElement()
+  if (!element) return
   if (value) {
-    listRef.value.style.overflowY = styleBefore.value
+    element.style.overflowY = styleBefore.value
   } else {
-    listRef.value.style.overflowY = 'hidden'
+    element.style.overflowY = 'hidden'
   }
 })
 
@@ -562,7 +578,8 @@ eventBus.on('update-done', startEvent)
 
 onActivated(() => {
   nextTick(() => {
-    observer.observe(listRef.value)
+    const element = getListElement()
+    if (element) observer.observe(element)
     observeLoadMoreSentinel()
     bindParentScrollListener()
     setTimeout(() => {
@@ -576,7 +593,8 @@ onDeactivated(() => {
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
-  observer.unobserve(listRef.value)
+  const element = getListElement()
+  if (element) observer.unobserve(element)
   virtualScrolling.value = false
 })
 
@@ -586,7 +604,8 @@ onMounted(() => {
   registerInstance(instanceId.value)
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
-    observer.observe(listRef.value)
+    const element = getListElement()
+    if (element) observer.observe(element)
     observeLoadMoreSentinel()
     bindParentScrollListener()
     setTimeout(() => {
@@ -606,7 +625,8 @@ onBeforeUnmount(() => {
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
   window.removeEventListener('resize', updateWindowHeight)
-  observer.unobserve(listRef.value)
+  const element = getListElement()
+  if (element) observer.unobserve(element)
   virtualScrolling.value = false
   eventBus.off('update-start', startEvent)
   // @ts-ignore

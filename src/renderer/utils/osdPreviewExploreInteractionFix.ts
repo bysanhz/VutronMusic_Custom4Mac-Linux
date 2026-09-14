@@ -165,25 +165,11 @@ const readCurrentSettings = (): PresetSettings =>
     coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
   })
 
-const sameVisualSettings = (left: PresetSettings, right: PresetSettings): boolean =>
-  left.type === right.type &&
-  left.mode === right.mode &&
-  left.backgroundColor === right.backgroundColor &&
-  left.playedLrcColor === right.playedLrcColor &&
-  left.unplayLrcColor === right.unplayLrcColor &&
-  left.textShadow === right.textShadow &&
-  left.font === right.font &&
-  left.align === right.align &&
-  left.coverControlsVisible === right.coverControlsVisible
-
 const resolvePreviewSettings = (select: HTMLSelectElement | null): PresetSettings => {
-  const current = readCurrentSettings()
   const selected = resolveSelectedPreset(select?.value || '')
-
-  // A modified live OSD must win over the selected saved preset. This is the exact
-  // case that previously made the real lyric colors change while the preview stayed stale.
-  if (!selected || !sameVisualSettings(current, selected)) return current
-  return selected
+  // The preview describes the item highlighted in the preset selector. Applying a preset
+  // changes the live OSD separately; merely choosing another option must still preview it.
+  return selected ?? readCurrentSettings()
 }
 
 const resolveCurrentCoverUrl = (): string => {
@@ -264,6 +250,25 @@ const injectFixStyle = (): void => {
       font-weight: 600 !important;
     }
 
+    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) {
+      min-height: 68px !important;
+      padding: 6px 10px !important;
+    }
+
+    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics {
+      height: 56px !important;
+      padding: 0 8px !important;
+    }
+
+    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics strong {
+      font-size: 20px !important;
+    }
+
+    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics small {
+      margin-top: 4px !important;
+      font-size: 14px !important;
+    }
+
     .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.single-line {
       min-height: 44px !important;
     }
@@ -329,7 +334,9 @@ const isMainAtBottom = (main: HTMLElement): boolean =>
 
 const findExploreVirtualScroller = (target: EventTarget | null): HTMLElement | null => {
   if (!(target instanceof Element)) return null
-  return target.closest('.explore-page .infinite-list-container') as HTMLElement | null
+  return target.closest(
+    '.explore-page .infinite-list-container, .library .infinite-list-container'
+  ) as HTMLElement | null
 }
 
 const dispatchVirtualScrollCheck = (scroller: HTMLElement): void => {
@@ -385,11 +392,20 @@ const handleCapturedScroll = (event: Event): void => {
   lastMainBottomCheck = now
 
   const scrollers = [
-    ...document.querySelectorAll<HTMLElement>('.explore-page .infinite-list-container')
+    ...document.querySelectorAll<HTMLElement>(
+      '.explore-page .infinite-list-container, .library .infinite-list-container'
+    )
   ]
+  const visibleBottom = window.innerHeight - 64
   const activeScroller = scrollers.find((element) => {
     const rect = element.getBoundingClientRect()
-    return rect.width > 0 && rect.height > 0
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.bottom > 0 &&
+      rect.top < visibleBottom &&
+      window.getComputedStyle(element).display !== 'none'
+    )
   })
   if (activeScroller) dispatchVirtualScrollCheck(activeScroller)
 }
