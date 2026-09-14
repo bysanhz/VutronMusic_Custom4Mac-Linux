@@ -487,10 +487,10 @@ onBeforeUnmount(() => {
   display: grid;
 
   grid-template-columns:
-    50px
+    45px
     minmax(0, 1fr);
 
-  column-gap: 1px;
+  column-gap: 2px;
   align-items: center;
 
   width: 100%;
@@ -501,7 +501,7 @@ onBeforeUnmount(() => {
 .compact-left-panel {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 
   min-width: 0;
   height: 100%;
@@ -523,6 +523,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-width: 0;
+  padding-left: 0;
 
   overflow: hidden;
 }

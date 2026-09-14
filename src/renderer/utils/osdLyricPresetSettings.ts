@@ -45,6 +45,10 @@ const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const BUILTIN_OVERRIDES_STORAGE_KEY = 'vutronmusic-osd-builtin-preset-overrides'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const MAX_USER_PRESETS = 50
+const BUILTIN_LYRIC_BACKGROUND = 'rgba(0, 0, 0, 0)'
+const BUILTIN_LYRIC_PLAYED = 'rgba(7, 185, 187, 1)'
+const BUILTIN_LYRIC_UNPLAYED = 'rgba(239, 152, 207, 1)'
+const BUILTIN_LYRIC_SHADOW = 'rgba(0, 0, 0, 0)'
 
 const TEXTS = {
   zh: {
@@ -134,10 +138,10 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
   const text = TEXTS[resolveFeatureLanguage()]
   const common: CommonPresetSettings = {
     isWordByWord: true,
-    backgroundColor: 'rgba(0, 0, 0, 0)',
-    playedLrcColor: '#37cf88',
-    unplayLrcColor: 'rgba(210, 210, 210, 1)',
-    textShadow: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: BUILTIN_LYRIC_BACKGROUND,
+    playedLrcColor: BUILTIN_LYRIC_PLAYED,
+    unplayLrcColor: BUILTIN_LYRIC_UNPLAYED,
+    textShadow: BUILTIN_LYRIC_SHADOW,
     font: 'system-ui',
     showButtonWhenLock: true
   }
@@ -164,10 +168,7 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         mode: 'twoLines',
         translationMode: 'tlyric',
         align: 'center',
-        coverControlsVisible: false,
-        playedLrcColor: 'rgba(255, 255, 255, 1)',
-        unplayLrcColor: 'rgba(185, 185, 185, 1)',
-        textShadow: 'rgba(0, 0, 0, 0.5)'
+        coverControlsVisible: false
       }
     },
     {
@@ -190,7 +191,7 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         type: 'small',
         mode: 'twoLines',
         translationMode: 'tlyric',
-        align: 'center',
+        align: 'left',
         coverControlsVisible: true
       }
     }
@@ -213,10 +214,10 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
       translationMode: ['none', 'tlyric', 'rlyric'].includes(String(settings.translationMode))
         ? (settings.translationMode as OsdPresetSettings['translationMode'])
         : 'tlyric',
-      backgroundColor: String(settings.backgroundColor || 'rgba(0, 0, 0, 0)'),
-      playedLrcColor: String(settings.playedLrcColor || '#37cf88'),
-      unplayLrcColor: String(settings.unplayLrcColor || 'rgba(210, 210, 210, 1)'),
-      textShadow: String(settings.textShadow || 'rgba(0, 0, 0, 0.2)'),
+      backgroundColor: String(settings.backgroundColor || BUILTIN_LYRIC_BACKGROUND),
+      playedLrcColor: String(settings.playedLrcColor || BUILTIN_LYRIC_PLAYED),
+      unplayLrcColor: String(settings.unplayLrcColor || BUILTIN_LYRIC_UNPLAYED),
+      textShadow: String(settings.textShadow || BUILTIN_LYRIC_SHADOW),
       font: String(settings.font || 'system-ui').slice(0, 200),
       align: ['left', 'center', 'right'].includes(String(settings.align))
         ? (settings.align as OsdPresetSettings['align'])
@@ -300,10 +301,10 @@ const readCurrentSettings = (): OsdPresetSettings => {
     translationMode: ['none', 'tlyric', 'rlyric'].includes(state.translationMode)
       ? state.translationMode
       : 'tlyric',
-    backgroundColor: String(state.backgroundColor || 'rgba(0, 0, 0, 0)'),
-    playedLrcColor: String(state.playedLrcColor || '#37cf88'),
-    unplayLrcColor: String(state.unplayLrcColor || 'rgba(210, 210, 210, 1)'),
-    textShadow: String(state.textShadow || 'rgba(0, 0, 0, 0.2)'),
+    backgroundColor: String(state.backgroundColor || BUILTIN_LYRIC_BACKGROUND),
+    playedLrcColor: String(state.playedLrcColor || BUILTIN_LYRIC_PLAYED),
+    unplayLrcColor: String(state.unplayLrcColor || BUILTIN_LYRIC_UNPLAYED),
+    textShadow: String(state.textShadow || BUILTIN_LYRIC_SHADOW),
     font: String(state.font || 'system-ui'),
     align: ['left', 'center', 'right'].includes(state.align) ? state.align : 'center',
     showButtonWhenLock: state.showButtonWhenLock !== false,
