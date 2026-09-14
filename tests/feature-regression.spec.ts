@@ -1582,3 +1582,26 @@ test.describe('modern NetEase API integration', () => {
     expect(dataStore).toContain('recentSongs(100)')
   })
 })
+
+test.describe('virtual list and desktop lyric preview stability', () => {
+  test('guards transient IntersectionObserver refs and supports Library nested scrolling', () => {
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+    const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
+
+    expect(virtualScroll).toContain('const getListElement = (): HTMLElement | null =>')
+    expect(virtualScroll).toContain('if (element) observer.observe(element)')
+    expect(virtualScroll).toContain('if (element) observer.unobserve(element)')
+    expect(interactionFix).toContain('.library .infinite-list-container')
+  })
+
+  test('previews the selected preset and keeps the canonical teal/pink palette', () => {
+    const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
+    const transferPreview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
+
+    expect(interactionFix).toContain('return selected ?? readCurrentSettings()')
+    expect(interactionFix).toContain(':not(.vutronmusic-preview-compact)')
+    expect(transferPreview).toContain("playedLrcColor: 'rgba(7, 185, 187, 1)'")
+    expect(transferPreview).toContain("unplayLrcColor: 'rgba(239, 152, 207, 1)'")
+    expect(transferPreview).not.toContain("playedLrcColor: '#37cf88'")
+  })
+})

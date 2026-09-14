@@ -76,9 +76,9 @@ const TEXTS = {
 const COMMON_BUILTIN_SETTINGS = {
   isWordByWord: true,
   backgroundColor: 'rgba(0, 0, 0, 0)',
-  playedLrcColor: '#37cf88',
-  unplayLrcColor: 'rgba(210, 210, 210, 1)',
-  textShadow: 'rgba(0, 0, 0, 0.2)',
+  playedLrcColor: 'rgba(7, 185, 187, 1)',
+  unplayLrcColor: 'rgba(239, 152, 207, 1)',
+  textShadow: 'rgba(0, 0, 0, 0)',
   font: 'system-ui',
   showButtonWhenLock: true
 } as const
@@ -99,9 +99,9 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     translationMode: 'tlyric',
     align: 'center',
     coverControlsVisible: false,
-    playedLrcColor: 'rgba(255, 255, 255, 1)',
-    unplayLrcColor: 'rgba(185, 185, 185, 1)',
-    textShadow: 'rgba(0, 0, 0, 0.5)'
+    playedLrcColor: 'rgba(7, 185, 187, 1)',
+    unplayLrcColor: 'rgba(239, 152, 207, 1)',
+    textShadow: 'rgba(0, 0, 0, 0)'
   },
   'builtin-left': {
     ...COMMON_BUILTIN_SETTINGS,
@@ -139,9 +139,9 @@ const normalizeSettings = (value: unknown): PresetSettings | null => {
       ? (settings.translationMode as PresetSettings['translationMode'])
       : 'tlyric',
     backgroundColor: String(settings.backgroundColor || 'rgba(0, 0, 0, 0)').slice(0, 100),
-    playedLrcColor: String(settings.playedLrcColor || '#37cf88').slice(0, 100),
-    unplayLrcColor: String(settings.unplayLrcColor || 'rgba(210, 210, 210, 1)').slice(0, 100),
-    textShadow: String(settings.textShadow || 'rgba(0, 0, 0, 0.2)').slice(0, 100),
+    playedLrcColor: String(settings.playedLrcColor || 'rgba(7, 185, 187, 1)').slice(0, 100),
+    unplayLrcColor: String(settings.unplayLrcColor || 'rgba(239, 152, 207, 1)').slice(0, 100),
+    textShadow: String(settings.textShadow || 'rgba(0, 0, 0, 0)').slice(0, 100),
     font: String(settings.font || 'system-ui').slice(0, 200),
     align: ['left', 'center', 'right'].includes(String(settings.align))
       ? (settings.align as PresetSettings['align'])
