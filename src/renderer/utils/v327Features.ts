@@ -1,6 +1,7 @@
 import './osdLyricPresetSettings'
 import './osdPresetDraftState'
 import './osdPresetTransferPreview'
+import './osdPreviewExploreInteractionFix'
 import './settingsBackupSettings'
 import './diagnosticsSnapshotSettings'
 import './sleepTimerSettings'
