@@ -444,7 +444,7 @@ const parentScrollEvent = rafThrottle(() => {
     window.innerHeight - playerBarInset.value,
     mainRect?.bottom ?? window.innerHeight
   )
-  if (rect.bottom <= visibleBottom + 240) {
+  if (rect.bottom <= visibleBottom + 720) {
     void requestLoadMore()
   }
 })

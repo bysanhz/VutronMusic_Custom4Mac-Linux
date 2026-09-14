@@ -1628,3 +1628,15 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")
   })
 })
+
+test.describe('cover grids use a single outer scroll flow', () => {
+  test('avoids the delayed first outer-to-inner scroll handoff', () => {
+    const explore = readSource('src/renderer/views/ExplorePage.vue')
+    const library = readSource('src/renderer/views/LibraryMusic.vue')
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+
+    expect(explore.match(/:enable-virtual-scroll="false"/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(library.match(/:enable-virtual-scroll="false"/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(virtualScroll).toContain('rect.bottom <= visibleBottom + 720')
+  })
+})
