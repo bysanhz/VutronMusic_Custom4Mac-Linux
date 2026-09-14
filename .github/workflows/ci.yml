@@ -73,7 +73,7 @@ jobs:
           p.write_text(text)
           PY
 
-          yarn prettier src/renderer/views/HomePage.vue --write
+          yarn prettier src/renderer/views/HomePage.vue .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
