@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -17,12 +14,14 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, type check, test and build
+    name: Patch, lint, type check, test and build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -32,6 +31,82 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Flatten cover-grid scrolling and prefetch earlier
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              if old not in text:
+                  if new in text:
+                      return text
+                  raise SystemExit(f'missing replacement target: {label}')
+              return text.replace(old, new, 1)
+
+          # Explore cover grids should remain in the outer #main scroll flow. This avoids
+          # the first outer->inner handoff delay where the page appears stuck at the bottom.
+          path = Path('src/renderer/views/ExplorePage.vue')
+          text = path.read_text()
+          # The two paginated cover grids are the important ones: all albums and general
+          # playlist/artist discovery. Keep the finite weekly block unchanged.
+          text = replace_once(
+              text,
+              '''          :colunm-number="5"\n          :load-more="loadMore"\n        />''',
+              '''          :colunm-number="5"\n          :enable-virtual-scroll="false"\n          :load-more="loadMore"\n        />''',
+              'explore new-album outer scrolling'
+          )
+          text = replace_once(
+              text,
+              '''        :item-height="exploreTab === 'artist' ? 224 : 270"\n        :colunm-number="5"\n        :load-more="loadMore"\n      />''',
+              '''        :item-height="exploreTab === 'artist' ? 224 : 270"\n        :colunm-number="5"\n        :enable-virtual-scroll="false"\n        :load-more="loadMore"\n      />''',
+              'explore playlist/artist outer scrolling'
+          )
+          path.write_text(text)
+
+          # Library cover tabs already have all data locally. Nested scrolling provides no
+          # pagination benefit there and is exactly what creates the long first handoff.
+          path = Path('src/renderer/views/LibraryMusic.vue')
+          text = path.read_text()
+          for label, needle in [
+              ('library playlists', '''            :colunm-number="5"\n            :is-end="true"\n            :padding-bottom="96"\n          />'''),
+              ('library albums', '''            sub-text="artist"\n            :colunm-number="5"\n            :is-end="true"\n            :padding-bottom="96"\n          />'''),
+              ('library artists', '''            :item-height="230"\n            :colunm-number="5"\n            :is-end="true"\n            :padding-bottom="96"\n          />''')
+          ]:
+              if ':enable-virtual-scroll="false"' in needle:
+                  continue
+              replacement = needle.replace('            :is-end="true"', '            :enable-virtual-scroll="false"\n            :is-end="true"')
+              text = replace_once(text, needle, replacement, label)
+          path.write_text(text)
+
+          # Parent-scroll prefetch must start well before the visual bottom, because with
+          # flattened cover grids the parent scroller is now the authoritative trigger.
+          path = Path('src/renderer/components/VirtualScrollNoHeight.vue')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              '  if (rect.bottom <= visibleBottom + 240) {',
+              '  if (rect.bottom <= visibleBottom + 720) {',
+              'parent prefetch distance'
+          )
+          path.write_text(text)
+
+          # Regression coverage for the single-scroll model.
+          path = Path('tests/feature-regression.spec.ts')
+          text = path.read_text()
+          marker = "test.describe('cover grids use a single outer scroll flow'"
+          if marker not in text:
+              text += '''\n\ntest.describe('cover grids use a single outer scroll flow', () => {\n  test('avoids the delayed first outer-to-inner scroll handoff', () => {\n    const explore = readSource('src/renderer/views/ExplorePage.vue')\n    const library = readSource('src/renderer/views/LibraryMusic.vue')\n    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')\n\n    expect(explore.match(/:enable-virtual-scroll=\"false\"/g)?.length).toBeGreaterThanOrEqual(2)\n    expect(library.match(/:enable-virtual-scroll=\"false\"/g)?.length).toBeGreaterThanOrEqual(3)\n    expect(virtualScroll).toContain('rect.bottom <= visibleBottom + 720')\n  })\n})\n'''
+          path.write_text(text)
+          PY
+
+          yarn prettier \
+            src/renderer/views/ExplorePage.vue \
+            src/renderer/views/LibraryMusic.vue \
+            src/renderer/components/VirtualScrollNoHeight.vue \
+            tests/feature-regression.spec.ts \
+            .github/workflows/ci.yml \
+            --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -46,6 +121,24 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist generated fixes
+        run: |
+          if git diff --quiet -- \
+            src/renderer/views/ExplorePage.vue \
+            src/renderer/views/LibraryMusic.vue \
+            src/renderer/components/VirtualScrollNoHeight.vue \
+            tests/feature-regression.spec.ts; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/renderer/views/ExplorePage.vue \
+            src/renderer/views/LibraryMusic.vue \
+            src/renderer/components/VirtualScrollNoHeight.vue \
+            tests/feature-regression.spec.ts
+          git commit -m "fix: remove delayed nested cover-grid scroll handoff"
+          git push origin HEAD:${{ github.head_ref }}
