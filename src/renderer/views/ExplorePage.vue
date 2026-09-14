@@ -191,6 +191,7 @@
           :padding-bottom="0"
           :is-end="true"
           :colunm-number="5"
+          :enable-virtual-scroll="false"
           :load-more="loadMore"
         />
       </div>
@@ -238,6 +239,7 @@
         :show-play-count="activeCategory !== '排行榜' && exploreTab !== 'artist'"
         :item-height="exploreTab === 'artist' ? 224 : 270"
         :colunm-number="5"
+        :enable-virtual-scroll="false"
         :load-more="loadMore"
       />
     </div>
