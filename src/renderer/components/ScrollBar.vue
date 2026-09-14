@@ -47,6 +47,7 @@ import { useRouter } from 'vue-router'
 const verticalShow = ref(false)
 const verticalActive = ref(false)
 const isVerticalDragging = ref(false)
+const verticalTrackBottom = ref(0)
 const verticalDragStartY = ref(0)
 const verticalHideTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const router = useRouter()
@@ -63,16 +64,19 @@ const marginTop = computed(() => {
 })
 
 const scrollHeight = computed(() => {
-  return scrollbar.value.active
-    ? scrollbar.value.instances[scrollbar.value.active].listHeight - marginTop.value
-    : 0
+  return scrollbar.value.active ? scrollbar.value.instances[scrollbar.value.active].listHeight : 0
 })
 
 const clientHeight = computed(() => {
   return scrollbar.value.active
-    ? scrollbar.value.instances[scrollbar.value.active].containerHeight - marginTop.value
+    ? scrollbar.value.instances[scrollbar.value.active].containerHeight
     : 0
 })
+
+const verticalTrackHeight = computed(() =>
+  Math.max(0, clientHeight.value - marginTop.value - verticalTrackBottom.value)
+)
+const verticalScrollDistance = computed(() => Math.max(0, scrollHeight.value - clientHeight.value))
 
 const scrollTop = computed(() => {
   return scrollbar.value.active ? scrollbar.value.instances[scrollbar.value.active].scrollTop : 0
@@ -99,11 +103,23 @@ watch(
 )
 
 const verticalThumbStyle = computed(() => {
-  if (!scrollHeight.value || !clientHeight.value) return {}
-  let thumbHeight = ~~((clientHeight.value / scrollHeight.value) * clientHeight.value)
-  const top = ~~((scrollTop.value / scrollHeight.value) * clientHeight.value)
-  thumbHeight = Math.max(thumbHeight, 30)
-  return { height: `${thumbHeight}px`, transform: `translateY(${top}px)` }
+  const trackHeight = verticalTrackHeight.value
+  if (!scrollHeight.value || !clientHeight.value || !trackHeight) return {}
+
+  const thumbHeight = Math.min(
+    trackHeight,
+    Math.max((clientHeight.value / scrollHeight.value) * trackHeight, 30)
+  )
+  const movableDistance = Math.max(0, trackHeight - thumbHeight)
+  const top =
+    verticalScrollDistance.value > 0
+      ? (scrollTop.value / verticalScrollDistance.value) * movableDistance
+      : 0
+
+  return {
+    height: `${thumbHeight}px`,
+    transform: `translateY(${Math.max(0, Math.min(top, movableDistance))}px)`
+  }
 })
 
 const handleVerticalMouseenter = () => {
@@ -136,10 +152,13 @@ const handleVerticalDragStart = (event: MouseEvent) => {
 }
 
 const handleVerticalDragMove = (event: MouseEvent) => {
-  if (!isVerticalDragging.value || !clientHeight.value) return
-  const offset = ~~(
-    ((event.clientY - verticalDragStartY.value) / clientHeight.value) * scrollHeight.value
-  )
+  if (!isVerticalDragging.value || !verticalTrackHeight.value) return
+
+  const style = verticalThumbStyle.value
+  const thumbHeight = Number.parseFloat(String(style.height ?? '30')) || 30
+  const movableDistance = Math.max(1, verticalTrackHeight.value - thumbHeight)
+  const offset =
+    ((event.clientY - verticalDragStartY.value) / movableDistance) * verticalScrollDistance.value
   eventBus.emit('update-scroll-bar', { active: scrollbar.value.active, offset })
 }
 
@@ -218,7 +237,9 @@ const syncHorizontalMetrics = () => {
   horizontalClientWidth.value = mainElement.clientWidth
   horizontalTrackLeft.value = Math.max(0, mainRect.left)
   horizontalTrackRight.value = Math.max(16, window.innerWidth - mainRect.right + 16)
-  horizontalTrackBottom.value = playerVisible ? Math.round(playerRect!.height) : 0
+  const playerHeight = playerVisible ? Math.round(playerRect!.height) : 0
+  horizontalTrackBottom.value = playerHeight
+  verticalTrackBottom.value = playerHeight
 }
 
 const scheduleHorizontalMetricsSync = () => {
@@ -349,15 +370,13 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .scrollbar--vertical {
   position: fixed;
-  top: 0;
+  top: v-bind('`${marginTop}px`');
   right: 0;
-  bottom: 0;
+  bottom: v-bind('`${verticalTrackBottom}px`');
   width: 16px;
   z-index: 1000;
 
   .thumbContainer--vertical {
-    margin-top: v-bind('`${marginTop}px`');
-
     div {
       transition: background 0.4s;
       position: absolute;

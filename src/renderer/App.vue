@@ -82,7 +82,7 @@ const fetchData = () => {
 
 const scrollEvent = () => {
   const scrollTop = mainRef.value.scrollTop
-  const containerHeight = mainRef.value.clientHeight - 64
+  const containerHeight = mainRef.value.clientHeight
   const contentHeight = mainRef.value.scrollHeight
 
   registerInstance(instanceId.value)
@@ -171,13 +171,17 @@ const scrollBarRef = ref()
 const instanceId = ref('appInstance')
 const hasCustomTitleBar = ref(false)
 
-const mainStyle = computed(() => ({
-  paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',
-  paddingBottom: padding.value + 'px'
-}))
-
 const showPlayerBar = computed(() => {
   return ['mv', 'loginAccount'].includes(route.name as string) === false
+})
+
+const PLAYER_SAFE_BOTTOM = 120
+const mainStyle = computed(() => {
+  const safeBottom = enabled.value && showPlayerBar.value ? PLAYER_SAFE_BOTTOM : 0
+  return {
+    paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',
+    paddingBottom: Math.max(padding.value, safeBottom) + 'px'
+  }
 })
 
 const isMac = computed(() => window.env?.isMac)
