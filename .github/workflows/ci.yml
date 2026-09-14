@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -21,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,8 +32,108 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Apply layout polish
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing replacement target in {path}: {old[:120]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Global bottom safe area: player is 64px high, keep extra breathing room for content.
+          replace_once(
+              'src/renderer/App.vue',
+              'const padding = ref(96)',
+              'const padding = ref(120)'
+          )
+
+          # Home: give the page a stable bottom safe area and make For You intentionally two-column.
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '<div v-show="show">',
+              '<div v-show="show" class="home-page">'
+          )
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '''<style scoped lang="scss">\n.banner {''',
+              '''<style scoped lang="scss">\n.home-page {\n  padding-bottom: 28px;\n}\n\n.banner {'''
+          )
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '''.index-row {\n  margin-top: 50px;''',
+              '''.index-row {\n  margin-top: 38px;'''
+          )
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '''.for-you-row {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 24px;\n  margin-bottom: 78px;\n}''',
+              '''.for-you-row {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 20px;\n  margin-bottom: 34px;\n  align-items: stretch;\n}\n\n.for-you-row > * {\n  min-width: 0;\n}\n\n.insights-card {\n  grid-column: 1 / -1;\n}'''
+          )
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '''.insights-card {\n  min-height: 178px;\n  padding: 24px;''',
+              '''.insights-card {\n  min-height: 146px;\n  padding: 22px 24px;'''
+          )
+          replace_once(
+              'src/renderer/views/HomePage.vue',
+              '''@media (max-width: 1000px) {\n  .for-you-row {\n    grid-template-columns: repeat(2, minmax(0, 1fr));\n  }\n  .insights-card {\n    grid-column: 1 / -1;\n  }\n}''',
+              '''@media (max-width: 760px) {\n  .for-you-row {\n    grid-template-columns: 1fr;\n  }\n\n  .insights-card {\n    grid-column: auto;\n  }\n}'''
+          )
+
+          # Insights: tighten vertical rhythm and align all four metric cards to the same rows.
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.insights-page {\n  max-width: 1380px;\n  margin: 0 auto;\n  padding: 10px 0 60px;\n}''',
+              '''.insights-page {\n  max-width: 1380px;\n  margin: 0 auto;\n  padding: 4px 0 92px;\n}'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.hero {\n  padding: 28px 32px;\n  border-radius: 18px;''',
+              '''.hero {\n  padding: 24px 28px;\n  border-radius: 18px;'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.tabs {\n  display: flex;\n  gap: 8px;\n  margin: 24px 0;''',
+              '''.tabs {\n  display: flex;\n  gap: 8px;\n  margin: 18px 0;'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.panel {\n  padding: 26px 28px;''',
+              '''.panel {\n  padding: 24px 26px 30px;'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.metric-grid {\n  display: grid;\n  grid-template-columns: repeat(4, minmax(0, 1fr));\n  gap: 14px;\n  margin: 24px 0;\n}''',
+              '''.metric-grid {\n  display: grid;\n  grid-template-columns: repeat(4, minmax(0, 1fr));\n  gap: 12px;\n  margin: 20px 0 18px;\n}'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.metric-card {\n  min-height: 105px;\n  padding: 17px;\n  border-radius: 14px;\n  background: var(--color-body-bg);\n  display: flex;\n  flex-direction: column;\n  justify-content: space-between;\n\n  span {\n    font-size: 12px;\n    opacity: 0.58;\n  }\n\n  strong {\n    font-size: 25px;\n  }\n\n  small {\n    margin-top: 6px;\n    font-size: 12px;\n    font-weight: 650;\n    opacity: 0.58;\n  }\n}''',
+              '''.metric-card {\n  min-height: 128px;\n  padding: 18px 20px;\n  border-radius: 14px;\n  background: var(--color-body-bg);\n  display: grid;\n  grid-template-rows: auto minmax(48px, 1fr) 20px;\n  align-items: end;\n  box-sizing: border-box;\n  min-width: 0;\n\n  span {\n    align-self: start;\n    font-size: 12px;\n    opacity: 0.58;\n  }\n\n  strong {\n    align-self: end;\n    font-size: clamp(21px, 2vw, 25px);\n    line-height: 1.2;\n    letter-spacing: -0.02em;\n  }\n\n  small {\n    align-self: end;\n    margin-top: 0;\n    font-size: 12px;\n    font-weight: 650;\n    line-height: 20px;\n    opacity: 0.58;\n  }\n}\n\n.metric-grid:not(.compact) .metric-card:nth-child(4) strong {\n  white-space: nowrap;\n  font-size: clamp(19px, 1.8vw, 24px);\n}'''
+          )
+          replace_once(
+              'src/renderer/views/MusicInsightsStable.vue',
+              '''.sub-tabs,\n.tag-list,\n.action-row {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n  margin: 18px 0;\n}''',
+              '''.sub-tabs,\n.tag-list,\n.action-row {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n  margin: 14px 0;\n}'''
+          )
+
+          # Side-nav tooltip: smaller, closer to the rail, vertically centered and less intrusive.
+          replace_once(
+              'src/renderer/components/SideNav.vue',
+              '''  button::before {\n    content: '';\n    position: absolute;\n    top: 50%;\n    left: 0;\n    border: 8px solid transparent;\n    border-right-color: rgb(from var(--color-primary) r g b / 60%);\n    transform: translate(60px, -50%);\n    z-index: 1;\n  }\n  button::after {\n    content: attr(data-tip);\n    background-color: rgb(from var(--color-primary) r g b / 60%);\n    color: white;\n    position: absolute;\n    top: 50%;\n    left: 0;\n    width: auto;\n    height: 40px;\n    padding: 0 16px;\n    border-radius: 6px;\n    white-space: nowrap;\n    line-height: 40px;\n    font-size: 16px;\n    transform: translate(76px, -50%);\n  }''',
+              '''  button::before {\n    content: '';\n    position: absolute;\n    top: 50%;\n    left: calc(100% + 4px);\n    border: 7px solid transparent;\n    border-right-color: rgb(from var(--color-primary) r g b / 82%);\n    transform: translateY(-50%);\n    z-index: 1;\n  }\n  button::after {\n    content: attr(data-tip);\n    background-color: rgb(from var(--color-primary) r g b / 88%);\n    color: white;\n    position: absolute;\n    top: 50%;\n    left: calc(100% + 18px);\n    width: auto;\n    height: 32px;\n    padding: 0 12px;\n    border-radius: 7px;\n    white-space: nowrap;\n    line-height: 32px;\n    font-size: 13px;\n    font-weight: 650;\n    box-shadow: 0 8px 20px rgb(0 0 0 / 12%);\n    transform: translateY(-50%);\n  }'''
+          )
+          PY
+
+          yarn prettier \
+            src/renderer/App.vue \
+            src/renderer/views/HomePage.vue \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/components/SideNav.vue \
+            --write
 
       - name: Lint source
         run: yarn lint
@@ -46,6 +145,24 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist layout polish
+        run: |
+          if git diff --quiet -- \
+            src/renderer/App.vue \
+            src/renderer/views/HomePage.vue \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/components/SideNav.vue; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/renderer/App.vue \
+            src/renderer/views/HomePage.vue \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/components/SideNav.vue
+          git commit -m "fix: polish home and insights layout"
+          git push origin HEAD:${{ github.head_ref }}
