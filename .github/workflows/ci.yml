@@ -44,31 +44,26 @@ jobs:
                   raise SystemExit(f'missing replacement target: {label}')
               return text.replace(old, new, 1)
 
-          # 1) VirtualScrollNoHeight: lifecycle-safe IntersectionObserver targets.
           path = Path('src/renderer/components/VirtualScrollNoHeight.vue')
           text = path.read_text()
-
           text = replace_once(
               text,
               "const { list, itemSize } = toRefs(props)\n",
               """const { list, itemSize } = toRefs(props)\n\n/**\n * Vue can briefly clear template refs while v-show/v-if/route transitions settle.\n * IntersectionObserver requires a real Element and throws synchronously for null refs,\n * so every observer lifecycle path resolves the element defensively.\n */\nconst getListElement = (): HTMLElement | null => {\n  const element = listRef.value\n  return element instanceof HTMLElement ? element : null\n}\n""",
               'insert getListElement'
           )
-
           text = replace_once(
               text,
               """watch(enableScrolling, (value) => {\n  if (value) {\n    listRef.value.style.overflowY = styleBefore.value\n  } else {\n    listRef.value.style.overflowY = 'hidden'\n  }\n})""",
               """watch(enableScrolling, (value) => {\n  const element = getListElement()\n  if (!element) return\n  if (value) {\n    element.style.overflowY = styleBefore.value\n  } else {\n    element.style.overflowY = 'hidden'\n  }\n})""",
               'guard enableScrolling watcher'
           )
-
           text = replace_once(
               text,
               """const observer = new IntersectionObserver(\n  (entries) => {\n    entries.forEach((entry) => {\n      if (entry.isIntersecting) {\n        listRef.value.style.overflowY = 'scroll'\n        styleBefore.value = 'scroll'\n      } else {\n        listRef.value.style.overflowY = 'hidden'\n        styleBefore.value = 'hidden'\n      }\n    })\n  },""",
               """const observer = new IntersectionObserver(\n  (entries) => {\n    const element = getListElement()\n    if (!element) return\n    entries.forEach((entry) => {\n      if (entry.isIntersecting) {\n        element.style.overflowY = 'scroll'\n        styleBefore.value = 'scroll'\n      } else {\n        element.style.overflowY = 'hidden'\n        styleBefore.value = 'hidden'\n      }\n    })\n  },""",
               'guard observer callback'
           )
-
           text = replace_once(
               text,
               """const observeLoadMoreSentinel = () => {\n  loadMoreObserver?.disconnect()\n  if (!listRef.value || !loadMoreSentinelRef.value) return\n\n  loadMoreObserver = new IntersectionObserver(""",
@@ -76,13 +71,7 @@ jobs:
               'guard load-more observer refs'
           )
           text = replace_once(text, "      root: listRef.value,", "      root: element,", 'sentinel root')
-          text = replace_once(
-              text,
-              "  loadMoreObserver.observe(loadMoreSentinelRef.value)",
-              "  loadMoreObserver.observe(sentinel)",
-              'sentinel observe'
-          )
-
+          text = replace_once(text, "  loadMoreObserver.observe(loadMoreSentinelRef.value)", "  loadMoreObserver.observe(sentinel)", 'sentinel observe')
           text = replace_once(
               text,
               """onActivated(() => {\n  nextTick(() => {\n    observer.observe(listRef.value)\n    observeLoadMoreSentinel()""",
@@ -109,29 +98,20 @@ jobs:
           )
           path.write_text(text)
 
-          # 2) Desktop-lyric preview: dropdown selection is preview authority; extend nested scrolling to Library.
           path = Path('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
           text = path.read_text()
-
           old_resolver = """const sameVisualSettings = (left: PresetSettings, right: PresetSettings): boolean =>\n  left.type === right.type &&\n  left.mode === right.mode &&\n  left.backgroundColor === right.backgroundColor &&\n  left.playedLrcColor === right.playedLrcColor &&\n  left.unplayLrcColor === right.unplayLrcColor &&\n  left.textShadow === right.textShadow &&\n  left.font === right.font &&\n  left.align === right.align &&\n  left.coverControlsVisible === right.coverControlsVisible\n\nconst resolvePreviewSettings = (select: HTMLSelectElement | null): PresetSettings => {\n  const current = readCurrentSettings()\n  const selected = resolveSelectedPreset(select?.value || '')\n\n  // A modified live OSD must win over the selected saved preset. This is the exact\n  // case that previously made the real lyric colors change while the preview stayed stale.\n  if (!selected || !sameVisualSettings(current, selected)) return current\n  return selected\n}\n"""
           new_resolver = """const resolvePreviewSettings = (select: HTMLSelectElement | null): PresetSettings => {\n  const selected = resolveSelectedPreset(select?.value || '')\n  // The preview describes the item highlighted in the preset selector. Applying a preset\n  // changes the live OSD separately; merely choosing another option must still preview it.\n  return selected ?? readCurrentSettings()\n}\n"""
           text = replace_once(text, old_resolver, new_resolver, 'selected preset preview resolver')
-
-          text = text.replace(
-              "'.explore-page .infinite-list-container'",
-              "'.explore-page .infinite-list-container, .library .infinite-list-container'"
-          )
-
+          text = text.replace("'.explore-page .infinite-list-container'", "'.explore-page .infinite-list-container, .library .infinite-list-container'")
           old_active = """  const activeScroller = scrollers.find((element) => {\n    const rect = element.getBoundingClientRect()\n    return rect.width > 0 && rect.height > 0\n  })"""
           new_active = """  const visibleBottom = window.innerHeight - 64\n  const activeScroller = scrollers.find((element) => {\n    const rect = element.getBoundingClientRect()\n    return (\n      rect.width > 0 &&\n      rect.height > 0 &&\n      rect.bottom > 0 &&\n      rect.top < visibleBottom &&\n      window.getComputedStyle(element).display !== 'none'\n    )\n  })"""
           text = replace_once(text, old_active, new_active, 'visible active virtual scroller')
-
           css_marker = """    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate .vutronmusic-osd-preset-preview-lyrics small {\n      font-size: 11px !important;\n      font-weight: 600 !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.single-line {"""
           css_replacement = """    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate .vutronmusic-osd-preset-preview-lyrics small {\n      font-size: 11px !important;\n      font-weight: 600 !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) {\n      min-height: 68px !important;\n      padding: 6px 10px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics {\n      height: 56px !important;\n      padding: 0 8px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics strong {\n      font-size: 20px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics small {\n      margin-top: 4px !important;\n      font-size: 14px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.single-line {"""
           text = replace_once(text, css_marker, css_replacement, 'normal-mode preview geometry')
           path.write_text(text)
 
-          # 3) The original transfer preview had a second copy of the old green/gray palette.
           path = Path('src/renderer/utils/osdPresetTransferPreview.ts')
           text = path.read_text()
           substitutions = {
@@ -149,7 +129,6 @@ jobs:
               text = text.replace(old, new)
           path.write_text(text)
 
-          # 4) Source-level regression checks run in the repository's existing feature suite.
           path = Path('tests/feature-regression.spec.ts')
           text = path.read_text()
           marker = "test.describe('virtual list and desktop lyric preview stability'"
@@ -163,6 +142,7 @@ jobs:
             src/renderer/utils/osdPreviewExploreInteractionFix.ts \
             src/renderer/utils/osdPresetTransferPreview.ts \
             tests/feature-regression.spec.ts \
+            .github/workflows/ci.yml \
             --write
 
       - name: Check formatting
