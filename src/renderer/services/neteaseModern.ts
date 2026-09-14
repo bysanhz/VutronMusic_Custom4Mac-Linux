@@ -244,7 +244,36 @@ export const extractCursor = (source: any) => {
   return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
+const hasAnyKey = (keys: string[], candidates: string[]) =>
+  candidates.some((candidate) => keys.includes(candidate))
+
 export const extractMetric = (source: any, keys: string[]) => {
+  const data = source?.data
+
+  // These listen-footprint endpoints use different, stable response fields and units.
+  // Prefer those explicit schemas before the generic recursive fallback below.
+  if (Array.isArray(data?.songDTOs) && hasAnyKey(keys, ['songCount', 'count', 'listenSongCount'])) {
+    return data.songDTOs.length
+  }
+
+  const playDuration = Number(data?.listenTimeDistributionBlock?.playDuration)
+  if (
+    Number.isFinite(playDuration) &&
+    hasAnyKey(keys, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
+  ) {
+    // realtime report returns minutes; the UI duration formatter consumes seconds.
+    return playDuration * 60
+  }
+
+  const totalDuration = Number(data?.totalDuration)
+  if (
+    Number.isFinite(totalDuration) &&
+    hasAnyKey(keys, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
+  ) {
+    // totalDuration is already seconds.
+    return totalDuration
+  }
+
   const value = deepFindValue(source, keys)
   const number = Number(value)
   return Number.isFinite(number) ? number : undefined
@@ -253,21 +282,10 @@ export const extractMetric = (source: any, keys: string[]) => {
 export const formatListenDuration = (seconds?: number) => {
   if (!Number.isFinite(seconds) || !seconds || seconds <= 0) return '—'
   const value = Number(seconds)
-  const hours = Math.floor(value / 3600)
+  const days = Math.floor(value / 86400)
+  const hours = Math.floor((value % 86400) / 3600)
   const minutes = Math.floor((value % 3600) / 60)
-  if (hours > 0) return `${hours} h ${minutes} min`
-  return `${Math.max(1, minutes)} min`
-}
-
-export const extractLikedState = (source: any, id: number | string): boolean | undefined => {
-  const target = String(id)
-  for (const object of collectObjects(source, 6)) {
-    const objectId = object?.id ?? object?.trackId ?? object?.songId
-    if (objectId !== undefined && String(objectId) !== target) continue
-    for (const key of ['liked', 'like', 'isLike', 'isLiked', 'red']) {
-      if (typeof object?.[key] === 'boolean') return object[key]
-      if (object?.[key] === 0 || object?.[key] === 1) return Boolean(object[key])
-    }
-  }
-  return undefined
+  if (days > 0) return `${days} 天 ${hours} 小时`
+  if (hours > 0) return `${hours} 小时 ${minutes} 分`
+  return `${Math.max(1, minutes)} 分`
 }
