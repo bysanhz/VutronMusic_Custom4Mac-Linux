@@ -175,9 +175,13 @@ const showPlayerBar = computed(() => {
   return ['mv', 'loginAccount'].includes(route.name as string) === false
 })
 
+const PLAYER_BAR_HEIGHT = 64
 const PLAYER_SAFE_BOTTOM = 120
+const playerBarInset = computed(() =>
+  enabled.value && showPlayerBar.value ? PLAYER_BAR_HEIGHT : 0
+)
 const mainStyle = computed(() => {
-  const safeBottom = enabled.value && showPlayerBar.value ? PLAYER_SAFE_BOTTOM : 0
+  const safeBottom = playerBarInset.value ? PLAYER_SAFE_BOTTOM : 0
   return {
     paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',
     paddingBottom: Math.max(padding.value, safeBottom) + 'px'
@@ -214,6 +218,7 @@ provide('restorePosition', restorePosition)
 provide('updateUserSelect', userSelectNone)
 provide('mainRef', mainRef)
 provide('navBarRef', navBarRef)
+provide('playerBarInset', playerBarInset)
 
 provide('appearance', appearance)
 provide('hasCustomTitleBar', hasCustomTitleBar)

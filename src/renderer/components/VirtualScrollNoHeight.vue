@@ -119,7 +119,7 @@ const footerHeight = computed(() => footerRef.value?.clientHeight || 0)
 
 const containerHeight = computed(() => {
   const navBarHeight = hasCustomTitleBar.value ? 84 : 64
-  const winHeight = windowHeight.value - navBarHeight
+  const winHeight = Math.max(0, windowHeight.value - navBarHeight - playerBarInset.value)
   const height = props.height || winHeight
   return props.enableVirtualScroll ? Math.min(height, listHeight.value) : listHeight.value
 })
@@ -147,6 +147,10 @@ const listStyles = computed(() => {
 const visibleMiddle = computed(() => (endRow.value + startRow.value) / 2)
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
+const playerBarInset = inject(
+  'playerBarInset',
+  computed(() => 0)
+)
 const mainRef = inject('mainRef', ref<HTMLElement>())
 const scrollMainTo = inject('scrollMainTo', (to: number) => {})
 
@@ -378,7 +382,8 @@ const onScrollToBottom = () => {
     listHeight: listHeight.value
   })
 
-  if (scrollTop + containerHeight >= contentHeight) {
+  const loadMoreThreshold = Math.min(96, Math.max(24, containerHeight * 0.12))
+  if (scrollTop + containerHeight >= contentHeight - loadMoreThreshold) {
     props.loadMore()
   }
 }

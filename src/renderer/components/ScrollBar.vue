@@ -47,6 +47,7 @@ import { useRouter } from 'vue-router'
 const verticalShow = ref(false)
 const verticalActive = ref(false)
 const isVerticalDragging = ref(false)
+const viewportHeight = ref(window.innerHeight)
 const verticalTrackBottom = ref(0)
 const verticalDragStartY = ref(0)
 const verticalHideTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -74,7 +75,7 @@ const clientHeight = computed(() => {
 })
 
 const verticalTrackHeight = computed(() =>
-  Math.max(0, clientHeight.value - marginTop.value - verticalTrackBottom.value)
+  Math.max(0, viewportHeight.value - marginTop.value - verticalTrackBottom.value)
 )
 const verticalScrollDistance = computed(() => Math.max(0, scrollHeight.value - clientHeight.value))
 
@@ -232,6 +233,7 @@ const syncHorizontalMetrics = () => {
       window.getComputedStyle(playerElement).display !== 'none'
   )
 
+  viewportHeight.value = window.innerHeight
   horizontalScrollLeft.value = mainElement.scrollLeft
   horizontalScrollWidth.value = mainElement.scrollWidth
   horizontalClientWidth.value = mainElement.clientWidth
