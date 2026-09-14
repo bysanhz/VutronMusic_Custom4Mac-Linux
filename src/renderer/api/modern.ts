@@ -24,6 +24,18 @@ export function listenTodaySongs() {
   })
 }
 
+/**
+ * 网易云账号真实播放记录。
+ * type=1 返回最近一周 weekData，type=0 返回全量 allData。
+ */
+export function userPlayRecord(uid: number | string, type: 0 | 1 = 1) {
+  return request({
+    url: '/user/record',
+    method: 'get',
+    params: withTimestamp({ uid, type })
+  })
+}
+
 export function listenSongPlayRank(
   params: {
     type?: Exclude<ListenReportType, 'year'>

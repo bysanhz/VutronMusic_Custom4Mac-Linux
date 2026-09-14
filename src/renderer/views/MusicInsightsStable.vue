@@ -26,7 +26,7 @@
       <div class="section-head">
         <div>
           <h2>听歌足迹</h2>
-          <p>今日、周/月与累计收听数据；单个接口不可用时不会拖垮整个页面。</p>
+          <p>今日、周/月与累计收听数据；常听榜仅展示网易云账号真实播放记录。</p>
         </div>
       </div>
 
@@ -59,11 +59,8 @@
         >
           本周常听
         </button>
-        <button
-          :class="{ active: footprintRankMode === 'month' }"
-          @click="footprintRankMode = 'month'"
-        >
-          本月常听
+        <button :class="{ active: footprintRankMode === 'all' }" @click="footprintRankMode = 'all'">
+          历史常听
         </button>
       </div>
 
@@ -74,9 +71,9 @@
           empty-text="当前账号暂时没有本周听歌排行。"
         />
         <InsightsTrackList
-          v-show="footprintRankMode === 'month'"
-          :items="footprint.monthTracks"
-          empty-text="当前账号暂时没有本月听歌排行。"
+          v-show="footprintRankMode === 'all'"
+          :items="footprint.allTracks"
+          empty-text="当前账号暂时没有历史播放排行，或网易云未开放该数据。"
         />
       </div>
     </section>
@@ -285,13 +282,12 @@ import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
-import { getTrackDetail } from '../api/track'
 import {
   aiDjContentRecommend,
   cloudLyricGet,
   cloudMatch,
   listenRealtimeReport,
-  listenReport,
+  userPlayRecord,
   listenTodaySongs,
   listenTotal,
   playlistTrackAll,
@@ -312,7 +308,7 @@ import {
   extractAlbums,
   extractArtists,
   extractCursor,
-  extractListenReportRank,
+  extractUserPlayRecord,
   extractMetric,
   extractPlaylists,
   extractTodayListenSeconds,
@@ -353,9 +349,9 @@ const footprint = reactive<{
   monthSeconds?: number
   totalSeconds?: number
   weekTracks: any[]
-  monthTracks: any[]
-}>({ weekTracks: [], monthTracks: [] })
-const footprintRankMode = ref<'week' | 'month'>('week')
+  allTracks: any[]
+}>({ weekTracks: [], allTracks: [] })
+const footprintRankMode = ref<'week' | 'all'>('week')
 
 const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
@@ -418,13 +414,14 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
 }
 
 const loadFootprint = async (): Promise<void> => {
-  const [today, week, month, total, weekReport, monthReport] = await Promise.all([
+  const uid = user.value.userId
+  const [today, week, month, total, weekRecord, allRecord] = await Promise.all([
     safeRequest(listenTodaySongs(), '今日听歌'),
     safeRequest(listenRealtimeReport('week'), '本周听歌'),
     safeRequest(listenRealtimeReport('month'), '本月听歌'),
     safeRequest(listenTotal(), '累计听歌'),
-    safeRequest(listenReport({ type: 'week' }), '本周听歌报告'),
-    safeRequest(listenReport({ type: 'month' }), '本月听歌报告')
+    uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),
+    uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
   ])
 
   const todayTracks = extractTracks(today, 500)
@@ -441,41 +438,8 @@ const loadFootprint = async (): Promise<void> => {
   footprint.totalSeconds = normalizeDuration(
     extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   )
-
-  const weekRank = extractListenReportRank(weekReport, 20)
-  const monthRank = extractListenReportRank(monthReport, 20)
-  const rankIds = Array.from(
-    new Set(
-      [...weekRank, ...monthRank]
-        .map((track: any) => Number(track?.id ?? track?.songId))
-        .filter((id: number) => Number.isFinite(id) && id > 0)
-    )
-  )
-
-  const detailResult = rankIds.length
-    ? await safeRequest(getTrackDetail(rankIds.join(',')), '常听排行歌曲详情')
-    : undefined
-  const detailedTracks = extractTracks(detailResult, Math.max(rankIds.length, 1))
-  const detailById = new Map(
-    detailedTracks.map((track: any) => [String(track?.id ?? track?.songId), track])
-  )
-
-  const enrichRank = (items: any[]): any[] =>
-    items.map((summary: any) => {
-      const id = String(summary?.id ?? summary?.songId ?? '')
-      const detail = detailById.get(id) as any
-      if (!detail) return summary
-      return {
-        ...summary,
-        ...detail,
-        rankText: summary.rankText,
-        rank: summary.rank,
-        picUrl: detail?.al?.picUrl ?? detail?.album?.picUrl ?? summary.picUrl
-      }
-    })
-
-  footprint.weekTracks = enrichRank(weekRank)
-  footprint.monthTracks = enrichRank(monthRank)
+  footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
+  footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
 }
 
 const loadStyleCatalog = async (): Promise<void> => {

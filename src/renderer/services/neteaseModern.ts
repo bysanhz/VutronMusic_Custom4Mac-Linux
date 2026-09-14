@@ -282,6 +282,29 @@ export const extractListenReportRank = (source: any, limit = 20): any[] => {
     .filter(Boolean)
 }
 
+export const extractUserPlayRecord = (source: any, type: 'week' | 'all', limit = 20): any[] => {
+  const container = source?.data ?? source
+  const records = type === 'week' ? container?.weekData : container?.allData
+  if (!Array.isArray(records)) return []
+
+  return records
+    .slice(0, limit)
+    .map((record: any, index: number) => {
+      const track = normalizeTrack(record?.song ?? record)
+      if (!track) return null
+      const playCount = Number(record?.playCount)
+      const score = Number(record?.score)
+      return {
+        ...track,
+        rank: index + 1,
+        playCount: Number.isFinite(playCount) ? playCount : undefined,
+        score: Number.isFinite(score) ? score : undefined,
+        rankText: Number.isFinite(playCount) ? `${playCount}次收听` : `#${index + 1}`
+      }
+    })
+    .filter(Boolean)
+}
+
 const hasAnyKey = (keys: string[], candidates: string[]) =>
   candidates.some((candidate) => keys.includes(candidate))
 
