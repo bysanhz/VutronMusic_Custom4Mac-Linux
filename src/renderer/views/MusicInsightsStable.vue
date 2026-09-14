@@ -32,8 +32,11 @@
 
       <div class="metric-grid">
         <div class="metric-card">
-          <span>今日歌曲</span>
-          <strong>{{ footprint.todayCount ?? '—' }}</strong>
+          <span>今日</span>
+          <strong>{{
+            footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—'
+          }}</strong>
+          <small>{{ formatListenDuration(footprint.todaySeconds) }}</small>
         </div>
         <div class="metric-card">
           <span>本周</span>
@@ -282,12 +285,13 @@ import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
+import { getTrackDetail } from '../api/track'
 import {
   aiDjContentRecommend,
   cloudLyricGet,
   cloudMatch,
   listenRealtimeReport,
-  listenSongPlayRank,
+  listenReport,
   listenTodaySongs,
   listenTotal,
   playlistTrackAll,
@@ -308,8 +312,10 @@ import {
   extractAlbums,
   extractArtists,
   extractCursor,
+  extractListenReportRank,
   extractMetric,
   extractPlaylists,
+  extractTodayListenSeconds,
   extractTracks,
   formatListenDuration,
   isSuccessfulResponse,
@@ -342,6 +348,7 @@ const { showToast } = stateStore
 const refreshing = ref(false)
 const footprint = reactive<{
   todayCount?: number
+  todaySeconds?: number
   weekSeconds?: number
   monthSeconds?: number
   totalSeconds?: number
@@ -411,19 +418,20 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
 }
 
 const loadFootprint = async (): Promise<void> => {
-  const [today, week, month, total, weekRank, monthRank] = await Promise.all([
+  const [today, week, month, total, weekReport, monthReport] = await Promise.all([
     safeRequest(listenTodaySongs(), '今日听歌'),
     safeRequest(listenRealtimeReport('week'), '本周听歌'),
     safeRequest(listenRealtimeReport('month'), '本月听歌'),
     safeRequest(listenTotal(), '累计听歌'),
-    safeRequest(listenSongPlayRank({ type: 'week' }), '本周排行'),
-    safeRequest(listenSongPlayRank({ type: 'month' }), '本月排行')
+    safeRequest(listenReport({ type: 'week' }), '本周听歌报告'),
+    safeRequest(listenReport({ type: 'month' }), '本月听歌报告')
   ])
 
   const todayTracks = extractTracks(today, 500)
   footprint.todayCount =
     extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??
     todayTracks.length
+  footprint.todaySeconds = extractTodayListenSeconds(week)
   footprint.weekSeconds = normalizeDuration(
     extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   )
@@ -433,8 +441,41 @@ const loadFootprint = async (): Promise<void> => {
   footprint.totalSeconds = normalizeDuration(
     extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   )
-  footprint.weekTracks = extractTracks(weekRank, 20)
-  footprint.monthTracks = extractTracks(monthRank, 20)
+
+  const weekRank = extractListenReportRank(weekReport, 20)
+  const monthRank = extractListenReportRank(monthReport, 20)
+  const rankIds = Array.from(
+    new Set(
+      [...weekRank, ...monthRank]
+        .map((track: any) => Number(track?.id ?? track?.songId))
+        .filter((id: number) => Number.isFinite(id) && id > 0)
+    )
+  )
+
+  const detailResult = rankIds.length
+    ? await safeRequest(getTrackDetail(rankIds.join(',')), '常听排行歌曲详情')
+    : undefined
+  const detailedTracks = extractTracks(detailResult, Math.max(rankIds.length, 1))
+  const detailById = new Map(
+    detailedTracks.map((track: any) => [String(track?.id ?? track?.songId), track])
+  )
+
+  const enrichRank = (items: any[]): any[] =>
+    items.map((summary: any) => {
+      const id = String(summary?.id ?? summary?.songId ?? '')
+      const detail = detailById.get(id) as any
+      if (!detail) return summary
+      return {
+        ...summary,
+        ...detail,
+        rankText: summary.rankText,
+        rank: summary.rank,
+        picUrl: detail?.al?.picUrl ?? detail?.album?.picUrl ?? summary.picUrl
+      }
+    })
+
+  footprint.weekTracks = enrichRank(weekRank)
+  footprint.monthTracks = enrichRank(monthRank)
 }
 
 const loadStyleCatalog = async (): Promise<void> => {
@@ -834,6 +875,13 @@ button:disabled {
 
   strong {
     font-size: 25px;
+  }
+
+  small {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 650;
+    opacity: 0.58;
   }
 }
 

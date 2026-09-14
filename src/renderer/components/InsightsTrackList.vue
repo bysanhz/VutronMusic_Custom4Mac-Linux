@@ -14,7 +14,7 @@
           <span v-if="trackAlbum(track)"> · {{ trackAlbum(track) }}</span>
         </div>
       </div>
-      <div class="track-duration">{{ trackDuration(track) }}</div>
+      <div class="track-duration">{{ trackTrailingText(track) }}</div>
       <button
         class="play-button"
         :aria-label="`播放 ${track?.name || '歌曲'}`"
@@ -82,6 +82,9 @@ const trackDuration = (track: any): string => {
   const minutes = Math.floor(seconds / 60)
   return `${minutes}:${String(seconds % 60).padStart(2, '0')}`
 }
+
+const trackTrailingText = (track: any): string =>
+  String(track?.rankText ?? trackDuration(track) ?? '')
 
 const playTrack = (track: any): void => {
   const id = trackID(track)
