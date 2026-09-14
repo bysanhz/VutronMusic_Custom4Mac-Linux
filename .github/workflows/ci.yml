@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -18,10 +21,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,90 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Apply scroll safe-area fix
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace_once(path: str, old: str, new: str):
-              p = Path(path)
-              text = p.read_text()
-              if old not in text:
-                  raise SystemExit(f'missing target in {path}: {old[:120]!r}')
-              p.write_text(text.replace(old, new, 1))
-
-          replace_once(
-              'src/renderer/App.vue',
-              '''  const containerHeight = mainRef.value.clientHeight - 64\n  const contentHeight = mainRef.value.scrollHeight''',
-              '''  const containerHeight = mainRef.value.clientHeight\n  const contentHeight = mainRef.value.scrollHeight'''
-          )
-
-          replace_once(
-              'src/renderer/App.vue',
-              '''const mainStyle = computed(() => ({\n  paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',\n  paddingBottom: padding.value + 'px'\n}))\n\nconst showPlayerBar = computed(() => {\n  return ['mv', 'loginAccount'].includes(route.name as string) === false\n})''',
-              '''const showPlayerBar = computed(() => {\n  return ['mv', 'loginAccount'].includes(route.name as string) === false\n})\n\nconst PLAYER_SAFE_BOTTOM = 120\nconst mainStyle = computed(() => {\n  const safeBottom = enabled.value && showPlayerBar.value ? PLAYER_SAFE_BOTTOM : 0\n  return {\n    paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',\n    paddingBottom: Math.max(padding.value, safeBottom) + 'px'\n  }\n})'''
-          )
-
-          p = Path('src/renderer/views/ExplorePage.vue')
-          text = p.read_text()
-          target = "const updatePadding = inject('updatePadding') as (val: number) => void\nwatch(albumType, () => nextTick(() => updatePadding(0)))"
-          replacement = "const updatePadding = inject('updatePadding') as (val: number) => void\nconst EXPLORE_BOTTOM_PADDING = 120\nwatch(albumType, () => nextTick(() => updatePadding(EXPLORE_BOTTOM_PADDING)))"
-          if target not in text:
-              raise SystemExit('Explore padding declaration target missing')
-          text = text.replace(target, replacement, 1)
-          if text.count('  updatePadding(0)\n  resetViewData()') < 2:
-              raise SystemExit('Explore padding route targets missing')
-          text = text.replace('  updatePadding(0)\n  resetViewData()', '  updatePadding(EXPLORE_BOTTOM_PADDING)\n  resetViewData()', 2)
-          if '  updatePadding(96)\n  exploreTab.value' not in text:
-              raise SystemExit('Explore unmount padding target missing')
-          text = text.replace('  updatePadding(96)\n  exploreTab.value', '  updatePadding(EXPLORE_BOTTOM_PADDING)\n  exploreTab.value', 1)
-          p.write_text(text)
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''const verticalShow = ref(false)\nconst verticalActive = ref(false)\nconst isVerticalDragging = ref(false)''',
-              '''const verticalShow = ref(false)\nconst verticalActive = ref(false)\nconst isVerticalDragging = ref(false)\nconst verticalTrackBottom = ref(0)'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''const scrollHeight = computed(() => {\n  return scrollbar.value.active\n    ? scrollbar.value.instances[scrollbar.value.active].listHeight - marginTop.value\n    : 0\n})\n\nconst clientHeight = computed(() => {\n  return scrollbar.value.active\n    ? scrollbar.value.instances[scrollbar.value.active].containerHeight - marginTop.value\n    : 0\n})''',
-              '''const scrollHeight = computed(() => {\n  return scrollbar.value.active ? scrollbar.value.instances[scrollbar.value.active].listHeight : 0\n})\n\nconst clientHeight = computed(() => {\n  return scrollbar.value.active\n    ? scrollbar.value.instances[scrollbar.value.active].containerHeight\n    : 0\n})\n\nconst verticalTrackHeight = computed(() =>\n  Math.max(0, clientHeight.value - marginTop.value - verticalTrackBottom.value)\n)\nconst verticalScrollDistance = computed(() => Math.max(0, scrollHeight.value - clientHeight.value))'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''const verticalThumbStyle = computed(() => {\n  if (!scrollHeight.value || !clientHeight.value) return {}\n  let thumbHeight = ~~((clientHeight.value / scrollHeight.value) * clientHeight.value)\n  const top = ~~((scrollTop.value / scrollHeight.value) * clientHeight.value)\n  thumbHeight = Math.max(thumbHeight, 30)\n  return { height: `${thumbHeight}px`, transform: `translateY(${top}px)` }\n})''',
-              '''const verticalThumbStyle = computed(() => {\n  const trackHeight = verticalTrackHeight.value\n  if (!scrollHeight.value || !clientHeight.value || !trackHeight) return {}\n\n  const thumbHeight = Math.min(\n    trackHeight,\n    Math.max((clientHeight.value / scrollHeight.value) * trackHeight, 30)\n  )\n  const movableDistance = Math.max(0, trackHeight - thumbHeight)\n  const top =\n    verticalScrollDistance.value > 0\n      ? (scrollTop.value / verticalScrollDistance.value) * movableDistance\n      : 0\n\n  return {\n    height: `${thumbHeight}px`,\n    transform: `translateY(${Math.max(0, Math.min(top, movableDistance))}px)`\n  }\n})'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''const handleVerticalDragMove = (event: MouseEvent) => {\n  if (!isVerticalDragging.value || !clientHeight.value) return\n  const offset = ~~(\n    ((event.clientY - verticalDragStartY.value) / clientHeight.value) * scrollHeight.value\n  )\n  eventBus.emit('update-scroll-bar', { active: scrollbar.value.active, offset })\n}''',
-              '''const handleVerticalDragMove = (event: MouseEvent) => {\n  if (!isVerticalDragging.value || !verticalTrackHeight.value) return\n\n  const style = verticalThumbStyle.value\n  const thumbHeight = Number.parseFloat(String(style.height ?? '30')) || 30\n  const movableDistance = Math.max(1, verticalTrackHeight.value - thumbHeight)\n  const offset =\n    ((event.clientY - verticalDragStartY.value) / movableDistance) * verticalScrollDistance.value\n  eventBus.emit('update-scroll-bar', { active: scrollbar.value.active, offset })\n}'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''  horizontalTrackBottom.value = playerVisible ? Math.round(playerRect!.height) : 0''',
-              '''  const playerHeight = playerVisible ? Math.round(playerRect!.height) : 0\n  horizontalTrackBottom.value = playerHeight\n  verticalTrackBottom.value = playerHeight'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''.scrollbar--vertical {\n  position: fixed;\n  top: 0;\n  right: 0;\n  bottom: 0;''',
-              '''.scrollbar--vertical {\n  position: fixed;\n  top: v-bind('`${marginTop}px`');\n  right: 0;\n  bottom: v-bind('`${verticalTrackBottom}px`');'''
-          )
-
-          replace_once(
-              'src/renderer/components/ScrollBar.vue',
-              '''  .thumbContainer--vertical {\n    margin-top: v-bind('`${marginTop}px`');\n\n    div {''',
-              '''  .thumbContainer--vertical {\n    div {'''
-          )
-          PY
-
-          yarn prettier src/renderer/App.vue src/renderer/views/ExplorePage.vue src/renderer/components/ScrollBar.vue .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -131,14 +48,3 @@ jobs:
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist scroll safe-area fix
-        run: |
-          if git diff --quiet -- src/renderer/App.vue src/renderer/views/ExplorePage.vue src/renderer/components/ScrollBar.vue; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/renderer/App.vue src/renderer/views/ExplorePage.vue src/renderer/components/ScrollBar.vue
-          git commit -m "fix: keep content above player and correct scrollbar range"
-          git push origin HEAD:${{ github.head_ref }}
