@@ -4,8 +4,7 @@ import { Type, Mode, TranslationMode } from '@/types/music'
 
 const LEGACY_FIXED_LYRIC_FONT_SIZE = 26
 const BUILTIN_LYRIC_PALETTE_VERSION = '1'
-const BUILTIN_LYRIC_PALETTE_VERSION_KEY =
-  'vutronmusic-osd-lyric-palette-version'
+const BUILTIN_LYRIC_PALETTE_VERSION_KEY = 'vutronmusic-osd-lyric-palette-version'
 const BUILTIN_LYRIC_BACKGROUND = 'rgba(0, 0, 0, 0)'
 const BUILTIN_LYRIC_PLAYED = 'rgba(7, 185, 187, 1)'
 const BUILTIN_LYRIC_UNPLAYED = 'rgba(239, 152, 207, 1)'
@@ -66,10 +65,7 @@ export const useOsdLyricStore = defineStore(
       playedLrcColor.value = BUILTIN_LYRIC_PLAYED
       unplayLrcColor.value = BUILTIN_LYRIC_UNPLAYED
       textShadow.value = BUILTIN_LYRIC_SHADOW
-      window.localStorage.setItem(
-        BUILTIN_LYRIC_PALETTE_VERSION_KEY,
-        BUILTIN_LYRIC_PALETTE_VERSION
-      )
+      window.localStorage.setItem(BUILTIN_LYRIC_PALETTE_VERSION_KEY, BUILTIN_LYRIC_PALETTE_VERSION)
     }
 
     window.setTimeout(migrateBuiltinLyricPalette, 0)
