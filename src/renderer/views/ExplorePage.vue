@@ -649,10 +649,11 @@ const loadData = () => {
 }
 
 const updatePadding = inject('updatePadding') as (val: number) => void
-watch(albumType, () => nextTick(() => updatePadding(0)))
+const EXPLORE_BOTTOM_PADDING = 120
+watch(albumType, () => nextTick(() => updatePadding(EXPLORE_BOTTOM_PADDING)))
 
 onBeforeRouteUpdate((to, _from, next) => {
-  updatePadding(0)
+  updatePadding(EXPLORE_BOTTOM_PADDING)
   resetViewData()
   syncRoute(to)
   void getPlaylist()
@@ -660,13 +661,13 @@ onBeforeRouteUpdate((to, _from, next) => {
 })
 
 onMounted(() => {
-  updatePadding(0)
+  updatePadding(EXPLORE_BOTTOM_PADDING)
   resetViewData()
   loadData()
 })
 
 onBeforeUnmount(() => {
-  updatePadding(96)
+  updatePadding(EXPLORE_BOTTOM_PADDING)
   exploreTab.value = 'playlist'
 })
 </script>
