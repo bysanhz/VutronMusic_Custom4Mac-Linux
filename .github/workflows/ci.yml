@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -21,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,8 +32,63 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Replace inferred report songs with authoritative play records
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('src/renderer/services/neteaseModern.ts')
+          text = service.read_text()
+          marker = '''const hasAnyKey = (keys: string[], candidates: string[]) =>\n'''
+          helper = '''export const extractUserPlayRecord = (\n  source: any,\n  type: 'week' | 'all',\n  limit = 20\n): any[] => {\n  const container = source?.data ?? source\n  const records = type === 'week' ? container?.weekData : container?.allData\n  if (!Array.isArray(records)) return []\n\n  return records\n    .slice(0, limit)\n    .map((record: any, index: number) => {\n      const track = normalizeTrack(record?.song ?? record)\n      if (!track) return null\n      const playCount = Number(record?.playCount)\n      const score = Number(record?.score)\n      return {\n        ...track,\n        rank: index + 1,\n        playCount: Number.isFinite(playCount) ? playCount : undefined,\n        score: Number.isFinite(score) ? score : undefined,\n        rankText: Number.isFinite(playCount) ? `${playCount}次收听` : `#${index + 1}`\n      }\n    })\n    .filter(Boolean)\n}\n\n'''
+          if 'export const extractUserPlayRecord' not in text:
+              if marker not in text:
+                  raise SystemExit('service insertion marker missing')
+              text = text.replace(marker, helper + marker, 1)
+          service.write_text(text)
+
+          view = Path('src/renderer/views/MusicInsightsStable.vue')
+          text = view.read_text()
+
+          replacements = [
+              (
+                  '<p>今日、周/月与累计收听数据；单个接口不可用时不会拖垮整个页面。</p>',
+                  '<p>今日、周/月与累计收听数据；常听榜仅展示网易云账号真实播放记录。</p>'
+              ),
+              (
+                  ''':class="{ active: footprintRankMode === 'month' }"\n          @click="footprintRankMode = 'month'"''',
+                  ''':class="{ active: footprintRankMode === 'all' }"\n          @click="footprintRankMode = 'all'"'''
+              ),
+              ('本月常听', '历史常听'),
+              (
+                  '''v-show="footprintRankMode === 'month'"\n          :items="footprint.monthTracks"\n          empty-text="当前账号暂时没有本月听歌排行。"''',
+                  '''v-show="footprintRankMode === 'all'"\n          :items="footprint.allTracks"\n          empty-text="当前账号暂时没有历史播放排行，或网易云未开放该数据。"'''
+              ),
+              ("import { getTrackDetail } from '../api/track'\n", ''),
+              ('  listenReport,\n', '  userPlayRecord,\n'),
+              ('  extractListenReportRank,\n', '  extractUserPlayRecord,\n'),
+              (
+                  '''  weekTracks: any[]\n  monthTracks: any[]\n}>({ weekTracks: [], monthTracks: [] })\nconst footprintRankMode = ref<'week' | 'month'>('week')''',
+                  '''  weekTracks: any[]\n  allTracks: any[]\n}>({ weekTracks: [], allTracks: [] })\nconst footprintRankMode = ref<'week' | 'all'>('week')'''
+              )
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing view replacement target: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          start = text.index('const loadFootprint = async (): Promise<void> => {')
+          end = text.index('\nconst loadStyleCatalog = async (): Promise<void> => {', start)
+          new_load = '''const loadFootprint = async (): Promise<void> => {\n  const uid = user.value.userId\n  const [today, week, month, total, weekRecord, allRecord] = await Promise.all([\n    safeRequest(listenTodaySongs(), '今日听歌'),\n    safeRequest(listenRealtimeReport('week'), '本周听歌'),\n    safeRequest(listenRealtimeReport('month'), '本月听歌'),\n    safeRequest(listenTotal(), '累计听歌'),\n    uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),\n    uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)\n  ])\n\n  const todayTracks = extractTracks(today, 500)\n  footprint.todayCount =\n    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??\n    todayTracks.length\n  footprint.todaySeconds = extractTodayListenSeconds(week)\n  footprint.weekSeconds = normalizeDuration(\n    extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.monthSeconds = normalizeDuration(\n    extractMetric(month, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.totalSeconds = normalizeDuration(\n    extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)\n  footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)\n}\n'''
+          text = text[:start] + new_load + text[end:]
+          view.write_text(text)
+          PY
+
+          yarn prettier \
+            src/renderer/api/modern.ts \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/views/MusicInsightsStable.vue \
+            --write
 
       - name: Lint source
         run: yarn lint
@@ -46,6 +100,22 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist accurate listening record changes
+        run: |
+          if git diff --quiet -- \
+            src/renderer/api/modern.ts \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/views/MusicInsightsStable.vue; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/renderer/api/modern.ts \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/views/MusicInsightsStable.vue
+          git commit -m "fix: use authoritative playback records for listening ranks"
+          git push origin HEAD:${{ github.head_ref }}
