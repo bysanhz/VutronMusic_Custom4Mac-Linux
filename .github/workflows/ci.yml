@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -14,14 +17,12 @@ concurrency:
 
 jobs:
   verify:
-    name: Patch, lint, type check, test and build
+    name: Lint, type check, test and build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,117 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Apply OSD fallback, compact spacing and native virtual scrolling fixes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace_once(text: str, old: str, new: str, label: str) -> str:
-              if old not in text:
-                  if new in text:
-                      return text
-                  raise SystemExit(f'missing replacement target: {label}')
-              return text.replace(old, new, 1)
-
-          # 1) Pure-instrumental/no-lyric fallback must use the configured lyric palette.
-          path = Path('src/renderer/components/OsdLyricContainer.vue')
-          text = path.read_text()
-          text = replace_once(
-              text,
-              """      'two-line': type === 'small' && mode === 'twoLines'\n""",
-              """      'two-line': type === 'small' && mode === 'twoLines',\n      'fallback-track-title': isFallbackTrackTitle\n""",
-              'fallback class binding'
-          )
-          text = replace_once(
-              text,
-              "const playbackRate = ref(1.0)\n",
-              """const playbackRate = ref(1.0)\nconst isFallbackTrackTitle = ref(false)\n\n/**\n * Pure-instrumental tracks can legitimately have no lyric payload. In that case we\n * render one informational line using the user's configured unplayed-lyric color\n * instead of treating the title as a played lyric or falling back to a legacy green.\n */\nconst applyFallbackTrackTitle = (player: Record<string, any>) => {\n  const track = player.currentTrack\n  if (!track) {\n    isFallbackTrackTitle.value = false\n    return\n  }\n  const artists = track.artists ?? track.ar ?? []\n  lyrics.value = [\n    {\n      start: 0,\n      end: 0,\n      lyric: {\n        text: `${artists[0]?.name || '未知歌手'} - ${track.name || '听你想听的音乐'}`\n      }\n    }\n  ]\n  currentIndex.value = 0\n  isFallbackTrackTitle.value = true\n}\n""",
-              'fallback helper'
-          )
-          text = replace_once(
-              text,
-              """  if (data.lyrics !== undefined) {\n    lyrics.value = data.lyrics\n  }\n""",
-              """  if (data.lyrics !== undefined) {\n    if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {\n      lyrics.value = data.lyrics\n      isFallbackTrackTitle.value = false\n    } else {\n      let player: Record<string, any> = {}\n      try {\n        player = JSON.parse(localStorage.getItem('player') || '{}')\n      } catch {\n        player = {}\n      }\n      applyFallbackTrackTitle(player)\n    }\n  }\n""",
-              'message fallback'
-          )
-          text = replace_once(
-              text,
-              """  if (!lyrics.value.length && player.currentTrack) {\n    const artists = player.currentTrack.artists ?? player.currentTrack.ar ?? []\n    lyrics.value[0] = {\n      start: 0,\n      end: 0,\n      lyric: {\n        text: `${artists[0]?.name || '未知歌手'} - ${player.currentTrack.name || '听你想听的音乐'}`\n      }\n    }\n  }\n""",
-              """  if (!lyrics.value.length && player.currentTrack) {\n    applyFallbackTrackTitle(player)\n  } else {\n    isFallbackTrackTitle.value = false\n  }\n""",
-              'mounted fallback'
-          )
-          marker = """.container:not(.mini) {\n"""
-          fallback_css = """.container.fallback-track-title {\n  :deep(.lyric-line span) {\n    background: none !important;\n    background-image: none !important;\n    color: v-bind('`${unplayLrcColor}`') !important;\n    -webkit-text-fill-color: v-bind('`${unplayLrcColor}`') !important;\n    text-shadow: 0 0 2px v-bind('textShadow');\n  }\n}\n\n"""
-          if fallback_css not in text:
-              text = replace_once(text, marker, fallback_css + marker, 'fallback css')
-          path.write_text(text)
-
-          # 2) Compact OSD: square cover + almost-zero gap so lyric text begins earlier.
-          path = Path('src/renderer/views/OSDLyric.vue')
-          text = path.read_text()
-          text = replace_once(
-              text,
-              """  grid-template-columns:\n    45px\n    minmax(0, 1fr);\n\n  column-gap: 2px;""",
-              """  grid-template-columns:\n    35px\n    minmax(0, 1fr);\n\n  column-gap: 1px;""",
-              'compact OSD columns'
-          )
-          path.write_text(text)
-
-          path = Path('src/renderer/components/CompactCoverControls.vue')
-          text = path.read_text()
-          text = replace_once(text, '  width: 45px;\n  height: 35px;', '  width: 35px;\n  height: 35px;', 'compact cover size')
-          path.write_text(text)
-
-          # 3) Nested virtual list: once the outer page reaches bottom, return control to
-          # Chromium's native scrolling instead of manually adding raw wheel deltas. This
-          # restores touchpad/wheel acceleration and removes the "must scroll forever" feel.
-          path = Path('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
-          text = path.read_text()
-          old_wheel = """  if (event.deltaY > 0) {\n    if (!isMainAtBottom(main)) return\n\n    if (maxInnerScroll <= 1) {\n      // A short first page can have no internal scroll range yet. Triggering the\n      // component's existing bottom check requests the next page immediately.\n      dispatchVirtualScrollCheck(scroller)\n      event.preventDefault()\n      return\n    }\n\n    const before = scroller.scrollTop\n    scroller.scrollTop = Math.min(maxInnerScroll, before + event.deltaY)\n    if (scroller.scrollTop === before || scroller.scrollTop >= maxInnerScroll - 1) {\n      dispatchVirtualScrollCheck(scroller)\n    }\n    event.preventDefault()\n    return\n  }\n\n  if (scroller.scrollTop <= 0) return\n  scroller.scrollTop = Math.max(0, scroller.scrollTop + event.deltaY)\n  event.preventDefault()\n"""
-          new_wheel = """  if (event.deltaY > 0) {\n    if (!isMainAtBottom(main)) return\n\n    scroller.style.overflowY = 'auto'\n    if (maxInnerScroll <= 1 || scroller.scrollTop >= maxInnerScroll - 1) {\n      // No internal range (or already at its bottom): ask the component to fetch/check\n      // immediately. Otherwise leave the event untouched so Chromium preserves native\n      // wheel/touchpad acceleration and momentum inside the virtual list.\n      dispatchVirtualScrollCheck(scroller)\n      event.preventDefault()\n    }\n    return\n  }\n\n  if (scroller.scrollTop <= 0) return\n  scroller.style.overflowY = 'auto'\n  // Do not preventDefault here: native scrolling is much faster and smoother than\n  // manually adding raw WheelEvent.deltaY for every gesture.\n"""
-          text = replace_once(text, old_wheel, new_wheel, 'native nested wheel scrolling')
-          text = replace_once(text, "grid-template-columns: 45px minmax(0, 1fr) !important;", "grid-template-columns: 35px minmax(0, 1fr) !important;", 'preview cover column')
-          text = replace_once(text, "column-gap: 2px !important;", "column-gap: 1px !important;", 'preview cover gap')
-          text = replace_once(text, "width: 45px !important;\n      height: 35px !important;", "width: 35px !important;\n      height: 35px !important;", 'preview cover size')
-          text = replace_once(
-              text,
-              """    align: 'center',\n    coverControlsVisible: true\n  }\n}""",
-              """    align: 'left',\n    coverControlsVisible: true\n  }\n}""",
-              'preview built-in cover alignment'
-          )
-          path.write_text(text)
-
-          # 4) Load the next page earlier, before the user visually reaches the final row.
-          path = Path('src/renderer/components/VirtualScrollNoHeight.vue')
-          text = path.read_text()
-          text = replace_once(
-              text,
-              "const loadMoreThreshold = Math.min(96, Math.max(24, containerHeight * 0.12))",
-              "const loadMoreThreshold = Math.min(720, Math.max(320, containerHeight * 0.8))",
-              'early load-more threshold'
-          )
-          text = replace_once(text, "rootMargin: '0px 0px 180px 0px'", "rootMargin: '0px 0px 640px 0px'", 'sentinel prefetch margin')
-          path.write_text(text)
-
-          # Source-level regression coverage.
-          path = Path('tests/feature-regression.spec.ts')
-          text = path.read_text()
-          marker = "test.describe('OSD fallback palette and nested scroll ergonomics'"
-          if marker not in text:
-              text += """\n\ntest.describe('OSD fallback palette and nested scroll ergonomics', () => {\n  test('uses configured lyric color for no-lyric track-title fallback', () => {\n    const source = readSource('src/renderer/components/OsdLyricContainer.vue')\n    expect(source).toContain("'fallback-track-title': isFallbackTrackTitle")\n    expect(source).toContain("color: v-bind('`${unplayLrcColor}`') !important")\n    expect(source).toContain('applyFallbackTrackTitle(player)')\n  })\n\n  test('keeps compact cover narrow and restores native nested wheel scrolling', () => {\n    const osd = readSource('src/renderer/views/OSDLyric.vue')\n    const cover = readSource('src/renderer/components/CompactCoverControls.vue')\n    const interaction = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')\n    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')\n\n    expect(osd).toContain('    35px\\n    minmax(0, 1fr)')\n    expect(cover).toContain('width: 35px;')\n    expect(interaction).toContain("scroller.style.overflowY = 'auto'")\n    expect(interaction).toContain('native scrolling is much faster and smoother')\n    expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')\n    expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")\n  })\n})\n"""
-          path.write_text(text)
-          PY
-
-          yarn prettier \
-            src/renderer/components/OsdLyricContainer.vue \
-            src/renderer/views/OSDLyric.vue \
-            src/renderer/components/CompactCoverControls.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            tests/feature-regression.spec.ts \
-            .github/workflows/ci.yml \
-            --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -156,28 +46,6 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist generated fixes
-        run: |
-          if git diff --quiet -- \
-            src/renderer/components/OsdLyricContainer.vue \
-            src/renderer/views/OSDLyric.vue \
-            src/renderer/components/CompactCoverControls.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            tests/feature-regression.spec.ts; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add \
-            src/renderer/components/OsdLyricContainer.vue \
-            src/renderer/views/OSDLyric.vue \
-            src/renderer/components/CompactCoverControls.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            tests/feature-regression.spec.ts
-          git commit -m "fix: tighten OSD spacing and restore native virtual scrolling"
-          git push origin HEAD:${{ github.head_ref }}
