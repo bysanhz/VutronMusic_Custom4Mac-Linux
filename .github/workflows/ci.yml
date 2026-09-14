@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -21,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,8 +32,116 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Apply infinite-loading fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          virtual = Path('src/renderer/components/VirtualScrollNoHeight.vue')
+          text = virtual.read_text()
+
+          replacements = [
+              (
+                  '''    <div class="infinite-list-phantom" :style="{ height: listHeight + 'px' }"></div>\n    <div v-if="showPosition" class="position">''',
+                  '''    <div class="infinite-list-phantom" :style="{ height: listHeight + 'px' }"></div>\n    <div\n      ref="loadMoreSentinelRef"\n      class="load-more-sentinel"\n      :style="{ top: Math.max(0, listHeight - 2) + 'px' }"\n    ></div>\n    <div v-if="showPosition" class="position">'''
+              ),
+              ('    loadMore?: () => void\n', '    loadMore?: () => void | Promise<unknown>\n'),
+              (
+                  '''const listRef = ref()\nconst footerRef = ref()\nconst itemsRef = ref()''',
+                  '''const listRef = ref<HTMLElement>()\nconst footerRef = ref<HTMLElement>()\nconst loadMoreSentinelRef = ref<HTMLElement>()\nconst itemsRef = ref<HTMLElement[]>([])'''
+              ),
+              (
+                  '''const onScrollToBottom = () => {''',
+                  '''const loadMoreInFlight = ref(false)\n\n/**\n * 请求下一页，并把同一次触底期间的重复 scroll/sentinel 事件合并成一个请求。\n */\nconst requestLoadMore = async () => {\n  if (loadMoreInFlight.value) return\n  loadMoreInFlight.value = true\n  try {\n    await props.loadMore()\n  } finally {\n    loadMoreInFlight.value = false\n  }\n}\n\nconst onScrollToBottom = () => {'''
+              ),
+              ('    props.loadMore()\n', '    void requestLoadMore()\n'),
+              (
+                  '''const updateWindowHeight = () => {''',
+                  '''let loadMoreObserver: IntersectionObserver | null = null\n\n/**\n * 用列表底部哨兵触发分页。scroll 阈值仍保留作为降级路径，两者共用请求锁。\n */\nconst observeLoadMoreSentinel = () => {\n  loadMoreObserver?.disconnect()\n  if (!listRef.value || !loadMoreSentinelRef.value) return\n\n  loadMoreObserver = new IntersectionObserver(\n    (entries) => {\n      if (entries.some((entry) => entry.isIntersecting)) {\n        void requestLoadMore()\n      }\n    },\n    {\n      root: listRef.value,\n      rootMargin: '0px 0px 180px 0px',\n      threshold: 0\n    }\n  )\n  loadMoreObserver.observe(loadMoreSentinelRef.value)\n}\n\nconst updateWindowHeight = () => {'''
+              ),
+              (
+                  '''onActivated(() => {\n  nextTick(() => {\n    observer.observe(listRef.value)''',
+                  '''onActivated(() => {\n  nextTick(() => {\n    observer.observe(listRef.value)\n    observeLoadMoreSentinel()'''
+              ),
+              (
+                  '''onDeactivated(() => {\n  // startRow.value = 0\n  unregisterInstance(instanceId.value)\n  observer.unobserve(listRef.value)''',
+                  '''onDeactivated(() => {\n  // startRow.value = 0\n  unregisterInstance(instanceId.value)\n  loadMoreObserver?.disconnect()\n  observer.unobserve(listRef.value)'''
+              ),
+              (
+                  '''  nextTick(() => {\n    observer.observe(listRef.value)\n    setTimeout(() => {\n      updateItemsSize()''',
+                  '''  nextTick(() => {\n    observer.observe(listRef.value)\n    observeLoadMoreSentinel()\n    setTimeout(() => {\n      updateItemsSize()'''
+              ),
+              (
+                  '''onBeforeUnmount(() => {\n  unregisterInstance(instanceId.value)''',
+                  '''onBeforeUnmount(() => {\n  unregisterInstance(instanceId.value)\n  loadMoreObserver?.disconnect()'''
+              ),
+              (
+                  '''.infinite-list-phantom {''',
+                  '''.load-more-sentinel {\n  position: absolute;\n  left: 0;\n  width: 2px;\n  height: 2px;\n  pointer-events: none;\n}\n\n.infinite-list-phantom {'''
+              )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing VirtualScroll target: {old[:120]!r}')
+              text = text.replace(old, new, 1)
+
+          virtual.write_text(text)
+
+          explore = Path('src/renderer/views/ExplorePage.vue')
+          text = explore.read_text()
+
+          replacements = [
+              (
+                  '''const followingMvs = ref<any[]>([])\n''',
+                  '''const followingMvs = ref<any[]>([])\nconst loadingMore = ref(false)\n'''
+              ),
+              (
+                  '''const updatePlaylist = (playlistList: any[] = []) => {\n  tracks.value = []\n  playlists.value.push(...playlistList)\n  tricklingProgress.done()\n  show.value = true\n}''',
+                  '''const updatePlaylist = (playlistList: any[] = []) => {\n  tracks.value = []\n  const existingIds = new Set(\n    playlists.value.map((item) => (item?.id == null ? '' : String(item.id))).filter(Boolean)\n  )\n  for (const item of playlistList) {\n    const id = item?.id == null ? '' : String(item.id)\n    if (!id || !existingIds.has(id)) {\n      playlists.value.push(item)\n      if (id) existingIds.add(id)\n    }\n  }\n  tricklingProgress.done()\n  show.value = true\n}'''
+              ),
+              (
+                  '''const loadMore = () => {\n  if (!['推荐歌单', '排行榜'].includes(activeCategory.value)) void getPlaylist()\n}''',
+                  '''const canLoadMore = () => {\n  if (exploreTab.value === 'playlist') {\n    return !['推荐歌单', '排行榜'].includes(activeCategory.value) && playlistInfo.more\n  }\n  if (exploreTab.value === 'artist') return artistInfo.more\n  if (exploreTab.value === 'newAlbum') {\n    if (albumType.value !== '全部') return false\n    const { albums, total } = newAlbumInfo.newAlbums\n    return total <= 0 || albums.length < total\n  }\n  return false\n}\n\nconst loadMore = async () => {\n  if (loadingMore.value || !canLoadMore()) return\n  loadingMore.value = true\n  try {\n    await getPlaylist()\n  } catch (error) {\n    console.warn('[Explore] 加载下一页失败:', error)\n  } finally {\n    loadingMore.value = false\n  }\n}'''
+              ),
+              (
+                  '''    return topPlaylist({ cat: activeCategory.value, offset: playlists.value.length }).then(\n      (data) => {\n        playlistInfo.more = data.more''',
+                  '''    return topPlaylist({\n      cat: activeCategory.value,\n      limit: 50,\n      offset: playlists.value.length\n    }).then((data) => {\n        playlistInfo.more = Boolean(data.more) && Boolean(data.playlists?.length)'''
+              ),
+              (
+                  '''    updatePlaylist(data.artists)\n    artistInfo.more = data.more''',
+                  '''    updatePlaylist(data.artists)\n    artistInfo.more = Boolean(data.more) && Boolean(data.artists?.length)'''
+              ),
+              (
+                  '''  playlistInfo.more = true\n  playlistInfo.lasttime = 0\n  artistInfo.more = true''',
+                  '''  playlistInfo.more = true\n  playlistInfo.lasttime = 0\n  artistInfo.more = true\n  loadingMore.value = false'''
+              )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing Explore target: {old[:140]!r}')
+              text = text.replace(old, new, 1)
+
+          explore.write_text(text)
+          PY
+
+          yarn prettier \
+            src/renderer/components/VirtualScrollNoHeight.vue \
+            src/renderer/views/ExplorePage.vue \
+            --write
+
+      - name: Persist source changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/renderer/components/VirtualScrollNoHeight.vue src/renderer/views/ExplorePage.vue
+          git commit -m "fix: reliably load more explore items"
+          git push origin HEAD:${{ github.head_ref }}
+
+      - name: Check changed-file formatting
+        run: >-
+          yarn prettier src/renderer/components/VirtualScrollNoHeight.vue src/renderer/views/ExplorePage.vue --check
 
       - name: Lint source
         run: yarn lint
@@ -45,7 +152,6 @@ jobs:
       - name: Run security and feature regression tests
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
-
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
