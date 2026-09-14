@@ -146,7 +146,9 @@ const resolveSelectedPreset = (presetId: string): PresetSettings | null => {
   if (!presetId) return null
 
   if (presetId.startsWith('user-')) {
-    return readPresetArray(PRESETS_STORAGE_KEY).find((item) => item.id === presetId)?.settings || null
+    return (
+      readPresetArray(PRESETS_STORAGE_KEY).find((item) => item.id === presetId)?.settings || null
+    )
   }
 
   const override = readPresetArray(BUILTIN_OVERRIDES_STORAGE_KEY).find(
@@ -280,7 +282,8 @@ const renderAccuratePreview = (): void => {
   const lyrics = control?.querySelector<HTMLElement>('.vutronmusic-osd-preset-preview-lyrics')
   const playedLine = lyrics?.querySelector<HTMLElement>('strong')
   const waitingLine = lyrics?.querySelector<HTMLElement>('small')
-  const select = control?.querySelector<HTMLSelectElement>('.vutronmusic-v327-controls select') ?? null
+  const select =
+    control?.querySelector<HTMLSelectElement>('.vutronmusic-v327-controls select') ?? null
   if (!preview || !cover || !lyrics || !playedLine || !waitingLine) return
 
   const settings = resolvePreviewSettings(select)
@@ -319,15 +322,14 @@ const scheduleAccuratePreview = (): void => {
   })
 }
 
-const findMainScroller = (): HTMLElement | null =>
-  document.querySelector<HTMLElement>('#app #main')
+const findMainScroller = (): HTMLElement | null => document.querySelector<HTMLElement>('#app #main')
 
 const isMainAtBottom = (main: HTMLElement): boolean =>
   main.scrollTop + main.clientHeight >= main.scrollHeight - 8
 
 const findExploreVirtualScroller = (target: EventTarget | null): HTMLElement | null => {
   if (!(target instanceof Element)) return null
-  return target.closest<HTMLElement>('.explore-page .infinite-list-container')
+  return target.closest('.explore-page .infinite-list-container') as HTMLElement | null
 }
 
 const dispatchVirtualScrollCheck = (scroller: HTMLElement): void => {
@@ -382,7 +384,9 @@ const handleCapturedScroll = (event: Event): void => {
   if (now - lastMainBottomCheck < 120) return
   lastMainBottomCheck = now
 
-  const scrollers = [...document.querySelectorAll<HTMLElement>('.explore-page .infinite-list-container')]
+  const scrollers = [
+    ...document.querySelectorAll<HTMLElement>('.explore-page .infinite-list-container')
+  ]
   const activeScroller = scrollers.find((element) => {
     const rect = element.getBoundingClientRect()
     return rect.width > 0 && rect.height > 0
