@@ -22,15 +22,19 @@
     <div class="index-row">
       <div class="title">For You</div>
       <div class="for-you-row">
-        <DailyTracksCard ref="DailyTracksCardRef" />
-        <FMCard />
-        <button class="insights-card" @click="router.push('/insights')">
-          <div class="insights-eyebrow">NEW</div>
-          <div class="insights-title">音乐洞察</div>
-          <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>
-          <div class="insights-link">打开 →</div>
-        </button>
+        <div class="for-you-card">
+          <DailyTracksCard ref="DailyTracksCardRef" />
+        </div>
+        <div class="for-you-card">
+          <FMCard />
+        </div>
       </div>
+      <button class="insights-card" @click="router.push('/insights')">
+        <div class="insights-eyebrow">NEW</div>
+        <div class="insights-title">音乐洞察</div>
+        <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>
+        <div class="insights-link">打开 →</div>
+      </button>
     </div>
 
     <div v-if="personalizedTracks.length" class="index-row">
@@ -306,13 +310,15 @@ onBeforeUnmount(() => {
 }
 
 .banner {
-  margin: 20px 0;
+  margin: 14px 0 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 168px;
+  overflow: hidden;
+  border-radius: 12px;
   .banner-item {
     width: 440px;
     position: absolute;
@@ -340,7 +346,7 @@ onBeforeUnmount(() => {
   .banner-item.center {
     cursor: pointer;
     pointer-events: auto;
-    transform: scale(1.2);
+    transform: scale(1.12);
     z-index: 2;
   }
   .banner-item.left {
@@ -373,23 +379,30 @@ onBeforeUnmount(() => {
 }
 
 .for-you-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  width: 100%;
   gap: 20px;
-  margin-bottom: 34px;
+  margin-bottom: 18px;
   align-items: stretch;
 }
 
-.for-you-row > * {
+.for-you-card {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+}
+
+.for-you-card :deep(.daily-recommend-card),
+.for-you-card :deep(.fm) {
+  width: 100%;
   min-width: 0;
 }
 
 .insights-card {
-  grid-column: 1 / -1;
-}
-
-.insights-card {
-  min-height: 146px;
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  margin-bottom: 34px;
   padding: 22px 24px;
   border: 0;
   border-radius: 14px;
@@ -440,13 +453,49 @@ onBeforeUnmount(() => {
   color: var(--color-primary);
 }
 
-@media (max-width: 760px) {
-  .for-you-row {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .banner {
+    height: 158px;
   }
 
-  .insights-card {
-    grid-column: auto;
+  .banner .banner-item {
+    width: 380px;
+  }
+
+  .banner .banner-item.center {
+    transform: scale(1.08);
+  }
+
+  .banner .banner-item.left {
+    transform: translateX(-280px);
+  }
+
+  .banner .banner-item.right {
+    transform: translateX(280px);
+  }
+}
+
+@media (max-width: 760px) {
+  .for-you-row {
+    flex-direction: column;
+  }
+
+  .for-you-card {
+    width: 100%;
+  }
+
+  .banner {
+    height: 150px;
+  }
+
+  .banner .banner-item.left,
+  .banner .banner-item.right {
+    display: none;
+  }
+
+  .banner .banner-item.center {
+    width: min(100%, 520px);
+    transform: none;
   }
 }
 </style>
