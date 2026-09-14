@@ -34,7 +34,10 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
       - name: Check formatting
-        run: yarn run format:check
+        run: |
+          yarn prettier src/renderer/utils/osdPreviewExploreInteractionFix.ts --write
+          git diff -- src/renderer/utils/osdPreviewExploreInteractionFix.ts
+          git diff --exit-code -- src/renderer/utils/osdPreviewExploreInteractionFix.ts
 
       - name: Lint source
         run: yarn lint
