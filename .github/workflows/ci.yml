@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -18,10 +21,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,49 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Apply responsive home layout fix
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          p = Path('src/renderer/views/HomePage.vue')
-          text = p.read_text()
-
-          old_template = '''      <div class="for-you-row">\n        <DailyTracksCard ref="DailyTracksCardRef" />\n        <FMCard />\n        <button class="insights-card" @click="router.push('/insights')">\n          <div class="insights-eyebrow">NEW</div>\n          <div class="insights-title">音乐洞察</div>\n          <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>\n          <div class="insights-link">打开 →</div>\n        </button>\n      </div>'''
-          new_template = '''      <div class="for-you-row">\n        <div class="for-you-card">\n          <DailyTracksCard ref="DailyTracksCardRef" />\n        </div>\n        <div class="for-you-card">\n          <FMCard />\n        </div>\n      </div>\n      <button class="insights-card" @click="router.push('/insights')">\n        <div class="insights-eyebrow">NEW</div>\n        <div class="insights-title">音乐洞察</div>\n        <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>\n        <div class="insights-link">打开 →</div>\n      </button>'''
-          if old_template not in text:
-              raise SystemExit('For You template target not found')
-          text = text.replace(old_template, new_template, 1)
-
-          old_banner = '''.banner {\n  margin: 20px 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 100%;\n  height: 180px;'''
-          new_banner = '''.banner {\n  margin: 14px 0 30px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 100%;\n  height: 168px;\n  overflow: hidden;\n  border-radius: 12px;'''
-          if old_banner not in text:
-              raise SystemExit('Banner target not found')
-          text = text.replace(old_banner, new_banner, 1)
-
-          old_center = '''  .banner-item.center {\n    cursor: pointer;\n    pointer-events: auto;\n    transform: scale(1.2);\n    z-index: 2;\n  }'''
-          new_center = '''  .banner-item.center {\n    cursor: pointer;\n    pointer-events: auto;\n    transform: scale(1.12);\n    z-index: 2;\n  }'''
-          if old_center not in text:
-              raise SystemExit('Banner center target not found')
-          text = text.replace(old_center, new_center, 1)
-
-          old_layout = '''.for-you-row {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 20px;\n  margin-bottom: 34px;\n  align-items: stretch;\n}\n\n.for-you-row > * {\n  min-width: 0;\n}\n\n.insights-card {\n  grid-column: 1 / -1;\n}\n\n.insights-card {\n  min-height: 146px;'''
-          new_layout = '''.for-you-row {\n  display: flex;\n  width: 100%;\n  gap: 20px;\n  margin-bottom: 18px;\n  align-items: stretch;\n}\n\n.for-you-card {\n  flex: 1 1 0;\n  min-width: 0;\n  width: 0;\n}\n\n.for-you-card :deep(.daily-recommend-card),\n.for-you-card :deep(.fm) {\n  width: 100%;\n  min-width: 0;\n}\n\n.insights-card {\n  display: block;\n  width: 100%;\n  min-height: 132px;\n  margin-bottom: 34px;'''
-          if old_layout not in text:
-              raise SystemExit('For You style target not found')
-          text = text.replace(old_layout, new_layout, 1)
-
-          old_media = '''@media (max-width: 760px) {\n  .for-you-row {\n    grid-template-columns: 1fr;\n  }\n\n  .insights-card {\n    grid-column: auto;\n  }\n}'''
-          new_media = '''@media (max-width: 1100px) {\n  .banner {\n    height: 158px;\n  }\n\n  .banner .banner-item {\n    width: 380px;\n  }\n\n  .banner .banner-item.center {\n    transform: scale(1.08);\n  }\n\n  .banner .banner-item.left {\n    transform: translateX(-280px);\n  }\n\n  .banner .banner-item.right {\n    transform: translateX(280px);\n  }\n}\n\n@media (max-width: 760px) {\n  .for-you-row {\n    flex-direction: column;\n  }\n\n  .for-you-card {\n    width: 100%;\n  }\n\n  .banner {\n    height: 150px;\n  }\n\n  .banner .banner-item.left,\n  .banner .banner-item.right {\n    display: none;\n  }\n\n  .banner .banner-item.center {\n    width: min(100%, 520px);\n    transform: none;\n  }\n}'''
-          if old_media not in text:
-              raise SystemExit('Responsive style target not found')
-          text = text.replace(old_media, new_media, 1)
-
-          p.write_text(text)
-          PY
-
-          yarn prettier src/renderer/views/HomePage.vue .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -88,16 +46,6 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist responsive home layout fix
-        run: |
-          if git diff --quiet -- src/renderer/views/HomePage.vue; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/renderer/views/HomePage.vue
-          git commit -m "fix: make home cards fill available width"
-          git push origin HEAD:${{ github.head_ref }}
