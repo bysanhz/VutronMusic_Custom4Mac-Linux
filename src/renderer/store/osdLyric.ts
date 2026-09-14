@@ -54,7 +54,10 @@ export const useOsdLyricStore = defineStore(
      * 执行一次迁移；之后用户仍可自由修改颜色，不会在每次启动时被强制覆盖。
      */
     const migrateBuiltinLyricPalette = () => {
-      if (window.localStorage.getItem(BUILTIN_LYRIC_PALETTE_VERSION_KEY) === BUILTIN_LYRIC_PALETTE_VERSION) {
+      if (
+        window.localStorage.getItem(BUILTIN_LYRIC_PALETTE_VERSION_KEY) ===
+        BUILTIN_LYRIC_PALETTE_VERSION
+      ) {
         return
       }
 
