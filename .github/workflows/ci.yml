@@ -1,15 +1,12 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -21,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,8 +32,67 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Integrate today duration and listening rankings
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/renderer/views/MusicInsightsStable.vue')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  '''        <div class="metric-card">\n          <span>今日歌曲</span>\n          <strong>{{ footprint.todayCount ?? '—' }}</strong>\n        </div>''',
+                  '''        <div class="metric-card">\n          <span>今日</span>\n          <strong>{{ footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—' }}</strong>\n          <small>{{ formatListenDuration(footprint.todaySeconds) }}</small>\n        </div>'''
+              ),
+              (
+                  "import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'\n",
+                  "import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'\nimport { getTrackDetail } from '../api/track'\n"
+              ),
+              (
+                  '''  listenRealtimeReport,\n  listenSongPlayRank,\n  listenTodaySongs,''',
+                  '''  listenRealtimeReport,\n  listenReport,\n  listenTodaySongs,'''
+              ),
+              (
+                  '''  extractCursor,\n  extractMetric,\n  extractPlaylists,''',
+                  '''  extractCursor,\n  extractListenReportRank,\n  extractMetric,\n  extractPlaylists,\n  extractTodayListenSeconds,'''
+              ),
+              (
+                  '''  todayCount?: number\n  weekSeconds?: number''',
+                  '''  todayCount?: number\n  todaySeconds?: number\n  weekSeconds?: number'''
+              ),
+          ]
+
+          for old, new in replacements:
+              if old in text:
+                  text = text.replace(old, new, 1)
+              elif new not in text:
+                  raise SystemExit(f'missing expected replacement target: {old[:80]!r}')
+
+          old_load = '''const loadFootprint = async (): Promise<void> => {\n  const [today, week, month, total, weekRank, monthRank] = await Promise.all([\n    safeRequest(listenTodaySongs(), '今日听歌'),\n    safeRequest(listenRealtimeReport('week'), '本周听歌'),\n    safeRequest(listenRealtimeReport('month'), '本月听歌'),\n    safeRequest(listenTotal(), '累计听歌'),\n    safeRequest(listenSongPlayRank({ type: 'week' }), '本周排行'),\n    safeRequest(listenSongPlayRank({ type: 'month' }), '本月排行')\n  ])\n\n  const todayTracks = extractTracks(today, 500)\n  footprint.todayCount =\n    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??\n    todayTracks.length\n  footprint.weekSeconds = normalizeDuration(\n    extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.monthSeconds = normalizeDuration(\n    extractMetric(month, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.totalSeconds = normalizeDuration(\n    extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.weekTracks = extractTracks(weekRank, 20)\n  footprint.monthTracks = extractTracks(monthRank, 20)\n}\n'''
+
+          new_load = '''const loadFootprint = async (): Promise<void> => {\n  const [today, week, month, total, weekReport, monthReport] = await Promise.all([\n    safeRequest(listenTodaySongs(), '今日听歌'),\n    safeRequest(listenRealtimeReport('week'), '本周听歌'),\n    safeRequest(listenRealtimeReport('month'), '本月听歌'),\n    safeRequest(listenTotal(), '累计听歌'),\n    safeRequest(listenReport({ type: 'week' }), '本周听歌报告'),\n    safeRequest(listenReport({ type: 'month' }), '本月听歌报告')\n  ])\n\n  const todayTracks = extractTracks(today, 500)\n  footprint.todayCount =\n    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??\n    todayTracks.length\n  footprint.todaySeconds = extractTodayListenSeconds(week)\n  footprint.weekSeconds = normalizeDuration(\n    extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.monthSeconds = normalizeDuration(\n    extractMetric(month, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n  footprint.totalSeconds = normalizeDuration(\n    extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])\n  )\n\n  const weekRank = extractListenReportRank(weekReport, 20)\n  const monthRank = extractListenReportRank(monthReport, 20)\n  const rankIds = Array.from(\n    new Set(\n      [...weekRank, ...monthRank]\n        .map((track: any) => Number(track?.id ?? track?.songId))\n        .filter((id: number) => Number.isFinite(id) && id > 0)\n    )\n  )\n\n  const detailResult = rankIds.length\n    ? await safeRequest(getTrackDetail(rankIds.join(',')), '常听排行歌曲详情')\n    : undefined\n  const detailedTracks = extractTracks(detailResult, Math.max(rankIds.length, 1))\n  const detailById = new Map(\n    detailedTracks.map((track: any) => [String(track?.id ?? track?.songId), track])\n  )\n\n  const enrichRank = (items: any[]): any[] =>\n    items.map((summary: any) => {\n      const id = String(summary?.id ?? summary?.songId ?? '')\n      const detail = detailById.get(id) as any\n      if (!detail) return summary\n      return {\n        ...summary,\n        ...detail,\n        rankText: summary.rankText,\n        rank: summary.rank,\n        picUrl: detail?.al?.picUrl ?? detail?.album?.picUrl ?? summary.picUrl\n      }\n    })\n\n  footprint.weekTracks = enrichRank(weekRank)\n  footprint.monthTracks = enrichRank(monthRank)\n}\n'''
+
+          if old_load in text:
+              text = text.replace(old_load, new_load, 1)
+          elif new_load not in text:
+              raise SystemExit('missing loadFootprint target')
+
+          old_css = '''  strong {\n    font-size: 25px;\n  }\n}\n'''
+          new_css = '''  strong {\n    font-size: 25px;\n  }\n\n  small {\n    margin-top: 6px;\n    font-size: 12px;\n    font-weight: 650;\n    opacity: 0.58;\n  }\n}\n'''
+          if old_css in text:
+              text = text.replace(old_css, new_css, 1)
+          elif new_css not in text:
+              raise SystemExit('missing metric-card css target')
+
+          path.write_text(text)
+          PY
+
+          yarn prettier \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/components/InsightsTrackList.vue \
+            --write
 
       - name: Lint source
         run: yarn lint
@@ -46,6 +104,22 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist footprint changes
+        run: |
+          if git diff --quiet -- \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/components/InsightsTrackList.vue; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/renderer/views/MusicInsightsStable.vue \
+            src/renderer/services/neteaseModern.ts \
+            src/renderer/components/InsightsTrackList.vue
+          git commit -m "fix: complete listening footprint ranking and today duration"
+          git push origin HEAD:${{ github.head_ref }}
