@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -14,14 +17,12 @@ concurrency:
 
 jobs:
   verify:
-    name: Patch, lint, type check, test and build
+    name: Lint, type check, test and build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,119 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Apply library scroll, observer and preview fixes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace_once(text: str, old: str, new: str, label: str) -> str:
-              if old not in text:
-                  if new in text:
-                      return text
-                  raise SystemExit(f'missing replacement target: {label}')
-              return text.replace(old, new, 1)
-
-          path = Path('src/renderer/components/VirtualScrollNoHeight.vue')
-          text = path.read_text()
-          text = replace_once(
-              text,
-              "const { list, itemSize } = toRefs(props)\n",
-              """const { list, itemSize } = toRefs(props)\n\n/**\n * Vue can briefly clear template refs while v-show/v-if/route transitions settle.\n * IntersectionObserver requires a real Element and throws synchronously for null refs,\n * so every observer lifecycle path resolves the element defensively.\n */\nconst getListElement = (): HTMLElement | null => {\n  const element = listRef.value\n  return element instanceof HTMLElement ? element : null\n}\n""",
-              'insert getListElement'
-          )
-          text = replace_once(
-              text,
-              """watch(enableScrolling, (value) => {\n  if (value) {\n    listRef.value.style.overflowY = styleBefore.value\n  } else {\n    listRef.value.style.overflowY = 'hidden'\n  }\n})""",
-              """watch(enableScrolling, (value) => {\n  const element = getListElement()\n  if (!element) return\n  if (value) {\n    element.style.overflowY = styleBefore.value\n  } else {\n    element.style.overflowY = 'hidden'\n  }\n})""",
-              'guard enableScrolling watcher'
-          )
-          text = replace_once(
-              text,
-              """const observer = new IntersectionObserver(\n  (entries) => {\n    entries.forEach((entry) => {\n      if (entry.isIntersecting) {\n        listRef.value.style.overflowY = 'scroll'\n        styleBefore.value = 'scroll'\n      } else {\n        listRef.value.style.overflowY = 'hidden'\n        styleBefore.value = 'hidden'\n      }\n    })\n  },""",
-              """const observer = new IntersectionObserver(\n  (entries) => {\n    const element = getListElement()\n    if (!element) return\n    entries.forEach((entry) => {\n      if (entry.isIntersecting) {\n        element.style.overflowY = 'scroll'\n        styleBefore.value = 'scroll'\n      } else {\n        element.style.overflowY = 'hidden'\n        styleBefore.value = 'hidden'\n      }\n    })\n  },""",
-              'guard observer callback'
-          )
-          text = replace_once(
-              text,
-              """const observeLoadMoreSentinel = () => {\n  loadMoreObserver?.disconnect()\n  if (!listRef.value || !loadMoreSentinelRef.value) return\n\n  loadMoreObserver = new IntersectionObserver(""",
-              """const observeLoadMoreSentinel = () => {\n  loadMoreObserver?.disconnect()\n  const element = getListElement()\n  const sentinel = loadMoreSentinelRef.value\n  if (!element || !(sentinel instanceof Element)) return\n\n  loadMoreObserver = new IntersectionObserver(""",
-              'guard load-more observer refs'
-          )
-          text = replace_once(text, "      root: listRef.value,", "      root: element,", 'sentinel root')
-          text = replace_once(text, "  loadMoreObserver.observe(loadMoreSentinelRef.value)", "  loadMoreObserver.observe(sentinel)", 'sentinel observe')
-          text = replace_once(
-              text,
-              """onActivated(() => {\n  nextTick(() => {\n    observer.observe(listRef.value)\n    observeLoadMoreSentinel()""",
-              """onActivated(() => {\n  nextTick(() => {\n    const element = getListElement()\n    if (element) observer.observe(element)\n    observeLoadMoreSentinel()""",
-              'activated observer guard'
-          )
-          text = replace_once(
-              text,
-              """  observer.unobserve(listRef.value)\n  virtualScrolling.value = false\n})\n\nonMounted(() => {""",
-              """  const element = getListElement()\n  if (element) observer.unobserve(element)\n  virtualScrolling.value = false\n})\n\nonMounted(() => {""",
-              'deactivated observer guard'
-          )
-          text = replace_once(
-              text,
-              """  nextTick(() => {\n    observer.observe(listRef.value)\n    observeLoadMoreSentinel()""",
-              """  nextTick(() => {\n    const element = getListElement()\n    if (element) observer.observe(element)\n    observeLoadMoreSentinel()""",
-              'mounted observer guard'
-          )
-          text = replace_once(
-              text,
-              """  window.removeEventListener('resize', updateWindowHeight)\n  observer.unobserve(listRef.value)\n  virtualScrolling.value = false""",
-              """  window.removeEventListener('resize', updateWindowHeight)\n  const element = getListElement()\n  if (element) observer.unobserve(element)\n  virtualScrolling.value = false""",
-              'before-unmount observer guard'
-          )
-          path.write_text(text)
-
-          path = Path('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
-          text = path.read_text()
-          old_resolver = """const sameVisualSettings = (left: PresetSettings, right: PresetSettings): boolean =>\n  left.type === right.type &&\n  left.mode === right.mode &&\n  left.backgroundColor === right.backgroundColor &&\n  left.playedLrcColor === right.playedLrcColor &&\n  left.unplayLrcColor === right.unplayLrcColor &&\n  left.textShadow === right.textShadow &&\n  left.font === right.font &&\n  left.align === right.align &&\n  left.coverControlsVisible === right.coverControlsVisible\n\nconst resolvePreviewSettings = (select: HTMLSelectElement | null): PresetSettings => {\n  const current = readCurrentSettings()\n  const selected = resolveSelectedPreset(select?.value || '')\n\n  // A modified live OSD must win over the selected saved preset. This is the exact\n  // case that previously made the real lyric colors change while the preview stayed stale.\n  if (!selected || !sameVisualSettings(current, selected)) return current\n  return selected\n}\n"""
-          new_resolver = """const resolvePreviewSettings = (select: HTMLSelectElement | null): PresetSettings => {\n  const selected = resolveSelectedPreset(select?.value || '')\n  // The preview describes the item highlighted in the preset selector. Applying a preset\n  // changes the live OSD separately; merely choosing another option must still preview it.\n  return selected ?? readCurrentSettings()\n}\n"""
-          text = replace_once(text, old_resolver, new_resolver, 'selected preset preview resolver')
-          text = text.replace("'.explore-page .infinite-list-container'", "'.explore-page .infinite-list-container, .library .infinite-list-container'")
-          old_active = """  const activeScroller = scrollers.find((element) => {\n    const rect = element.getBoundingClientRect()\n    return rect.width > 0 && rect.height > 0\n  })"""
-          new_active = """  const visibleBottom = window.innerHeight - 64\n  const activeScroller = scrollers.find((element) => {\n    const rect = element.getBoundingClientRect()\n    return (\n      rect.width > 0 &&\n      rect.height > 0 &&\n      rect.bottom > 0 &&\n      rect.top < visibleBottom &&\n      window.getComputedStyle(element).display !== 'none'\n    )\n  })"""
-          text = replace_once(text, old_active, new_active, 'visible active virtual scroller')
-          css_marker = """    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate .vutronmusic-osd-preset-preview-lyrics small {\n      font-size: 11px !important;\n      font-weight: 600 !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.single-line {"""
-          css_replacement = """    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate .vutronmusic-osd-preset-preview-lyrics small {\n      font-size: 11px !important;\n      font-weight: 600 !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) {\n      min-height: 68px !important;\n      padding: 6px 10px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics {\n      height: 56px !important;\n      padding: 0 8px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics strong {\n      font-size: 20px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate:not(.vutronmusic-preview-compact) .vutronmusic-osd-preset-preview-lyrics small {\n      margin-top: 4px !important;\n      font-size: 14px !important;\n    }\n\n    .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.single-line {"""
-          text = replace_once(text, css_marker, css_replacement, 'normal-mode preview geometry')
-          path.write_text(text)
-
-          path = Path('src/renderer/utils/osdPresetTransferPreview.ts')
-          text = path.read_text()
-          substitutions = {
-              "playedLrcColor: '#37cf88'": "playedLrcColor: 'rgba(7, 185, 187, 1)'",
-              "unplayLrcColor: 'rgba(210, 210, 210, 1)'": "unplayLrcColor: 'rgba(239, 152, 207, 1)'",
-              "textShadow: 'rgba(0, 0, 0, 0.2)'": "textShadow: 'rgba(0, 0, 0, 0)'",
-              "playedLrcColor: 'rgba(255, 255, 255, 1)'": "playedLrcColor: 'rgba(7, 185, 187, 1)'",
-              "unplayLrcColor: 'rgba(185, 185, 185, 1)'": "unplayLrcColor: 'rgba(239, 152, 207, 1)'",
-              "textShadow: 'rgba(0, 0, 0, 0.5)'": "textShadow: 'rgba(0, 0, 0, 0)'",
-              "settings.playedLrcColor || '#37cf88'": "settings.playedLrcColor || 'rgba(7, 185, 187, 1)'",
-              "settings.unplayLrcColor || 'rgba(210, 210, 210, 1)'": "settings.unplayLrcColor || 'rgba(239, 152, 207, 1)'",
-              "settings.textShadow || 'rgba(0, 0, 0, 0.2)'": "settings.textShadow || 'rgba(0, 0, 0, 0)'"
-          }
-          for old, new in substitutions.items():
-              text = text.replace(old, new)
-          path.write_text(text)
-
-          path = Path('tests/feature-regression.spec.ts')
-          text = path.read_text()
-          marker = "test.describe('virtual list and desktop lyric preview stability'"
-          if marker not in text:
-              text += """\n\ntest.describe('virtual list and desktop lyric preview stability', () => {\n  test('guards transient IntersectionObserver refs and supports Library nested scrolling', () => {\n    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')\n    const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')\n\n    expect(virtualScroll).toContain('const getListElement = (): HTMLElement | null =>')\n    expect(virtualScroll).toContain('if (element) observer.observe(element)')\n    expect(virtualScroll).toContain('if (element) observer.unobserve(element)')\n    expect(interactionFix).toContain('.library .infinite-list-container')\n  })\n\n  test('previews the selected preset and keeps the canonical teal/pink palette', () => {\n    const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')\n    const transferPreview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')\n\n    expect(interactionFix).toContain('return selected ?? readCurrentSettings()')\n    expect(interactionFix).toContain(':not(.vutronmusic-preview-compact)')\n    expect(transferPreview).toContain("playedLrcColor: 'rgba(7, 185, 187, 1)'")\n    expect(transferPreview).toContain("unplayLrcColor: 'rgba(239, 152, 207, 1)'")\n    expect(transferPreview).not.toContain("playedLrcColor: '#37cf88'")\n  })\n})\n"""
-          path.write_text(text)
-          PY
-
-          yarn prettier \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/utils/osdPresetTransferPreview.ts \
-            tests/feature-regression.spec.ts \
-            .github/workflows/ci.yml \
-            --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -158,24 +46,6 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist generated fixes
-        run: |
-          if git diff --quiet -- \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/utils/osdPresetTransferPreview.ts \
-            tests/feature-regression.spec.ts; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add \
-            src/renderer/components/VirtualScrollNoHeight.vue \
-            src/renderer/utils/osdPreviewExploreInteractionFix.ts \
-            src/renderer/utils/osdPresetTransferPreview.ts \
-            tests/feature-regression.spec.ts
-          git commit -m "fix: stabilize library virtual scrolling and lyric preset preview"
-          git push origin HEAD:${{ github.head_ref }}
