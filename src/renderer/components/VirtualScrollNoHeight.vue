@@ -422,6 +422,36 @@ const scrollEvent = rafThrottle(() => {
   onScroll()
 })
 
+let parentScrollElement: HTMLElement | null = null
+
+const parentScrollEvent = rafThrottle(() => {
+  const element = listRef.value as HTMLElement | undefined
+  if (!element) return
+
+  const rect = element.getBoundingClientRect()
+  const mainRect = mainRef.value?.getBoundingClientRect()
+  const visibleBottom = Math.min(
+    window.innerHeight - playerBarInset.value,
+    mainRect?.bottom ?? window.innerHeight
+  )
+  if (rect.bottom <= visibleBottom + 240) {
+    void requestLoadMore()
+  }
+})
+
+const bindParentScrollListener = () => {
+  const nextElement = mainRef.value ?? null
+  if (parentScrollElement === nextElement) return
+  parentScrollElement?.removeEventListener('scroll', parentScrollEvent)
+  parentScrollElement = nextElement
+  parentScrollElement?.addEventListener('scroll', parentScrollEvent, { passive: true })
+}
+
+const unbindParentScrollListener = () => {
+  parentScrollElement?.removeEventListener('scroll', parentScrollEvent)
+  parentScrollElement = null
+}
+
 /**
  * 条件：
  * 1. 该组件请在页面的最后来使用，如果在页面中间使用时，请确保传入的props.height小于window.innerHeight - 84(64)
@@ -534,6 +564,7 @@ onActivated(() => {
   nextTick(() => {
     observer.observe(listRef.value)
     observeLoadMoreSentinel()
+    bindParentScrollListener()
     setTimeout(() => {
       updateItemsSize()
     }, 100)
@@ -544,6 +575,7 @@ onDeactivated(() => {
   // startRow.value = 0
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
+  unbindParentScrollListener()
   observer.unobserve(listRef.value)
   virtualScrolling.value = false
 })
@@ -556,6 +588,7 @@ onMounted(() => {
   nextTick(() => {
     observer.observe(listRef.value)
     observeLoadMoreSentinel()
+    bindParentScrollListener()
     setTimeout(() => {
       updateItemsSize()
     }, 100)
@@ -571,6 +604,7 @@ onUpdated(() => {
 onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
+  unbindParentScrollListener()
   window.removeEventListener('resize', updateWindowHeight)
   observer.unobserve(listRef.value)
   virtualScrolling.value = false

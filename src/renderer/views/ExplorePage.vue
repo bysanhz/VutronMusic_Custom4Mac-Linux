@@ -314,6 +314,7 @@ const activeStyleId = ref<number | string>('')
 const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
 const loadingMore = ref(false)
+const PLAYLIST_PAGE_SIZE = 50
 
 const subText = computed(() => {
   if (activeCategory.value === '排行榜') return 'updateFrequency'
@@ -379,7 +380,9 @@ const getHighQualityPlaylist = () => {
 
 const canLoadMore = () => {
   if (exploreTab.value === 'playlist') {
-    return !['推荐歌单', '排行榜'].includes(activeCategory.value) && playlistInfo.more
+    if (['推荐歌单', '排行榜'].includes(activeCategory.value)) return false
+    if (playlistInfo.total > 0) return playlists.value.length < playlistInfo.total
+    return playlistInfo.more
   }
   if (exploreTab.value === 'artist') return artistInfo.more
   if (exploreTab.value === 'newAlbum') {
@@ -636,13 +639,22 @@ const getPlaylist = () => {
     if (activeCategory.value === '精品歌单') return getHighQualityPlaylist()
     return topPlaylist({
       cat: activeCategory.value,
-      limit: 50,
+      limit: PLAYLIST_PAGE_SIZE,
       offset: playlists.value.length
     }).then((data) => {
-      playlistInfo.more = Boolean(data.more) && Boolean(data.playlists?.length)
-      playlistInfo.total = data.total
+      const page = Array.isArray(data?.playlists) ? data.playlists : []
+      const reportedTotal = Number(data?.total)
+      if (Number.isFinite(reportedTotal) && reportedTotal > 0) {
+        playlistInfo.total = reportedTotal
+      }
       playlistInfo.lasttime = 0
-      updatePlaylist(data.playlists)
+      updatePlaylist(page)
+
+      const moreByTotal =
+        playlistInfo.total > 0
+          ? playlists.value.length < playlistInfo.total
+          : page.length >= PLAYLIST_PAGE_SIZE
+      playlistInfo.more = data?.more === true || moreByTotal
     })
   }
   if (exploreTab.value === 'newTrack') {
