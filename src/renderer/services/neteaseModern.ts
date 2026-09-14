@@ -244,6 +244,44 @@ export const extractCursor = (source: any) => {
   return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
+export const extractTodayListenSeconds = (source: any): number | undefined => {
+  const details = source?.data?.listenTimeDistributionBlock?.durationDetails
+  if (!Array.isArray(details) || !details.length) return undefined
+
+  const latest = [...details]
+    .reverse()
+    .find((item) => Number.isFinite(Number(item?.duration)) && Number(item?.duration) >= 0)
+  if (!latest) return undefined
+
+  // durationDetails uses minutes, matching playDuration in the realtime report.
+  return Number(latest.duration) * 60
+}
+
+export const extractListenReportRank = (source: any, limit = 20): any[] => {
+  const sections = source?.data?.topSongBlock?.sections
+  if (!Array.isArray(sections)) return []
+
+  return sections
+    .slice(0, limit)
+    .map((item: any, index: number) => {
+      const id = item?.songId ?? item?.id
+      const name = item?.songName ?? item?.name
+      if (!id || !name) return null
+      return {
+        id,
+        songId: id,
+        name,
+        songName: name,
+        picUrl: item?.picUrl ?? '',
+        rankText: item?.text ?? `#${index + 1}`,
+        rank: index + 1,
+        type: 'online',
+        matched: true
+      }
+    })
+    .filter(Boolean)
+}
+
 const hasAnyKey = (keys: string[], candidates: string[]) =>
   candidates.some((candidate) => keys.includes(candidate))
 
@@ -285,7 +323,7 @@ export const formatListenDuration = (seconds?: number) => {
   const days = Math.floor(value / 86400)
   const hours = Math.floor((value % 86400) / 3600)
   const minutes = Math.floor((value % 3600) / 60)
-  if (days > 0) return `${days} 天 ${hours} 小时`
-  if (hours > 0) return `${hours} 小时 ${minutes} 分`
-  return `${Math.max(1, minutes)} 分`
+  if (days > 0) return `${days}天 ${hours}小时`
+  if (hours > 0) return `${hours}小时 ${minutes}分`
+  return `${Math.max(1, minutes)}分`
 }
