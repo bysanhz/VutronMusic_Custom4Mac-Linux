@@ -119,7 +119,7 @@ const BUILTIN_PRESETS: Record<string, PresetSettings> = {
     type: 'small',
     mode: 'twoLines',
     translationMode: 'tlyric',
-    align: 'center',
+    align: 'left',
     coverControlsVisible: true
   }
 }
@@ -202,12 +202,12 @@ const injectFixStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate.vutronmusic-preview-compact.has-cover {
-      grid-template-columns: 45px minmax(0, 1fr) !important;
-      column-gap: 2px !important;
+      grid-template-columns: 35px minmax(0, 1fr) !important;
+      column-gap: 1px !important;
     }
 
     .vutronmusic-osd-preset-preview.vutronmusic-preview-accurate .vutronmusic-osd-preset-preview-cover {
-      width: 45px !important;
+      width: 35px !important;
       height: 35px !important;
       border-radius: 5px !important;
       background-position: center !important;
@@ -360,26 +360,21 @@ const handleExploreWheel = (event: WheelEvent): void => {
   if (event.deltaY > 0) {
     if (!isMainAtBottom(main)) return
 
-    if (maxInnerScroll <= 1) {
-      // A short first page can have no internal scroll range yet. Triggering the
-      // component's existing bottom check requests the next page immediately.
+    scroller.style.overflowY = 'auto'
+    if (maxInnerScroll <= 1 || scroller.scrollTop >= maxInnerScroll - 1) {
+      // No internal range (or already at its bottom): ask the component to fetch/check
+      // immediately. Otherwise leave the event untouched so Chromium preserves native
+      // wheel/touchpad acceleration and momentum inside the virtual list.
       dispatchVirtualScrollCheck(scroller)
       event.preventDefault()
-      return
     }
-
-    const before = scroller.scrollTop
-    scroller.scrollTop = Math.min(maxInnerScroll, before + event.deltaY)
-    if (scroller.scrollTop === before || scroller.scrollTop >= maxInnerScroll - 1) {
-      dispatchVirtualScrollCheck(scroller)
-    }
-    event.preventDefault()
     return
   }
 
   if (scroller.scrollTop <= 0) return
-  scroller.scrollTop = Math.max(0, scroller.scrollTop + event.deltaY)
-  event.preventDefault()
+  scroller.style.overflowY = 'auto'
+  // Do not preventDefault here: native scrolling is much faster and smoother than
+  // manually adding raw WheelEvent.deltaY for every gesture.
 }
 
 let lastMainBottomCheck = 0
