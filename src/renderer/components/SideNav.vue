@@ -135,27 +135,29 @@ const isCurrentRoute = (path: string): boolean => {
     content: '';
     position: absolute;
     top: 50%;
-    left: 0;
-    border: 8px solid transparent;
-    border-right-color: rgb(from var(--color-primary) r g b / 60%);
-    transform: translate(60px, -50%);
+    left: calc(100% + 4px);
+    border: 7px solid transparent;
+    border-right-color: rgb(from var(--color-primary) r g b / 82%);
+    transform: translateY(-50%);
     z-index: 1;
   }
   button::after {
     content: attr(data-tip);
-    background-color: rgb(from var(--color-primary) r g b / 60%);
+    background-color: rgb(from var(--color-primary) r g b / 88%);
     color: white;
     position: absolute;
     top: 50%;
-    left: 0;
+    left: calc(100% + 18px);
     width: auto;
-    height: 40px;
-    padding: 0 16px;
-    border-radius: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
     white-space: nowrap;
-    line-height: 40px;
-    font-size: 16px;
-    transform: translate(76px, -50%);
+    line-height: 32px;
+    font-size: 13px;
+    font-weight: 650;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 12%);
+    transform: translateY(-50%);
   }
   button::after,
   button::before {

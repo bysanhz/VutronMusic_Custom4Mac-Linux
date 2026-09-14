@@ -1,5 +1,5 @@
 <template>
-  <div v-show="show">
+  <div v-show="show" class="home-page">
     <div v-if="general.showBanner && banner.length" class="banner">
       <div
         v-for="(item, index) in banner"
@@ -301,6 +301,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+.home-page {
+  padding-bottom: 28px;
+}
+
 .banner {
   margin: 20px 0;
   display: flex;
@@ -350,7 +354,7 @@ onBeforeUnmount(() => {
 }
 
 .index-row {
-  margin-top: 50px;
+  margin-top: 38px;
   .title {
     display: flex;
     justify-content: space-between;
@@ -370,14 +374,23 @@ onBeforeUnmount(() => {
 
 .for-you-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  margin-bottom: 78px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 34px;
+  align-items: stretch;
+}
+
+.for-you-row > * {
+  min-width: 0;
 }
 
 .insights-card {
-  min-height: 178px;
-  padding: 24px;
+  grid-column: 1 / -1;
+}
+
+.insights-card {
+  min-height: 146px;
+  padding: 22px 24px;
   border: 0;
   border-radius: 14px;
   text-align: left;
@@ -427,12 +440,13 @@ onBeforeUnmount(() => {
   color: var(--color-primary);
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 760px) {
   .for-you-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
+
   .insights-card {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 }
 </style>
