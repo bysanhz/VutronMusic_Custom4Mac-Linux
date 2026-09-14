@@ -1,12 +1,15 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -18,10 +21,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,64 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Apply built-in lyric palette
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          lyric = Path('src/renderer/components/LyricPage.vue')
-          text = lyric.read_text()
-
-          replacements = [
-              (
-                  "unplayColor: { type: String, default: 'var(--color-wbw-text-unplay)' }",
-                  "unplayColor: { type: String, default: 'rgba(239, 152, 207, 1)' }"
-              ),
-              (
-                  '''.lyric-wrapper {\n  position: relative;''',
-                  '''.lyric-wrapper {\n  --builtin-lyric-played: rgba(7, 185, 187, 1);\n  --builtin-lyric-unplayed: rgba(239, 152, 207, 1);\n  --builtin-lyric-shadow: rgba(0, 0, 0, 0);\n  --builtin-lyric-background: rgba(0, 0, 0, 0);\n\n  position: relative;'''
-              ),
-              (
-                  '''  contain: strict;\n}\n\n.use-mask {''',
-                  '''  contain: strict;\n  background: var(--builtin-lyric-background);\n}\n\n.use-mask {'''
-              ),
-              (
-                  '''    font-weight: 600;\n    font-family: v-bind('fontFamily || "inherit"');\n\n    &:hover {\n      background: var(--color-secondary-bg-for-transparent);\n    }''',
-                  '''    font-weight: 600;\n    font-family: v-bind('fontFamily || "inherit"');\n    background: var(--builtin-lyric-background);\n\n    &:hover {\n      background: var(--builtin-lyric-background);\n    }'''
-              )
-          ]
-
-          for old, new in replacements:
-              if old not in text:
-                  raise SystemExit(f'missing LyricPage target: {old[:100]!r}')
-              text = text.replace(old, new, 1)
-
-          text = text.replace('var(--color-wbw-text-played)', 'var(--builtin-lyric-played)')
-          text = text.replace('var(--color-wbw-text) 50%', 'var(--builtin-lyric-played) 50%')
-          text = text.replace("v-bind('`${unplayColor}`') 50%", 'var(--builtin-lyric-unplayed) 50%')
-
-          transparent_target = '''        background-clip: text;\n        color: transparent;\n        background-size: 200% 100%;'''
-          transparent_replacement = '''        background-clip: text;\n        color: transparent;\n        text-shadow: 0 0 0 var(--builtin-lyric-shadow);\n        background-size: 200% 100%;'''
-          count = text.count(transparent_target)
-          if count != 2:
-              raise SystemExit(f'expected two lyric span style targets, found {count}')
-          text = text.replace(transparent_target, transparent_replacement)
-          lyric.write_text(text)
-
-          creative = Path('src/renderer/components/CreativePlayer.vue')
-          text = creative.read_text()
-          target = '            unplay-color="var(--color-full-text-unplay)"\n'
-          if target not in text:
-              raise SystemExit('CreativePlayer unplayed color override target missing')
-          creative.write_text(text.replace(target, '', 1))
-          PY
-
-          yarn prettier \
-            src/renderer/components/LyricPage.vue \
-            src/renderer/components/CreativePlayer.vue \
-            .github/workflows/ci.yml \
-            --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -103,20 +46,6 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
-
-      - name: Persist built-in lyric palette
-        run: |
-          if git diff --quiet -- \
-            src/renderer/components/LyricPage.vue \
-            src/renderer/components/CreativePlayer.vue; then
-            exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add \
-            src/renderer/components/LyricPage.vue \
-            src/renderer/components/CreativePlayer.vue
-          git commit -m "style: use cyan and pink built-in lyrics"
-          git push origin HEAD:${{ github.head_ref }}
