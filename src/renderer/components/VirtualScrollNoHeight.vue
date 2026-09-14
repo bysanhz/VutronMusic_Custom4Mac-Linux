@@ -6,6 +6,11 @@
     @scroll="scrollEvent"
   >
     <div class="infinite-list-phantom" :style="{ height: listHeight + 'px' }"></div>
+    <div
+      ref="loadMoreSentinelRef"
+      class="load-more-sentinel"
+      :style="{ top: Math.max(0, listHeight - 2) + 'px' }"
+    ></div>
     <div v-if="showPosition" class="position">
       <slot name="position" :scroll-to-current="scrollTocurrent"></slot>
       <div @click="scrollToTop"><svg-icon icon-class="arrow-up-alt"></svg-icon></div>
@@ -62,7 +67,7 @@ const props = withDefaults(
     gap?: number
     height?: number
     enableVirtualScroll?: boolean
-    loadMore?: () => void
+    loadMore?: () => void | Promise<unknown>
   }>(),
   {
     itemSize: 65,
@@ -80,9 +85,10 @@ const props = withDefaults(
 )
 
 const lock = ref(false)
-const listRef = ref()
-const footerRef = ref()
-const itemsRef = ref()
+const listRef = ref<HTMLElement>()
+const footerRef = ref<HTMLElement>()
+const loadMoreSentinelRef = ref<HTMLElement>()
+const itemsRef = ref<HTMLElement[]>([])
 const startRow = ref(0)
 const styleBefore = ref()
 const startOffset = ref(0)
@@ -370,6 +376,21 @@ const rafThrottle = (fn: Function) => {
   }
 }
 
+const loadMoreInFlight = ref(false)
+
+/**
+ * 请求下一页，并把同一次触底期间的重复 scroll/sentinel 事件合并成一个请求。
+ */
+const requestLoadMore = async () => {
+  if (loadMoreInFlight.value) return
+  loadMoreInFlight.value = true
+  try {
+    await props.loadMore()
+  } finally {
+    loadMoreInFlight.value = false
+  }
+}
+
 const onScrollToBottom = () => {
   const scrollTop = listRef.value.scrollTop
   const containerHeight = listRef.value.clientHeight
@@ -384,7 +405,7 @@ const onScrollToBottom = () => {
 
   const loadMoreThreshold = Math.min(96, Math.max(24, containerHeight * 0.12))
   if (scrollTop + containerHeight >= contentHeight - loadMoreThreshold) {
-    props.loadMore()
+    void requestLoadMore()
   }
 }
 
@@ -427,6 +448,30 @@ const observer = new IntersectionObserver(
     threshold: 0.99
   }
 )
+
+let loadMoreObserver: IntersectionObserver | null = null
+
+/**
+ * 用列表底部哨兵触发分页。scroll 阈值仍保留作为降级路径，两者共用请求锁。
+ */
+const observeLoadMoreSentinel = () => {
+  loadMoreObserver?.disconnect()
+  if (!listRef.value || !loadMoreSentinelRef.value) return
+
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        void requestLoadMore()
+      }
+    },
+    {
+      root: listRef.value,
+      rootMargin: '0px 0px 180px 0px',
+      threshold: 0
+    }
+  )
+  loadMoreObserver.observe(loadMoreSentinelRef.value)
+}
 
 const updateWindowHeight = () => {
   windowHeight.value = window.innerHeight
@@ -488,6 +533,7 @@ eventBus.on('update-done', startEvent)
 onActivated(() => {
   nextTick(() => {
     observer.observe(listRef.value)
+    observeLoadMoreSentinel()
     setTimeout(() => {
       updateItemsSize()
     }, 100)
@@ -497,6 +543,7 @@ onActivated(() => {
 onDeactivated(() => {
   // startRow.value = 0
   unregisterInstance(instanceId.value)
+  loadMoreObserver?.disconnect()
   observer.unobserve(listRef.value)
   virtualScrolling.value = false
 })
@@ -508,6 +555,7 @@ onMounted(() => {
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
     observer.observe(listRef.value)
+    observeLoadMoreSentinel()
     setTimeout(() => {
       updateItemsSize()
     }, 100)
@@ -522,6 +570,7 @@ onUpdated(() => {
 })
 onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
+  loadMoreObserver?.disconnect()
   window.removeEventListener('resize', updateWindowHeight)
   observer.unobserve(listRef.value)
   virtualScrolling.value = false
@@ -542,6 +591,14 @@ onBeforeUnmount(() => {
   width: 100%;
   overflow-y: auto;
   position: relative;
+}
+
+.load-more-sentinel {
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 2px;
+  pointer-events: none;
 }
 
 .infinite-list-phantom {
