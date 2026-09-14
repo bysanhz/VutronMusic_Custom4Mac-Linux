@@ -127,7 +127,6 @@
           <LyricPage
             v-if="show === 'fullLyric'"
             text-align="center"
-            unplay-color="var(--color-full-text-unplay)"
             :container-width="'90%'"
             :offset-padding="'0'"
             :hover="hover"

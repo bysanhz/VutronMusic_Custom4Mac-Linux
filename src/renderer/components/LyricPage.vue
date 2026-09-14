@@ -60,7 +60,7 @@ import LyricLine from './LyricLine.vue'
 const props = defineProps({
   hover: { type: Boolean, default: false },
   textAlign: { type: String, default: 'left' },
-  unplayColor: { type: String, default: 'var(--color-wbw-text-unplay)' },
+  unplayColor: { type: String, default: 'rgba(239, 152, 207, 1)' },
   containerWidth: { type: String, default: 'calc(min(50vh, 33.33vw))' },
   offsetPadding: { type: String, default: '2vw' },
   margin: { type: String, default: '40vh' },
@@ -305,11 +305,17 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .lyric-wrapper {
+  --builtin-lyric-played: rgba(7, 185, 187, 1);
+  --builtin-lyric-unplayed: rgba(239, 152, 207, 1);
+  --builtin-lyric-shadow: rgba(0, 0, 0, 0);
+  --builtin-lyric-background: rgba(0, 0, 0, 0);
+
   position: relative;
   height: 100%;
   width: 100%;
   overflow: hidden;
   contain: strict;
+  background: var(--builtin-lyric-background);
 }
 
 .use-mask {
@@ -379,9 +385,10 @@ onBeforeUnmount(() => {
     padding: 12px;
     font-weight: 600;
     font-family: v-bind('fontFamily || "inherit"');
+    background: var(--builtin-lyric-background);
 
     &:hover {
-      background: var(--color-secondary-bg-for-transparent);
+      background: var(--builtin-lyric-background);
     }
 
     &.active {
@@ -408,11 +415,12 @@ onBeforeUnmount(() => {
         font-size: v-bind('`${nFontSize}px`');
         background: linear-gradient(
           to right,
-          var(--color-wbw-text-played) 50%,
-          v-bind('`${unplayColor}`') 50%
+          var(--builtin-lyric-played) 50%,
+          var(--builtin-lyric-unplayed) 50%
         );
         background-clip: text;
         color: transparent;
+        text-shadow: 0 0 0 var(--builtin-lyric-shadow);
         background-size: 200% 100%;
         background-position: 100% 0%;
         overflow-wrap: break-word;
@@ -429,11 +437,12 @@ onBeforeUnmount(() => {
         font-size: v-bind('`${nFontSize - 2}px`');
         background: linear-gradient(
           to right,
-          var(--color-wbw-text) 50%,
-          v-bind('`${unplayColor}`') 50%
+          var(--builtin-lyric-played) 50%,
+          var(--builtin-lyric-unplayed) 50%
         );
         background-clip: text;
         color: transparent;
+        text-shadow: 0 0 0 var(--builtin-lyric-shadow);
         background-size: 200% 100%;
         background-position: 100% 0%;
         overflow-wrap: break-word;
@@ -463,7 +472,7 @@ onBeforeUnmount(() => {
   :deep(.lyric.active) {
     .lyric-line span,
     .translation span {
-      color: var(--color-wbw-text-played);
+      color: var(--builtin-lyric-played);
     }
   }
   :deep(.lyric) {
