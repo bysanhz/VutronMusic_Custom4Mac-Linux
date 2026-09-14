@@ -114,7 +114,7 @@ jobs:
           )
           PY
 
-          yarn prettier src/renderer/App.vue src/renderer/views/ExplorePage.vue src/renderer/components/ScrollBar.vue --write
+          yarn prettier src/renderer/App.vue src/renderer/views/ExplorePage.vue src/renderer/components/ScrollBar.vue .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
