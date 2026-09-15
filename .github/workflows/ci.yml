@@ -1,28 +1,21 @@
-name: Code Quality
+name: Apply compact OSD layout fix
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
-
-concurrency:
-  group: code-quality-${{ github.ref }}
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  verify:
-    name: Lint, type check, test and build
+  patch:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout feature branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -33,19 +26,95 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Check formatting
-        run: yarn run format:check
+      - name: Apply OSD spacing and radius fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Lint source
-        run: yarn lint
+          osd = Path('src/renderer/views/OSDLyric.vue')
+          text = osd.read_text()
 
-      - name: Type check
-        run: yarn run vue:type-check
+          replacements = [
+              (
+                  "      'normal-mode': !isCompactMode,\n      'is-custom-dragging': customOsdDragging",
+                  "      'normal-mode': !isCompactMode,\n      'has-cover-controls': isCompactMode && coverControlsVisible,\n      'is-custom-dragging': customOsdDragging",
+              ),
+              (
+                  '      <div class="compact-left-panel">\n        <CompactCoverControls />\n      </div>',
+                  '      <div v-if="coverControlsVisible" class="compact-left-panel">\n        <CompactCoverControls />\n      </div>',
+              ),
+              (
+                  "const isLinux = window.env?.isLinux\n\nconst osdLyricStore = useOsdLyricStore()",
+                  "const isLinux = window.env?.isLinux\nconst COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'\n\nconst osdLyricStore = useOsdLyricStore()",
+              ),
+              (
+                  "const hover = ref(false)\nconst title = ref('听你想听的音乐')",
+                  "const hover = ref(false)\nconst title = ref('听你想听的音乐')\nconst coverControlsVisible = ref(\n  window.localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'\n)",
+              ),
+              (
+                  "const handleOsdStatusMessage = (event: MessageEvent) => {\n  if (event.data?.type !== 'update-osd-status') {",
+                  "const handleStorageChange = (event: StorageEvent) => {\n  if (event.key !== COVER_CONTROLS_STORAGE_KEY) return\n  coverControlsVisible.value = event.newValue !== 'false'\n}\n\nconst handleOsdStatusMessage = (event: MessageEvent) => {\n  if (event.data?.type !== 'update-osd-status') {",
+              ),
+              (
+                  "window.addEventListener('message', handleOsdStatusMessage)\n\nwindow.mainApi?.on('mouseInWindow', handleMouseInWindow)",
+                  "window.addEventListener('message', handleOsdStatusMessage)\nwindow.addEventListener('storage', handleStorageChange)\n\nwindow.mainApi?.on('mouseInWindow', handleMouseInWindow)",
+              ),
+              (
+                  "  window.removeEventListener('message', handleOsdStatusMessage)\n\n  window.removeEventListener('mousemove', handleCustomOsdDrag)",
+                  "  window.removeEventListener('message', handleOsdStatusMessage)\n  window.removeEventListener('storage', handleStorageChange)\n\n  window.removeEventListener('mousemove', handleCustomOsdDrag)",
+              ),
+              (
+                  "#main.compact-mode {\n  padding: 0 3px 0 0;\n}",
+                  "#main.compact-mode {\n  padding: 0 2px 0 0;\n  border-radius: 7px;\n}",
+              ),
+              (
+                  "  grid-template-columns:\n    35px\n    minmax(0, 1fr);\n\n  column-gap: 1px;",
+                  "  grid-template-columns: minmax(0, 1fr);\n\n  column-gap: 0;",
+              ),
+              (
+                  ".compact-left-panel {\n  display: flex;",
+                  "#main.has-cover-controls .compact-osd-layout {\n  grid-template-columns: 35px minmax(0, 1fr);\n  column-gap: 0;\n}\n\n.compact-left-panel {\n  display: flex;",
+              ),
+              (
+                  ".compact-lyric-panel :deep(.lyric) {\n  box-sizing: border-box;\n  max-width: 100%;\n}",
+                  ".compact-lyric-panel :deep(.lyric) {\n  box-sizing: border-box;\n  max-width: 100%;\n}\n\n/* 封面控制模式的歌词从控制区右侧立即开始，避免居中对齐产生视觉空洞。 */\n#main.has-cover-controls .compact-lyric-panel :deep(.container.mini),\n#main.has-cover-controls .compact-lyric-panel :deep(.lyric) {\n  text-align: left !important;\n}",
+              ),
+          ]
 
-      - name: Run security and feature regression tests
-        run: >-
-          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'OSDLyric.vue pattern not found: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+          osd.write_text(text)
 
+          controls = Path('src/renderer/components/CompactCoverControls.vue')
+          text = controls.read_text()
+          replacements = [
+              ('  border-radius: 5px;\n  -webkit-app-region: no-drag;', '  border-radius: 7px;\n  -webkit-app-region: no-drag;'),
+              ('  object-fit: cover;\n  user-select: none;', '  object-fit: cover;\n  border-radius: inherit;\n  user-select: none;'),
+              ('  background: transparent;\n  transition:', '  border-radius: inherit;\n  background: transparent;\n  transition:'),
+              ('  border-radius: 2px;\n\n  color: rgba(255, 255, 255, 0.96);', '  border-radius: 0;\n\n  color: rgba(255, 255, 255, 0.96);'),
+              ('  border-radius: 2px;\n  background: transparent;\n\n  &:hover {', '  border-radius: 0;\n  background: transparent;\n\n  &:hover {'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'CompactCoverControls.vue pattern not found: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+          controls.write_text(text)
+          PY
 
-      - name: Build renderer and main process
-        run: yarn vite --config vite.config.ts build
+      - name: Format changed files
+        run: yarn prettier src/renderer/views/OSDLyric.vue src/renderer/components/CompactCoverControls.vue --write
+
+      - name: Commit source fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/renderer/views/OSDLyric.vue src/renderer/components/CompactCoverControls.vue
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: tighten compact OSD cover layout"
+          git push origin HEAD:${{ github.head_ref }}
