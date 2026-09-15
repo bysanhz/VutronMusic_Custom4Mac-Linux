@@ -1629,7 +1629,9 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     expect(interaction).toContain("scroller.style.overflowY = 'auto'")
     expect(interaction).toContain('native scrolling is much faster and smoother')
     expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')
-    expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")
+    expect(virtualScroll).toContain(
+      "rootMargin: props.enableVirtualScroll ? '0px 0px 640px 0px' : '0px 0px 720px 0px'"
+    )
   })
 })
 
