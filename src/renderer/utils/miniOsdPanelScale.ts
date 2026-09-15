@@ -35,15 +35,8 @@ const injectStyle = () => {
       #main.compact-mode
       .compact-osd-layout {
       grid-template-columns:
-        calc(51px * var(--mini-osd-control-relative-scale))
+        calc(150vh * var(--mini-osd-control-relative-scale))
         minmax(0, 1fr) !important;
-    }
-
-    html[data-osd-scale-mode='osd-small']
-      #main.compact-mode
-      .compact-left-panel
-      .compact-cover-controls {
-      zoom: var(--mini-osd-control-relative-scale);
     }
   `
   document.head.appendChild(style)
