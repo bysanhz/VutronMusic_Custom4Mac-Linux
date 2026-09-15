@@ -1640,3 +1640,22 @@ test.describe('cover grids use a single outer scroll flow', () => {
     expect(virtualScroll).toContain('rect.bottom <= visibleBottom + 720')
   })
 })
+
+test.describe('library hydration and bounded rendering', () => {
+  test('repairs nullable persisted liked state and avoids mounting unbounded hidden cover grids', () => {
+    const dataStore = readSource('src/renderer/store/data.ts')
+    const library = readSource('src/renderer/views/LibraryMusic.vue')
+
+    expect(dataStore).toContain('const liked = ref<LikedState>(createDefaultLikedState())')
+    expect(dataStore).toContain('afterHydrate: ({ store }) =>')
+    expect(dataStore).toContain('normalizeLikedState(hydratedStore.liked)')
+    expect(library).toContain('const libraryData = computed(() =>')
+    expect(library).toContain('const COVER_PAGE_SIZE = 40')
+    expect(library).toContain(':items="visiblePlaylists"')
+    expect(library).toContain(':items="visibleAlbums"')
+    expect(library).toContain(':items="visibleArtists"')
+    expect(library).toContain('v-if="currentTab === \'playlist\'"')
+    expect(library).toContain('Promise.allSettled([')
+    expect(library).toContain("console.error('[Library] 加载音乐库失败:', error)")
+  })
+})
