@@ -64,12 +64,12 @@ body {
 /*
  * 紧凑桌面歌词左侧封面与控制区。
  *
- * 横向仍使用已经确认合适的 51px 控制列 + 8px 间隙；纵向不再固定为 34px，
- * 而是占满紧凑歌词窗口的可用高度。默认基准下这样可以让封面/控制区的上、下
- * 边缘与窗口边界对齐，同时不改变控制区与歌词之间已经确认的横向间距。
+ * 控制区继续占满窗口高度，但宽度改为窗口高度的 1.5 倍。因为内部按钮固定为
+ * 3 列 x 2 行，这个 3:2 外框会让六个按钮单元接近正方形，不再被挤成狭长格。
+ * 右侧仍保留已经确认合适的 8px CSS 间隙。
  */
 #main.compact-mode .compact-osd-layout {
-  grid-template-columns: 51px minmax(0, 1fr) !important;
+  grid-template-columns: 150vh minmax(0, 1fr) !important;
   column-gap: 8px !important;
   justify-content: start;
 }
@@ -84,7 +84,7 @@ body {
 #main.compact-mode .compact-cover-controls {
   position: relative;
   z-index: 10004;
-  width: 51px !important;
+  width: 100% !important;
   height: 100% !important;
   border-radius: 7px !important;
   pointer-events: auto;
@@ -97,21 +97,21 @@ html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
   margin-left: 0 !important;
 }
 
-/* 控制区高度跟随窗口，图标尺寸继续保持独立，不随容器被拉伸。 */
+/* 控制区保持 3:2；图标随“封面与控件基准”一起做轻量相对缩放。 */
 #main.compact-mode .compact-control-button .svg-icon {
-  width: 10px !important;
-  height: 10px !important;
+  width: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-play .svg-icon,
 #main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
-  width: 13px !important;
-  height: 13px !important;
+  width: calc(13px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(13px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-main-window .svg-icon {
-  width: 11px !important;
-  height: 11px !important;
+  width: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
