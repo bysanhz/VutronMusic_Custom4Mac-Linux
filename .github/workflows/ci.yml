@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -23,8 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -34,38 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Update native rendering regression expectation
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('tests/feature-regression.spec.ts')
-          text = path.read_text(encoding='utf-8')
-          old = '''expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")'''
-          new = '''expect(virtualScroll).toContain(
-            "rootMargin: props.enableVirtualScroll ? '0px 0px 640px 0px' : '0px 0px 720px 0px'"
-          )'''
-          if old not in text:
-              raise SystemExit('stale rootMargin expectation not found')
-          path.write_text(text.replace(old, new), encoding='utf-8')
-          PY
-
-      - name: Format patched regression test
-        run: >-
-          yarn prettier tests/feature-regression.spec.ts .github/workflows/ci.yml --write
-
-      - name: Commit patched regression test
-        if: github.event_name == 'pull_request'
-        run: |
-          if git diff --quiet -- tests/feature-regression.spec.ts; then
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/feature-regression.spec.ts
-          git commit -m 'test: update native cover rendering expectation'
-          git push origin HEAD:${{ github.head_ref }}
 
       - name: Check formatting
         run: yarn run format:check
@@ -79,6 +45,7 @@ jobs:
       - name: Run security and feature regression tests
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
 
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
