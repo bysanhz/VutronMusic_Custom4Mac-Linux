@@ -62,6 +62,18 @@ body {
 }
 
 /*
+ * 紧凑桌面歌词统一圆角。
+ *
+ * 左侧封面会同时受到 #main 外层裁切和自身圆角影响。若两处使用不同的圆角，
+ * 左侧窗口边缘与封面右边缘会呈现明显不同的弧度。统一由一个变量控制，保证
+ * 窗口右侧圆角、封面左侧外轮廓以及封面右侧内轮廓具有一致的圆润程度。
+ */
+#main.compact-mode {
+  --compact-osd-radius: 12px;
+  border-radius: var(--compact-osd-radius) !important;
+}
+
+/*
  * 紧凑桌面歌词左侧封面与控制区。
  *
  * 控制区继续占满窗口高度，但宽度改为窗口高度的 1.5 倍。因为内部按钮固定为
@@ -86,10 +98,30 @@ body {
   z-index: 10004;
   width: 100% !important;
   height: 100% !important;
-  border-radius: 7px !important;
+  border-radius: var(--compact-osd-radius) !important;
   pointer-events: auto;
   transform: none;
   margin: 0;
+}
+
+/*
+ * 歌词区域由外层负责垂直居中。
+ *
+ * 之前 LyricContainer 自己占满 100% 高度，再依赖内部 flex 的 justify-content
+ * 居中。在两行歌词、逐字动画和不同字体行盒共同作用时，可见文字块会明显偏下，
+ * 甚至第二行贴近窗口底部。现在让歌词容器按真实内容高度布局，再由歌词面板把
+ * 整个文字块垂直居中；单双行、不同字号下都会以实际内容尺寸为基准。
+ */
+#main.compact-mode .compact-lyric-panel {
+  display: flex !important;
+  align-items: center !important;
+}
+
+#main.compact-mode .compact-lyric-panel .container.mini {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  justify-content: flex-start !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
