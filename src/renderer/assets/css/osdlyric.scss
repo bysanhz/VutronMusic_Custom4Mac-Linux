@@ -66,8 +66,8 @@ body {
  *
  * 控制按钮是 3x2 网格。51x34px 基本保持 3:2，同时把高度填到当前 compact
  * 窗口的大部分区域，避免 33x22px 在上下留下明显空白。控制区与歌词保留 2px
- * 布局间隙，歌词面板只向左回收 13px；相比上一版少回收 4px，让正文与左侧
- * 控制区之间留出一点可见呼吸空间，但不会重新出现明显的大空档。
+ * 布局间隙，歌词面板只向左回收 7px；让歌词相较上一版再向右约 6px，形成
+ * 清晰但仍然紧凑的视觉间距。
  */
 #main.compact-mode .compact-osd-layout {
   grid-template-columns: 51px minmax(0, 1fr) !important;
@@ -93,8 +93,8 @@ body {
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
-  width: calc(100% + 13px) !important;
-  margin-left: -13px !important;
+  width: calc(100% + 7px) !important;
+  margin-left: -7px !important;
 }
 
 /* 约 17x17px 的按钮单元恢复更清晰的图标尺寸，同时保留足够点击留白。 */
