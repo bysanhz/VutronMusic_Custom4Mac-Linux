@@ -1589,8 +1589,12 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
 
     expect(virtualScroll).toContain('const getListElement = (): HTMLElement | null =>')
-    expect(virtualScroll).toContain('if (element) observer.observe(element)')
-    expect(virtualScroll).toContain('if (element) observer.unobserve(element)')
+    expect(virtualScroll).toContain(
+      'if (element && props.enableVirtualScroll) observer.observe(element)'
+    )
+    expect(virtualScroll).toContain(
+      'if (element && props.enableVirtualScroll) observer.unobserve(element)'
+    )
     expect(interactionFix).toContain('.library .infinite-list-container')
   })
 
@@ -1657,5 +1661,19 @@ test.describe('library hydration and bounded rendering', () => {
     expect(library).toContain('v-if="currentTab === \'playlist\'"')
     expect(library).toContain('Promise.allSettled([')
     expect(library).toContain("console.error('[Library] 加载音乐库失败:', error)")
+  })
+})
+
+test.describe('outer-scroll cover virtualization', () => {
+  test('outer-scroll cover grids keep a bounded DOM window', () => {
+    const source = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+
+    expect(source).toContain('const outerViewportHeight = computed(() =>')
+    expect(source).toContain('const updateOuterWindow = () =>')
+    expect(source).toContain("element.style.overflowY = 'hidden'")
+    expect(source).toContain('if (!props.enableVirtualScroll) return')
+    expect(source).toContain('if (element && props.enableVirtualScroll) observer.observe(element)')
+    expect(source).toContain('if (props.enableVirtualScroll) observeLoadMoreSentinel()')
+    expect(source).toContain('parentScrollEvent()')
   })
 })

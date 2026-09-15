@@ -123,6 +123,13 @@ const _listData = computed(() => {
 })
 const listHeight = computed(() => {
   const totalRows = Math.ceil(_listData.value.length / props.columnNumber)
+  if (!props.enableVirtualScroll) {
+    return (
+      totalRows * itemSize.value +
+      (props.showFooter ? footerHeight.value : 0) +
+      (props.isEnd ? props.paddingBottom : 0)
+    )
+  }
   const idx = Math.floor((position.value.length - 1) / props.columnNumber) * props.columnNumber
   return (
     (position.value[idx]?.bottom || totalRows * itemSize.value) +
@@ -139,11 +146,34 @@ const containerHeight = computed(() => {
   const height = props.height || winHeight
   return props.enableVirtualScroll ? Math.min(height, listHeight.value) : listHeight.value
 })
-const contentTransform = computed(() => `translateY(${startOffset.value}px)`)
+
+/**
+ * When nested scrolling is disabled the list still needs virtualization. The outer page
+ * owns the scrollbar, so keep the full phantom height but mount only viewport-adjacent rows.
+ */
+const outerViewportHeight = computed(() => {
+  const navBarHeight = hasCustomTitleBar.value ? 84 : 64
+  return Math.max(itemSize.value, windowHeight.value - navBarHeight - playerBarInset.value)
+})
+const contentTransform = computed(() => {
+  if (!props.enableVirtualScroll) {
+    const firstRenderedRow = Math.max(0, startRow.value - aboveCount.value)
+    return `translateY(${firstRenderedRow * itemSize.value}px)`
+  }
+  return `translateY(${startOffset.value}px)`
+})
 const anchorPoint = computed(() =>
   position.value.length ? position.value[startRow.value * props.columnNumber] : null
 )
-const visibleCount = computed(() => Math.floor(containerHeight.value / itemSize.value))
+const visibleCount = computed(() =>
+  Math.max(
+    1,
+    Math.ceil(
+      (props.enableVirtualScroll ? containerHeight.value : outerViewportHeight.value) /
+        itemSize.value
+    ) + 1
+  )
+)
 const endRow = computed(() => startRow.value + visibleCount.value)
 const aboveCount = computed(() => Math.min(startRow.value, props.aboveValue))
 const belowCount = computed(() => Math.min(list.value.length - endRow.value, props.belowValue))
@@ -434,9 +464,28 @@ const scrollEvent = rafThrottle(() => {
 
 let parentScrollElement: HTMLElement | null = null
 
-const parentScrollEvent = rafThrottle(() => {
-  const element = listRef.value as HTMLElement | undefined
+const updateOuterWindow = () => {
+  if (props.enableVirtualScroll) return
+  const element = getListElement()
   if (!element) return
+
+  const rect = element.getBoundingClientRect()
+  const mainRect = mainRef.value?.getBoundingClientRect()
+  const visibleTop = Math.max(mainRect?.top ?? 0, hasCustomTitleBar.value ? 84 : 64)
+  const scrollInsideList = Math.max(0, visibleTop - rect.top)
+  const maxRow = Math.max(0, Math.ceil(list.value.length / props.columnNumber) - 1)
+  const nextRow = Math.min(maxRow, Math.max(0, getStartIndex(scrollInsideList) ?? 0))
+
+  if (nextRow !== startRow.value) startRow.value = nextRow
+  element.style.overflowY = 'hidden'
+  styleBefore.value = 'hidden'
+}
+
+const parentScrollEvent = rafThrottle(() => {
+  const element = getListElement()
+  if (!element) return
+
+  updateOuterWindow()
 
   const rect = element.getBoundingClientRect()
   const mainRect = mainRef.value?.getBoundingClientRect()
@@ -455,6 +504,7 @@ const bindParentScrollListener = () => {
   parentScrollElement?.removeEventListener('scroll', parentScrollEvent)
   parentScrollElement = nextElement
   parentScrollElement?.addEventListener('scroll', parentScrollEvent, { passive: true })
+  parentScrollEvent()
 }
 
 const unbindParentScrollListener = () => {
@@ -472,6 +522,11 @@ const observer = new IntersectionObserver(
   (entries) => {
     const element = getListElement()
     if (!element) return
+    if (!props.enableVirtualScroll) {
+      element.style.overflowY = 'hidden'
+      styleBefore.value = 'hidden'
+      return
+    }
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         element.style.overflowY = 'scroll'
@@ -497,6 +552,7 @@ let loadMoreObserver: IntersectionObserver | null = null
  * 用列表底部哨兵触发分页。scroll 阈值仍保留作为降级路径，两者共用请求锁。
  */
 const observeLoadMoreSentinel = () => {
+  if (!props.enableVirtualScroll) return
   loadMoreObserver?.disconnect()
   const element = getListElement()
   const sentinel = loadMoreSentinelRef.value
@@ -524,6 +580,10 @@ const updateWindowHeight = () => {
 watch(enableScrolling, (value) => {
   const element = getListElement()
   if (!element) return
+  if (!props.enableVirtualScroll) {
+    element.style.overflowY = 'hidden'
+    return
+  }
   if (value) {
     element.style.overflowY = styleBefore.value
   } else {
@@ -579,8 +639,8 @@ eventBus.on('update-done', startEvent)
 onActivated(() => {
   nextTick(() => {
     const element = getListElement()
-    if (element) observer.observe(element)
-    observeLoadMoreSentinel()
+    if (element && props.enableVirtualScroll) observer.observe(element)
+    if (props.enableVirtualScroll) observeLoadMoreSentinel()
     bindParentScrollListener()
     setTimeout(() => {
       updateItemsSize()
@@ -594,7 +654,7 @@ onDeactivated(() => {
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
   const element = getListElement()
-  if (element) observer.unobserve(element)
+  if (element && props.enableVirtualScroll) observer.unobserve(element)
   virtualScrolling.value = false
 })
 
@@ -605,8 +665,8 @@ onMounted(() => {
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
     const element = getListElement()
-    if (element) observer.observe(element)
-    observeLoadMoreSentinel()
+    if (element && props.enableVirtualScroll) observer.observe(element)
+    if (props.enableVirtualScroll) observeLoadMoreSentinel()
     bindParentScrollListener()
     setTimeout(() => {
       updateItemsSize()
@@ -616,8 +676,12 @@ onMounted(() => {
 
 onUpdated(() => {
   nextTick(() => {
-    updateItemsSize()
-    setStartOffset()
+    if (props.enableVirtualScroll) {
+      updateItemsSize()
+      setStartOffset()
+    } else {
+      parentScrollEvent()
+    }
   })
 })
 onBeforeUnmount(() => {
@@ -626,7 +690,7 @@ onBeforeUnmount(() => {
   unbindParentScrollListener()
   window.removeEventListener('resize', updateWindowHeight)
   const element = getListElement()
-  if (element) observer.unobserve(element)
+  if (element && props.enableVirtualScroll) observer.unobserve(element)
   virtualScrolling.value = false
   eventBus.off('update-start', startEvent)
   // @ts-ignore
