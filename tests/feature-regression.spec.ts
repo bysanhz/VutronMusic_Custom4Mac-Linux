@@ -1659,3 +1659,17 @@ test.describe('library hydration and bounded rendering', () => {
     expect(library).toContain("console.error('[Library] 加载音乐库失败:', error)")
   })
 })
+
+test.describe('outer-scroll cover virtualization', () => {
+  test('outer-scroll cover grids keep a bounded DOM window', () => {
+    const source = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+
+    expect(source).toContain('const outerViewportHeight = computed(() =>')
+    expect(source).toContain('const updateOuterWindow = () =>')
+    expect(source).toContain("element.style.overflowY = 'hidden'")
+    expect(source).toContain('if (!props.enableVirtualScroll) return')
+    expect(source).toContain('if (element && props.enableVirtualScroll) observer.observe(element)')
+    expect(source).toContain('if (props.enableVirtualScroll) observeLoadMoreSentinel()')
+    expect(source).toContain('parentScrollEvent()')
+  })
+})
