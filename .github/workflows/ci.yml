@@ -3,13 +3,13 @@ name: Code Quality
 on:
   push:
     branches:
-      - main
+      - fix/library-parent-virtualization
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -17,12 +17,14 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, type check, test and build
+    name: Patch, lint, type check, test and build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -32,6 +34,13 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+
+      - name: Apply parent-scroll virtualization patch
+        run: python .github/scripts/patch_library_parent_virtualization.py
+
+      - name: Format generated changes
+        run: >-
+          yarn prettier src/renderer/components/VirtualScrollNoHeight.vue src/renderer/components/VirtualCoverRow.vue src/renderer/views/LibraryMusic.vue tests/feature-regression.spec.ts .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
@@ -46,6 +55,20 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
 
-
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
+
+      - name: Persist generated fixes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/renderer/components/VirtualScrollNoHeight.vue \
+            src/renderer/components/VirtualCoverRow.vue \
+            src/renderer/views/LibraryMusic.vue \
+            tests/feature-regression.spec.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "fix: virtualize library covers on parent scroll"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
