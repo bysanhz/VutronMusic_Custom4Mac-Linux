@@ -135,8 +135,8 @@ const isCurrentRoute = (path: string): boolean => {
     content: '';
     position: absolute;
     top: 50%;
-    left: calc(100% + 4px);
-    border: 7px solid transparent;
+    left: calc(100% + 0px);
+    border: 5px solid transparent;
     border-right-color: rgb(from var(--color-primary) r g b / 82%);
     transform: translateY(-50%);
     z-index: 1;
@@ -147,7 +147,7 @@ const isCurrentRoute = (path: string): boolean => {
     color: white;
     position: absolute;
     top: 50%;
-    left: calc(100% + 18px);
+    left: calc(100% + 8px);
     width: auto;
     height: 32px;
     padding: 0 12px;
