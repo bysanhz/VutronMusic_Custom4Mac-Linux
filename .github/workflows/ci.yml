@@ -1,47 +1,51 @@
-name: Update OSD regression assertion
+name: Code Quality
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  patch:
+  verify:
+    name: Lint, type check, test and build
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout feature branch
+      - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          ref: ${{ github.head_ref }}
+          node-version: '22'
+          cache: yarn
 
-      - name: Update stale regression assertion
-        run: |
-          python - <<'PY'
-          from pathlib import Path
+      - name: Install dependencies without native rebuild
+        run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-          path = Path('tests/feature-regression.spec.ts')
-          text = path.read_text()
-          old = "expect(osd).toContain('    35px\\n    minmax(0, 1fr)')"
-          new = """expect(osd).toContain('grid-template-columns: 35px minmax(0, 1fr);')
-              expect(osd).toContain(\"'has-cover-controls': isCompactMode && coverControlsVisible\")
-              expect(osd).toContain('text-align: left !important;')"""
-          if old not in text:
-              raise SystemExit('stale OSD assertion not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
+      - name: Check formatting
+        run: yarn run format:check
 
-      - name: Commit test update
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add tests/feature-regression.spec.ts
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "No test changes to commit"
-            exit 0
-          fi
-          git commit -m "test: update compact OSD layout assertion"
-          git push origin HEAD:${{ github.head_ref }}
+      - name: Lint source
+        run: yarn lint
+
+      - name: Type check
+        run: yarn run vue:type-check
+
+      - name: Run security and feature regression tests
+        run: >-
+          yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
+
+
+      - name: Build renderer and main process
+        run: yarn vite --config vite.config.ts build
