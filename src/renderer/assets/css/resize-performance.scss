@@ -36,4 +36,31 @@ html.vutron-window-resizing #app .modal {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/*
+ * 音乐库顶部右侧只是“我喜欢的音乐”预览区，不应成为一个独立的长列表滚动容器。
+ *
+ * 该区域原先的 VirtualTrackList 会在鼠标停留其上时接管滚轮；喜欢歌曲较多时，用户
+ * 必须先滚完整个内部列表才容易继续向下浏览音乐库。禁止这个预览区的纵向内部滚动后，
+ * 滚轮会自然交给 #main，预览仍保留当前视口中的前 3~4 行歌曲并保持点击可用。
+ */
+#app .library > .section-one .songs .infinite-list-container {
+  overflow-y: hidden !important;
+  overscroll-behavior-y: auto;
+}
+
+/*
+ * 左侧主导航提示气泡贴近按钮。
+ *
+ * 原布局把气泡文字放在按钮右侧 18px，箭头也从 4px 外开始，缩放后视觉距离更明显。
+ * 现在把文字缩到 10px、箭头缩到 1px 外，保留足够的箭头空间但不再产生明显断层。
+ */
+#app .side-nav button::after {
+  left: calc(100% + 10px) !important;
+}
+
+#app .side-nav button::before {
+  left: calc(100% + 1px) !important;
+  border-width: 6px !important;
+}
 /* =========== newADD end ======== */
