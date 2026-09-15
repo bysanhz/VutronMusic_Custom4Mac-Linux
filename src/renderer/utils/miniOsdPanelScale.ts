@@ -31,9 +31,11 @@ const injectStyle = () => {
       --mini-osd-control-relative-scale: 1;
     }
 
-    html[data-osd-scale-mode='osd-small'] #main.compact-mode .compact-osd-layout {
+    html:not(.osd-cover-controls-hidden)[data-osd-scale-mode='osd-small']
+      #main.compact-mode
+      .compact-osd-layout {
       grid-template-columns:
-        calc(50px * var(--mini-osd-control-relative-scale))
+        calc(51px * var(--mini-osd-control-relative-scale))
         minmax(0, 1fr) !important;
     }
 
