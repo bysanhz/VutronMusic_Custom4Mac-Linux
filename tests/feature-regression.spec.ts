@@ -1677,3 +1677,16 @@ test.describe('outer-scroll cover virtualization', () => {
     expect(source).toContain('parentScrollEvent()')
   })
 })
+
+test.describe('compact desktop lyric spacing', () => {
+  test('keeps cover controls flush left and lyrics adjacent', () => {
+    const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
+    const preview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
+
+    expect(osdCss).toContain('column-gap: 2px !important;')
+    expect(osdCss).toContain('transform: none;')
+    expect(osdCss).toContain('html:not(.osd-cover-controls-hidden)')
+    expect(osdCss).toContain('text-align: left !important;')
+    expect(preview).toMatch(/'builtin-cover': \{[\s\S]*?align: 'left'/)
+  })
+})
