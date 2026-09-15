@@ -64,13 +64,13 @@ body {
 /*
  * 紧凑桌面歌词左侧控制区。
  *
- * 控制按钮是 3x2 网格，因此控制区直接使用 3:2 的 33x22px 外框。
- * 相比之前 51x34px 的大块区域，它不会在窄歌词窗口里显得接近一个独立方块，
- * 同时把歌词起点明显拉近。两列只保留 2px 的安全间隔，避免文字贴住按钮。
+ * 控制按钮是 3x2 网格，因此控制区使用 3:2 的 33x22px 外框。
+ * 歌词和控制区之间不再额外插入 grid gap；歌词面板再向左回收 1px，
+ * 用来抵消文字本身的视觉左留白。这样看起来会紧挨控制区，但仍不会明显压住按钮。
  */
 #main.compact-mode .compact-osd-layout {
   grid-template-columns: 33px minmax(0, 1fr) !important;
-  column-gap: 2px !important;
+  column-gap: 0 !important;
   justify-content: start;
 }
 
@@ -92,8 +92,8 @@ body {
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
-  width: 100% !important;
-  margin-left: 0 !important;
+  width: calc(100% + 1px) !important;
+  margin-left: -1px !important;
 }
 
 /* 11x11px 单元格使用更紧凑的图标，避免 3x2 网格再次显得拥挤。 */
