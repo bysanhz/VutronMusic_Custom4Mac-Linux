@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
   height: 35px;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: 7px;
   -webkit-app-region: no-drag;
 }
 
@@ -363,6 +363,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
   user-select: none;
   pointer-events: none;
 }
@@ -378,6 +379,7 @@ onBeforeUnmount(() => {
   align-items: stretch;
   justify-items: stretch;
 
+  border-radius: inherit;
   background: transparent;
   transition:
     background 0.16s ease,
@@ -403,7 +405,7 @@ onBeforeUnmount(() => {
 
   border: none;
   outline: none;
-  border-radius: 2px;
+  border-radius: 0;
 
   color: rgba(255, 255, 255, 0.96);
   background: transparent;
@@ -486,7 +488,7 @@ onBeforeUnmount(() => {
   grid-row: 2;
   opacity: 1;
   pointer-events: auto;
-  border-radius: 2px;
+  border-radius: 0;
   background: transparent;
 
   &:hover {
