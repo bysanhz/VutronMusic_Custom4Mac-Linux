@@ -149,7 +149,7 @@
         :show-position="true"
         :load-more="loadMore"
         :extra-context-menu-item="isUserOwnPlaylist ? ['removeTrackFromPlaylist'] : []"
-        :is-end="true"
+        :is-end="onlineTrackLoadComplete"
       />
     </div>
 
@@ -229,94 +229,28 @@ import { Playlist, Track, StreamPlaylist, serviceName } from '@/types/music.d'
 import _ from 'lodash'
 
 const specialPlaylist = {
-  2829816518: {
-    name: '欧美私人订制',
-    gradient: 'gradient-pink-purple-blue'
-  },
-  2890490211: {
-    name: '助眠鸟鸣声',
-    gradient: 'gradient-green'
-  },
-  5089855855: {
-    name: '夜的胡思乱想',
-    gradient: 'gradient-moonstone-blue'
-  },
-  2888212971: {
-    name: '全球百大DJ',
-    gradient: 'gradient-orange-red'
-  },
-  2829733864: {
-    name: '睡眠伴侣',
-    gradient: 'gradient-midnight-blue'
-  },
-  2829844572: {
-    name: '洗澡时听的歌',
-    gradient: 'gradient-yellow'
-  },
-  2920647537: {
-    name: '还是会想你',
-    gradient: 'gradient-dark-blue-midnight-blue'
-  },
-  2890501416: {
-    name: '助眠白噪声',
-    gradient: 'gradient-sky-blue'
-  },
-  5217150082: {
-    name: '摇滚唱片行',
-    gradient: 'gradient-yellow-red'
-  },
-  2829961453: {
-    name: '古风音乐大赏',
-    gradient: 'gradient-fog'
-  },
-  4923261701: {
-    name: 'Trance',
-    gradient: 'gradient-light-red-light-blue '
-  },
-  5212729721: {
-    name: '欧美点唱机',
-    gradient: 'gradient-indigo-pink-yellow'
-  },
-  3103434282: {
-    name: '甜蜜少女心',
-    gradient: 'gradient-pink'
-  },
-  2829896389: {
-    name: '日系私人订制',
-    gradient: 'gradient-yellow-pink'
-  },
-  2829779628: {
-    name: '运动随身听',
-    gradient: 'gradient-orange-red'
-  },
-  2860654884: {
-    name: '独立女声精选',
-    gradient: 'gradient-sharp-blue'
-  },
-  898150: {
-    name: '浪漫婚礼专用',
-    gradient: 'gradient-pink'
-  },
-  2638104052: {
-    name: '牛奶泡泡浴',
-    gradient: 'gradient-fog'
-  },
-  5317236517: {
-    name: '后朋克精选',
-    gradient: 'gradient-pink-purple-blue'
-  },
-  2821115454: {
-    name: '一周原创发现',
-    gradient: 'gradient-blue-purple'
-  },
-  2829883282: {
-    name: '华语私人雷达',
-    gradient: 'gradient-yellow-red'
-  },
-  3136952023: {
-    name: '私人雷达',
-    gradient: 'gradient-radar'
-  }
+  2829816518: { name: '欧美私人订制', gradient: 'gradient-pink-purple-blue' },
+  2890490211: { name: '助眠鸟鸣声', gradient: 'gradient-green' },
+  5089855855: { name: '夜的胡思乱想', gradient: 'gradient-moonstone-blue' },
+  2888212971: { name: '全球百大DJ', gradient: 'gradient-orange-red' },
+  2829733864: { name: '睡眠伴侣', gradient: 'gradient-midnight-blue' },
+  2829844572: { name: '洗澡时听的歌', gradient: 'gradient-yellow-red' },
+  2920647537: { name: '还是会想你', gradient: 'gradient-dark-blue-midnight-blue' },
+  2890501416: { name: '助眠白噪声', gradient: 'gradient-sky-blue' },
+  5217150082: { name: '摇滚唱片行', gradient: 'gradient-yellow-red' },
+  2829961453: { name: '古风音乐大赏', gradient: 'gradient-fog' },
+  4923261701: { name: 'Trance', gradient: 'gradient-light-red-light-blue ' },
+  5212729721: { name: '欧美点唱机', gradient: 'gradient-indigo-pink-yellow' },
+  3103434282: { name: '甜蜜少女心', gradient: 'gradient-pink' },
+  2829896389: { name: '日系私人订制', gradient: 'gradient-yellow-pink' },
+  2829779628: { name: '运动随身听', gradient: 'gradient-orange-red' },
+  2860654884: { name: '独立女声精选', gradient: 'gradient-sharp-blue' },
+  898150: { name: '浪漫婚礼专用', gradient: 'gradient-pink' },
+  2638104052: { name: '牛奶泡泡浴', gradient: 'gradient-fog' },
+  5317236517: { name: '后朋克精选', gradient: 'gradient-pink-purple-blue' },
+  2821115454: { name: '一周原创发现', gradient: 'gradient-blue-purple' },
+  2829883282: { name: '华语私人雷达', gradient: 'gradient-yellow-red' },
+  3136952023: { name: '私人雷达', gradient: 'gradient-radar' }
 }
 
 const route = useRoute()
@@ -334,7 +268,9 @@ const playlist = ref<{ [key: string]: any }>({
 const tracks = ref<Track[]>([])
 const playlistMenu = ref()
 const show = ref(false)
-const lastLoadedTrackIndex = ref(9)
+/* 对在线歌单表示已经消费到 trackIds 的“下一项”索引。 */
+const lastLoadedTrackIndex = ref(0)
+const loadMoreLock = ref(false)
 const showFullDescription = ref(false)
 const showComment = ref(false)
 const pSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
@@ -362,7 +298,6 @@ const filterTracks = computed(() => {
 
 const { playlists, localTracks } = storeToRefs(useLocalMusicStore())
 const { deleteLocalPlaylist } = useLocalMusicStore()
-
 const streamMusic = useStreamMusicStore()
 
 const stateStore = useNormalStateStore()
@@ -376,15 +311,10 @@ const { replacePlaylist } = playerStore
 const { t } = useI18n()
 
 const playlistType = computed(() => {
-  if (route.name === 'localPlaylist') {
-    return 'local'
-  } else if (route.name === 'streamPlaylist') {
-    return 'stream'
-  } else if (route.name === 'streamLikedSongs') {
-    return 'streamLiked'
-  } else {
-    return 'online'
-  }
+  if (route.name === 'localPlaylist') return 'local'
+  if (route.name === 'streamPlaylist') return 'stream'
+  if (route.name === 'streamLikedSongs') return 'streamLiked'
+  return 'online'
 })
 
 const typeMap = {
@@ -397,6 +327,18 @@ const typeMap = {
 const isLikedSongsPage = computed(
   () => route.name === 'likedSongs' || route.name === 'streamLikedSongs'
 )
+
+const onlineTrackIDs = computed<number[]>(() => {
+  if (playlistType.value !== 'online') return []
+  return (Array.isArray(playlist.value?.trackIds) ? playlist.value.trackIds : [])
+    .map((item: any) => Number(item?.id ?? item))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
+})
+
+const onlineTrackLoadComplete = computed(() => {
+  if (playlistType.value !== 'online') return true
+  return lastLoadedTrackIndex.value >= onlineTrackIDs.value.length
+})
 
 const isUserOwnPlaylist = computed(() => {
   return (
@@ -457,36 +399,71 @@ const loadStreamLiked = () => {
   show.value = true
 }
 
-const loadData = async (id: number) => {
-  await getPlaylistDetail(id, true)
-    .then((data: any) => {
-      playlist.value = data.playlist
-      tracks.value = data.playlist.tracks
-      lastLoadedTrackIndex.value = data.playlist.tracks.length - 1
-      tricklingProgress.done()
-      show.value = true
-    })
-    .then(() => {
-      if (playlist.value.trackCount > tracks.value.length) {
-        const trackIDs = playlist.value.trackIds
-          .slice(tracks.value.length, tracks.value.length + 500)
-          .map((t) => t.id)
-        getTrackDetail(trackIDs.join(',')).then((data: any) => {
-          tracks.value.push(...data.songs)
-        })
-      }
-    })
+/**
+ * 把 song/detail 返回值按原 trackIds 顺序追加，避免接口缺项或乱序导致列表跳动。
+ */
+const appendOnlineTrackDetails = (trackIDs: number[], songs: any[]) => {
+  const songByID = new Map<number, any>()
+  for (const song of songs) {
+    const id = Number(song?.id)
+    if (Number.isFinite(id) && id > 0) songByID.set(id, song)
+  }
+
+  const existingIDs = new Set(tracks.value.map((track) => Number(track.id)))
+  const nextTracks = trackIDs
+    .map((id) => songByID.get(id))
+    .filter((track) => track && !existingIDs.has(Number(track.id)))
+
+  if (nextTracks.length) tracks.value.push(...nextTracks)
 }
 
-const loadMore = (Num: number = 500) => {
-  if (playlist.value.trackCount > tracks.value.length) {
-    const trackIDs = playlist.value.trackIds
-      .slice(tracks.value.length, tracks.value.length + Num)
-      .map((t) => t.id)
-    getTrackDetail(trackIDs.join(',')).then((data: any) => {
-      tracks.value.push(...data.songs)
-      lastLoadedTrackIndex.value = tracks.value.length - 1
-    })
+const ONLINE_TRACK_BATCH_SIZE = 150
+
+const loadData = async (id: number) => {
+  loadMoreLock.value = false
+  lastLoadedTrackIndex.value = 0
+  tracks.value = []
+
+  const data: any = await getPlaylistDetail(id, true)
+  playlist.value = data.playlist || playlist.value
+  tracks.value = Array.isArray(playlist.value.tracks) ? playlist.value.tracks : []
+  lastLoadedTrackIndex.value = Math.min(tracks.value.length, onlineTrackIDs.value.length)
+
+  tricklingProgress.done()
+  show.value = true
+
+  // 首屏完成后提前准备下一批，避免用户第一次滚到底部才开始等待网络请求。
+  if (!onlineTrackLoadComplete.value) {
+    void loadMore(ONLINE_TRACK_BATCH_SIZE)
+  }
+}
+
+/**
+ * 逐批加载在线歌单详情。
+ *
+ * 使用独立 cursor，而不是 tracks.length 作为下一页起点：即便 /song/detail 某一项缺失，
+ * 也不会重复请求同一批 ID。Promise 会返回给 VirtualScroll 的请求锁，从而合并滚动与哨兵触发。
+ */
+const loadMore = async (Num: number = ONLINE_TRACK_BATCH_SIZE) => {
+  if (playlistType.value !== 'online' || loadMoreLock.value || onlineTrackLoadComplete.value) return
+
+  const start = lastLoadedTrackIndex.value
+  const end = Math.min(start + Num, onlineTrackIDs.value.length)
+  const trackIDs = onlineTrackIDs.value.slice(start, end)
+  if (!trackIDs.length) {
+    lastLoadedTrackIndex.value = end
+    return
+  }
+
+  loadMoreLock.value = true
+  try {
+    const data: any = await getTrackDetail(trackIDs.join(','))
+    appendOnlineTrackDetails(trackIDs, Array.isArray(data?.songs) ? data.songs : [])
+    lastLoadedTrackIndex.value = end
+  } catch (error) {
+    console.warn('[PlaylistPage] 加载更多歌曲失败:', error)
+  } finally {
+    loadMoreLock.value = false
   }
 }
 
