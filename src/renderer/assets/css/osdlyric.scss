@@ -105,23 +105,22 @@ body {
 }
 
 /*
- * 歌词区域由外层负责垂直居中。
+ * 紧凑模式必须直接以“整个桌面歌词窗口高度”为歌词垂直布局基准。
  *
- * 之前 LyricContainer 自己占满 100% 高度，再依赖内部 flex 的 justify-content
- * 居中。在两行歌词、逐字动画和不同字体行盒共同作用时，可见文字块会明显偏下，
- * 甚至第二行贴近窗口底部。现在让歌词容器按真实内容高度布局，再由歌词面板把
- * 整个文字块垂直居中；单双行、不同字号下都会以实际内容尺寸为基准。
+ * OsdLyricContainer 的历史样式 `.container { height: calc(100vh - 54px) }`
+ * 是为带 54px 顶部工具栏的普通桌面歌词设计的；compact 模式已经没有该工具栏。
+ * 继续沿用这个高度，会在默认 50px 基准窗口下把歌词盒错误缩成
+ * `50px - 54px * zoom` 对应的很小区域，再把这个小区域居中，于是文字整体向下溢出。
+ *
+ * 这里不再通过外层 flex 或内容高度猜测位置，而是直接恢复 compact 模式真实的
+ * 100vh 可用高度，并在这个完整窗口基准内垂直居中。窗口按基准同比放大/缩小时，
+ * 该关系也保持不变。
  */
-#main.compact-mode .compact-lyric-panel {
-  display: flex !important;
-  align-items: center !important;
-}
-
 #main.compact-mode .compact-lyric-panel .container.mini {
-  height: auto !important;
+  height: 100vh !important;
   min-height: 0 !important;
-  max-height: 100% !important;
-  justify-content: flex-start !important;
+  max-height: 100vh !important;
+  justify-content: center !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
