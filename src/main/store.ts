@@ -89,15 +89,12 @@ const store = new Store<TypeElectronStore>({
         enable: true,
         source: '',
         enableFlac: true,
-        orderFirst: true,
-        jooxCookie: '',
-        qqCookie: ''
+        orderFirst: true
       },
       trackInfoOrder: ['path', 'online', 'embedded'] as TrackInfoOrder[],
       autoCacheTrack: {
-        enable: false,
-        path: '',
-        sizeLimit: 512 as boolean | number
+        enable: true,
+        sizeLimit: 512
       },
       shortcuts: [
         {
@@ -219,6 +216,35 @@ const applyWindowMinimumSize = (
   }
 }
 
+/**
+ * 为桌面歌词窗口补一层运行时最小尺寸保护。
+ *
+ * Electron 的 minWidth/minHeight 与 setMinimumSize 主要约束用户手动拉伸，
+ * 代码中的 setBounds 仍可能写入更小的尺寸。桌面歌词存在多条 setBounds 路径，
+ * 因此这里以 BrowserWindow 当前 minimumSize 为唯一真值，在每次 resize 后校正。
+ *
+ * 校准预览期间 windowScaleBaseline.ts 会临时把 minimumSize 设为 1x1，
+ * 所以这里读取 getMinimumSize() 而不是直接读取持久化 baseline，避免阻塞预览。
+ */
+const installOsdMinimumSizeGuard = (window: BrowserWindow) => {
+  let correcting = false
+
+  window.on('resize', () => {
+    if (correcting || window.isDestroyed() || window.isMaximized() || window.isFullScreen()) return
+
+    const [minimumWidth, minimumHeight] = window.getMinimumSize()
+    const [width, height] = window.getSize()
+    const nextWidth = Math.max(width, minimumWidth)
+    const nextHeight = Math.max(height, minimumHeight)
+
+    if (nextWidth === width && nextHeight === height) return
+
+    correcting = true
+    window.setSize(nextWidth, nextHeight)
+    correcting = false
+  })
+}
+
 const findDesktopLyricWindow = () => {
   return BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
 }
@@ -227,6 +253,7 @@ const applyCreatedWindowBaseline = (window: BrowserWindow) => {
   if (window.getTitle() === '桌面歌词') {
     const type = store.get('osdWin.type') === 'normal' ? 'osd-normal' : 'osd-small'
     applyWindowMinimumSize(window, type, readOsdWindowBaseline(type))
+    installOsdMinimumSizeGuard(window)
     return
   }
 
