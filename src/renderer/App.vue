@@ -11,6 +11,7 @@
       </router-view>
     </div>
     <PlayerBar v-if="enabled" v-show="showPlayerBar" />
+    <HeartModeAssistant />
     <ShowToast />
     <AddTrackToPlaylistModal />
     <newPlaylistModal />
@@ -24,6 +25,7 @@
 import { onMounted, ref, provide, toRefs, watch, computed, onBeforeUnmount } from 'vue'
 import ScrollBar from './components/ScrollBar.vue'
 import PlayerBar from './components/PlayerBar.vue'
+import HeartModeAssistant from './components/HeartModeAssistant.vue'
 import NavBar from './components/NavBar.vue'
 import SideNav from './components/SideNav.vue'
 import ShowToast from './components/ShowToast.vue'
