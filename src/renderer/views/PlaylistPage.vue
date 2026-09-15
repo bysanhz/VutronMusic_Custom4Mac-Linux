@@ -147,6 +147,7 @@
         :colunm-number="1"
         :show-service="['stream', 'streamLiked'].includes(playlistType)"
         :show-position="true"
+        :enable-virtual-scroll="false"
         :load-more="loadMore"
         :extra-context-menu-item="isUserOwnPlaylist ? ['removeTrackFromPlaylist'] : []"
         :is-end="onlineTrackLoadComplete"
@@ -524,7 +525,7 @@ const playIntelligenceList = async () => {
     }
 
     const idx = _shuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
-    await replacePlaylist('playlist', likedSongPlaylistID.value, trackIDs, idx)
+    await replacePlaylist('intelligence', likedSongPlaylistID.value, trackIDs, idx)
   } catch (error) {
     if (requestID !== intelligenceRequestID) return
     console.warn('[PlaylistPage] 心动模式加载失败：', error)
