@@ -5,6 +5,7 @@
       'is-lock': isLock,
       'compact-mode': isCompactMode,
       'normal-mode': !isCompactMode,
+      'has-cover-controls': isCompactMode && coverControlsVisible,
       'is-custom-dragging': customOsdDragging
     }"
     :style="{ backgroundColor: bground.bg }"
@@ -30,7 +31,7 @@
     <!-- ======== newADD start====== -->
     <!-- 紧凑桌面歌词布局 -->
     <div v-if="isCompactMode" class="compact-osd-layout">
-      <div class="compact-left-panel">
+      <div v-if="coverControlsVisible" class="compact-left-panel">
         <CompactCoverControls />
       </div>
 
@@ -111,6 +112,7 @@ import CompactCoverControls from '../components/CompactCoverControls.vue'
 import { useOsdLyricStore } from '../store/osdLyric'
 
 const isLinux = window.env?.isLinux
+const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 
 const osdLyricStore = useOsdLyricStore()
 
@@ -118,6 +120,9 @@ const { isLock, type, backgroundColor, showButtonWhenLock } = storeToRefs(osdLyr
 
 const hover = ref(false)
 const title = ref('听你想听的音乐')
+const coverControlsVisible = ref(
+  window.localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
+)
 
 // ======== newADD start======
 /**
@@ -329,6 +334,11 @@ const handleDocumentMouseLeave = () => {
  * Raises:
  *   消息结构不完整时直接忽略。
  */
+const handleStorageChange = (event: StorageEvent) => {
+  if (event.key !== COVER_CONTROLS_STORAGE_KEY) return
+  coverControlsVisible.value = event.newValue !== 'false'
+}
+
 const handleOsdStatusMessage = (event: MessageEvent) => {
   if (event.data?.type !== 'update-osd-status') {
     return
@@ -365,6 +375,7 @@ const handleSetIsLock = (_event: unknown, value: boolean) => {
 document.addEventListener('mouseleave', handleDocumentMouseLeave)
 
 window.addEventListener('message', handleOsdStatusMessage)
+window.addEventListener('storage', handleStorageChange)
 
 window.mainApi?.on('mouseInWindow', handleMouseInWindow)
 window.mainApi?.on('set-isLock', handleSetIsLock)
@@ -393,6 +404,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('mouseleave', handleDocumentMouseLeave)
 
   window.removeEventListener('message', handleOsdStatusMessage)
+  window.removeEventListener('storage', handleStorageChange)
 
   window.removeEventListener('mousemove', handleCustomOsdDrag)
 
@@ -448,7 +460,8 @@ onBeforeUnmount(() => {
  * 上、右、下、左。
  */
 #main.compact-mode {
-  padding: 0 3px 0 0;
+  padding: 0 2px 0 0;
+  border-radius: 7px;
 }
 /* =========== newADD end ======== */
 
@@ -486,16 +499,19 @@ onBeforeUnmount(() => {
 .compact-osd-layout {
   display: grid;
 
-  grid-template-columns:
-    35px
-    minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 
-  column-gap: 1px;
+  column-gap: 0;
   align-items: center;
 
   width: 100%;
   height: 100%;
   min-width: 0;
+}
+
+#main.has-cover-controls .compact-osd-layout {
+  grid-template-columns: 35px minmax(0, 1fr);
+  column-gap: 0;
 }
 
 .compact-left-panel {
@@ -531,6 +547,12 @@ onBeforeUnmount(() => {
 .compact-lyric-panel :deep(.lyric) {
   box-sizing: border-box;
   max-width: 100%;
+}
+
+/* 封面控制模式的歌词从控制区右侧立即开始，避免居中对齐产生视觉空洞。 */
+#main.has-cover-controls .compact-lyric-panel :deep(.container.mini),
+#main.has-cover-controls .compact-lyric-panel :deep(.lyric) {
+  text-align: left !important;
 }
 
 /*
