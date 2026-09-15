@@ -64,16 +64,17 @@ body {
 /*
  * 紧凑桌面歌词左侧封面与控制区。
  *
- * 控制区按 3:2 的按钮网格比例改为 33x22px：3 列 x 2 行时每个按钮约为
- * 11x11px，不再把 3x2 网格硬塞进近似正方形。左侧列同步收窄并取消列间距，
- * 让歌词从控制区右侧紧接开始。
+ * 3x2 控制网格使用接近 3:2 的 51x34px 外框：高度几乎填满当前 compact
+ * 窗口，不再像 33x22px 那样在上下留下明显空白；每个按钮单元约 17x17px，
+ * 仍保持接近正方形。歌词面板向左回收 16px，用掉歌词行本身的左侧空区，
+ * 因而控制区虽然变宽，正文不会被继续向右推远。
  *
  * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
  * is-lock 绑定。锁定后由主进程按鼠标位置对窗口执行局部穿透：左侧控件区
  * 恢复窗口交互，歌词区域继续穿透。
  */
 #main.compact-mode .compact-osd-layout {
-  grid-template-columns: 33px minmax(0, 1fr) !important;
+  grid-template-columns: 51px minmax(0, 1fr) !important;
   column-gap: 0 !important;
   justify-content: start;
 }
@@ -87,29 +88,39 @@ body {
 #main.compact-mode .compact-cover-controls {
   position: relative;
   z-index: 10004;
-  width: 33px !important;
-  height: 22px !important;
-  border-radius: 6px !important;
+  width: 51px !important;
+  height: 34px !important;
+  border-radius: 7px !important;
   pointer-events: auto;
   transform: none;
   margin: 0;
 }
 
-/* 33x22px 下保持图标四周有稳定留白，避免播放/心动图标顶满 11px 单元格。 */
+/*
+ * 歌词组件内部本身存在一小段左侧视觉留白。
+ * 用负 margin 回收这段空区，使文字从控制区右侧约 1~2px 处开始，而不是因为
+ * 控制区从 33px 增宽到 51px 后把歌词整体继续推远。
+ */
+html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
+  width: calc(100% + 16px);
+  margin-left: -16px;
+}
+
+/* 17x17px 单元格下恢复更易辨认的图标尺寸，同时保留四周点击留白。 */
 #main.compact-mode .compact-control-button .svg-icon {
-  width: 7px !important;
-  height: 7px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 
 #main.compact-mode .compact-control-button.control-play .svg-icon,
 #main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
-  width: 9px !important;
-  height: 9px !important;
+  width: 13px !important;
+  height: 13px !important;
 }
 
 #main.compact-mode .compact-control-button.control-main-window .svg-icon {
-  width: 8px !important;
-  height: 8px !important;
+  width: 11px !important;
+  height: 11px !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
@@ -148,6 +159,7 @@ html.osd-cover-controls-hidden #main.compact-mode {
     grid-column: 1 / -1 !important;
     width: 100% !important;
     min-width: 0 !important;
+    margin-left: 0 !important;
   }
 }
 /* =========== newADD end ======== */
