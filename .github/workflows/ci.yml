@@ -40,7 +40,7 @@ jobs:
 
       - name: Format generated changes
         run: >-
-          yarn prettier src/renderer/store/data.ts src/renderer/views/LibraryMusic.vue tests/feature-regression.spec.ts --write
+          yarn prettier src/renderer/store/data.ts src/renderer/views/LibraryMusic.vue tests/feature-regression.spec.ts .github/workflows/ci.yml --write
 
       - name: Check formatting
         run: yarn run format:check
