@@ -4,6 +4,7 @@ import {
   WINDOW_SCALE_BASELINE_KEYS,
   WindowScaleBaseline,
   WindowScaleTarget,
+  getDefaultWindowScaleBaseline,
   sanitizeWindowScaleBaseline
 } from './windowScaleBaseline'
 
@@ -142,6 +143,30 @@ export const commitWindowScaleBaseline = (
     action: 'commit',
     baseline
   })
+  dispatchBaselineChange(target, baseline, false)
+  return baseline
+}
+
+/**
+ * 将指定窗口的缩放基准恢复到应用内置默认值。
+ *
+ * 与 commitWindowScaleBaseline 不同，这里不会发送“完成校准”IPC；调用方应先取消
+ * 仍在进行的预览校准。这样恢复一个当前未显示的桌面歌词模式时，不会错误地把
+ * 正在显示的另一个歌词模式窗口 minimumSize 改成目标模式的尺寸。
+ */
+export const resetWindowScaleBaseline = (target: WindowScaleTarget) => {
+  const baseline = getDefaultWindowScaleBaseline(target)
+  const keys = WINDOW_SCALE_BASELINE_KEYS[target]
+
+  localStorage.setItem(keys.minWidth, String(baseline.minWidth))
+  localStorage.setItem(keys.minHeight, String(baseline.minHeight))
+  localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+  if (target === 'osd-small') {
+    localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
+  }
+  localStorage.removeItem(getPreviewKey(target))
+
+  syncWindowMinimumSize(target, baseline)
   dispatchBaselineChange(target, baseline, false)
   return baseline
 }
