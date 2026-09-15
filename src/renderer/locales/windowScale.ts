@@ -19,6 +19,8 @@ export const windowScaleMessages = {
     dragToAdjust: 'Drag to adjust {field}',
     calibrationHint:
       'Changes are previewed at the baseline window size. Confirm to save and release the window for normal resizing. Press Esc to cancel or Ctrl/Command + Enter to confirm.',
+    restoreDefault: 'Restore Default',
+    restoreDefaultHint: 'Restore this window scale baseline to the built-in defaults',
     confirm: 'Confirm',
     cancel: 'Cancel'
   },
@@ -42,6 +44,8 @@ export const windowScaleMessages = {
     dragToAdjust: '拖动调节{field}',
     calibrationHint:
       '调整时窗口会实时进入基准尺寸预览；点击确认后保存，并释放窗口供正常拖拽缩放。按 Esc 取消，按 Ctrl/Command + Enter 确认。',
+    restoreDefault: '恢复默认',
+    restoreDefaultHint: '将当前窗口缩放基准恢复为应用内置默认值',
     confirm: '确认',
     cancel: '取消'
   },
@@ -65,6 +69,8 @@ export const windowScaleMessages = {
     dragToAdjust: '拖曳調整{field}',
     calibrationHint:
       '調整時視窗會即時進入基準尺寸預覽；按下確認後儲存，並釋放視窗供正常拖曳縮放。按 Esc 取消，按 Ctrl/Command + Enter 確認。',
+    restoreDefault: '恢復預設',
+    restoreDefaultHint: '將目前視窗縮放基準恢復為應用程式內建預設值',
     confirm: '確認',
     cancel: '取消'
   }
