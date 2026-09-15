@@ -62,22 +62,15 @@ body {
 }
 
 /*
- * 紧凑桌面歌词左侧封面与控制区。
+ * 紧凑桌面歌词左侧控制区。
  *
- * 3x2 控制网格使用接近 3:2 的 51x34px 外框：高度几乎填满当前 compact
- * 窗口，每个按钮单元约 17x17px，保持接近正方形。
- *
- * 上一版通过负 margin “回收”歌词区域，实际上会把文字重新拉回控制区边缘，
- * 因而视觉上仍然贴在一起。现在不再移动歌词面板，而是在 grid 两列之间直接
- * 留 7px 的真实间隔；这个间隔不会被文字对齐方式或子组件宽度抵消。
- *
- * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
- * is-lock 绑定。锁定后由主进程按鼠标位置对窗口执行局部穿透：左侧控件区
- * 恢复窗口交互，歌词区域继续穿透。
+ * 控制按钮是 3x2 网格，因此控制区直接使用 3:2 的 33x22px 外框。
+ * 相比之前 51x34px 的大块区域，它不会在窄歌词窗口里显得接近一个独立方块，
+ * 同时把歌词起点明显拉近。两列只保留 2px 的安全间隔，避免文字贴住按钮。
  */
 #main.compact-mode .compact-osd-layout {
-  grid-template-columns: 51px minmax(0, 1fr) !important;
-  column-gap: 7px !important;
+  grid-template-columns: 33px minmax(0, 1fr) !important;
+  column-gap: 2px !important;
   justify-content: start;
 }
 
@@ -90,35 +83,34 @@ body {
 #main.compact-mode .compact-cover-controls {
   position: relative;
   z-index: 10004;
-  width: 51px !important;
-  height: 34px !important;
-  border-radius: 7px !important;
+  width: 33px !important;
+  height: 22px !important;
+  border-radius: 6px !important;
   pointer-events: auto;
   transform: none;
   margin: 0;
 }
 
-/* 使用真实 grid gap 后，歌词面板保持自身正常几何位置。 */
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
   width: 100% !important;
   margin-left: 0 !important;
 }
 
-/* 17x17px 单元格下恢复更易辨认的图标尺寸，同时保留四周点击留白。 */
+/* 11x11px 单元格使用更紧凑的图标，避免 3x2 网格再次显得拥挤。 */
 #main.compact-mode .compact-control-button .svg-icon {
-  width: 10px !important;
-  height: 10px !important;
+  width: 7px !important;
+  height: 7px !important;
 }
 
 #main.compact-mode .compact-control-button.control-play .svg-icon,
 #main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
-  width: 13px !important;
-  height: 13px !important;
+  width: 9px !important;
+  height: 9px !important;
 }
 
 #main.compact-mode .compact-control-button.control-main-window .svg-icon {
-  width: 11px !important;
-  height: 11px !important;
+  width: 8px !important;
+  height: 8px !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
