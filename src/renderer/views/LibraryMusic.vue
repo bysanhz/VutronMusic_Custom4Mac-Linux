@@ -27,14 +27,15 @@
       <div class="songs">
         <TrackList
           :id="libraryData.playlists.length > 0 ? libraryData.playlists[0].id : 0"
-          :items="libraryData.songsWithDetails"
+          :items="likedSongsPreview"
           :type="'tracklist'"
           :show-position="false"
           :item-height="60"
           :height="240"
-          :is-end="false"
+          :is-end="true"
           :padding-bottom="0"
           :colunm-number="2"
+          :enable-virtual-scroll="false"
         />
       </div>
     </div>
@@ -109,27 +110,25 @@
       <div class="section-two-content" :style="tabStyle">
         <div v-if="currentTab === 'playlist'">
           <CoverRow
-            :items="visiblePlaylists"
+            :items="filterPlaylists"
             type="playlist"
             sub-text="creator"
             :colunm-number="5"
-            :enable-virtual-scroll="false"
-            :is-end="visiblePlaylists.length >= filterPlaylists.length"
+            :enable-virtual-scroll="true"
+            :is-end="true"
             :padding-bottom="96"
-            :load-more="loadMorePlaylists"
           />
         </div>
 
         <div v-if="currentTab === 'album'">
           <CoverRow
-            :items="visibleAlbums"
+            :items="libraryData.albums"
             type="album"
             sub-text="artist"
             :colunm-number="5"
-            :enable-virtual-scroll="false"
-            :is-end="visibleAlbums.length >= libraryData.albums.length"
+            :enable-virtual-scroll="true"
+            :is-end="true"
             :padding-bottom="96"
-            :load-more="loadMoreAlbums"
           />
         </div>
 
@@ -139,15 +138,14 @@
 
         <div v-if="currentTab === 'artist'">
           <CoverRow
-            :items="visibleArtists"
+            :items="libraryData.artists"
             type="artist"
             sub-text="artist"
             :item-height="230"
             :colunm-number="5"
-            :enable-virtual-scroll="false"
-            :is-end="visibleArtists.length >= libraryData.artists.length"
+            :enable-virtual-scroll="true"
+            :is-end="true"
             :padding-bottom="96"
-            :load-more="loadMoreArtists"
           />
         </div>
 
@@ -220,7 +218,7 @@
 import { storeToRefs } from 'pinia'
 import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
-import { ref, computed, onMounted, onUnmounted, inject, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { dailyTask, randomNum, pickedLyric } from '../utils'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import { getTrackDetail } from '../api/track'
@@ -265,21 +263,10 @@ const libraryData = computed(() => {
 })
 
 /*
- * 封面区域采用“首屏一次 + 后台小批次预展开”。
- *
- * 原实现每次触底一次性追加 40 张封面，因此滚到边界时 Vue 会同时创建大量
- * Cover 组件，用户会看到明显停顿后才出现下一批内容。现在首批仍保留 40 张，
- * 但后续每次只追加 10 张，并在用户尚未滚到边界前按 100ms 小批量预展开。
- * CoverBox 本身使用 loading="lazy"，VirtualCoverRow 也使用 content-visibility，
- * 因此提前创建离屏 DOM 不会同步解码全部封面图片。
+ * 顶部右侧只承担“我喜欢的音乐”预览，不再把完整喜欢列表塞进一个 240px 高的虚拟滚动区。
+ * 两列 x 四行正好填满 240px；只渲染 8 首可避免它抢占滚轮，也避免后台维护无意义的长列表。
  */
-const COVER_INITIAL_SIZE = 40
-const COVER_BATCH_SIZE = 10
-const COVER_PREFETCH_DELAY_MS = 100
-const playlistVisibleLimit = ref(COVER_INITIAL_SIZE)
-const albumVisibleLimit = ref(COVER_INITIAL_SIZE)
-const artistVisibleLimit = ref(COVER_INITIAL_SIZE)
-let coverPrefetchTimer: number | null = null
+const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 8))
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
 
@@ -318,101 +305,6 @@ const filterPlaylists = computed(() => {
   }
   return playlists
 })
-
-const visiblePlaylists = computed(() => filterPlaylists.value.slice(0, playlistVisibleLimit.value))
-const visibleAlbums = computed(() => libraryData.value.albums.slice(0, albumVisibleLimit.value))
-const visibleArtists = computed(() => libraryData.value.artists.slice(0, artistVisibleLimit.value))
-
-const loadMorePlaylists = () => {
-  playlistVisibleLimit.value = Math.min(
-    filterPlaylists.value.length,
-    playlistVisibleLimit.value + COVER_BATCH_SIZE
-  )
-}
-const loadMoreAlbums = () => {
-  albumVisibleLimit.value = Math.min(
-    libraryData.value.albums.length,
-    albumVisibleLimit.value + COVER_BATCH_SIZE
-  )
-}
-const loadMoreArtists = () => {
-  artistVisibleLimit.value = Math.min(
-    libraryData.value.artists.length,
-    artistVisibleLimit.value + COVER_BATCH_SIZE
-  )
-}
-
-/**
- * 清理音乐库封面后台预展开定时器。
- */
-const clearCoverPrefetchTimer = () => {
-  if (coverPrefetchTimer !== null) {
-    window.clearTimeout(coverPrefetchTimer)
-    coverPrefetchTimer = null
-  }
-}
-
-/**
- * 在当前封面标签页中预展开一小批数据。
- *
- * Returns:
- *   当前标签页在本次追加后是否仍有未展开数据。
- */
-const prefetchActiveCoverBatch = (): boolean => {
-  if (currentTab.value === 'playlist') {
-    loadMorePlaylists()
-    return playlistVisibleLimit.value < filterPlaylists.value.length
-  }
-  if (currentTab.value === 'album') {
-    loadMoreAlbums()
-    return albumVisibleLimit.value < libraryData.value.albums.length
-  }
-  if (currentTab.value === 'artist') {
-    loadMoreArtists()
-    return artistVisibleLimit.value < libraryData.value.artists.length
-  }
-  return false
-}
-
-/**
- * 在用户真正滚到分页边界前逐批创建离屏封面组件。
- *
- * 每次只追加 10 项并让出 100ms 给浏览器绘制/输入事件，因此不会再在滚动边界
- * 同步创建 40 个组件。触底 loadMore 仍保留，作为用户极快滚动时的降级路径。
- */
-const scheduleCoverPrefetch = () => {
-  clearCoverPrefetchTimer()
-
-  if (!['playlist', 'album', 'artist'].includes(currentTab.value)) return
-
-  const run = () => {
-    coverPrefetchTimer = null
-    const hasMore = prefetchActiveCoverBatch()
-    if (hasMore) {
-      coverPrefetchTimer = window.setTimeout(run, COVER_PREFETCH_DELAY_MS)
-    }
-  }
-
-  coverPrefetchTimer = window.setTimeout(run, COVER_PREFETCH_DELAY_MS)
-}
-
-watch(playlistFilter, () => {
-  playlistVisibleLimit.value = COVER_INITIAL_SIZE
-  scheduleCoverPrefetch()
-})
-
-watch(
-  [
-    currentTab,
-    () => filterPlaylists.value.length,
-    () => libraryData.value.albums.length,
-    () => libraryData.value.artists.length
-  ],
-  () => {
-    scheduleCoverPrefetch()
-  },
-  { flush: 'post' }
-)
 
 const playHistoryList = computed(() => {
   if (show.value && playHistoryMode.value === 'week') {
@@ -541,7 +433,9 @@ const observeTab = new IntersectionObserver(
 
 const handleResize = () => {
   winHeight.value = window.innerHeight
-  observeTab.unobserve(tabsRowRef.value)
+  if (tabsRowRef.value) {
+    observeTab.unobserve(tabsRowRef.value)
+  }
   observeTab.disconnect()
   if (tabsRowRef.value) observeTab.observe(tabsRowRef.value)
 }
@@ -565,7 +459,6 @@ onMounted(() => {
   }, 100)
 })
 onUnmounted(() => {
-  clearCoverPrefetchTimer()
   window.removeEventListener('resize', handleResize)
   observeTab.disconnect()
   updatePadding(96)
@@ -759,7 +652,4 @@ button.tab-button {
     transform: scale(0.92);
   }
 }
-// .section-two-content {
-//   height: calc(100vh - 64px);
-// }
 </style>
