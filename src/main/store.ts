@@ -89,12 +89,15 @@ const store = new Store<TypeElectronStore>({
         enable: true,
         source: '',
         enableFlac: true,
-        orderFirst: true
+        orderFirst: true,
+        jooxCookie: '',
+        qqCookie: ''
       },
       trackInfoOrder: ['path', 'online', 'embedded'] as TrackInfoOrder[],
       autoCacheTrack: {
-        enable: true,
-        sizeLimit: 512
+        enable: false,
+        path: '',
+        sizeLimit: 512 as boolean | number
       },
       shortcuts: [
         {
