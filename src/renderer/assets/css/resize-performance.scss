@@ -38,29 +38,21 @@ html.vutron-window-resizing #app .modal {
 }
 
 /*
- * 音乐库顶部右侧只是“我喜欢的音乐”预览区，不应成为一个独立的长列表滚动容器。
+ * 音乐库顶部右侧是固定高度的“我喜欢的音乐”预览区，不应形成第二个纵向滚动容器。
  *
- * 该区域原先的 VirtualTrackList 会在鼠标停留其上时接管滚轮；喜欢歌曲较多时，用户
- * 必须先滚完整个内部列表才容易继续向下浏览音乐库。禁止这个预览区的纵向内部滚动后，
- * 滚轮会自然交给 #main，预览仍保留当前视口中的前 3~4 行歌曲并保持点击可用。
+ * VirtualScrollNoHeight 会通过内联 overflow-y: scroll 接管滚轮；仅改成 hidden 在 Chromium
+ * 中仍然保留了一个独立 scroll container。这里让内部容器直接 overflow: visible，再由外层
+ * .songs 在 240px 高度处裁切。这样鼠标位于预览歌曲上时，滚轮目标会继续向上交给 #main，
+ * 同时预览中的歌曲仍然可以点击、双击和右键。
  */
+#app .library > .section-one .songs {
+  height: 240px;
+  overflow: hidden;
+}
+
 #app .library > .section-one .songs .infinite-list-container {
-  overflow-y: hidden !important;
-  overscroll-behavior-y: auto;
-}
-
-/*
- * 左侧主导航提示气泡贴近按钮。
- *
- * 原布局把气泡文字放在按钮右侧 18px，箭头也从 4px 外开始，缩放后视觉距离更明显。
- * 现在把文字缩到 10px、箭头缩到 1px 外，保留足够的箭头空间但不再产生明显断层。
- */
-#app .side-nav button::after {
-  left: calc(100% + 10px) !important;
-}
-
-#app .side-nav button::before {
-  left: calc(100% + 1px) !important;
-  border-width: 6px !important;
+  height: 240px !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
 }
 /* =========== newADD end ======== */
