@@ -200,6 +200,8 @@ const getSubText = (item: any) => {
   color: var(--color-text);
   padding-bottom: 20px;
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
 }
 .text {
   margin-top: 8px;

@@ -147,33 +147,11 @@ const containerHeight = computed(() => {
   return props.enableVirtualScroll ? Math.min(height, listHeight.value) : listHeight.value
 })
 
-/**
- * When nested scrolling is disabled the list still needs virtualization. The outer page
- * owns the scrollbar, so keep the full phantom height but mount only viewport-adjacent rows.
- */
-const outerViewportHeight = computed(() => {
-  const navBarHeight = hasCustomTitleBar.value ? 84 : 64
-  return Math.max(itemSize.value, windowHeight.value - navBarHeight - playerBarInset.value)
-})
-const contentTransform = computed(() => {
-  if (!props.enableVirtualScroll) {
-    const firstRenderedRow = Math.max(0, startRow.value - aboveCount.value)
-    return `translateY(${firstRenderedRow * itemSize.value}px)`
-  }
-  return `translateY(${startOffset.value}px)`
-})
+const contentTransform = computed(() => `translateY(${startOffset.value}px)`)
 const anchorPoint = computed(() =>
   position.value.length ? position.value[startRow.value * props.columnNumber] : null
 )
-const visibleCount = computed(() =>
-  Math.max(
-    1,
-    Math.ceil(
-      (props.enableVirtualScroll ? containerHeight.value : outerViewportHeight.value) /
-        itemSize.value
-    ) + 1
-  )
-)
+const visibleCount = computed(() => Math.floor(containerHeight.value / itemSize.value))
 const endRow = computed(() => startRow.value + visibleCount.value)
 const aboveCount = computed(() => Math.min(startRow.value, props.aboveValue))
 const belowCount = computed(() => Math.min(list.value.length - endRow.value, props.belowValue))
@@ -464,28 +442,10 @@ const scrollEvent = rafThrottle(() => {
 
 let parentScrollElement: HTMLElement | null = null
 
-const updateOuterWindow = () => {
-  if (props.enableVirtualScroll) return
-  const element = getListElement()
-  if (!element) return
-
-  const rect = element.getBoundingClientRect()
-  const mainRect = mainRef.value?.getBoundingClientRect()
-  const visibleTop = Math.max(mainRect?.top ?? 0, hasCustomTitleBar.value ? 84 : 64)
-  const scrollInsideList = Math.max(0, visibleTop - rect.top)
-  const maxRow = Math.max(0, Math.ceil(list.value.length / props.columnNumber) - 1)
-  const nextRow = Math.min(maxRow, Math.max(0, getStartIndex(scrollInsideList) ?? 0))
-
-  if (nextRow !== startRow.value) startRow.value = nextRow
-  element.style.overflowY = 'hidden'
-  styleBefore.value = 'hidden'
-}
-
 const parentScrollEvent = rafThrottle(() => {
+  if (!props.enableVirtualScroll) return
   const element = getListElement()
   if (!element) return
-
-  updateOuterWindow()
 
   const rect = element.getBoundingClientRect()
   const mainRect = mainRef.value?.getBoundingClientRect()
@@ -499,6 +459,10 @@ const parentScrollEvent = rafThrottle(() => {
 })
 
 const bindParentScrollListener = () => {
+  if (!props.enableVirtualScroll) {
+    unbindParentScrollListener()
+    return
+  }
   const nextElement = mainRef.value ?? null
   if (parentScrollElement === nextElement) return
   parentScrollElement?.removeEventListener('scroll', parentScrollEvent)
@@ -552,11 +516,11 @@ let loadMoreObserver: IntersectionObserver | null = null
  * 用列表底部哨兵触发分页。scroll 阈值仍保留作为降级路径，两者共用请求锁。
  */
 const observeLoadMoreSentinel = () => {
-  if (!props.enableVirtualScroll) return
   loadMoreObserver?.disconnect()
   const element = getListElement()
   const sentinel = loadMoreSentinelRef.value
-  if (!element || !(sentinel instanceof Element)) return
+  const root = props.enableVirtualScroll ? element : mainRef.value
+  if (!element || !root || !(sentinel instanceof Element)) return
 
   loadMoreObserver = new IntersectionObserver(
     (entries) => {
@@ -565,8 +529,8 @@ const observeLoadMoreSentinel = () => {
       }
     },
     {
-      root: element,
-      rootMargin: '0px 0px 640px 0px',
+      root,
+      rootMargin: props.enableVirtualScroll ? '0px 0px 640px 0px' : '0px 0px 720px 0px',
       threshold: 0
     }
   )
@@ -640,11 +604,13 @@ onActivated(() => {
   nextTick(() => {
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
-    if (props.enableVirtualScroll) observeLoadMoreSentinel()
+    observeLoadMoreSentinel()
     bindParentScrollListener()
-    setTimeout(() => {
-      updateItemsSize()
-    }, 100)
+    if (props.enableVirtualScroll) {
+      setTimeout(() => {
+        updateItemsSize()
+      }, 100)
+    }
   })
 })
 
@@ -666,22 +632,21 @@ onMounted(() => {
   nextTick(() => {
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
-    if (props.enableVirtualScroll) observeLoadMoreSentinel()
+    observeLoadMoreSentinel()
     bindParentScrollListener()
-    setTimeout(() => {
-      updateItemsSize()
-    }, 100)
+    if (props.enableVirtualScroll) {
+      setTimeout(() => {
+        updateItemsSize()
+      }, 100)
+    }
   })
 })
 
 onUpdated(() => {
+  if (!props.enableVirtualScroll) return
   nextTick(() => {
-    if (props.enableVirtualScroll) {
-      updateItemsSize()
-      setStartOffset()
-    } else {
-      parentScrollEvent()
-    }
+    updateItemsSize()
+    setStartOffset()
   })
 })
 onBeforeUnmount(() => {

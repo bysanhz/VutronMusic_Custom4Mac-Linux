@@ -12,7 +12,7 @@
           ><svg-icon icon-class="play" />
         </button>
       </div>
-      <img :src="imageUrl" :style="imageStyles" loading="lazy" />
+      <img :src="imageUrl" :style="imageStyles" loading="lazy" decoding="async" />
       <Transition v-if="coverHover || alwaysShowShadow" name="fade">
         <div v-show="focus || alwaysShowShadow" class="shadow" :style="shadowStyles"></div>
       </Transition>

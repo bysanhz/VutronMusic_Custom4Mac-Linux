@@ -1629,7 +1629,9 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     expect(interaction).toContain("scroller.style.overflowY = 'auto'")
     expect(interaction).toContain('native scrolling is much faster and smoother')
     expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')
-    expect(virtualScroll).toContain("rootMargin: '0px 0px 640px 0px'")
+    expect(virtualScroll).toContain(
+      "rootMargin: props.enableVirtualScroll ? '0px 0px 640px 0px' : '0px 0px 720px 0px'"
+    )
   })
 })
 
@@ -1664,20 +1666,6 @@ test.describe('library hydration and bounded rendering', () => {
   })
 })
 
-test.describe('outer-scroll cover virtualization', () => {
-  test('outer-scroll cover grids keep a bounded DOM window', () => {
-    const source = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
-
-    expect(source).toContain('const outerViewportHeight = computed(() =>')
-    expect(source).toContain('const updateOuterWindow = () =>')
-    expect(source).toContain("element.style.overflowY = 'hidden'")
-    expect(source).toContain('if (!props.enableVirtualScroll) return')
-    expect(source).toContain('if (element && props.enableVirtualScroll) observer.observe(element)')
-    expect(source).toContain('if (props.enableVirtualScroll) observeLoadMoreSentinel()')
-    expect(source).toContain('parentScrollEvent()')
-  })
-})
-
 test.describe('compact desktop lyric spacing', () => {
   test('keeps cover controls flush left and lyrics adjacent', () => {
     const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
@@ -1688,5 +1676,23 @@ test.describe('compact desktop lyric spacing', () => {
     expect(osdCss).toContain('html:not(.osd-cover-controls-hidden)')
     expect(osdCss).toContain('text-align: left !important;')
     expect(preview).toMatch(/'builtin-cover': \{[\s\S]*?align: 'left'/)
+  })
+})
+
+test.describe('native outer-scroll cover rendering', () => {
+  test('avoids per-frame JS windowing while skipping offscreen cover work', () => {
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+    const coverRow = readSource('src/renderer/components/VirtualCoverRow.vue')
+    const coverBox = readSource('src/renderer/components/CoverBox.vue')
+
+    expect(virtualScroll).not.toContain('const updateOuterWindow = () =>')
+    expect(virtualScroll).not.toContain('const outerViewportHeight = computed(() =>')
+    expect(virtualScroll).toContain(
+      'const root = props.enableVirtualScroll ? element : mainRef.value'
+    )
+    expect(virtualScroll).toContain('if (!props.enableVirtualScroll) return')
+    expect(coverRow).toContain('content-visibility: auto;')
+    expect(coverRow).toContain('contain-intrinsic-size: auto 280px;')
+    expect(coverBox).toContain('decoding="async"')
   })
 })
