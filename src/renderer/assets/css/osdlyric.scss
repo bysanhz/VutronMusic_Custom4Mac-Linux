@@ -64,13 +64,17 @@ body {
 /*
  * 紧凑桌面歌词左侧封面与控制区。
  *
+ * 控制区按 3:2 的按钮网格比例改为 33x22px：3 列 x 2 行时每个按钮约为
+ * 11x11px，不再把 3x2 网格硬塞进近似正方形。左侧列同步收窄并取消列间距，
+ * 让歌词从控制区右侧紧接开始。
+ *
  * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
  * is-lock 绑定。锁定后由主进程按鼠标位置对窗口执行局部穿透：左侧控件区
  * 恢复窗口交互，歌词区域继续穿透。
  */
 #main.compact-mode .compact-osd-layout {
-  grid-template-columns: 35px minmax(0, 1fr) !important;
-  column-gap: 2px !important;
+  grid-template-columns: 33px minmax(0, 1fr) !important;
+  column-gap: 0 !important;
   justify-content: start;
 }
 
@@ -83,9 +87,29 @@ body {
 #main.compact-mode .compact-cover-controls {
   position: relative;
   z-index: 10004;
+  width: 33px !important;
+  height: 22px !important;
+  border-radius: 6px !important;
   pointer-events: auto;
   transform: none;
   margin: 0;
+}
+
+/* 33x22px 下保持图标四周有稳定留白，避免播放/心动图标顶满 11px 单元格。 */
+#main.compact-mode .compact-control-button .svg-icon {
+  width: 7px !important;
+  height: 7px !important;
+}
+
+#main.compact-mode .compact-control-button.control-play .svg-icon,
+#main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+#main.compact-mode .compact-control-button.control-main-window .svg-icon {
+  width: 8px !important;
+  height: 8px !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
