@@ -41,7 +41,6 @@ import {
   onMounted,
   computed,
   nextTick,
-  onUpdated,
   watch,
   onBeforeUnmount,
   onActivated,
@@ -121,8 +120,11 @@ const _listData = computed(() => {
     return init
   }, [])
 })
+
+const totalRowCount = computed(() => Math.ceil(_listData.value.length / props.columnNumber))
+
 const listHeight = computed(() => {
-  const totalRows = Math.ceil(_listData.value.length / props.columnNumber)
+  const totalRows = totalRowCount.value
   if (!props.enableVirtualScroll) {
     return (
       totalRows * itemSize.value +
@@ -151,13 +153,18 @@ const contentTransform = computed(() => `translateY(${startOffset.value}px)`)
 const anchorPoint = computed(() =>
   position.value.length ? position.value[startRow.value * props.columnNumber] : null
 )
-const visibleCount = computed(() => Math.floor(containerHeight.value / itemSize.value))
-const endRow = computed(() => startRow.value + visibleCount.value)
+const visibleCount = computed(() => Math.max(1, Math.ceil(containerHeight.value / itemSize.value)))
+const endRow = computed(() => Math.min(totalRowCount.value, startRow.value + visibleCount.value))
 const aboveCount = computed(() => Math.min(startRow.value, props.aboveValue))
-const belowCount = computed(() => Math.min(list.value.length - endRow.value, props.belowValue))
+const belowCount = computed(() =>
+  Math.max(0, Math.min(totalRowCount.value - endRow.value, props.belowValue))
+)
 const visibleData = computed(() => {
-  const _start = (startRow.value - aboveCount.value) * props.columnNumber
-  const _end = (endRow.value + belowCount.value) * props.columnNumber
+  const _start = Math.max(0, (startRow.value - aboveCount.value) * props.columnNumber)
+  const _end = Math.min(
+    _listData.value.length,
+    (endRow.value + belowCount.value) * props.columnNumber
+  )
   return _listData.value.slice(_start, _end)
 })
 const listStyles = computed(() => {
@@ -204,33 +211,17 @@ const initPosition = () => {
     bottom: (Math.floor(index / props.columnNumber) + 1) * itemSize.value
   }))
 }
-const updateItemsSize = () => {
-  itemsRef.value?.forEach((node) => {
-    if (node.id % props.columnNumber === 0) {
-      const rect = node.getBoundingClientRect()
-      const height = rect.height
-      const index = +node.id
-      const oldHeight = position.value[index].height
-      const dValue = oldHeight - height
 
-      if (dValue) {
-        position.value[index].bottom -= dValue
-        position.value[index].height = height
-        position.value[index].over = true
-
-        for (let k = index + 1; k < position.value.length; k++) {
-          if (k % props.columnNumber !== 0) break
-          position.value[k].top = position.value[k - props.columnNumber].bottom
-          position.value[k].bottom -= dValue
-        }
-      }
-    }
-  })
-}
+/**
+ * 当前虚拟列表全部调用点都提供固定 itemSize。
+ *
+ * 旧实现会在每次虚拟滚动导致 Vue 更新后重新 getBoundingClientRect()，这会强制同步布局，
+ * 使长歌单/封面列表在滚轮过程中出现周期性卡顿。位置表现在完全以 itemSize 为准，滚动期间
+ * 不再执行 DOM 测量；只有数据长度或列数变化时才更新位置表。
+ */
 const setStartOffset = () => {
   if (!position.value.length) return
   if (startRow.value >= 1) {
-    // 此处可能有bug
     const size =
       position.value[startRow.value * props.columnNumber]?.top -
       (position.value[(startRow.value - aboveCount.value) * props.columnNumber]?.top || 0)
@@ -264,8 +255,6 @@ const scrollTocurrent = (index: number, behavior: ScrollBehavior = 'smooth') => 
   scrollToIndex.value = index
   const idx = index / props.columnNumber - Math.floor(visibleCount.value / 2)
 
-  // 当定位元素和当前元素差距大于100时，会触发元素内的“快速”滚动，在一些流媒体音乐中可能会导致
-  // 短时间内大量加载图片，导致响应错误。因此设置一个标志位，处于快速滚动时请求本地图片；
   if (Math.abs(index - visibleMiddle.value) > 100) {
     virtualScrolling.value = true
   }
@@ -344,41 +333,38 @@ const scrollToTop = () => {
   }, 30)
 }
 
-/**
- * 为了防止虚拟列表滚动速度过快，导致频繁请求本地歌曲封面/流媒体音乐封面，我们可以对正处于
- * 快速滚动的歌曲返回一张程序内的图片资源，以减轻资源占用问题。
- * 快速滚动的判定条件为：
- * 1. 虚拟列表处于滚动状态；
- * 2. 计算目标位置与当前位置之间的关系，如果两者初始差距大于100,则认为它会发生快速滚动，
- *    这里的100需要再次查证后进行调整（小于100则认为仅仅会发生慢速滚动，不会导致资源占用
- *    问题）
- * 当满足以上两个条件时，则认为虚拟列表正在快速滚动，此时这两个封面图片返回两张asset内的图片
- */
-
 const getStartIndex = (scrollTop = 0) => {
   return binarySearch(scrollTop)
 }
 
-const binarySearch = (value: any) => {
+/**
+ * 在按“行”组织的位置表中查找首个 bottom > scrollTop 的行。
+ *
+ * 旧实现命中右半区时只执行 end--，导致长列表滚动时二分查找退化为近似线性扫描；
+ * 同时在多列列表末尾可能得到越界行，从而出现滚到某处突然空白。这里恢复标准二分边界。
+ */
+const binarySearch = (value: number) => {
+  if (!position.value.length || totalRowCount.value <= 0) return 0
+
   let start = 0
-  let end = Math.ceil(position.value.length / props.columnNumber) - 1
-  let tempIndex: number | null = null
+  let end = totalRowCount.value - 1
+  let result = 0
 
   while (start <= end) {
     const midIndex = Math.floor((start + end) / 2)
-    const midValue = position.value[midIndex * props.columnNumber].bottom
-    if (midValue === value) {
-      return midIndex + 1
-    } else if (midValue < value) {
+    const positionIndex = Math.min(midIndex * props.columnNumber, position.value.length - 1)
+    const midValue = position.value[positionIndex]?.bottom ?? 0
+
+    if (midValue <= value) {
+      result = Math.min(totalRowCount.value - 1, midIndex + 1)
       start = midIndex + 1
-    } else if (midValue > value) {
-      if (tempIndex === null || tempIndex > midIndex) {
-        tempIndex = midIndex
-      }
-      end = end - 1
+    } else {
+      result = midIndex
+      end = midIndex - 1
     }
   }
-  return tempIndex!
+
+  return Math.max(0, Math.min(result, totalRowCount.value - 1))
 }
 
 const rafThrottle = (fn: Function) => {
@@ -400,7 +386,7 @@ const loadMoreInFlight = ref(false)
  * 请求下一页，并把同一次触底期间的重复 scroll/sentinel 事件合并成一个请求。
  */
 const requestLoadMore = async () => {
-  if (loadMoreInFlight.value) return
+  if (props.isEnd || loadMoreInFlight.value) return
   loadMoreInFlight.value = true
   try {
     await props.loadMore()
@@ -410,26 +396,33 @@ const requestLoadMore = async () => {
 }
 
 const onScrollToBottom = () => {
-  const scrollTop = listRef.value.scrollTop
-  const containerHeight = listRef.value.clientHeight
-  const contentHeight = listRef.value.scrollHeight
+  const element = getListElement()
+  if (!element) return
+
+  const scrollTop = element.scrollTop
+  const currentContainerHeight = element.clientHeight
+  const contentHeight = element.scrollHeight
 
   registerInstance(instanceId.value)
   updateScroll(instanceId.value, {
     scrollTop,
-    containerHeight,
+    containerHeight: currentContainerHeight,
     listHeight: listHeight.value
   })
 
-  const loadMoreThreshold = Math.min(720, Math.max(320, containerHeight * 0.8))
-  if (scrollTop + containerHeight >= contentHeight - loadMoreThreshold) {
+  const loadMoreThreshold = Math.min(720, Math.max(320, currentContainerHeight * 0.8))
+  if (scrollTop + currentContainerHeight >= contentHeight - loadMoreThreshold) {
     void requestLoadMore()
   }
 }
 
 const onScroll = () => {
-  const scrollTop = listRef.value.scrollTop
-  if (scrollTop > anchorPoint.value?.bottom || scrollTop < anchorPoint.value?.top) {
+  const element = getListElement()
+  if (!element || !position.value.length) return
+
+  const scrollTop = element.scrollTop
+  const anchor = anchorPoint.value
+  if (!anchor || scrollTop > anchor.bottom || scrollTop < anchor.top) {
     startRow.value = getStartIndex(scrollTop)
     setStartOffset()
   }
@@ -443,7 +436,7 @@ const scrollEvent = rafThrottle(() => {
 let parentScrollElement: HTMLElement | null = null
 
 const parentScrollEvent = rafThrottle(() => {
-  if (!props.enableVirtualScroll) return
+  if (!props.enableVirtualScroll || props.isEnd) return
   const element = getListElement()
   if (!element) return
 
@@ -476,12 +469,6 @@ const unbindParentScrollListener = () => {
   parentScrollElement = null
 }
 
-/**
- * 条件：
- * 1. 该组件请在页面的最后来使用，如果在页面中间使用时，请确保传入的props.height小于window.innerHeight - 84(64)
- * 2. 当滚动组件与窗口的intersect为1时，将window设置为不可滚动，组件内部设置为可滚动，同时记录滚动距离；
- * 3. 当内部滚动到顶部、底部时，设置窗口可滚动、组件内部不可滚动；
- */
 const observer = new IntersectionObserver(
   (entries) => {
     const element = getListElement()
@@ -504,8 +491,6 @@ const observer = new IntersectionObserver(
   {
     root: null,
     rootMargin: `-64px 0px 0px 0px`,
-    // 这里设置成0.98的目的，是为了确保在special-playlist页面可以正常进入到滚动状态
-    // 某些情况下，页面会无法达到1，导致无法滚动
     threshold: 0.99
   }
 )
@@ -517,6 +502,8 @@ let loadMoreObserver: IntersectionObserver | null = null
  */
 const observeLoadMoreSentinel = () => {
   loadMoreObserver?.disconnect()
+  if (props.isEnd) return
+
   const element = getListElement()
   const sentinel = loadMoreSentinelRef.value
   const root = props.enableVirtualScroll ? element : mainRef.value
@@ -563,20 +550,37 @@ watch(_listData, (newList, oldList) => {
 
     newItems.forEach(({ _key }) => {
       const idx = _key
-      // idx的top，应该是上一行第一个的bottom，获取上一行第一个的index
-      const i = (Math.floor(idx / props.columnNumber) - 1) * props.columnNumber
-      const top = position.value[i]?.bottom
-      position.value.push({ index: idx, height: itemSize.value, top, bottom: top + itemSize.value })
+      const row = Math.floor(idx / props.columnNumber)
+      const top = row * itemSize.value
+      position.value.push({
+        index: idx,
+        height: itemSize.value,
+        top,
+        bottom: top + itemSize.value
+      })
     })
 
     lock.value = false
   } else {
-    if (newList.length < startRow.value) {
-      startRow.value = 0
+    if (startRow.value >= totalRowCount.value) {
+      startRow.value = Math.max(0, totalRowCount.value - 1)
     }
     initPosition()
+    setStartOffset()
   }
+
+  nextTick(observeLoadMoreSentinel)
 })
+
+watch(
+  () => [props.columnNumber, props.itemSize, props.isEnd],
+  () => {
+    initPosition()
+    startRow.value = Math.min(startRow.value, Math.max(0, totalRowCount.value - 1))
+    setStartOffset()
+    nextTick(observeLoadMoreSentinel)
+  }
+)
 
 initPosition()
 
@@ -606,16 +610,10 @@ onActivated(() => {
     if (element && props.enableVirtualScroll) observer.observe(element)
     observeLoadMoreSentinel()
     bindParentScrollListener()
-    if (props.enableVirtualScroll) {
-      setTimeout(() => {
-        updateItemsSize()
-      }, 100)
-    }
   })
 })
 
 onDeactivated(() => {
-  // startRow.value = 0
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
@@ -625,7 +623,6 @@ onDeactivated(() => {
 })
 
 onMounted(() => {
-  // startRow.value = 0
   instanceId.value = Math.random().toString(36).substring(2, 9)
   registerInstance(instanceId.value)
   window.addEventListener('resize', updateWindowHeight)
@@ -634,21 +631,9 @@ onMounted(() => {
     if (element && props.enableVirtualScroll) observer.observe(element)
     observeLoadMoreSentinel()
     bindParentScrollListener()
-    if (props.enableVirtualScroll) {
-      setTimeout(() => {
-        updateItemsSize()
-      }, 100)
-    }
   })
 })
 
-onUpdated(() => {
-  if (!props.enableVirtualScroll) return
-  nextTick(() => {
-    updateItemsSize()
-    setStartOffset()
-  })
-})
 onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
@@ -689,7 +674,6 @@ onBeforeUnmount(() => {
   left: 0;
   top: 0;
   right: 0;
-  /* z-index: -1; */
 }
 
 .infinite-list {
