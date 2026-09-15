@@ -116,7 +116,7 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     type: 'small',
     mode: 'twoLines',
     translationMode: 'tlyric',
-    align: 'center',
+    align: 'left',
     coverControlsVisible: true
   }
 }

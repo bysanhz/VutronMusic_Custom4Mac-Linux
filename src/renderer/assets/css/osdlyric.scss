@@ -69,7 +69,9 @@ body {
  * 恢复窗口交互，歌词区域继续穿透。
  */
 #main.compact-mode .compact-osd-layout {
-  column-gap: 8px !important;
+  grid-template-columns: 35px minmax(0, 1fr) !important;
+  column-gap: 2px !important;
+  justify-content: start;
 }
 
 #main.compact-mode .compact-left-panel {
@@ -82,7 +84,17 @@ body {
   position: relative;
   z-index: 10004;
   pointer-events: auto;
-  transform: translateX(4px);
+  transform: none;
+  margin: 0;
+}
+
+html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
+html:not(.osd-cover-controls-hidden)
+  #main.compact-mode
+  .compact-lyric-panel
+  .container.mini
+  .lyric {
+  text-align: left !important;
 }
 
 /* 未锁定时进一步缩小紧凑模式的边缘拉伸热区，降低误触。 */
