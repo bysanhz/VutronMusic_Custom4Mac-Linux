@@ -1,6 +1,9 @@
 name: Code Quality
 
 on:
+  push:
+    branches:
+      - fix/library-state-and-render-freeze
   pull_request:
     branches:
       - main
@@ -21,7 +24,7 @@ jobs:
       - name: Checkout source branch
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -44,8 +47,6 @@ jobs:
                   raise SystemExit(f'missing replacement target: {label}')
               return text.replace(old, new, 1)
 
-          # 1) Make `liked` a ref so persisted hydration cannot detach the store-facing
-          # value from the setup-store closure. Normalize stale/null persisted data after hydrate.
           path = Path('src/renderer/store/data.ts')
           text = path.read_text()
           text = replace_once(text, "import { ref, reactive } from 'vue'", "import { ref } from 'vue'", 'data import')
@@ -105,8 +106,6 @@ const normalizeLikedState = (value: any): LikedState => ({
               end = text.index('\n\n    const { showToast }', start)
               text = text[:start] + '    const liked = ref<LikedState>(createDefaultLikedState())' + text[end:]
 
-          # Only rewrite code inside the setup store body before the returned object so the
-          # persisted pick string remains `liked.songs`.
           body_start = text.index('    const { showToast }')
           body_end = text.index('\n\n    return {', body_start)
           body = text[body_start:body_end].replace('liked.', 'liked.value.')
@@ -117,19 +116,14 @@ const normalizeLikedState = (value: any): LikedState => ({
           text = replace_once(text, persist_old, persist_new, 'liked hydration normalization')
           path.write_text(text)
 
-          # 2) Library uses one outer scroll flow, but only mounts the active tab and only
-          # renders a bounded cover batch. This avoids both the old nested-scroll handoff and
-          # the regression where disabling virtualization rendered every hidden tab at once.
           path = Path('src/renderer/views/LibraryMusic.vue')
           text = path.read_text()
 
-          # Template reads go through a null-safe view model.
           template_end = text.index('</template>')
           template = text[:template_end].replace('liked.', 'libraryData.')
           text = template + text[template_end:]
           text = text.replace('<div v-show="currentTab ===', '<div v-if="currentTab ===')
 
-          # Bounded outer-scroll cover batches.
           text = replace_once(text, ':items="filterPlaylists"', ':items="visiblePlaylists"', 'visible playlists')
           text = replace_once(
               text,
@@ -157,8 +151,6 @@ const normalizeLikedState = (value: any): LikedState => ({
               "import { ref, computed, onMounted, onUnmounted, inject, nextTick, watch } from 'vue'"
           )
 
-          # Script reads go through the same null-safe view model. Do this before inserting
-          # the view model itself to avoid self-rewriting its `liked.value` source.
           script_start = text.index('<script setup lang="ts">')
           script_end = text.index('</script>', script_start)
           script = text[script_start:script_end].replace('liked.value', 'libraryData.value')
@@ -172,8 +164,6 @@ const normalizeLikedState = (value: any): LikedState => ({
           paging = '''  return playlists\n})\n\nconst visiblePlaylists = computed(() =>\n  filterPlaylists.value.slice(0, playlistVisibleLimit.value)\n)\nconst visibleAlbums = computed(() =>\n  libraryData.value.albums.slice(0, albumVisibleLimit.value)\n)\nconst visibleArtists = computed(() =>\n  libraryData.value.artists.slice(0, artistVisibleLimit.value)\n)\n\nconst loadMorePlaylists = () => {\n  playlistVisibleLimit.value = Math.min(\n    filterPlaylists.value.length,\n    playlistVisibleLimit.value + COVER_PAGE_SIZE\n  )\n}\nconst loadMoreAlbums = () => {\n  albumVisibleLimit.value = Math.min(\n    libraryData.value.albums.length,\n    albumVisibleLimit.value + COVER_PAGE_SIZE\n  )\n}\nconst loadMoreArtists = () => {\n  artistVisibleLimit.value = Math.min(\n    libraryData.value.artists.length,\n    artistVisibleLimit.value + COVER_PAGE_SIZE\n  )\n}\n\nwatch(playlistFilter, () => {\n  playlistVisibleLimit.value = COVER_PAGE_SIZE\n})\n\nconst playHistoryList = computed'''
           text = replace_once(text, filter_end, paging, 'library cover paging')
 
-          # Make the mounted async load observable instead of leaking a rejected promise to
-          # window.unhandledrejection. Background panels are isolated with allSettled.
           old_tail = '''  fetchLikedAlbums()\n  fetchLikedArtists()\n  fetchLikedMVs()\n  fetchPlayHistory()\n  fetchCloudDisk()\n}'''
           new_tail = '''  void Promise.allSettled([\n    Promise.resolve().then(() => fetchLikedAlbums()),\n    Promise.resolve().then(() => fetchLikedArtists()),\n    Promise.resolve().then(() => fetchLikedMVs()),\n    Promise.resolve().then(() => fetchPlayHistory()),\n    Promise.resolve().then(() => fetchCloudDisk())\n  ])\n}'''
           text = replace_once(text, old_tail, new_tail, 'background library loads')
@@ -185,7 +175,6 @@ const normalizeLikedState = (value: any): LikedState => ({
           )
           path.write_text(text)
 
-          # 3) Regression coverage.
           path = Path('tests/feature-regression.spec.ts')
           text = path.read_text()
           marker = "test.describe('library hydration and bounded rendering'"
@@ -200,14 +189,13 @@ test.describe('library hydration and bounded rendering', () => {
     expect(dataStore).toContain('const liked = ref<LikedState>(createDefaultLikedState())')
     expect(dataStore).toContain('afterHydrate: ({ store }) =>')
     expect(dataStore).toContain('normalizeLikedState(hydratedStore.liked)')
-
     expect(library).toContain('const libraryData = computed(() =>')
     expect(library).toContain('const COVER_PAGE_SIZE = 40')
     expect(library).toContain(':items="visiblePlaylists"')
     expect(library).toContain(':items="visibleAlbums"')
     expect(library).toContain(':items="visibleArtists"')
     expect(library).toContain('v-if="currentTab === \'playlist\'"')
-    expect(library).toContain("Promise.allSettled([")
+    expect(library).toContain('Promise.allSettled([')
     expect(library).toContain("console.error('[Library] 加载音乐库失败:', error)")
   })
 })
@@ -253,4 +241,4 @@ test.describe('library hydration and bounded rendering', () => {
             src/renderer/views/LibraryMusic.vue \
             tests/feature-regression.spec.ts
           git commit -m "fix: stabilize library hydration and cover rendering"
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
