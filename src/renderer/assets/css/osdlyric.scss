@@ -76,20 +76,29 @@ body {
 /*
  * 紧凑桌面歌词左侧封面与控制区。
  *
- * 控制区继续占满窗口高度，但宽度改为窗口高度的 1.5 倍。因为内部按钮固定为
- * 3 列 x 2 行，这个 3:2 外框会让六个按钮单元接近正方形，不再被挤成狭长格。
+ * 和歌词一样，控制区也直接以完整窗口的 100vh 为纵向基准，不再依赖父级
+ * 百分比高度链。这样默认 420x50 基准下控制区就是完整 50px 高；窗口按同一
+ * 基准缩放后仍然严格从 y=0 到 y=100vh。横向保持 3:2，因此宽度是 150vh。
  * 右侧仍保留已经确认合适的 8px CSS 间隙。
  */
 #main.compact-mode .compact-osd-layout {
   grid-template-columns: 150vh minmax(0, 1fr) !important;
   column-gap: 8px !important;
   justify-content: start;
+  align-items: stretch !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
 }
 
 #main.compact-mode .compact-left-panel {
   position: relative;
   z-index: 10003;
-  align-self: stretch;
+  align-self: start !important;
+  align-items: stretch !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
   pointer-events: none;
 }
 
@@ -97,7 +106,9 @@ body {
   position: relative;
   z-index: 10004;
   width: 100% !important;
-  height: 100% !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
   border-radius: var(--compact-osd-radius) !important;
   pointer-events: auto;
   transform: none;
