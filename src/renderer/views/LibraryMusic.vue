@@ -3,7 +3,8 @@
     <div class="section-one">
       <div class="liked-songs" @click="goToLikedSongsList">
         <div class="title"
-          >{{ $t('library.likedSongs') }} - {{ liked.songs.length }}{{ $t('common.songs') }}</div
+          >{{ $t('library.likedSongs') }} - {{ libraryData.songs.length
+          }}{{ $t('common.songs') }}</div
         >
         <div class="top">
           <p>
@@ -25,8 +26,8 @@
       </div>
       <div class="songs">
         <TrackList
-          :id="liked.playlists.length > 0 ? liked.playlists[0].id : 0"
-          :items="liked.songsWithDetails"
+          :id="libraryData.playlists.length > 0 ? libraryData.playlists[0].id : 0"
+          :items="libraryData.songsWithDetails"
           :type="'tracklist'"
           :show-position="false"
           :item-height="60"
@@ -106,58 +107,61 @@
       </div>
 
       <div class="section-two-content" :style="tabStyle">
-        <div v-show="currentTab === 'playlist'">
+        <div v-if="currentTab === 'playlist'">
           <CoverRow
-            :items="filterPlaylists"
+            :items="visiblePlaylists"
             type="playlist"
             sub-text="creator"
             :colunm-number="5"
             :enable-virtual-scroll="false"
-            :is-end="true"
+            :is-end="visiblePlaylists.length >= filterPlaylists.length"
             :padding-bottom="96"
+            :load-more="loadMorePlaylists"
           />
         </div>
 
-        <div v-show="currentTab === 'album'">
+        <div v-if="currentTab === 'album'">
           <CoverRow
-            :items="liked.albums"
+            :items="visibleAlbums"
             type="album"
             sub-text="artist"
             :colunm-number="5"
             :enable-virtual-scroll="false"
-            :is-end="true"
+            :is-end="visibleAlbums.length >= libraryData.albums.length"
             :padding-bottom="96"
+            :load-more="loadMoreAlbums"
           />
         </div>
 
-        <div v-show="currentTab === 'mvs'">
-          <Mvrow :mvs="liked.mvs" :is-end="true" />
+        <div v-if="currentTab === 'mvs'">
+          <Mvrow :mvs="libraryData.mvs" :is-end="true" />
         </div>
 
-        <div v-show="currentTab === 'artist'">
+        <div v-if="currentTab === 'artist'">
           <CoverRow
-            :items="liked.artists"
+            :items="visibleArtists"
             type="artist"
             sub-text="artist"
             :item-height="230"
             :colunm-number="5"
             :enable-virtual-scroll="false"
-            :is-end="true"
+            :is-end="visibleArtists.length >= libraryData.artists.length"
             :padding-bottom="96"
+            :load-more="loadMoreArtists"
           />
         </div>
 
-        <div v-show="currentTab === 'cloudDisk'">
+        <div v-if="currentTab === 'cloudDisk'">
           <TrackList
             :id="-8"
-            :items="liked.cloudDisk"
+            :items="libraryData.cloudDisk"
             :colunm-number="1"
             type="cloudDisk"
             :is-end="true"
           />
         </div>
 
-        <div v-show="currentTab === 'playHistory'">
+        <div v-if="currentTab === 'playHistory'">
           <button
             :class="{
               'playHistory-button': true,
@@ -216,7 +220,7 @@
 import { storeToRefs } from 'pinia'
 import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
-import { ref, computed, onMounted, onUnmounted, inject, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, nextTick, watch } from 'vue'
 import { dailyTask, randomNum, pickedLyric } from '../utils'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import { getTrackDetail } from '../api/track'
@@ -242,6 +246,28 @@ const randomtrack = ref<{ [key: string]: any }>()
 const currentTab = ref('playlist')
 const playlistTabMenu = ref<InstanceType<typeof ContextMenu>>()
 const tabsRowRef = ref()
+
+const libraryData = computed(() => {
+  const value = liked.value
+  return {
+    songs: Array.isArray(value?.songs) ? value.songs : [],
+    songsWithDetails: Array.isArray(value?.songsWithDetails) ? value.songsWithDetails : [],
+    playlists: Array.isArray(value?.playlists) ? value.playlists : [],
+    albums: Array.isArray(value?.albums) ? value.albums : [],
+    artists: Array.isArray(value?.artists) ? value.artists : [],
+    mvs: Array.isArray(value?.mvs) ? value.mvs : [],
+    cloudDisk: Array.isArray(value?.cloudDisk) ? value.cloudDisk : [],
+    playHistory: {
+      weekData: Array.isArray(value?.playHistory?.weekData) ? value.playHistory.weekData : [],
+      allData: Array.isArray(value?.playHistory?.allData) ? value.playHistory.allData : []
+    }
+  }
+})
+
+const COVER_PAGE_SIZE = 40
+const playlistVisibleLimit = ref(COVER_PAGE_SIZE)
+const albumVisibleLimit = ref(COVER_PAGE_SIZE)
+const artistVisibleLimit = ref(COVER_PAGE_SIZE)
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
 
@@ -271,7 +297,7 @@ const playlistFilter = computed(() => {
 })
 
 const filterPlaylists = computed(() => {
-  const playlists = liked.value.playlists.slice(1)
+  const playlists = libraryData.value.playlists.slice(1)
   const userId = user.value.userId
   if (playlistFilter.value === 'mine') {
     return playlists.filter((p) => p.creator.userId === userId)
@@ -281,11 +307,38 @@ const filterPlaylists = computed(() => {
   return playlists
 })
 
+const visiblePlaylists = computed(() => filterPlaylists.value.slice(0, playlistVisibleLimit.value))
+const visibleAlbums = computed(() => libraryData.value.albums.slice(0, albumVisibleLimit.value))
+const visibleArtists = computed(() => libraryData.value.artists.slice(0, artistVisibleLimit.value))
+
+const loadMorePlaylists = () => {
+  playlistVisibleLimit.value = Math.min(
+    filterPlaylists.value.length,
+    playlistVisibleLimit.value + COVER_PAGE_SIZE
+  )
+}
+const loadMoreAlbums = () => {
+  albumVisibleLimit.value = Math.min(
+    libraryData.value.albums.length,
+    albumVisibleLimit.value + COVER_PAGE_SIZE
+  )
+}
+const loadMoreArtists = () => {
+  artistVisibleLimit.value = Math.min(
+    libraryData.value.artists.length,
+    artistVisibleLimit.value + COVER_PAGE_SIZE
+  )
+}
+
+watch(playlistFilter, () => {
+  playlistVisibleLimit.value = COVER_PAGE_SIZE
+})
+
 const playHistoryList = computed(() => {
   if (show.value && playHistoryMode.value === 'week') {
-    return liked.value.playHistory.weekData
+    return libraryData.value.playHistory.weekData
   } else if (show.value && playHistoryMode.value === 'all') {
-    return liked.value.playHistory.allData
+    return libraryData.value.playHistory.allData
   }
   return []
 })
@@ -302,7 +355,7 @@ const {
 } = dataStore
 
 const loadData = async () => {
-  if (liked.value.songsWithDetails.length > 0) {
+  if (libraryData.value.songsWithDetails.length > 0) {
     tricklingProgress.done()
     show.value = true
     fetchLikedSongsWithDetails()
@@ -319,21 +372,23 @@ const loadData = async () => {
     })
   }
 
-  fetchLikedAlbums()
-  fetchLikedArtists()
-  fetchLikedMVs()
-  fetchPlayHistory()
-  fetchCloudDisk()
+  void Promise.allSettled([
+    Promise.resolve().then(() => fetchLikedAlbums()),
+    Promise.resolve().then(() => fetchLikedArtists()),
+    Promise.resolve().then(() => fetchLikedMVs()),
+    Promise.resolve().then(() => fetchPlayHistory()),
+    Promise.resolve().then(() => fetchCloudDisk())
+  ])
 }
 
 const getRandomLyric = async () => {
-  if (liked.value.songs.length === 0) return
+  if (libraryData.value.songs.length === 0) return
 
   let i = 0
   let data: lyricLine[]
   let randomId: number
-  while (i < liked.value.songs.length) {
-    randomId = liked.value.songs[randomNum(0, liked.value.songs.length - 1)]
+  while (i < libraryData.value.songs.length) {
+    randomId = libraryData.value.songs[randomNum(0, libraryData.value.songs.length - 1)]
     data = await fetch(`atom://local-asset?type=lyric&id=${randomId}`).then((res) => res.json())
     const isInstrumental = data.map((l) => l.lyric.text).filter((l) => l.includes('纯音乐，请欣赏'))
     if (data.length && !isInstrumental.length) {
@@ -419,7 +474,11 @@ onMounted(() => {
   setTimeout(() => {
     if (!show.value) tricklingProgress.start()
   }, 1000)
-  loadData()
+  void loadData().catch((error) => {
+    console.error('[Library] 加载音乐库失败:', error)
+    tricklingProgress.done()
+    show.value = true
+  })
   dailyTask()
   setTimeout(() => {
     updatePadding(0)

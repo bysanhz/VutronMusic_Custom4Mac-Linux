@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { userPlaylist } from '../api/auth'
 import {
   userLikedSongsIDs,
@@ -33,6 +33,48 @@ const normalizeTrackIDs = (ids: Array<number | string>) => {
   )
 }
 
+interface LikedState {
+  songs: number[]
+  songsWithDetails: any[]
+  playlists: any[]
+  albums: any[]
+  artists: any[]
+  mvs: any[]
+  cloudDisk: any[]
+  playHistory: {
+    weekData: any[]
+    allData: any[]
+  }
+}
+
+const createDefaultLikedState = (): LikedState => ({
+  songs: [],
+  songsWithDetails: [],
+  playlists: [],
+  albums: [],
+  artists: [],
+  mvs: [],
+  cloudDisk: [],
+  playHistory: {
+    weekData: [],
+    allData: []
+  }
+})
+
+const normalizeLikedState = (value: any): LikedState => ({
+  songs: normalizeTrackIDs(Array.isArray(value?.songs) ? value.songs : []),
+  songsWithDetails: Array.isArray(value?.songsWithDetails) ? value.songsWithDetails : [],
+  playlists: Array.isArray(value?.playlists) ? value.playlists : [],
+  albums: Array.isArray(value?.albums) ? value.albums : [],
+  artists: Array.isArray(value?.artists) ? value.artists : [],
+  mvs: Array.isArray(value?.mvs) ? value.mvs : [],
+  cloudDisk: Array.isArray(value?.cloudDisk) ? value.cloudDisk : [],
+  playHistory: {
+    weekData: Array.isArray(value?.playHistory?.weekData) ? value.playHistory.weekData : [],
+    allData: Array.isArray(value?.playHistory?.allData) ? value.playHistory.allData : []
+  }
+})
+
 export const useDataStore = defineStore(
   'data',
   () => {
@@ -47,31 +89,7 @@ export const useDataStore = defineStore(
     const libraryPlaylistFilter = ref<string>('all')
     const { t } = useI18n()
 
-    const liked = reactive<{
-      songs: number[]
-      songsWithDetails: any[]
-      playlists: any[]
-      albums: any[]
-      artists: any[]
-      mvs: any[]
-      cloudDisk: any[]
-      playHistory: {
-        weekData: any[]
-        allData: any[]
-      }
-    }>({
-      songs: [],
-      songsWithDetails: [], // 只有前12首
-      playlists: [],
-      albums: [],
-      artists: [],
-      mvs: [],
-      cloudDisk: [],
-      playHistory: {
-        weekData: [],
-        allData: []
-      }
-    })
+    const liked = ref<LikedState>(createDefaultLikedState())
 
     const { showToast } = useNormalStateStore()
 
@@ -105,7 +123,7 @@ export const useDataStore = defineStore(
      * 这里归一化，避免 API 返回 number/string 混用导致红心判断失效。
      */
     const syncLikedSongs = (ids: Array<number | string>) => {
-      liked.songs = normalizeTrackIDs(ids)
+      liked.value.songs = normalizeTrackIDs(ids)
     }
 
     /**
@@ -126,7 +144,7 @@ export const useDataStore = defineStore(
 
         if (!Array.isArray(res?.playlist)) return false
 
-        liked.playlists = res.playlist
+        liked.value.playlists = res.playlist
         const likedPlaylist = resolveLikedPlaylist(res.playlist)
         const resolvedID = Number(likedPlaylist?.id)
 
@@ -196,7 +214,7 @@ export const useDataStore = defineStore(
       if (!isAccountLoggedIn()) return
       return likedAlbums({ limit: 2000 }).then((result) => {
         if (result.data) {
-          liked.albums = result.data
+          liked.value.albums = result.data
         }
       })
     }
@@ -205,7 +223,7 @@ export const useDataStore = defineStore(
       if (!isAccountLoggedIn()) return
       return likedArtists({ limit: 2000 }).then((result) => {
         if (result.data) {
-          liked.artists = result.data
+          liked.value.artists = result.data
         }
       })
     }
@@ -214,7 +232,7 @@ export const useDataStore = defineStore(
       if (!isAccountLoggedIn()) return
       return likedMVs({ limit: 1000 }).then((result) => {
         if (result.data) {
-          liked.mvs = result.data
+          liked.value.mvs = result.data
         }
       })
     }
@@ -224,7 +242,7 @@ export const useDataStore = defineStore(
       return cloudDisk({ limit: 1000 })
         .then((result) => {
           if (result.data) {
-            liked.cloudDisk = result.data
+            liked.value.cloudDisk = result.data
           }
         })
         .catch((err) => {
@@ -275,7 +293,7 @@ export const useDataStore = defineStore(
               : []
       const allData = recentItems.map(normalizeHistoryTrack).filter(Boolean)
 
-      liked.playHistory = { weekData, allData }
+      liked.value.playHistory = { weekData, allData }
     }
 
     const resetUserInfo = () => {
@@ -293,15 +311,15 @@ export const useDataStore = defineStore(
         return
       }
 
-      const alreadyLiked = liked.songs.some((item) => sameTrackID(item, id))
+      const alreadyLiked = liked.value.songs.some((item) => sameTrackID(item, id))
       const like = !alreadyLiked
 
       likeTrack({ id, like })
         .then(() => {
           if (!like) {
-            liked.songs = liked.songs.filter((item) => !sameTrackID(item, id))
-          } else if (!liked.songs.some((item) => sameTrackID(item, id))) {
-            liked.songs.push(id)
+            liked.value.songs = liked.value.songs.filter((item) => !sameTrackID(item, id))
+          } else if (!liked.value.songs.some((item) => sameTrackID(item, id))) {
+            liked.value.songs.push(id)
           }
         })
         .catch(() => {
@@ -326,7 +344,7 @@ export const useDataStore = defineStore(
         syncLikedSongs(trackIDs.map((track: any) => track?.id ?? track))
 
         if (trackIDs.length === 0) {
-          liked.songsWithDetails = []
+          liked.value.songsWithDetails = []
           return
         }
 
@@ -338,7 +356,7 @@ export const useDataStore = defineStore(
         )
 
         if (Array.isArray(detailResult?.songs)) {
-          liked.songsWithDetails = detailResult.songs
+          liked.value.songsWithDetails = detailResult.songs
         }
       } catch (error) {
         console.warn('[Data] 获取喜欢歌曲详情失败，继续使用已有数据：', error)
@@ -346,14 +364,14 @@ export const useDataStore = defineStore(
     }
 
     const resetLiked = () => {
-      liked.songs = []
-      liked.songsWithDetails = []
-      liked.playlists = []
-      liked.albums = []
-      liked.artists = []
-      liked.mvs = []
-      liked.cloudDisk = []
-      liked.playHistory = {
+      liked.value.songs = []
+      liked.value.songsWithDetails = []
+      liked.value.playlists = []
+      liked.value.albums = []
+      liked.value.artists = []
+      liked.value.mvs = []
+      liked.value.cloudDisk = []
+      liked.value.playHistory = {
         weekData: [],
         allData: []
       }
@@ -383,6 +401,10 @@ export const useDataStore = defineStore(
   },
   {
     persist: {
+      afterHydrate: ({ store }) => {
+        const hydratedStore = store as unknown as { liked?: unknown }
+        hydratedStore.liked = normalizeLikedState(hydratedStore.liked)
+      },
       pick: ['user', 'likedSongPlaylistID', 'lastRefreshCookieDate', 'loginMode', 'liked.songs']
     }
   }
