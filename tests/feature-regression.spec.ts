@@ -1589,8 +1589,12 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
 
     expect(virtualScroll).toContain('const getListElement = (): HTMLElement | null =>')
-    expect(virtualScroll).toContain('if (element) observer.observe(element)')
-    expect(virtualScroll).toContain('if (element) observer.unobserve(element)')
+    expect(virtualScroll).toContain(
+      'if (element && props.enableVirtualScroll) observer.observe(element)'
+    )
+    expect(virtualScroll).toContain(
+      'if (element && props.enableVirtualScroll) observer.unobserve(element)'
+    )
     expect(interactionFix).toContain('.library .infinite-list-container')
   })
 
