@@ -1624,7 +1624,9 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     const interaction = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
     const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
 
-    expect(osd).toContain('    35px\n    minmax(0, 1fr)')
+    expect(osd).toContain('grid-template-columns: 35px minmax(0, 1fr);')
+    expect(osd).toContain("'has-cover-controls': isCompactMode && coverControlsVisible")
+    expect(osd).toContain('text-align: left !important;')
     expect(cover).toContain('width: 35px;')
     expect(interaction).toContain("scroller.style.overflowY = 'auto'")
     expect(interaction).toContain('native scrolling is much faster and smoother')
