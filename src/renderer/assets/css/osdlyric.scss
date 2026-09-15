@@ -65,8 +65,11 @@ body {
  * 紧凑桌面歌词左侧封面与控制区。
  *
  * 3x2 控制网格使用接近 3:2 的 51x34px 外框：高度几乎填满当前 compact
- * 窗口，每个按钮单元约 17x17px，保持接近正方形。歌词面板只向左回收 12px，
- * 相比上一版保留约 4px 的额外呼吸空间，避免文字紧贴控制区。
+ * 窗口，每个按钮单元约 17x17px，保持接近正方形。
+ *
+ * 上一版通过负 margin “回收”歌词区域，实际上会把文字重新拉回控制区边缘，
+ * 因而视觉上仍然贴在一起。现在不再移动歌词面板，而是在 grid 两列之间直接
+ * 留 7px 的真实间隔；这个间隔不会被文字对齐方式或子组件宽度抵消。
  *
  * 可见性由设置页面写入的 html.osd-cover-controls-hidden 类决定，不再与
  * is-lock 绑定。锁定后由主进程按鼠标位置对窗口执行局部穿透：左侧控件区
@@ -74,7 +77,7 @@ body {
  */
 #main.compact-mode .compact-osd-layout {
   grid-template-columns: 51px minmax(0, 1fr) !important;
-  column-gap: 0 !important;
+  column-gap: 7px !important;
   justify-content: start;
 }
 
@@ -95,14 +98,10 @@ body {
   margin: 0;
 }
 
-/*
- * 歌词组件内部本身存在一小段左侧视觉留白。
- * 仅回收 12px，在控制区与歌词之间留下轻微间隔；既不恢复原来的大空洞，
- * 也避免文字直接贴到控制区边缘。
- */
+/* 使用真实 grid gap 后，歌词面板保持自身正常几何位置。 */
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
-  width: calc(100% + 12px);
-  margin-left: -12px;
+  width: 100% !important;
+  margin-left: 0 !important;
 }
 
 /* 17x17px 单元格下恢复更易辨认的图标尺寸，同时保留四周点击留白。 */
