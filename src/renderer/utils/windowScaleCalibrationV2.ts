@@ -8,11 +8,13 @@ import {
   clearWindowScaleCalibrationPreviews,
   commitWindowScaleBaseline,
   previewWindowScaleBaseline,
-  readWindowScaleBaseline
+  readWindowScaleBaseline,
+  resetWindowScaleBaseline
 } from './windowScaleBaselineStorage'
 
 const STYLE_ID = 'window-scale-calibration-v2-style'
 const ACTION_CLASS = 'window-scale-calibration-actions-v2'
+const RESET_CLASS = 'window-scale-baseline-reset-v2'
 const SETTINGS_SELECTOR = '#app .system-settings'
 const MAIN_SETTING_SELECTOR = '#app .system-settings .app-font-size-setting.window-scale-font-range'
 const OSD_CONTROL_SELECTOR = '#osd-window-scale-baseline-setting'
@@ -87,6 +89,45 @@ const injectStyle = () => {
       background: var(--color-primary, #335eea);
     }
 
+    .window-scale-baseline-reset-v2 {
+      display: flex;
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px solid
+        color-mix(in srgb, var(--color-text), transparent 92%);
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-scale-baseline-reset-v2 button {
+      min-width: 88px;
+      height: 30px;
+      padding: 0 12px;
+      border: 1px solid
+        color-mix(in srgb, var(--color-text), transparent 88%);
+      border-radius: 8px;
+      color: var(--color-text);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 600;
+      line-height: 1;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-scale-baseline-reset-v2 button:hover {
+      background: color-mix(in srgb, var(--color-text), transparent 94%);
+    }
+
+    .window-scale-baseline-reset-v2 button:active {
+      transform: scale(0.97);
+    }
+
     input[data-relative-window-scale-slider='true'] {
       accent-color: var(--color-primary, #335eea);
     }
@@ -107,6 +148,12 @@ const getTargetContainer = (target: WindowScaleTarget) => {
 const getTargetFromElement = (element: Element | null): WindowScaleTarget | null => {
   if (!element) return null
   if (element.closest(MAIN_SETTING_SELECTOR)) return 'main'
+
+  const resetTarget = element.closest<HTMLElement>('[data-window-scale-reset]')?.dataset
+    .windowScaleReset
+  if (resetTarget === 'main' || resetTarget === 'osd-small' || resetTarget === 'osd-normal') {
+    return resetTarget
+  }
 
   const rowTarget = element.closest<HTMLElement>('[data-target]')?.dataset.target
   if (rowTarget === 'osd-small' || rowTarget === 'osd-normal') {
@@ -317,6 +364,36 @@ const ensureActions = (target: WindowScaleTarget) => {
   if (!existing) container.appendChild(createActions(target))
 }
 
+const createResetControl = (target: WindowScaleTarget) => {
+  const reset = document.createElement('div')
+  reset.className = RESET_CLASS
+  reset.innerHTML = `
+    <button
+      type="button"
+      data-window-scale-reset="${target}"
+      title="${translate('settings.windowScale.restoreDefaultHint')}"
+    >${translate('settings.windowScale.restoreDefault')}</button>
+  `
+  return reset
+}
+
+const ensureResetControl = (target: WindowScaleTarget) => {
+  const container = getTargetContainer(target)
+  if (!container) return
+
+  const existing = container.querySelector<HTMLElement>(`.${RESET_CLASS}`)
+  if (existing) {
+    const button = existing.querySelector<HTMLButtonElement>('[data-window-scale-reset]')
+    if (button) {
+      button.textContent = translate('settings.windowScale.restoreDefault')
+      button.title = translate('settings.windowScale.restoreDefaultHint')
+    }
+    return
+  }
+
+  container.appendChild(createResetControl(target))
+}
+
 const cancelConflictingOsdCalibration = (target: 'osd-small' | 'osd-normal') => {
   const otherTarget = target === 'osd-small' ? 'osd-normal' : 'osd-small'
   if (activeTargets.has(otherTarget)) {
@@ -359,9 +436,21 @@ const getRelativeSliderStep = (field: WindowScaleCalibrationField, startValue: n
   return Math.max(1, Math.round(startValue / 200))
 }
 
+const resetTargetToDefault = (target: WindowScaleTarget) => {
+  if (activeTargets.has(target)) {
+    finishTargetCalibration(target, 'cancel')
+  }
+
+  const baseline = resetWindowScaleBaseline(target)
+  getSliders(target).forEach(resetRelativeSlider)
+  renderTargetValues(target, baseline)
+  ensureActions(target)
+}
+
 const decorateTarget = (target: WindowScaleTarget) => {
   getNumberInputs(target).forEach(decorateInput)
   getSliders(target).forEach(decorateSlider)
+  ensureResetControl(target)
   ensureActions(target)
   renderTargetValues(target, readWindowScaleBaseline(target), true)
 }
@@ -483,6 +572,20 @@ const handleKeyDown = (event: KeyboardEvent) => {
 }
 
 const handleClick = (event: MouseEvent) => {
+  const resetButton = (event.target as HTMLElement).closest<HTMLButtonElement>(
+    '[data-window-scale-reset]'
+  )
+  if (resetButton) {
+    const resetTarget = getTargetFromElement(resetButton)
+    if (!resetTarget) return
+
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    event.stopPropagation()
+    resetTargetToDefault(resetTarget)
+    return
+  }
+
   const stepButton = (event.target as HTMLElement).closest<HTMLButtonElement>(
     '[data-baseline-action], [data-action]'
   )
