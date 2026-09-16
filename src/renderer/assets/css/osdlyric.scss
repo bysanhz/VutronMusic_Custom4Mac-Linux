@@ -210,35 +210,51 @@ html:not(.osd-cover-controls-hidden)
   text-align: left !important;
 }
 
-/* 未锁定时进一步缩小紧凑模式的边缘拉伸热区，降低误触。 */
+/*
+ * 拉伸热区必须始终位于桌面歌词内容层之上。
+ *
+ * 之前 resize 层级是 10000，而紧凑模式封面/控制区分别是 10003/10004。
+ * 因此左边缘以及左上/左下角会被封面控制区盖住，表现为“有时能拉、有时拉不了”。
+ * 这里把四边/四角命中层提升到控制区之上，并保留 no-drag，避免被窗口拖动语义吞掉。
+ */
+#main:not(.is-lock) .resize-edge,
+#main:not(.is-lock) .resize-corner {
+  z-index: 10020 !important;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+/*
+ * 紧凑模式原来的 1px 边缘热区在 Retina/缩放场景下过窄，很容易错过。
+ * 提升到 2px，同时把四角扩大到 6px；仍然明显小于按钮单元，不会占据控制区主体。
+ */
 #main.compact-mode:not(.is-lock) {
-  --resize-edge-size: 1px;
-  --resize-corner-size: 5px;
+  --resize-edge-size: 2px;
+  --resize-corner-size: 6px;
 }
 
 /*
  * 紧凑窗口缩小时，四角按钮会越来越靠近 BrowserWindow 原生 resize 热区。
- * 仅把四个角上的按钮命中面轻微向窗口内部平移，保留封面满边、3x2 网格尺寸
- * 以及中间两个按钮的位置不变。这样底左“主窗口”按钮不会再被左下角拉伸命中抢走。
+ * 四角按钮向内部让出 6px，与新的 corner resize 热区完全错开；中间两个按钮不动。
  */
 #main.compact-mode .compact-control-button.control-prev {
-  left: 3px;
-  top: 3px;
+  left: 6px;
+  top: 6px;
 }
 
 #main.compact-mode .compact-control-button.control-next {
-  right: 3px;
-  top: 3px;
+  right: 6px;
+  top: 6px;
 }
 
 #main.compact-mode .compact-control-button.control-main-window {
-  left: 3px;
-  bottom: 3px;
+  left: 6px;
+  bottom: 6px;
 }
 
 #main.compact-mode .compact-control-button.control-like {
-  right: 3px;
-  bottom: 3px;
+  right: 6px;
+  bottom: 6px;
 }
 
 #main.compact-mode .compact-control-button {
