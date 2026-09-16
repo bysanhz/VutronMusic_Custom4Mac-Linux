@@ -230,29 +230,10 @@ html:not(.osd-cover-controls-hidden)
 }
 
 /*
- * 紧凑窗口四角按钮与 resize-corner 使用同一份补偿后尺寸。
- * 这样窗口缩小时不会因为页面 zoom 让按钮重新压到角落拉伸热区上。
+ * resize-corner 只负责最外侧几 DIP 的命中，不再通过 left/right/top/bottom
+ * 去移动 3x2 网格里的四角按钮。按钮本身保持 Grid 原始位置，避免缩放时
+ * 反向补偿后的 resize 尺寸把四个按钮向中心推乱。
  */
-#main.compact-mode .compact-control-button.control-prev {
-  left: var(--osd-resize-corner-hit-size, 6px);
-  top: var(--osd-resize-corner-hit-size, 6px);
-}
-
-#main.compact-mode .compact-control-button.control-next {
-  right: var(--osd-resize-corner-hit-size, 6px);
-  top: var(--osd-resize-corner-hit-size, 6px);
-}
-
-#main.compact-mode .compact-control-button.control-main-window {
-  left: var(--osd-resize-corner-hit-size, 6px);
-  bottom: var(--osd-resize-corner-hit-size, 6px);
-}
-
-#main.compact-mode .compact-control-button.control-like {
-  right: var(--osd-resize-corner-hit-size, 6px);
-  bottom: var(--osd-resize-corner-hit-size, 6px);
-}
-
 #main.compact-mode .compact-control-button {
   cursor: pointer !important;
 }
