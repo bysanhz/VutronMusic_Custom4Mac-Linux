@@ -54,7 +54,8 @@ export const readPersistedWindowScaleBaseline = (
     miniControlBaseSize:
       target === 'osd-small'
         ? (readStoredNumber(MINI_CONTROL_BASE_SIZE_KEY) ?? storedBaseFontSize)
-        : storedBaseFontSize
+        : storedBaseFontSize,
+    cornerRadius: readStoredNumber(keys.cornerRadius)
   })
 
   if (localStorage.getItem(keys.minWidth) === null) {
@@ -65,6 +66,9 @@ export const readPersistedWindowScaleBaseline = (
   }
   if (localStorage.getItem(keys.baseFontSize) === null) {
     localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+  }
+  if (localStorage.getItem(keys.cornerRadius) === null) {
+    localStorage.setItem(keys.cornerRadius, String(baseline.cornerRadius))
   }
   if (target === 'osd-small' && localStorage.getItem(MINI_CONTROL_BASE_SIZE_KEY) === null) {
     localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
@@ -132,6 +136,7 @@ export const commitWindowScaleBaseline = (
   localStorage.setItem(keys.minWidth, String(baseline.minWidth))
   localStorage.setItem(keys.minHeight, String(baseline.minHeight))
   localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+  localStorage.setItem(keys.cornerRadius, String(baseline.cornerRadius))
   if (target === 'osd-small') {
     localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
   }
@@ -161,6 +166,7 @@ export const resetWindowScaleBaseline = (target: WindowScaleTarget) => {
   localStorage.setItem(keys.minWidth, String(baseline.minWidth))
   localStorage.setItem(keys.minHeight, String(baseline.minHeight))
   localStorage.setItem(keys.baseFontSize, String(baseline.baseFontSize))
+  localStorage.setItem(keys.cornerRadius, String(baseline.cornerRadius))
   if (target === 'osd-small') {
     localStorage.setItem(MINI_CONTROL_BASE_SIZE_KEY, String(baseline.miniControlBaseSize))
   }
