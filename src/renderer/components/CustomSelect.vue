@@ -235,11 +235,12 @@ const toggleDropdown = async () => {
 
   if (dropdownVisible.value) {
     await nextTick()
-    calculateDropdownPosition()
+    // 先完成下拉框定位，再聚焦搜索框，避免浏览器为了让输入框可见而滚动设置页。
+    await calculateDropdownPosition()
 
     if (props.searchable) {
       await nextTick()
-      searchInputRef.value?.focus()
+      searchInputRef.value?.focus({ preventScroll: true })
     }
   } else {
     resetSearch()
