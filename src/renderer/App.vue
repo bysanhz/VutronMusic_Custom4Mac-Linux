@@ -46,6 +46,11 @@ import { useRoute } from 'vue-router'
 import { type ProgressInfo } from 'electron-updater'
 import router from './router'
 import eventBus from './utils/eventBus'
+import {
+  HEART_MODE_SESSION_CHANGE_EVENT,
+  getCurrentHeartModeSession,
+  resolveHeartModeSourceSeedId
+} from './utils/heartModeSession'
 import { Track } from '@/types/music'
 
 const localMusicStore = useLocalMusicStore()
@@ -53,7 +58,7 @@ const { localTracks } = storeToRefs(localMusicStore)
 const { deleteLocalTracks } = localMusicStore
 
 const playerStore = usePlayerStore()
-const { enabled } = storeToRefs(playerStore)
+const { enabled, playlistSource, currentTrack } = storeToRefs(playerStore)
 
 const osdLyricStore = useOsdLyricStore()
 const { show, type, isLock } = storeToRefs(osdLyricStore)
@@ -193,6 +198,33 @@ const mainStyle = computed(() => {
 const isMac = computed(() => window.env?.isMac)
 const isLinux = computed(() => window.env?.isLinux)
 
+/**
+ * Linux 某些窗口/恢复路径会丢失 playlistSource.type，但 Heart Mode session 仍然有效。
+ * 悬浮助手以 playlistSource.type === 'intelligence' 判断显示，因此这里仅在 Linux 上、且
+ * 当前歌曲能明确映射回现存 Heart Mode session 时修复 source 元数据。
+ */
+const syncLinuxHeartModePlaylistSource = () => {
+  if (!window.env?.isLinux || playlistSource.value?.type === 'intelligence') return
+
+  const activeSession = getCurrentHeartModeSession()
+  const trackId = Number(currentTrack.value?.id)
+  if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return
+  if (resolveHeartModeSourceSeedId(activeSession, trackId) === null) return
+
+  playlistSource.value = {
+    type: 'intelligence',
+    id: activeSession.playlistId || playlistSource.value?.id || 0
+  }
+}
+
+const handleHeartModeSessionChange = () => syncLinuxHeartModePlaylistSource()
+
+watch(
+  () => [currentTrack.value?.id, playlistSource.value?.type] as const,
+  () => syncLinuxHeartModePlaylistSource(),
+  { immediate: true }
+)
+
 const restorePosition = () => {
   scrollBarRef.value.restorePosition()
 }
@@ -299,6 +331,8 @@ onMounted(async () => {
   registerInstance(instanceId.value)
   handleEventBus()
   handleChanelEvent()
+  window.addEventListener(HEART_MODE_SESSION_CHANGE_EVENT, handleHeartModeSessionChange)
+  syncLinuxHeartModePlaylistSource()
   hasCustomTitleBar.value =
     (window.env?.isLinux && general.value.useCustomTitlebar) || window.env?.isWindows || false
   if (isMac.value) {
@@ -323,6 +357,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener(HEART_MODE_SESSION_CHANGE_EVENT, handleHeartModeSessionChange)
   unregisterInstance(instanceId.value)
 })
 </script>
