@@ -217,6 +217,35 @@ html:not(.osd-cover-controls-hidden)
 }
 
 /*
+ * 紧凑窗口缩小时，四角按钮会越来越靠近 BrowserWindow 原生 resize 热区。
+ * 仅把四个角上的按钮命中面轻微向窗口内部平移，保留封面满边、3x2 网格尺寸
+ * 以及中间两个按钮的位置不变。这样底左“主窗口”按钮不会再被左下角拉伸命中抢走。
+ */
+#main.compact-mode .compact-control-button.control-prev {
+  left: 3px;
+  top: 3px;
+}
+
+#main.compact-mode .compact-control-button.control-next {
+  right: 3px;
+  top: 3px;
+}
+
+#main.compact-mode .compact-control-button.control-main-window {
+  left: 3px;
+  bottom: 3px;
+}
+
+#main.compact-mode .compact-control-button.control-like {
+  right: 3px;
+  bottom: 3px;
+}
+
+#main.compact-mode .compact-control-button {
+  cursor: pointer !important;
+}
+
+/*
  * 用户关闭“显示左侧封面与控制按钮”后，无论是否锁定都折叠左侧列，
  * 同时让歌词区域占满整个紧凑桌面歌词窗口。
  */
