@@ -55,4 +55,37 @@ html.vutron-window-resizing #app .modal {
   overflow-x: visible !important;
   overflow-y: visible !important;
 }
+
+/*
+ * 自定义心动模式悬浮助手的跨平台显示保护。
+ *
+ * 1. HeartModeAssistant 只在 App.vue 全局挂载一次，避免 PlayPage 再挂一份造成
+ *    macOS 上一黑一白两个按钮；
+ * 2. 提高层级，避免 Linux 自定义标题栏或播放器全屏层遮住悬浮按钮；
+ * 3. 原按钮直接使用 Unicode 彩色 Emoji “✨”，不同 Linux 发行版的 Emoji 字体
+ *    覆盖并不一致。这里隐藏文本字形，改用 CSS mask 内嵌 SVG，保证三平台一致。
+ */
+.heart-mode-assistant {
+  z-index: 10050 !important;
+  pointer-events: auto !important;
+}
+
+.heart-mode-trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0 !important;
+}
+
+.heart-mode-trigger::before {
+  content: '';
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  background: currentColor;
+  pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2l1.8 6.2L20 10l-6.2 1.8L12 19l-1.8-7.2L4 10l6.2-1.8L12 2Zm7 13 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2l1.8 6.2L20 10l-6.2 1.8L12 19l-1.8-7.2L4 10l6.2-1.8L12 2Zm7 13 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 /* =========== newADD end ======== */
