@@ -6,20 +6,38 @@ body {
 
 /* ======== newADD start====== */
 /*
- * 桌面歌词字体渲染基线。
+ * 桌面歌词字体与统一圆角基线。
  *
  * `--osd-font-family` 由 osdFontRendering.ts 根据 font-list 的 familyName
- * 动态生成。这里使用 !important 覆盖旧版直接写入 PostScript 名称的内联
- * font-family，避免 Chromium 在 Linux 下匹配失败后回退为系统默认字体。
+ * 动态生成。`--osd-corner-radius` 由 baselineOsdWindowScale.ts 根据当前
+ * 迷你/普通桌面歌词的“圆角大小”基准实时写入。
  */
 :root {
   --osd-font-family: system-ui;
+  --osd-corner-radius: 12px;
 }
 
 #main .container {
   font-family: var(--osd-font-family) !important;
   font-kerning: normal;
   text-rendering: optimizeLegibility;
+}
+
+/*
+ * 桌面歌词所有可见圆角统一使用同一个基准变量。
+ *
+ * 这里使用 !important 覆盖 OSDLyric.vue、OsdLyricContainer.vue 和
+ * CompactCoverControls.vue 中历史遗留的 4/7/12/999px 固定值。
+ * 封面内部图片和悬停控制网格继续通过 inherit 跟随外层控制区。
+ */
+#main {
+  border-radius: var(--osd-corner-radius) !important;
+}
+
+#main .container .lyric,
+#main .osd-lock-button,
+#main .osd-drag-bar::before {
+  border-radius: var(--osd-corner-radius) !important;
 }
 
 /*
@@ -64,13 +82,12 @@ body {
 /*
  * 紧凑桌面歌词统一圆角。
  *
- * 左侧封面会同时受到 #main 外层裁切和自身圆角影响。若两处使用不同的圆角，
- * 左侧窗口边缘与封面右边缘会呈现明显不同的弧度。统一由一个变量控制，保证
- * 窗口右侧圆角、封面左侧外轮廓以及封面右侧内轮廓具有一致的圆润程度。
+ * 左侧封面会同时受到 #main 外层裁切和自身圆角影响。两者现在都直接读取
+ * `--osd-corner-radius`，因此窗口右端、封面左右两端和其他桌面歌词圆角保持一致。
  */
 #main.compact-mode {
-  --compact-osd-radius: 12px;
-  border-radius: var(--compact-osd-radius) !important;
+  --compact-osd-radius: var(--osd-corner-radius);
+  border-radius: var(--osd-corner-radius) !important;
 }
 
 /*
@@ -112,7 +129,7 @@ body {
   height: 100vh !important;
   min-height: 100vh !important;
   max-height: 100vh !important;
-  border-radius: var(--compact-osd-radius) !important;
+  border-radius: var(--osd-corner-radius) !important;
   pointer-events: auto;
   transform: none;
   margin: 0;
