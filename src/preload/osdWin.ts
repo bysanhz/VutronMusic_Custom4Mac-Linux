@@ -21,6 +21,30 @@ const rendererAvailChannels: string[] = [
 type RendererListener = (event: undefined, ...args: any[]) => void
 type WrappedListener = (event: IpcRendererEvent, ...args: any[]) => void
 
+type OsdResizeDirection =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-right'
+  | 'bottom-left'
+
+type OsdResizeState = {
+  direction: OsdResizeDirection
+  pointerId: number
+  handle: HTMLElement
+  mouseX: number
+  mouseY: number
+  windowX: number
+  windowY: number
+  width: number
+  height: number
+  minWidth: number
+  minHeight: number
+}
+
 const wrappedListeners = new WeakMap<RendererListener, Map<string, WrappedListener>>()
 let messagePort: MessagePort | null = null
 
@@ -143,6 +167,54 @@ const throttle = <T extends (...args: any[]) => void>(func: T, limit: number) =>
   }
 }
 
+const getResizeDirection = (target: EventTarget | null): OsdResizeDirection | null => {
+  if (!(target instanceof Element)) return null
+  const handle = target.closest('.resize-edge, .resize-corner')
+  if (!handle) return null
+
+  if (handle.classList.contains('resize-edge-top')) return 'top'
+  if (handle.classList.contains('resize-edge-right')) return 'right'
+  if (handle.classList.contains('resize-edge-bottom')) return 'bottom'
+  if (handle.classList.contains('resize-edge-left')) return 'left'
+  if (handle.classList.contains('resize-corner-top-left')) return 'top-left'
+  if (handle.classList.contains('resize-corner-top-right')) return 'top-right'
+  if (handle.classList.contains('resize-corner-bottom-right')) return 'bottom-right'
+  if (handle.classList.contains('resize-corner-bottom-left')) return 'bottom-left'
+
+  return null
+}
+
+const getResizeCursor = (direction: OsdResizeDirection): string => {
+  if (direction === 'top' || direction === 'bottom') return 'ns-resize'
+  if (direction === 'left' || direction === 'right') return 'ew-resize'
+  if (direction === 'top-left' || direction === 'bottom-right') return 'nwse-resize'
+  return 'nesw-resize'
+}
+
+const getOsdResizeMinimums = (): { minWidth: number; minHeight: number } => {
+  let compact = false
+  try {
+    const options = JSON.parse(localStorage.getItem('osdLyric') || '{}') as { type?: string }
+    compact = options.type === 'small'
+  } catch {
+    compact = false
+  }
+
+  const defaultWidth = compact ? 420 : 360
+  const defaultHeight = compact ? 50 : 400
+  const minWidthKey = compact ? 'osdSmallWindowScaleMinWidth' : 'osdNormalWindowScaleMinWidth'
+  const minHeightKey = compact
+    ? 'osdSmallWindowScaleMinHeight'
+    : 'osdNormalWindowScaleMinHeight'
+  const storedWidth = Number(localStorage.getItem(minWidthKey))
+  const storedHeight = Number(localStorage.getItem(minHeightKey))
+
+  return {
+    minWidth: Number.isFinite(storedWidth) && storedWidth > 0 ? storedWidth : defaultWidth,
+    minHeight: Number.isFinite(storedHeight) && storedHeight > 0 ? storedHeight : defaultHeight
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const titleBar = document.getElementById('titleBar')
   const root = document.querySelector<HTMLElement>('#main')
@@ -157,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastMoveTime = 0
   let osdLocked = root.classList.contains('is-lock')
   let mouseInside = false
+  let resizeState: OsdResizeState | null = null
 
   const restoreRootVisibility = () => {
     if (timeoutId !== null) window.clearTimeout(timeoutId)
@@ -211,16 +284,112 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleLockedAutoHide()
   }
 
+  const stopResize = (): void => {
+    const state = resizeState
+    resizeState = null
+    root.classList.remove('is-custom-resizing')
+    document.documentElement.style.cursor = ''
+
+    if (state?.handle.hasPointerCapture(state.pointerId)) {
+      state.handle.releasePointerCapture(state.pointerId)
+    }
+
+    window.removeEventListener('pointermove', handleResizeMove, true)
+    window.removeEventListener('pointerup', stopResize, true)
+    window.removeEventListener('pointercancel', stopResize, true)
+    window.removeEventListener('blur', stopResize)
+  }
+
+  const handleResizeMove = throttle((event: PointerEvent) => {
+    const state = resizeState
+    if (!state || event.pointerId !== state.pointerId) return
+
+    const dx = event.screenX - state.mouseX
+    const dy = event.screenY - state.mouseY
+    const fromLeft = state.direction.includes('left')
+    const fromRight = state.direction.includes('right')
+    const fromTop = state.direction.includes('top')
+    const fromBottom = state.direction.includes('bottom')
+
+    let x = state.windowX
+    let y = state.windowY
+    let width = state.width
+    let height = state.height
+
+    if (fromLeft) {
+      width = Math.max(state.minWidth, state.width - dx)
+      x = state.windowX + state.width - width
+    } else if (fromRight) {
+      width = Math.max(state.minWidth, state.width + dx)
+    }
+
+    if (fromTop) {
+      height = Math.max(state.minHeight, state.height - dy)
+      y = state.windowY + state.height - height
+    } else if (fromBottom) {
+      height = Math.max(state.minHeight, state.height + dy)
+    }
+
+    ipcRenderer.send('drag-osd-window-absolute', { x, y, width, height })
+  }, 16)
+
+  const startResize = (event: PointerEvent): void => {
+    if (event.button !== 0 || osdLocked || resizeState) return
+
+    const direction = getResizeDirection(event.target)
+    if (!direction) return
+
+    const target = event.target instanceof Element ? event.target : null
+    const handle = target?.closest('.resize-edge, .resize-corner') as HTMLElement | null
+    if (!handle) return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const minimums = getOsdResizeMinimums()
+    resizeState = {
+      direction,
+      pointerId: event.pointerId,
+      handle,
+      mouseX: event.screenX,
+      mouseY: event.screenY,
+      windowX: window.screenX,
+      windowY: window.screenY,
+      width: window.outerWidth,
+      height: window.outerHeight,
+      minWidth: minimums.minWidth,
+      minHeight: minimums.minHeight
+    }
+
+    root.classList.add('is-custom-resizing')
+    document.documentElement.style.cursor = getResizeCursor(direction)
+    ipcRenderer.send('set-ignore-mouse', false)
+
+    try {
+      handle.setPointerCapture(event.pointerId)
+    } catch {
+      // Pointer capture 失败时仍保留 window 级监听作为回退。
+    }
+
+    window.addEventListener('pointermove', handleResizeMove, true)
+    window.addEventListener('pointerup', stopResize, true)
+    window.addEventListener('pointercancel', stopResize, true)
+    window.addEventListener('blur', stopResize)
+  }
+
   ipcRenderer.on('mouseInWindow', handleMouseInWindow)
   ipcRenderer.on('set-isLock', handleSetIsLock)
   window.addEventListener(
     'unload',
     () => {
+      stopResize()
       ipcRenderer.off('mouseInWindow', handleMouseInWindow)
       ipcRenderer.off('set-isLock', handleSetIsLock)
     },
     { once: true }
   )
+
+  root.addEventListener('pointerdown', startResize, true)
 
   titleBar?.addEventListener('mousedown', (event: MouseEvent) => {
     if (!(event.target instanceof Element) || !event.target.classList.contains('header')) return
@@ -267,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   root.addEventListener('mouseleave', () => {
     mouseInside = false
-    restoreRootVisibility()
+    if (!resizeState) restoreRootVisibility()
   })
 
   root.addEventListener('mousemove', () => {
