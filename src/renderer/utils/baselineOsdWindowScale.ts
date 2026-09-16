@@ -69,6 +69,10 @@ export const initializeBaselineOsdWindowScale = () => {
       '--osd-window-base-font-size',
       `${baseline.baseFontSize}px`
     )
+    document.documentElement.style.setProperty(
+      '--osd-corner-radius',
+      `${baseline.cornerRadius}px`
+    )
     document.documentElement.dataset.osdScaleMode = target
     document.documentElement.dataset.osdWindowZoom = nextZoomFactor.toFixed(4)
 
