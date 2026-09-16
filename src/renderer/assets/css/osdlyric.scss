@@ -213,9 +213,9 @@ html:not(.osd-cover-controls-hidden)
 /*
  * 拉伸热区必须始终位于桌面歌词内容层之上。
  *
- * 之前 resize 层级是 10000，而紧凑模式封面/控制区分别是 10003/10004。
- * 因此左边缘以及左上/左下角会被封面控制区盖住，表现为“有时能拉、有时拉不了”。
- * 这里把四边/四角命中层提升到控制区之上，并保留 no-drag，避免被窗口拖动语义吞掉。
+ * resize 层高于紧凑封面/控制区，确保四条边与四个角不会被内容盖住。
+ * 具体尺寸由 baselineOsdWindowScale.ts 按当前 zoomFactor 反向补偿，
+ * 因此窗口缩小后依旧保持约 3 DIP 的边缘命中宽度和 6 DIP 的角落命中尺寸。
  */
 #main:not(.is-lock) .resize-edge,
 #main:not(.is-lock) .resize-corner {
@@ -224,41 +224,42 @@ html:not(.osd-cover-controls-hidden)
   -webkit-app-region: no-drag !important;
 }
 
-/*
- * 紧凑模式原来的 1px 边缘热区在 Retina/缩放场景下过窄，很容易错过。
- * 提升到 2px，同时把四角扩大到 6px；仍然明显小于按钮单元，不会占据控制区主体。
- */
-#main.compact-mode:not(.is-lock) {
-  --resize-edge-size: 2px;
-  --resize-corner-size: 6px;
+#main:not(.is-lock) {
+  --resize-edge-size: var(--osd-resize-edge-hit-size, 3px);
+  --resize-corner-size: var(--osd-resize-corner-hit-size, 6px);
 }
 
 /*
- * 紧凑窗口缩小时，四角按钮会越来越靠近 BrowserWindow 原生 resize 热区。
- * 四角按钮向内部让出 6px，与新的 corner resize 热区完全错开；中间两个按钮不动。
+ * 紧凑窗口四角按钮与 resize-corner 使用同一份补偿后尺寸。
+ * 这样窗口缩小时不会因为页面 zoom 让按钮重新压到角落拉伸热区上。
  */
 #main.compact-mode .compact-control-button.control-prev {
-  left: 6px;
-  top: 6px;
+  left: var(--osd-resize-corner-hit-size, 6px);
+  top: var(--osd-resize-corner-hit-size, 6px);
 }
 
 #main.compact-mode .compact-control-button.control-next {
-  right: 6px;
-  top: 6px;
+  right: var(--osd-resize-corner-hit-size, 6px);
+  top: var(--osd-resize-corner-hit-size, 6px);
 }
 
 #main.compact-mode .compact-control-button.control-main-window {
-  left: 6px;
-  bottom: 6px;
+  left: var(--osd-resize-corner-hit-size, 6px);
+  bottom: var(--osd-resize-corner-hit-size, 6px);
 }
 
 #main.compact-mode .compact-control-button.control-like {
-  right: 6px;
-  bottom: 6px;
+  right: var(--osd-resize-corner-hit-size, 6px);
+  bottom: var(--osd-resize-corner-hit-size, 6px);
 }
 
 #main.compact-mode .compact-control-button {
   cursor: pointer !important;
+}
+
+#main.is-custom-resizing,
+#main.is-custom-resizing * {
+  user-select: none !important;
 }
 
 /*
