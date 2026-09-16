@@ -177,7 +177,8 @@ const getFieldFromElement = (element: Element | null): WindowScaleCalibrationFie
     field === 'minWidth' ||
     field === 'minHeight' ||
     field === 'baseFontSize' ||
-    field === 'miniControlBaseSize'
+    field === 'miniControlBaseSize' ||
+    field === 'cornerRadius'
   ) {
     return field
   }
@@ -187,7 +188,8 @@ const getFieldFromElement = (element: Element | null): WindowScaleCalibrationFie
 
 const getTargetFields = (target: WindowScaleTarget): WindowScaleCalibrationField[] => {
   const fields: WindowScaleCalibrationField[] = ['minWidth', 'minHeight', 'baseFontSize']
-  if (target === 'osd-small') fields.push('miniControlBaseSize')
+  if (target === 'osd-small') fields.push('miniControlBaseSize', 'cornerRadius')
+  if (target === 'osd-normal') fields.push('cornerRadius')
   return fields
 }
 
@@ -406,7 +408,10 @@ const previewFieldValue = (
   field: WindowScaleCalibrationField,
   value: number
 ) => {
-  if (!Number.isFinite(value) || value <= 0) {
+  const invalidValue =
+    !Number.isFinite(value) || (field === 'cornerRadius' ? value < 0 : value <= 0)
+
+  if (invalidValue) {
     renderTargetValues(target)
     return
   }
@@ -426,6 +431,7 @@ const previewFieldValue = (
 }
 
 const getButtonStep = (field: WindowScaleCalibrationField) => {
+  if (field === 'cornerRadius') return 1
   return isScaleField(field) ? 0.5 : 10
 }
 
