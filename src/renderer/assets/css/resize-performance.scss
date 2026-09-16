@@ -59,9 +59,8 @@ html.vutron-window-resizing #app .modal {
 /*
  * 自定义心动模式悬浮助手的跨平台显示保护。
  *
- * 不再叠加 CSS mask 与原生 Emoji。原按钮中的 Unicode 文本被完全移出可视区域，
- * 图标由纯 CSS 单色星形绘制，避免 macOS 彩色 Emoji 与自绘图标同时出现，也不依赖
- * Linux 的 Emoji 字体或 mask 实现。
+ * 原生 Emoji 仍然从视觉层移除，避免 macOS/Linux 字体差异；图标改由纯 CSS 绘制。
+ * 星形统一使用暖金色，保留“心动/闪光”语义，同时避免此前黑色图标显得过重。
  */
 .heart-mode-assistant {
   position: fixed !important;
@@ -89,7 +88,7 @@ html.vutron-window-resizing #app .modal {
   font-size: 0 !important;
 }
 
-/* 主星：纯单色，不使用 Emoji / SVG mask。 */
+/* 主星：暖金色，三平台一致。 */
 .heart-mode-trigger::before {
   content: '';
   position: absolute;
@@ -97,12 +96,12 @@ html.vutron-window-resizing #app .modal {
   top: 9px;
   width: 21px;
   height: 21px;
-  background: #202124;
+  background: #f4b400;
   clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
   pointer-events: none;
 }
 
-/* 小星：与主星保持同色，彻底消除“黑 + 黄色”的拼色现象。 */
+/* 小星与主星使用同一暖金色，不再出现黑/黄拼色。 */
 .heart-mode-trigger::after {
   content: '';
   position: absolute;
@@ -110,13 +109,8 @@ html.vutron-window-resizing #app .modal {
   top: 8px;
   width: 9px;
   height: 9px;
-  background: #202124;
+  background: #f4b400;
   clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
   pointer-events: none;
-}
-
-.heart-mode-assistant.is-dark .heart-mode-trigger::before,
-.heart-mode-assistant.is-dark .heart-mode-trigger::after {
-  background: #f5f6f7;
 }
 /* =========== newADD end ======== */
