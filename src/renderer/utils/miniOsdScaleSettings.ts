@@ -81,15 +81,16 @@ const ensureRow = () => {
     const row = createRow()
 
     /*
-     * “封面与控件基准”属于迷你桌面歌词同一组基准参数，恢复默认必须放在它后面。
-     * V2 的恢复默认控件是运行时追加的，因此优先把本行插到该控件之前；若尚未创建
-     * 恢复按钮，再退回到确认/取消操作区之前。这样最终顺序稳定为：
-     * 最小宽度 -> 最小高度 -> 歌词基准字号 -> 封面与控件基准 -> 恢复默认。
+     * “封面与控件基准”属于迷你桌面歌词同一组基准参数。圆角大小同样属于这一组，
+     * 因此本行应稳定插在圆角行之前，恢复默认继续位于所有基准字段之后。
+     * 最终顺序：最小宽度 -> 最小高度 -> 歌词基准字号 -> 封面与控件基准
+     * -> 圆角大小 -> 恢复默认。
      */
+    const cornerRadiusRow = section.querySelector('[data-field="cornerRadius"]')
     const resetControl = section.querySelector('.window-scale-baseline-reset-v2')
     const calibrationActions = section.querySelector('.window-scale-calibration-actions-v2')
     const legacyActions = section.querySelector('.window-scale-calibration-actions')
-    const anchor = resetControl || calibrationActions || legacyActions
+    const anchor = cornerRadiusRow || resetControl || calibrationActions || legacyActions
 
     if (anchor) {
       anchor.insertAdjacentElement('beforebegin', row)
