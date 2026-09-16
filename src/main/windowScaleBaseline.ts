@@ -142,6 +142,27 @@ const finishCalibration = (senderWindow: BrowserWindow | null, payload: Calibrat
   if (payload.action === 'commit') {
     if (window && !window.isDestroyed()) {
       const baseline = sanitizeWindowScaleBaseline(target, payload.baseline)
+
+      /*
+       * 正常校准流程会先经过 preview，此时窗口已经被调整到目标尺寸；
+       * 样式预设“应用”则会直接 commit，没有 calibration session。
+       * 直接提交时也必须把当前窗口实际 bounds 同步到保存的基准，否则设置页数值
+       * 虽然恢复了，桌面歌词窗口仍会停留在应用预设前的尺寸。
+       */
+      if (!session) {
+        if (window.isFullScreen()) window.setFullScreen(false)
+        if (window.isMaximized()) window.unmaximize()
+
+        const bounds = window.getBounds()
+        window.setMinimumSize(1, 1)
+        window.setBounds({
+          x: bounds.x,
+          y: bounds.y,
+          width: baseline.minWidth,
+          height: baseline.minHeight
+        })
+      }
+
       window.setMinimumSize(baseline.minWidth, baseline.minHeight)
       window.setResizable(session?.resizable ?? true)
     }
