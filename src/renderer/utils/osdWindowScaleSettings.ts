@@ -16,14 +16,15 @@ import {
 const CONTROL_ID = 'osd-window-scale-baseline-setting'
 const STYLE_ID = 'osd-window-scale-baseline-style'
 const ANCHOR_ID = 'osd-window-scale-baseline-anchor'
-const LEGACY_FONT_SIZE_ATTRIBUTE =
-  'data-legacy-osd-font-size-setting'
+const LEGACY_FONT_SIZE_ATTRIBUTE = 'data-legacy-osd-font-size-setting'
+
+type OsdBaselineField = WindowScaleBaselineField | 'cornerRadius'
 
 type FieldConfig = {
   labelKey: string
 }
 
-const FIELD_CONFIG: Record<WindowScaleBaselineField, FieldConfig> = {
+const FIELD_CONFIG: Record<OsdBaselineField, FieldConfig> = {
   minWidth: {
     labelKey: 'settings.windowScale.minWidth'
   },
@@ -32,12 +33,13 @@ const FIELD_CONFIG: Record<WindowScaleBaselineField, FieldConfig> = {
   },
   baseFontSize: {
     labelKey: 'settings.windowScale.baseFontSize'
+  },
+  cornerRadius: {
+    labelKey: 'settings.windowScale.cornerRadius'
   }
 }
 
-const BASELINE_FIELDS = Object.keys(
-  FIELD_CONFIG
-) as WindowScaleBaselineField[]
+const BASELINE_FIELDS = Object.keys(FIELD_CONFIG) as OsdBaselineField[]
 
 const TARGET_CONFIG: Array<{
   target: 'osd-small' | 'osd-normal'
@@ -53,13 +55,8 @@ const TARGET_CONFIG: Array<{
   }
 ]
 
-const translate = (
-  key: string,
-  params?: Record<string, string>
-) => {
-  return params
-    ? String(i18n.global.t(key, params))
-    : String(i18n.global.t(key))
+const translate = (key: string, params?: Record<string, string>) => {
+  return params ? String(i18n.global.t(key, params)) : String(i18n.global.t(key))
 }
 
 const injectStyle = () => {
@@ -164,14 +161,11 @@ const injectStyle = () => {
   document.head.appendChild(style)
 }
 
-const getFieldLabel = (field: WindowScaleBaselineField) => {
+const getFieldLabel = (field: OsdBaselineField) => {
   return translate(FIELD_CONFIG[field].labelKey)
 }
 
-const createFieldRow = (
-  target: 'osd-small' | 'osd-normal',
-  field: WindowScaleBaselineField
-) => {
+const createFieldRow = (target: 'osd-small' | 'osd-normal', field: OsdBaselineField) => {
   const label = getFieldLabel(field)
   const range = getWindowScaleFieldRange(target, field)
   const decreaseLabel = translate('settings.windowScale.decrease', {
@@ -225,13 +219,8 @@ const createFieldRow = (
   `
 }
 
-const createTargetSection = (
-  target: 'osd-small' | 'osd-normal',
-  titleKey: string
-) => {
-  const fields = BASELINE_FIELDS.map((field) =>
-    createFieldRow(target, field)
-  ).join('')
+const createTargetSection = (target: 'osd-small' | 'osd-normal', titleKey: string) => {
+  const fields = BASELINE_FIELDS.map((field) => createFieldRow(target, field)).join('')
 
   return `
     <section class="osd-window-scale-section" data-section-target="${target}">
@@ -241,14 +230,9 @@ const createTargetSection = (
   `
 }
 
-const renderTarget = (
-  item: HTMLElement,
-  target: 'osd-small' | 'osd-normal'
-) => {
+const renderTarget = (item: HTMLElement, target: 'osd-small' | 'osd-normal') => {
   const baseline = readWindowScaleBaseline(target)
-  const section = item.querySelector<HTMLElement>(
-    `[data-section-target="${target}"]`
-  )
+  const section = item.querySelector<HTMLElement>(`[data-section-target="${target}"]`)
   if (!section) return
 
   for (const field of BASELINE_FIELDS) {
@@ -267,13 +251,8 @@ const renderTarget = (
 
 const resolveTargetAndField = (element: Element | null) => {
   const row = element?.closest<HTMLElement>('[data-target][data-field]')
-  const target = row?.dataset.target as
-    | 'osd-small'
-    | 'osd-normal'
-    | undefined
-  const field = row?.dataset.field as
-    | WindowScaleBaselineField
-    | undefined
+  const target = row?.dataset.target as 'osd-small' | 'osd-normal' | undefined
+  const field = row?.dataset.field as OsdBaselineField | undefined
 
   return { target, field }
 }
@@ -281,10 +260,10 @@ const resolveTargetAndField = (element: Element | null) => {
 const applyFieldValue = (
   item: HTMLElement,
   target: 'osd-small' | 'osd-normal',
-  field: WindowScaleBaselineField,
+  field: OsdBaselineField,
   value: number
 ) => {
-  if (!Number.isFinite(value)) {
+  if (!Number.isFinite(value) || (field === 'cornerRadius' ? value < 0 : value <= 0)) {
     renderTarget(item, target)
     return
   }
@@ -297,9 +276,7 @@ const applyFieldValue = (
 
 const installControlListeners = (item: HTMLElement) => {
   item.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      '[data-action]'
-    )
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-action]')
     const { target, field } = resolveTargetAndField(button)
     if (!button || !target || !field) return
 
@@ -307,18 +284,11 @@ const installControlListeners = (item: HTMLElement) => {
     const range = getWindowScaleFieldRange(target, field)
     const direction = button.dataset.action === 'decrease' ? -1 : 1
 
-    applyFieldValue(
-      item,
-      target,
-      field,
-      baseline[field] + range.step * direction
-    )
+    applyFieldValue(item, target, field, baseline[field] + range.step * direction)
   })
 
   item.addEventListener('input', (event) => {
-    const slider = (event.target as HTMLElement).closest<HTMLInputElement>(
-      '[data-slider]'
-    )
+    const slider = (event.target as HTMLElement).closest<HTMLInputElement>('[data-slider]')
     const { target, field } = resolveTargetAndField(slider)
     if (!slider || !target || !field) return
 
@@ -326,9 +296,7 @@ const installControlListeners = (item: HTMLElement) => {
   })
 
   item.addEventListener('change', (event) => {
-    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
-      '[data-value]'
-    )
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>('[data-value]')
     const { target, field } = resolveTargetAndField(input)
     if (!input || !target || !field) return
 
@@ -339,9 +307,7 @@ const installControlListeners = (item: HTMLElement) => {
     const keyboardEvent = event as KeyboardEvent
     if (keyboardEvent.key !== 'Enter') return
 
-    const input = (event.target as HTMLElement).closest<HTMLInputElement>(
-      '[data-value]'
-    )
+    const input = (event.target as HTMLElement).closest<HTMLInputElement>('[data-value]')
     const { target, field } = resolveTargetAndField(input)
     if (!input || !target || !field) return
 
@@ -380,9 +346,7 @@ const findOsdPanel = () => {
 }
 
 const hideLegacyFontSizeSetting = (osdPanel: Element) => {
-  const numberInputs = osdPanel.querySelectorAll<HTMLInputElement>(
-    'input[type="number"].text-input'
-  )
+  const numberInputs = osdPanel.querySelectorAll<HTMLInputElement>('input[type="number"].text-input')
   const legacyItem = numberInputs.item(1)?.closest<HTMLElement>('.item')
   if (!legacyItem) return null
 
@@ -444,10 +408,7 @@ export const initializeOsdWindowScaleSettings = (router: Router) => {
   }
 
   const removeAfterEach = router.afterEach(restartInjection)
-  const stopLocaleWatch = watch(
-    () => i18n.global.locale.value,
-    restartInjection
-  )
+  const stopLocaleWatch = watch(() => i18n.global.locale.value, restartInjection)
 
   return () => {
     stopAttempts()
