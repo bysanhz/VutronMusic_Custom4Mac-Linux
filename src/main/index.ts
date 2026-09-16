@@ -235,6 +235,10 @@ class BackGround {
       // 允许窗口越过屏幕边界。
       // macOS 上如果想让无边框歌词窗口拖到菜单栏上方/屏幕外侧，通常需要开启这个选项。
       enableLargerThanScreen: true,
+      // 关闭 Electron/系统对无边框窗口施加的原生圆角遮罩。
+      // 桌面歌词的最终圆角完全交给 renderer 的 --osd-corner-radius 裁切控制；
+      // 否则即使 CSS 圆角设为 0，macOS 仍会保留一层系统固定圆角。
+      roundedCorners: false,
       // =========== newADD end ========
       width:
         type === 'small'
