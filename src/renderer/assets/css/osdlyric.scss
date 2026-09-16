@@ -181,21 +181,24 @@ html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
   margin-left: 0 !important;
 }
 
-/* 控制区保持近似 3:2；图标随“封面与控件基准”一起做轻量相对缩放。 */
+/*
+ * 控制区保持近似 3:2；图标随“封面与控件基准”一起做轻量相对缩放。
+ * 在不改变按钮网格和点击区的前提下，将图标整体提高约 8%~10%，避免默认基准下显得过小。
+ */
 #main.compact-mode .compact-control-button .svg-icon {
-  width: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-play .svg-icon,
 #main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
-  width: calc(13px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(13px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(14px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(14px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-main-window .svg-icon {
-  width: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(11px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(12px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(12px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
