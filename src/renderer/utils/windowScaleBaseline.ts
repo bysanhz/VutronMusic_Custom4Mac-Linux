@@ -7,6 +7,9 @@
  *
  * 迷你桌面歌词额外使用 miniControlBaseSize。它只控制左侧封面与控制按钮
  * 相对右侧歌词的比例，不参与 Electron 窗口缩放倍数计算。
+ *
+ * cornerRadius 是桌面歌词统一圆角基准。它不参与 zoomFactor 计算，而是作为
+ * CSS 基准值统一驱动窗口、封面控制区、歌词行、锁定按钮与拖动条等圆角。
  */
 
 export type WindowScaleTarget = 'main' | 'osd-small' | 'osd-normal'
@@ -16,11 +19,15 @@ export type WindowScaleBaseline = {
   minHeight: number
   baseFontSize: number
   miniControlBaseSize: number
+  cornerRadius: number
 }
 
 export type WindowScaleBaselineField = 'minWidth' | 'minHeight' | 'baseFontSize'
 
-export type WindowScaleCalibrationField = WindowScaleBaselineField | 'miniControlBaseSize'
+export type WindowScaleCalibrationField =
+  | WindowScaleBaselineField
+  | 'miniControlBaseSize'
+  | 'cornerRadius'
 
 export type WindowScaleFieldRange = {
   min: number
@@ -37,22 +44,26 @@ export const WINDOW_SCALE_BASELINE_KEYS: Record<
     minWidth: string
     minHeight: string
     baseFontSize: string
+    cornerRadius: string
   }
 > = {
   main: {
     minWidth: 'mainWindowScaleMinWidth',
     minHeight: 'mainWindowScaleMinHeight',
-    baseFontSize: 'mainWindowScaleBaseFontSize'
+    baseFontSize: 'mainWindowScaleBaseFontSize',
+    cornerRadius: 'mainWindowScaleCornerRadius'
   },
   'osd-small': {
     minWidth: 'osdSmallWindowScaleMinWidth',
     minHeight: 'osdSmallWindowScaleMinHeight',
-    baseFontSize: 'osdSmallWindowScaleBaseFontSize'
+    baseFontSize: 'osdSmallWindowScaleBaseFontSize',
+    cornerRadius: 'osdSmallWindowScaleCornerRadius'
   },
   'osd-normal': {
     minWidth: 'osdNormalWindowScaleMinWidth',
     minHeight: 'osdNormalWindowScaleMinHeight',
-    baseFontSize: 'osdNormalWindowScaleBaseFontSize'
+    baseFontSize: 'osdNormalWindowScaleBaseFontSize',
+    cornerRadius: 'osdNormalWindowScaleCornerRadius'
   }
 }
 
@@ -61,19 +72,22 @@ export const DEFAULT_WINDOW_SCALE_BASELINES: Record<WindowScaleTarget, WindowSca
     minWidth: 810,
     minHeight: 540,
     baseFontSize: 12,
-    miniControlBaseSize: 12
+    miniControlBaseSize: 12,
+    cornerRadius: 8
   },
   'osd-small': {
     minWidth: 420,
     minHeight: 50,
     baseFontSize: 12,
-    miniControlBaseSize: 12
+    miniControlBaseSize: 12,
+    cornerRadius: 12
   },
   'osd-normal': {
     minWidth: 360,
     minHeight: 400,
     baseFontSize: 12,
-    miniControlBaseSize: 12
+    miniControlBaseSize: 12,
+    cornerRadius: 4
   }
 }
 
@@ -86,6 +100,12 @@ const normalizeDimension = (value: unknown, fallback: number) => {
 const normalizeScaleValue = (value: unknown, fallback: number) => {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.round(parsed * 100) / 100
+}
+
+const normalizeNonNegativeValue = (value: unknown, fallback: number) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback
   return Math.round(parsed * 100) / 100
 }
 
@@ -102,6 +122,14 @@ export const getWindowScaleFieldRange = (
   field: WindowScaleCalibrationField
 ): WindowScaleFieldRange => {
   void target
+
+  if (field === 'cornerRadius') {
+    return {
+      min: 0,
+      max: 100,
+      step: 1
+    }
+  }
 
   return {
     min: -100,
@@ -121,7 +149,8 @@ export const sanitizeWindowScaleBaseline = (
     minWidth: normalizeDimension(value?.minWidth, fallback.minWidth),
     minHeight: normalizeDimension(value?.minHeight, fallback.minHeight),
     baseFontSize,
-    miniControlBaseSize: normalizeScaleValue(value?.miniControlBaseSize, baseFontSize)
+    miniControlBaseSize: normalizeScaleValue(value?.miniControlBaseSize, baseFontSize),
+    cornerRadius: normalizeNonNegativeValue(value?.cornerRadius, fallback.cornerRadius)
   }
 }
 
