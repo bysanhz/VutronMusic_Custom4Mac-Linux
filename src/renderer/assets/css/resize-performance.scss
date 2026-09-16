@@ -113,4 +113,19 @@ html.vutron-window-resizing #app .modal {
   clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
   pointer-events: none;
 }
+
+/*
+ * “听歌足迹”的今日卡片同时展示两个不同统计维度：
+ * - 主数字是今天听过的歌曲数；
+ * - 次数字是今日累计收听时长，会包含重复播放产生的时间。
+ *
+ * 明确补充标签，避免把“7 首”和“1 小时 21 分”误解为 7 首歌曲的总曲长。
+ */
+#app .insights-page .metric-grid:not(.compact) .metric-card:first-child > span::after {
+  content: ' · 歌曲数';
+}
+
+#app .insights-page .metric-grid:not(.compact) .metric-card:first-child > small::before {
+  content: '累计收听 ';
+}
 /* =========== newADD end ======== */
