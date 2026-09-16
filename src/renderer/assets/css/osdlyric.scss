@@ -76,13 +76,16 @@ body {
 /*
  * 紧凑桌面歌词左侧封面与控制区。
  *
- * 和歌词一样，控制区也直接以完整窗口的 100vh 为纵向基准，不再依赖父级
- * 百分比高度链。这样默认 420x50 基准下控制区就是完整 50px 高；窗口按同一
- * 基准缩放后仍然严格从 y=0 到 y=100vh。横向保持 3:2，因此宽度是 150vh。
- * 右侧仍保留已经确认合适的 8px CSS 间隙。
+ * 和歌词一样，控制区直接以完整窗口的 100vh 为纵向基准，不再依赖父级
+ * 百分比高度链。默认 420x50 基准下控制区就是完整 50px 高；窗口按同一
+ * 基准缩放后仍然严格从 y=0 到 y=100vh。
+ *
+ * 横向由此前严格 3:2 的 150vh 略微收窄到 145vh。对于内部 3 列 x 2 行按钮，
+ * 每个按钮单元的宽高因此更接近 1:1，视觉上仍然均衡，但整个封面控制区不会
+ * 显得过长。右侧继续保留已经确认合适的 8px CSS 间隙。
  */
 #main.compact-mode .compact-osd-layout {
-  grid-template-columns: 150vh minmax(0, 1fr) !important;
+  grid-template-columns: 145vh minmax(0, 1fr) !important;
   column-gap: 8px !important;
   justify-content: start;
   align-items: stretch !important;
@@ -139,7 +142,7 @@ html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
   margin-left: 0 !important;
 }
 
-/* 控制区保持 3:2；图标随“封面与控件基准”一起做轻量相对缩放。 */
+/* 控制区保持近似 3:2；图标随“封面与控件基准”一起做轻量相对缩放。 */
 #main.compact-mode .compact-control-button .svg-icon {
   width: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
   height: calc(10px * var(--mini-osd-control-relative-scale, 1)) !important;
