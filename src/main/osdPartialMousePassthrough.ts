@@ -96,7 +96,10 @@ const isCursorInsideRegion = (state: OsdWindowState): boolean => {
 }
 
 function updateMousePassthrough(): void {
-  const locked = Boolean(store.get('osdWin.isLock'))
+  // Linux 端没有桌面歌词锁定按钮，并且渲染层启动时也强制保持解锁。
+  // 若 electron-store 中残留旧的 isLock=true，主进程此前仍会把整个窗口设为鼠标穿透，
+  // 直接导致边缘 resize handle 收不到 hover/pointerdown。这里让主进程与 Linux UI 语义一致。
+  const locked = process.platform === 'linux' ? false : Boolean(store.get('osdWin.isLock'))
 
   for (const [webContentsId, state] of states) {
     if (state.window.isDestroyed()) {
