@@ -308,13 +308,78 @@ export const extractUserPlayRecord = (source: any, type: 'week' | 'all', limit =
 const hasAnyKey = (keys: string[], candidates: string[]) =>
   candidates.some((candidate) => keys.includes(candidate))
 
+const findListenSongRank = (
+  source: any,
+  depth = 0,
+  seen = new WeakSet<object>()
+): any[] | undefined => {
+  if (depth > 6 || source == null) return undefined
+
+  if (Array.isArray(source)) {
+    const entries = source.filter(isObject)
+    if (
+      entries.length > 0 &&
+      entries.some(
+        (item) =>
+          item?.songId !== undefined ||
+          item?.songName !== undefined ||
+          item?.playCount !== undefined ||
+          item?.song?.id !== undefined ||
+          item?.song?.songId !== undefined
+      )
+    ) {
+      return entries
+    }
+
+    for (const item of source) {
+      const nested = findListenSongRank(item, depth + 1, seen)
+      if (nested) return nested
+    }
+    return undefined
+  }
+
+  if (!isObject(source) || seen.has(source)) return undefined
+  seen.add(source)
+
+  for (const value of Object.values(source)) {
+    const nested = findListenSongRank(value, depth + 1, seen)
+    if (nested) return nested
+  }
+  return undefined
+}
+
+const extractListenSongCount = (source: any): number | undefined => {
+  const data = source?.data
+  const directCandidates = [
+    data?.songCount,
+    data?.listenSongCount,
+    data?.count,
+    source?.songCount,
+    source?.listenSongCount,
+    source?.count
+  ]
+  const direct = directCandidates
+    .map((value) => Number(value))
+    .find((value) => Number.isFinite(value) && value >= 0)
+  if (direct !== undefined) return direct
+
+  if (Array.isArray(data?.songDTOs)) return data.songDTOs.length
+
+  // Current /listen/data/today/song is backed by the today song-play-rank endpoint.
+  // Rank rows expose per-song playCount; that value is NOT the number of songs listened to.
+  // Count the ranked song rows instead so "今日 N 首" and today's duration use compatible semantics.
+  return findListenSongRank(data)?.length
+}
+
 export const extractMetric = (source: any, keys: string[]) => {
   const data = source?.data
+  const asksForSongCount = hasAnyKey(keys, ['songCount', 'count', 'listenSongCount', 'playCount'])
 
   // These listen-footprint endpoints use different, stable response fields and units.
   // Prefer those explicit schemas before the generic recursive fallback below.
-  if (Array.isArray(data?.songDTOs) && hasAnyKey(keys, ['songCount', 'count', 'listenSongCount'])) {
-    return data.songDTOs.length
+  if (asksForSongCount) {
+    const songCount = extractListenSongCount(source)
+    if (songCount !== undefined) return songCount
   }
 
   const playDuration = Number(data?.listenTimeDistributionBlock?.playDuration)
@@ -335,7 +400,10 @@ export const extractMetric = (source: any, keys: string[]) => {
     return totalDuration
   }
 
-  const value = deepFindValue(source, keys)
+  // playCount belongs to an individual rank row. Never treat the first row's playCount
+  // as a page-level "number of songs" metric when an endpoint does not expose a count.
+  const fallbackKeys = asksForSongCount ? keys.filter((key) => key !== 'playCount') : keys
+  const value = deepFindValue(source, fallbackKeys)
   const number = Number(value)
   return Number.isFinite(number) ? number : undefined
 }
