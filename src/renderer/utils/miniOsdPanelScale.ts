@@ -35,7 +35,7 @@ const injectStyle = () => {
       #main.compact-mode
       .compact-osd-layout {
       grid-template-columns:
-        calc(150vh * var(--mini-osd-control-relative-scale))
+        calc(145vh * var(--mini-osd-control-relative-scale))
         minmax(0, 1fr) !important;
     }
   `
