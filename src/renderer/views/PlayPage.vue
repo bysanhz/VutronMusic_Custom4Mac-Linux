@@ -54,7 +54,6 @@
         <CreativePlayer v-else :show="tabs[tabIdx]" :hover-parent="hover" />
       </div>
     </transition>
-    <HeartModeAssistant />
   </div>
   <div>
     <ConvolverModal />
@@ -116,7 +115,6 @@ import BackgroundModal from '../components/ModalBackground.vue'
 import CommonPlayer from '../components/CommonPlayer.vue'
 import CreativePlayer from '../components/CreativePlayer.vue'
 import BackgroundPage from '../components/BackgroundPage.vue'
-import HeartModeAssistant from '../components/HeartModeAssistant.vue'
 import ButtonIcon from '../components/ButtonIcon.vue'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useNormalStateStore } from '../store/state'
