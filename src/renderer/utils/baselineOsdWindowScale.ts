@@ -13,6 +13,8 @@ const REFERENCE_FONT_SIZE = 16
 const ZOOM_EPSILON = 0.004
 const ZOOM_UPDATE_INTERVAL_MS = 34
 const RESIZE_IDLE_DELAY_MS = 120
+const RESIZE_EDGE_HIT_DIP = 3
+const RESIZE_CORNER_HIT_DIP = 6
 
 type RuntimeWindow = Window & {
   __vutronBaselineOsdWindowScaleCleanup__?: () => void
@@ -54,6 +56,8 @@ export const initializeBaselineOsdWindowScale = () => {
     const target = readOsdTarget()
     const baseline = readWindowScaleBaseline(target)
     const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline)
+    const resizeEdgeCssPx = RESIZE_EDGE_HIT_DIP / Math.max(nextZoomFactor, 0.01)
+    const resizeCornerCssPx = RESIZE_CORNER_HIT_DIP / Math.max(nextZoomFactor, 0.01)
 
     document.documentElement.style.setProperty(
       '--osd-window-zoom-factor',
@@ -72,6 +76,14 @@ export const initializeBaselineOsdWindowScale = () => {
     document.documentElement.style.setProperty(
       '--osd-corner-radius',
       `${baseline.cornerRadius}px`
+    )
+    document.documentElement.style.setProperty(
+      '--osd-resize-edge-hit-size',
+      `${resizeEdgeCssPx.toFixed(2)}px`
+    )
+    document.documentElement.style.setProperty(
+      '--osd-resize-corner-hit-size',
+      `${resizeCornerCssPx.toFixed(2)}px`
     )
     document.documentElement.dataset.osdScaleMode = target
     document.documentElement.dataset.osdWindowZoom = nextZoomFactor.toFixed(4)
