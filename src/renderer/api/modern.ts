@@ -16,12 +16,30 @@ export function homepageBlockPage(params: { refresh?: boolean; cursor?: string |
   })
 }
 
-export function listenTodaySongs() {
-  return request({
-    url: '/listen/data/today/song',
+/**
+ * 今日收听摘要。
+ *
+ * `/listen/data/today/song` 在部分账号上会返回空 `songDTOs`，即使当天已有收听时长。
+ * 周实时报告里的 `weekTodayListenBlock.songCount` 与今日时长来自同一套实时统计，
+ * 因此这里优先使用该字段，并提升成 data.songCount 供现有足迹解析逻辑直接读取。
+ */
+export async function listenTodaySongs() {
+  const report = await request({
+    url: '/listen/data/realtime/report',
     method: 'get',
-    params: withTimestamp({})
+    params: withTimestamp({ type: 'week' })
   })
+
+  const songCount = Number(report?.data?.weekTodayListenBlock?.songCount)
+  if (!Number.isFinite(songCount)) return report
+
+  return {
+    ...report,
+    data: {
+      ...report?.data,
+      songCount
+    }
+  }
 }
 
 /**
