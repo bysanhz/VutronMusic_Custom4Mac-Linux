@@ -6,6 +6,16 @@ import {
   writeJsonRecord,
   writeStorageValue
 } from './v327FeatureShared'
+import {
+  WindowScaleBaseline,
+  WindowScaleTarget,
+  getDefaultWindowScaleBaseline,
+  sanitizeWindowScaleBaseline
+} from './windowScaleBaseline'
+import {
+  commitWindowScaleBaseline,
+  readWindowScaleBaseline
+} from './windowScaleBaselineStorage'
 
 type OsdPresetSettings = {
   type: 'small' | 'normal'
@@ -20,6 +30,7 @@ type OsdPresetSettings = {
   align: 'left' | 'center' | 'right'
   showButtonWhenLock: boolean
   coverControlsVisible: boolean
+  windowBaseline?: WindowScaleBaseline
 }
 
 type OsdPreset = {
@@ -53,7 +64,7 @@ const BUILTIN_LYRIC_SHADOW = 'rgba(0, 0, 0, 0)'
 const TEXTS = {
   zh: {
     title: '桌面歌词样式预设',
-    description: '内置与自定义预设都可直接覆盖保存；内置预设可随时恢复初始样式',
+    description: '预设会同时保存歌词样式与对应模式的窗口基准；内置预设可随时恢复初始设置',
     apply: '应用',
     saveCopy: '另存为',
     updateSelected: '更新所选',
@@ -69,8 +80,8 @@ const TEXTS = {
     limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
     applied: '预设已应用，可继续修改后覆盖保存',
     deleted: '预设已删除',
-    builtinHint: '修改字体、颜色、排版等设置后，点击“更新所选”即可覆盖这个内置预设',
-    customHint: '修改其他桌面歌词设置后，点击“更新所选”即可覆盖当前预设',
+    builtinHint: '修改字体、颜色、排版或窗口基准后，点击“更新所选”即可覆盖这个内置预设',
+    customHint: '修改桌面歌词样式或窗口基准后，点击“更新所选”即可覆盖当前预设',
     copySuffix: '副本',
     minimal: '极简透明双行',
     centered: '大字居中',
@@ -79,7 +90,7 @@ const TEXTS = {
   },
   zht: {
     title: '桌面歌詞樣式預設',
-    description: '內建與自訂預設都可直接覆蓋儲存；內建預設可隨時恢復初始樣式',
+    description: '預設會同時儲存歌詞樣式與對應模式的視窗基準；內建預設可隨時恢復初始設定',
     apply: '套用',
     saveCopy: '另存為',
     updateSelected: '更新所選',
@@ -95,8 +106,8 @@ const TEXTS = {
     limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
     applied: '預設已套用，可繼續修改後覆蓋儲存',
     deleted: '預設已刪除',
-    builtinHint: '修改字體、顏色、排版等設定後，點擊「更新所選」即可覆蓋這個內建預設',
-    customHint: '修改其他桌面歌詞設定後，點擊「更新所選」即可覆蓋目前預設',
+    builtinHint: '修改字體、顏色、排版或視窗基準後，點擊「更新所選」即可覆蓋這個內建預設',
+    customHint: '修改桌面歌詞樣式或視窗基準後，點擊「更新所選」即可覆蓋目前預設',
     copySuffix: '副本',
     minimal: '極簡透明雙行',
     centered: '大字置中',
@@ -106,7 +117,7 @@ const TEXTS = {
   en: {
     title: 'Desktop Lyric Presets',
     description:
-      'Built-in and custom presets can both be overwritten; built-in presets can be restored at any time.',
+      'Presets save both lyric styling and the matching window baseline; built-in presets can be restored at any time.',
     apply: 'Apply',
     saveCopy: 'Save Copy',
     updateSelected: 'Update Selected',
@@ -123,9 +134,9 @@ const TEXTS = {
     applied: 'Preset applied. Continue editing, then overwrite it when ready.',
     deleted: 'Preset deleted',
     builtinHint:
-      'Edit font, colors, layout or other settings, then choose “Update Selected” to overwrite this built-in preset.',
+      'Edit font, colors, layout, window baseline or other settings, then choose “Update Selected” to overwrite this built-in preset.',
     customHint:
-      'Edit the desktop lyric settings, then choose “Update Selected” to overwrite this preset.',
+      'Edit the desktop lyric styling or window baseline, then choose “Update Selected” to overwrite this preset.',
     copySuffix: 'Copy',
     minimal: 'Minimal Transparent Two-line',
     centered: 'Large Centered',
@@ -133,6 +144,20 @@ const TEXTS = {
     cover: 'Cover Controls'
   }
 } as const
+
+const getBaselineTarget = (type: 'small' | 'normal'): WindowScaleTarget =>
+  type === 'normal' ? 'osd-normal' : 'osd-small'
+
+const normalizeWindowBaseline = (
+  type: 'small' | 'normal',
+  value: unknown
+): WindowScaleBaseline | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return sanitizeWindowScaleBaseline(
+    getBaselineTarget(type),
+    value as Partial<WindowScaleBaseline>
+  )
+}
 
 const getDefaultBuiltInPresets = (): OsdPreset[] => {
   const text = TEXTS[resolveFeatureLanguage()]
@@ -145,6 +170,8 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
     font: 'system-ui',
     showButtonWhenLock: true
   }
+  const smallBaseline = getDefaultWindowScaleBaseline('osd-small')
+  const normalBaseline = getDefaultWindowScaleBaseline('osd-normal')
 
   return [
     {
@@ -156,7 +183,8 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         mode: 'twoLines',
         translationMode: 'tlyric',
         align: 'center',
-        coverControlsVisible: false
+        coverControlsVisible: false,
+        windowBaseline: { ...smallBaseline }
       }
     },
     {
@@ -168,7 +196,8 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         mode: 'twoLines',
         translationMode: 'tlyric',
         align: 'center',
-        coverControlsVisible: false
+        coverControlsVisible: false,
+        windowBaseline: { ...normalBaseline }
       }
     },
     {
@@ -180,7 +209,8 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         mode: 'oneLine',
         translationMode: 'none',
         align: 'left',
-        coverControlsVisible: false
+        coverControlsVisible: false,
+        windowBaseline: { ...smallBaseline }
       }
     },
     {
@@ -192,7 +222,8 @@ const getDefaultBuiltInPresets = (): OsdPreset[] => {
         mode: 'twoLines',
         translationMode: 'tlyric',
         align: 'left',
-        coverControlsVisible: true
+        coverControlsVisible: true,
+        windowBaseline: { ...smallBaseline }
       }
     }
   ]
@@ -204,11 +235,14 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
   if (!preset.id || !preset.name || !preset.settings) return null
 
   const settings = preset.settings as Partial<OsdPresetSettings>
+  const type: 'small' | 'normal' = settings.type === 'normal' ? 'normal' : 'small'
+  const windowBaseline = normalizeWindowBaseline(type, settings.windowBaseline)
+
   return {
     id: String(preset.id).slice(0, 120),
     name: String(preset.name).trim().slice(0, 80),
     settings: {
-      type: settings.type === 'normal' ? 'normal' : 'small',
+      type,
       mode: settings.mode === 'oneLine' ? 'oneLine' : 'twoLines',
       isWordByWord: settings.isWordByWord !== false,
       translationMode: ['none', 'tlyric', 'rlyric'].includes(String(settings.translationMode))
@@ -223,7 +257,8 @@ const normalizePreset = (value: unknown): OsdPreset | null => {
         ? (settings.align as OsdPresetSettings['align'])
         : 'center',
       showButtonWhenLock: settings.showButtonWhenLock !== false,
-      coverControlsVisible: settings.coverControlsVisible !== false
+      coverControlsVisible: settings.coverControlsVisible !== false,
+      ...(windowBaseline ? { windowBaseline } : {})
     }
   }
 }
@@ -293,9 +328,10 @@ const createUserPresetId = (): string =>
 
 const readCurrentSettings = (): OsdPresetSettings => {
   const state = readJsonRecord(OSD_STORAGE_KEY)
+  const type: 'small' | 'normal' = state.type === 'normal' ? 'normal' : 'small'
 
   return {
-    type: state.type === 'normal' ? 'normal' : 'small',
+    type,
     mode: state.mode === 'oneLine' ? 'oneLine' : 'twoLines',
     isWordByWord: state.isWordByWord !== false,
     translationMode: ['none', 'tlyric', 'rlyric'].includes(state.translationMode)
@@ -308,15 +344,21 @@ const readCurrentSettings = (): OsdPresetSettings => {
     font: String(state.font || 'system-ui'),
     align: ['left', 'center', 'right'].includes(state.align) ? state.align : 'center',
     showButtonWhenLock: state.showButtonWhenLock !== false,
-    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
+    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false',
+    windowBaseline: readWindowScaleBaseline(getBaselineTarget(type))
   }
 }
 
 const applyPreset = (preset: OsdPreset): void => {
   const currentState = readJsonRecord(OSD_STORAGE_KEY)
-  const { coverControlsVisible, ...settings } = preset.settings
+  const { coverControlsVisible, windowBaseline, ...settings } = preset.settings
   writeJsonRecord(OSD_STORAGE_KEY, { ...currentState, ...settings })
   writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(coverControlsVisible))
+
+  // 旧版预设没有 windowBaseline 时保持用户当前窗口基准不变。
+  if (windowBaseline) {
+    commitWindowScaleBaseline(getBaselineTarget(settings.type), windowBaseline)
+  }
 }
 
 const refreshSelect = (select: HTMLSelectElement, preferredId?: string): void => {
