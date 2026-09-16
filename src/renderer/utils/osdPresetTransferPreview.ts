@@ -5,6 +5,16 @@ import {
   writeJsonRecord,
   writeStorageValue
 } from './v327FeatureShared'
+import {
+  WindowScaleBaseline,
+  WindowScaleTarget,
+  getDefaultWindowScaleBaseline,
+  sanitizeWindowScaleBaseline
+} from './windowScaleBaseline'
+import {
+  commitWindowScaleBaseline,
+  readWindowScaleBaseline
+} from './windowScaleBaselineStorage'
 
 const PRESET_CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
@@ -29,6 +39,7 @@ type PresetSettings = {
   align: 'left' | 'center' | 'right'
   showButtonWhenLock: boolean
   coverControlsVisible: boolean
+  windowBaseline?: WindowScaleBaseline
 }
 
 type StoredPreset = {
@@ -43,7 +54,7 @@ const TEXTS = {
     previewWaiting: '下一行歌词预览',
     export: '导出当前',
     import: '导入预设',
-    exported: '当前样式预设已导出',
+    exported: '当前样式与窗口基准已导出',
     imported: '预设已导入、应用并可继续修改',
     importFailed: '预设文件无效或超过 256 KB',
     limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
@@ -54,7 +65,7 @@ const TEXTS = {
     previewWaiting: '下一行歌詞預覽',
     export: '匯出目前',
     import: '匯入預設',
-    exported: '目前樣式預設已匯出',
+    exported: '目前樣式與視窗基準已匯出',
     imported: '預設已匯入、套用並可繼續修改',
     importFailed: '預設檔案無效或超過 256 KB',
     limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
@@ -65,7 +76,7 @@ const TEXTS = {
     previewWaiting: 'Next lyric preview',
     export: 'Export current',
     import: 'Import preset',
-    exported: 'Current lyric preset exported',
+    exported: 'Current styling and window baseline exported',
     imported: 'Preset imported, applied and ready to edit',
     importFailed: 'The preset file is invalid or larger than 256 KB.',
     limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
@@ -83,6 +94,9 @@ const COMMON_BUILTIN_SETTINGS = {
   showButtonWhenLock: true
 } as const
 
+const SMALL_DEFAULT_BASELINE = getDefaultWindowScaleBaseline('osd-small')
+const NORMAL_DEFAULT_BASELINE = getDefaultWindowScaleBaseline('osd-normal')
+
 const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
   'builtin-minimal': {
     ...COMMON_BUILTIN_SETTINGS,
@@ -90,7 +104,8 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     mode: 'twoLines',
     translationMode: 'tlyric',
     align: 'center',
-    coverControlsVisible: false
+    coverControlsVisible: false,
+    windowBaseline: { ...SMALL_DEFAULT_BASELINE }
   },
   'builtin-centered': {
     ...COMMON_BUILTIN_SETTINGS,
@@ -101,7 +116,8 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     coverControlsVisible: false,
     playedLrcColor: 'rgba(7, 185, 187, 1)',
     unplayLrcColor: 'rgba(239, 152, 207, 1)',
-    textShadow: 'rgba(0, 0, 0, 0)'
+    textShadow: 'rgba(0, 0, 0, 0)',
+    windowBaseline: { ...NORMAL_DEFAULT_BASELINE }
   },
   'builtin-left': {
     ...COMMON_BUILTIN_SETTINGS,
@@ -109,7 +125,8 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     mode: 'oneLine',
     translationMode: 'none',
     align: 'left',
-    coverControlsVisible: false
+    coverControlsVisible: false,
+    windowBaseline: { ...SMALL_DEFAULT_BASELINE }
   },
   'builtin-cover': {
     ...COMMON_BUILTIN_SETTINGS,
@@ -117,8 +134,23 @@ const DEFAULT_BUILTIN_SETTINGS: Record<string, PresetSettings> = {
     mode: 'twoLines',
     translationMode: 'tlyric',
     align: 'left',
-    coverControlsVisible: true
+    coverControlsVisible: true,
+    windowBaseline: { ...SMALL_DEFAULT_BASELINE }
   }
+}
+
+const getBaselineTarget = (type: 'small' | 'normal'): WindowScaleTarget =>
+  type === 'normal' ? 'osd-normal' : 'osd-small'
+
+const normalizeWindowBaseline = (
+  type: 'small' | 'normal',
+  value: unknown
+): WindowScaleBaseline | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return sanitizeWindowScaleBaseline(
+    getBaselineTarget(type),
+    value as Partial<WindowScaleBaseline>
+  )
 }
 
 const sanitizeFileName = (value: string): string =>
@@ -130,9 +162,11 @@ const sanitizeFileName = (value: string): string =>
 const normalizeSettings = (value: unknown): PresetSettings | null => {
   if (!value || typeof value !== 'object') return null
   const settings = value as Partial<PresetSettings>
+  const type: 'small' | 'normal' = settings.type === 'normal' ? 'normal' : 'small'
+  const windowBaseline = normalizeWindowBaseline(type, settings.windowBaseline)
 
   return {
-    type: settings.type === 'normal' ? 'normal' : 'small',
+    type,
     mode: settings.mode === 'oneLine' ? 'oneLine' : 'twoLines',
     isWordByWord: settings.isWordByWord !== false,
     translationMode: ['none', 'tlyric', 'rlyric'].includes(String(settings.translationMode))
@@ -147,15 +181,19 @@ const normalizeSettings = (value: unknown): PresetSettings | null => {
       ? (settings.align as PresetSettings['align'])
       : 'center',
     showButtonWhenLock: settings.showButtonWhenLock !== false,
-    coverControlsVisible: settings.coverControlsVisible !== false
+    coverControlsVisible: settings.coverControlsVisible !== false,
+    ...(windowBaseline ? { windowBaseline } : {})
   }
 }
 
 const readCurrentSettings = (): PresetSettings => {
   const state = readJsonRecord(OSD_STORAGE_KEY)
+  const type: 'small' | 'normal' = state.type === 'normal' ? 'normal' : 'small'
   return normalizeSettings({
     ...state,
-    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
+    type,
+    coverControlsVisible: localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false',
+    windowBaseline: readWindowScaleBaseline(getBaselineTarget(type))
   })!
 }
 
@@ -215,9 +253,14 @@ const saveUserPresets = (presets: StoredPreset[]): boolean => {
 
 const applySettings = (settings: PresetSettings): void => {
   const current = readJsonRecord(OSD_STORAGE_KEY)
-  const { coverControlsVisible, ...osdSettings } = settings
+  const { coverControlsVisible, windowBaseline, ...osdSettings } = settings
   writeJsonRecord(OSD_STORAGE_KEY, { ...current, ...osdSettings })
   writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(coverControlsVisible))
+
+  // v1/旧版预设没有 windowBaseline 时，不改变用户当前窗口基准。
+  if (windowBaseline) {
+    commitWindowScaleBaseline(getBaselineTarget(osdSettings.type), windowBaseline)
+  }
 }
 
 const createUniqueName = (requested: string, existing: StoredPreset[]): string => {
@@ -345,7 +388,7 @@ const installTransferAndPreview = (): boolean => {
     const name = nameInput.value.trim() || select.selectedOptions[0]?.textContent || 'preset'
     const payload = {
       schema: 'vutronmusic-osd-preset',
-      version: 1,
+      version: 2,
       preset: {
         name,
         settings: readCurrentSettings()
@@ -375,7 +418,11 @@ const installTransferAndPreview = (): boolean => {
 
     try {
       const value = JSON.parse(await file.text())
-      if (value?.schema !== 'vutronmusic-osd-preset' || Number(value?.version) !== 1) {
+      const version = Number(value?.version)
+      if (
+        value?.schema !== 'vutronmusic-osd-preset' ||
+        (version !== 1 && version !== 2)
+      ) {
         throw new Error('Unsupported preset schema')
       }
       const settings = normalizeSettings(value?.preset?.settings)
