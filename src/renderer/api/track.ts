@@ -14,6 +14,18 @@ const isLegacyScrobbleSuccessful = (result: any) => {
   return Boolean(playResult) && isSuccessfulResponse(playResult)
 }
 
+const normalizeScrobbleSourceId = (sourceid: number | string, trackId: number): number => {
+  const numericSourceId = Number(sourceid)
+  if (Number.isFinite(numericSourceId) && numericSourceId > 0) {
+    return Math.trunc(numericSourceId)
+  }
+
+  // 某些列表（例如每日推荐）把路由字符串 `/daily/songs` 当作 playlistSource.id。
+  // 网易云 scrobble 的 sourceid 必须是歌曲/歌单/专辑的数值 ID；遇到路由字符串时
+  // 使用当前歌曲 ID 作为兜底，避免 feedback 日志被网易云拒绝。
+  return trackId
+}
+
 export function getLyric(id: number) {
   return request({
     url: '/lyric/new',
@@ -110,11 +122,11 @@ export type ScrobbleParams = {
  * 不能只看外层固定的 `code=200`。
  *
  * 若传统 feedback 没有拿到明确成功确认，则自动回退 NCBL `/scrobble/v1`。
- * `sourceid` 若缺失或为 0 时使用歌曲自身 ID；官方示例要求原版接口必须有来源 ID，
- * 旧逻辑传 0 会导致部分播放场景无法形成有效的听歌记录。
+ * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
+ * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
  */
 export async function scrobble(params: ScrobbleParams) {
-  const sourceid = params.sourceid || params.id
+  const sourceid = normalizeScrobbleSourceId(params.sourceid, params.id)
   const legacyResult = await request({
     url: '/scrobble',
     method: 'get',
@@ -130,6 +142,7 @@ export async function scrobble(params: ScrobbleParams) {
     console.info('[Track API] /scrobble 上报成功：', {
       trackId: params.id,
       sourceid,
+      originalSourceid: params.sourceid,
       time: params.time,
       play: legacyResult?.details?.play
     })
@@ -139,6 +152,7 @@ export async function scrobble(params: ScrobbleParams) {
   console.warn('[Track API] /scrobble 未获得有效 play 确认，回退 /scrobble/v1：', {
     trackId: params.id,
     sourceid,
+    originalSourceid: params.sourceid,
     time: params.time,
     legacyResult
   })
