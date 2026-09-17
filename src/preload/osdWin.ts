@@ -7,6 +7,8 @@ const mainAvailChannels: string[] = [
   'windowMouseleave',
   'drag-osd-window-absolute',
   'osd-control-hit-region',
+  'osd-lock-hit-region',
+  'osd-auto-hidden',
   'updateOsdState',
   'getFontList'
 ]
@@ -230,11 +232,60 @@ document.addEventListener('DOMContentLoaded', () => {
   let osdLocked = root.classList.contains('is-lock')
   let mouseInside = false
   let resizeState: OsdResizeState | null = null
+  let lockRegionFrame: number | null = null
+  let lockRegionObserver: ResizeObserver | null = null
+
+  /**
+   * 上报锁/解锁按钮自己的命中区域。
+   *
+   * 锁定歌词进入自动隐藏后，整个窗口除该按钮外都应穿透；主进程依靠这个独立矩形
+   * 在 macOS 上也能从穿透状态主动恢复按钮交互，而不依赖 DOM 先收到 mouseenter。
+   */
+  const reportLockHitRegion = () => {
+    const element = document.querySelector<HTMLElement>('#osd-lock')
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const rect = element?.getBoundingClientRect()
+    const style = element ? window.getComputedStyle(element) : null
+    const enabled = Boolean(
+      osdLocked &&
+        element &&
+        rect &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        viewportWidth > 0 &&
+        viewportHeight > 0 &&
+        style?.display !== 'none' &&
+        style?.visibility !== 'hidden'
+    )
+
+    ipcRenderer.send('osd-lock-hit-region', {
+      enabled,
+      x: enabled && rect ? rect.left / viewportWidth : 0,
+      y: enabled && rect ? rect.top / viewportHeight : 0,
+      width: enabled && rect ? rect.width / viewportWidth : 0,
+      height: enabled && rect ? rect.height / viewportHeight : 0
+    })
+  }
+
+  const scheduleLockHitRegionReport = () => {
+    if (lockRegionFrame !== null) window.cancelAnimationFrame(lockRegionFrame)
+    lockRegionFrame = window.requestAnimationFrame(() => {
+      lockRegionFrame = null
+      reportLockHitRegion()
+    })
+  }
+
+  const setAutoHidden = (hidden: boolean) => {
+    ipcRenderer.send('osd-auto-hidden', hidden)
+  }
 
   const restoreRootVisibility = () => {
     if (timeoutId !== null) window.clearTimeout(timeoutId)
     timeoutId = null
     root.style.opacity = '1'
+    setAutoHidden(false)
+    scheduleLockHitRegionReport()
   }
 
   const scheduleLockedAutoHide = () => {
@@ -259,6 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const now = Date.now()
       if (osdLocked && mouseInside && now - lastMoveTime >= staticTime) {
         root.style.opacity = '0.02'
+        setAutoHidden(true)
+        scheduleLockHitRegionReport()
       }
       timeoutId = null
     }, staticTime)
@@ -276,11 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const handleSetIsLock = (_event: IpcRendererEvent, value: boolean) => {
     osdLocked = Boolean(value)
+    scheduleLockHitRegionReport()
     if (!osdLocked) {
       restoreRootVisibility()
       return
     }
 
+    setAutoHidden(false)
     scheduleLockedAutoHide()
   }
 
@@ -377,14 +432,42 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('blur', stopResize)
   }
 
+  const handleWindowResize = () => scheduleLockHitRegionReport()
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === 'osdLyric') scheduleLockHitRegionReport()
+  }
+
   ipcRenderer.on('mouseInWindow', handleMouseInWindow)
   ipcRenderer.on('set-isLock', handleSetIsLock)
+  window.addEventListener('resize', handleWindowResize, { passive: true })
+  window.addEventListener('storage', handleStorage)
+
+  if (lockEl) {
+    lockRegionObserver = new ResizeObserver(scheduleLockHitRegionReport)
+    lockRegionObserver.observe(lockEl)
+  }
+  scheduleLockHitRegionReport()
+
   window.addEventListener(
     'unload',
     () => {
       stopResize()
+      if (lockRegionFrame !== null) window.cancelAnimationFrame(lockRegionFrame)
+      lockRegionFrame = null
+      lockRegionObserver?.disconnect()
+      lockRegionObserver = null
+      window.removeEventListener('resize', handleWindowResize)
+      window.removeEventListener('storage', handleStorage)
       ipcRenderer.off('mouseInWindow', handleMouseInWindow)
       ipcRenderer.off('set-isLock', handleSetIsLock)
+      ipcRenderer.send('osd-auto-hidden', false)
+      ipcRenderer.send('osd-lock-hit-region', {
+        enabled: false,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      })
     },
     { once: true }
   )
