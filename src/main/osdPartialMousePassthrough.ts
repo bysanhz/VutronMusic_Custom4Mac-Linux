@@ -20,6 +20,8 @@ type RegionPayload = Partial<NormalizedRegion> & {
 type OsdWindowState = {
   window: BrowserWindow
   region: NormalizedRegion | null
+  lockRegion: NormalizedRegion | null
+  autoHidden: boolean
   ignoringMouse: boolean | null
   temporaryIgnoreOverride: boolean | null
   appliedLocked: boolean | null
@@ -77,8 +79,10 @@ const invalidateMouseState = (): void => {
   setTimeout(updateMousePassthrough, 0)
 }
 
-const isCursorInsideRegion = (state: OsdWindowState): boolean => {
-  const region = state.region
+const isCursorInsideRegion = (
+  state: OsdWindowState,
+  region: NormalizedRegion | null
+): boolean => {
   if (!region?.enabled || state.window.isDestroyed() || !state.window.isVisible()) return false
 
   const bounds = state.window.getBounds()
@@ -113,6 +117,7 @@ function updateMousePassthrough(): void {
     }
 
     if (!locked) {
+      state.autoHidden = false
       state.temporaryIgnoreOverride = null
       setIgnoreMouse(state, false)
       continue
@@ -123,16 +128,14 @@ function updateMousePassthrough(): void {
       continue
     }
 
-    if (!state.region?.enabled) {
-      // 普通模式或左侧控件隐藏时，整个歌词窗口穿透。
-      // Windows 使用 forward:true，因此解锁按钮仍能收到 mousemove/mouseenter，
-      // 再通过 set-ignore-mouse 临时恢复交互。
-      setIgnoreMouse(state, true)
-      continue
-    }
+    const insideLockButton = isCursorInsideRegion(state, state.lockRegion)
+    const insideVisibleControls =
+      !state.autoHidden && isCursorInsideRegion(state, state.region)
 
-    // 紧凑模式锁定时：左侧封面控制区恢复交互，其余歌词区域继续穿透。
-    setIgnoreMouse(state, !isCursorInsideRegion(state))
+    // 锁定后的停留隐藏只保留“解锁”按钮可交互：
+    // 左侧封面/播放控制区虽然仍在 DOM 中，但必须和已隐藏歌词一起穿透。
+    // 解锁按钮使用独立命中区，因此 macOS 在整个窗口穿透时也能被主进程主动恢复交互。
+    setIgnoreMouse(state, !(insideLockButton || insideVisibleControls))
   }
 
   if (states.size === 0 && pollTimer) {
@@ -147,36 +150,66 @@ const ensurePollTimer = (): void => {
   pollTimer.unref?.()
 }
 
-const registerOsdWindow = (event: IpcMainEvent, regionValue: unknown): void => {
+const ensureOsdWindowState = (event: IpcMainEvent): OsdWindowState | null => {
   const window = BrowserWindow.fromWebContents(event.sender)
-  if (!window || window.isDestroyed()) return
+  if (!window || window.isDestroyed()) return null
 
-  const region = normalizeRegion(regionValue)
   const existing = states.get(event.sender.id)
   if (existing) {
-    existing.region = region
     existing.window = window
-    existing.ignoringMouse = null
-  } else {
-    states.set(event.sender.id, {
-      window,
-      region,
-      ignoringMouse: null,
-      temporaryIgnoreOverride: null,
-      appliedLocked: null
-    })
-
-    const webContentsId = event.sender.id
-    window.once('closed', () => {
-      states.delete(webContentsId)
-    })
+    return existing
   }
 
+  const state: OsdWindowState = {
+    window,
+    region: null,
+    lockRegion: null,
+    autoHidden: false,
+    ignoringMouse: null,
+    temporaryIgnoreOverride: null,
+    appliedLocked: null
+  }
+  states.set(event.sender.id, state)
+
+  const webContentsId = event.sender.id
+  window.once('closed', () => {
+    states.delete(webContentsId)
+  })
+
   ensurePollTimer()
+  return state
+}
+
+const registerControlHitRegion = (event: IpcMainEvent, regionValue: unknown): void => {
+  const state = ensureOsdWindowState(event)
+  if (!state) return
+
+  state.region = normalizeRegion(regionValue)
+  state.ignoringMouse = null
   queueMicrotask(updateMousePassthrough)
 }
 
-ipcMain.on('osd-control-hit-region', registerOsdWindow)
+const registerLockHitRegion = (event: IpcMainEvent, regionValue: unknown): void => {
+  const state = ensureOsdWindowState(event)
+  if (!state) return
+
+  state.lockRegion = normalizeRegion(regionValue)
+  state.ignoringMouse = null
+  queueMicrotask(updateMousePassthrough)
+}
+
+ipcMain.on('osd-control-hit-region', registerControlHitRegion)
+ipcMain.on('osd-lock-hit-region', registerLockHitRegion)
+
+ipcMain.on('osd-auto-hidden', (event, hidden: unknown) => {
+  const state = ensureOsdWindowState(event)
+  if (!state) return
+
+  state.autoHidden = hidden === true
+  state.temporaryIgnoreOverride = null
+  state.ignoringMouse = null
+  queueMicrotask(updateMousePassthrough)
+})
 
 ipcMain.on('updateOsdState', (_event, data: unknown) => {
   if (!data || typeof data !== 'object') return
@@ -187,6 +220,7 @@ ipcMain.on('updateOsdState', (_event, data: unknown) => {
   // updateOsdState 的 store 写入由 IPCs 完成；延迟到本轮事件监听结束后再读取，避免监听顺序竞态。
   for (const state of states.values()) {
     state.temporaryIgnoreOverride = null
+    if (!value.isLock) state.autoHidden = false
   }
   invalidateMouseState()
 })
