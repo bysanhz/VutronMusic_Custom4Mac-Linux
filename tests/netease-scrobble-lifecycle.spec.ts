@@ -12,14 +12,19 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain("getTrackDetail, scrobble } from '../api/track'")
     expect(player).toContain('const scrobbleNetease = async')
     expect(player).toContain('void scrobbleNetease(currentTrack.value, seek.value)')
-    expect(player).toContain('void scrobbleNetease(endedTrack, currentTrackDuration.value, true)')
+    expect(player).toContain(
+      'void scrobbleNetease(endedTrack, currentTrackDuration.value, true)'
+    )
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
   })
 
   test('deduplicates natural-end and replacement reporting for one playback session', () => {
     const player = readSource('src/renderer/store/player.ts')
     const handlerIndex = player.indexOf('const scrobbleNetease = async')
-    const lockIndex = player.indexOf('neteaseScrobbledForCurrentSession = true', handlerIndex)
+    const lockIndex = player.indexOf(
+      'neteaseScrobbledForCurrentSession = true',
+      handlerIndex
+    )
     const requestIndex = player.indexOf('const result = await scrobble({', handlerIndex)
     const endReportIndex = player.indexOf(
       'void scrobbleNetease(endedTrack, currentTrackDuration.value, true)'
