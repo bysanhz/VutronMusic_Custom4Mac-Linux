@@ -44,7 +44,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
     const legacyIndex = trackApi.indexOf("url: '/scrobble'")
-    const modernIndex = trackApi.indexOf("url: '/scrobble/v1'")
+    const modernIndex = trackApi.indexOf("url: '/scrobble-v1'")
 
     expect(legacyIndex).toBeGreaterThan(-1)
     expect(modernIndex).toBeGreaterThan(legacyIndex)
@@ -63,13 +63,19 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(insights).toContain('}, 1800)')
   })
 
-  test('guarantees the local app-server alias for scrobble v1', () => {
+  test('uses an app-owned stable route for scrobble v1', () => {
+    const trackApi = readSource('src/renderer/api/track.ts')
     const neteaseServer = readSource('src/main/appServer/netease.ts')
 
-    expect(neteaseServer).toContain('const scrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1')
-    expect(neteaseServer).toContain("const scrobbleV1Url = '/netease/scrobble/v1'")
-    expect(neteaseServer).toContain("fastify.hasRoute({ method: 'GET', url: scrobbleV1Url })")
-    expect(neteaseServer).toContain("fastify.hasRoute({ method: 'POST', url: scrobbleV1Url })")
+    expect(trackApi).toContain("url: '/scrobble-v1'")
+    expect(neteaseServer).toContain(
+      "require('@neteasecloudmusicapienhanced/api/module/scrobble_v1')"
+    )
+    expect(neteaseServer).toContain(
+      "const stableScrobbleV1Url = '/netease/scrobble-v1'"
+    )
+    expect(neteaseServer).toContain('fastify.get(stableScrobbleV1Url, stableScrobbleV1Handler)')
+    expect(neteaseServer).toContain('fastify.post(stableScrobbleV1Url, stableScrobbleV1Handler)')
   })
 
   test('does not report non-NetEase stream tracks or unmatched local files', () => {
