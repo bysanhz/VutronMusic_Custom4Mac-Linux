@@ -19,7 +19,7 @@ import { useNormalStateStore } from './state'
 import { useOsdLyricStore } from './osdLyric'
 import { useDataStore } from './data'
 import { searchMatch, fmTrash, personalFM, songChorus } from '../api/other'
-import { getLyric as getApiLyric, getTrackDetail } from '../api/track'
+import { getLyric as getApiLyric, getTrackDetail, scrobble } from '../api/track'
 import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { extractExpirationFromUrl } from '../utils'
@@ -103,6 +103,7 @@ export const usePlayerStore = defineStore(
     let lastUpdateTime = 0
     let trackLoadRevision = 0
     let trackLookupFailureRevision = -1
+    let neteaseScrobbledForCurrentSession = false
 
     const isTrackLoadCurrent = (revision: number, track?: Track | null) => {
       if (revision !== trackLoadRevision) return false
@@ -915,6 +916,7 @@ export const usePlayerStore = defineStore(
       cancelSleepTimerForTrackChange(trackID)
       if (autoPlay && currentTrack.value?.name) {
         scrobbleFM(currentTrack.value, seek.value)
+        void scrobbleNetease(currentTrack.value, seek.value)
       }
 
       let track: Track | undefined
@@ -943,6 +945,7 @@ export const usePlayerStore = defineStore(
           : 0
 
       currentTrack.value = track
+      neteaseScrobbledForCurrentSession = false
       lyrics.value = []
       currentIndex.value = -1
       chorusStartTime.value = 0
@@ -972,13 +975,61 @@ export const usePlayerStore = defineStore(
       return replaced
     }
 
-    // const _scrobble = (track: any, time: number, completed = false) => {
-    //   const trackDuration = ~~(track.dt / 1000)
-    //   time = completed ? trackDuration : ~~time
-    //   const sourceID =
-    //     playlistSource.value.id === 0 ? track.al?.id || track.album?.id : playlistSource.value.id
-    //   scrobble({ id: track.id, sourceid: sourceID, time })
-    // }
+    const resolveNeteaseScrobbleSourceID = (track: Track): number | string => {
+      const sourceType = String(playlistSource.value.type || '').toLowerCase()
+      const usePlaylistSource =
+        playlistSource.value.id !== 0 &&
+        !sourceType.includes('local') &&
+        sourceType !== 'personalfm'
+
+      if (usePlaylistSource) return playlistSource.value.id
+      return track.al?.id || track.album?.id || 0
+    }
+
+    const scrobbleNetease = async (track: Track, time: number, completed = false) => {
+      if (neteaseScrobbledForCurrentSession) return
+      if (track.type === 'stream' || (track.type === 'local' && !track.matched)) return
+
+      const id = Number(track.id)
+      const trackDuration = ~~((track.dt || track.duration || 0) / 1000)
+      const listenedSeconds = completed ? trackDuration : Math.max(0, ~~time)
+      if (!Number.isFinite(id) || id <= 0 || trackDuration <= 0 || listenedSeconds <= 0) return
+
+      // 在真正发请求前即锁定当前播放 session，避免自然结束后进入 replaceCurrentTrack 时重复上报。
+      neteaseScrobbledForCurrentSession = true
+      const artists = track.artists ?? track.ar ?? []
+
+      try {
+        const result = await scrobble({
+          id,
+          sourceid: resolveNeteaseScrobbleSourceID(track),
+          time: listenedSeconds,
+          total: trackDuration,
+          name: track.name,
+          artist: artists.map((artist) => artist.name).filter(Boolean).join('/'),
+          source: playlistSource.value.type
+        })
+        const success = Boolean(result) &&
+          (result.code === undefined || Number(result.code) === 200)
+
+        if (!success) {
+          console.warn('[Player] 网易云听歌记录上报失败：', {
+            trackId: id,
+            time: listenedSeconds,
+            result
+          })
+          return
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('vutronmusic-netease-scrobble', {
+            detail: { trackId: id, time: listenedSeconds, completed }
+          })
+        )
+      } catch (error) {
+        console.warn('[Player] 网易云听歌记录上报异常：', error)
+      }
+    }
 
     const scrobbleFM = (track: Track, time: number, completed = false) => {
       if (!enableFM.value) return
@@ -1179,9 +1230,13 @@ export const usePlayerStore = defineStore(
 
     const nextTrackCallback = () => {
       markPlaybackEndReason('natural-end')
+      const endedTrack = currentTrack.value
+      if (endedTrack) {
+        scrobbleFM(endedTrack, 0, true)
+        void scrobbleNetease(endedTrack, currentTrackDuration.value, true)
+      }
       seek.value = 0
       clearTimeout(timer)
-      scrobbleFM(currentTrack.value!, 0, true)
 
       if (consumeSleepTimerAtTrackEnd(currentTrack.value?.id)) {
         playing.value = false
@@ -2027,6 +2082,12 @@ export const usePlayerStore = defineStore(
     })
 
     onBeforeUnmount(() => {
+      if (currentTrack.value) {
+        void scrobbleNetease(
+          currentTrack.value,
+          audioNodes.audio?.currentTime || seek.value
+        )
+      }
       trackLoadRevision += 1
       registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0
