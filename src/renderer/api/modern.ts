@@ -17,29 +17,18 @@ export function homepageBlockPage(params: { refresh?: boolean; cursor?: string |
 }
 
 /**
- * 今日收听摘要。
+ * 今日收听歌曲排行。
  *
- * `/listen/data/today/song` 在部分账号上会返回空 `songDTOs`，即使当天已有收听时长。
- * 周实时报告里的 `weekTodayListenBlock.songCount` 与今日时长来自同一套实时统计，
- * 因此这里优先使用该字段，并提升成 data.songCount 供现有足迹解析逻辑直接读取。
+ * 使用网易云听歌足迹专用的 `/listen/data/today/song`，不要用周实时报告伪装今日接口。
+ * 页面层会把这里的今日排行与周报告的 `weekTodayListenBlock.songCount` 交叉校验，
+ * 以兼容网易云两个统计接口偶尔存在的短暂同步延迟。
  */
-export async function listenTodaySongs() {
-  const report = await request({
-    url: '/listen/data/realtime/report',
+export function listenTodaySongs() {
+  return request({
+    url: '/listen/data/today/song',
     method: 'get',
-    params: withTimestamp({ type: 'week' })
+    params: withTimestamp({})
   })
-
-  const songCount = Number(report?.data?.weekTodayListenBlock?.songCount)
-  if (!Number.isFinite(songCount)) return report
-
-  return {
-    ...report,
-    data: {
-      ...report?.data,
-      songCount
-    }
-  }
 }
 
 /**
