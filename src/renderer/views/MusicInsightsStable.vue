@@ -26,7 +26,9 @@
       <div class="section-head">
         <div>
           <h2>听歌足迹</h2>
-          <p>今日、周/月与累计收听数据；常听榜仅展示网易云账号真实播放记录。</p>
+          <p>
+            今日显示不同歌曲数；今日/周/月/累计时长来自网易云听歌足迹，常听榜来自账号真实播放记录。
+          </p>
         </div>
       </div>
 
@@ -274,7 +276,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
 import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
@@ -311,7 +313,10 @@ import {
   extractUserPlayRecord,
   extractMetric,
   extractPlaylists,
+  extractRealtimeListenSeconds,
   extractTodayListenSeconds,
+  extractTodaySongCount,
+  extractTotalListenSeconds,
   extractTracks,
   formatListenDuration,
   isSuccessfulResponse,
@@ -366,6 +371,7 @@ const stylePlaylists = ref<any[]>([])
 const styleLoading = ref(false)
 let styleRequestRevision = 0
 let styleDetailRevision = 0
+let footprintRefreshTimer: number | null = null
 
 const selectedCloudSongId = ref('')
 const cloudTargetSongId = ref('')
@@ -398,12 +404,6 @@ const currentStyleCount = computed(() => {
   return stylePlaylists.value.length
 })
 
-const normalizeDuration = (value?: number): number | undefined => {
-  if (!Number.isFinite(value)) return undefined
-  const number = Number(value)
-  return number > 315_360_000 ? number / 1000 : number
-}
-
 const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<T | undefined> => {
   try {
     return await request
@@ -424,20 +424,12 @@ const loadFootprint = async (): Promise<void> => {
     uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
   ])
 
-  const todayTracks = extractTracks(today, 500)
-  footprint.todayCount =
-    extractMetric(today, ['songCount', 'count', 'listenSongCount', 'playCount']) ??
-    todayTracks.length
+  // 今日歌曲数使用专用“今日收听”接口，并与周实时报告的今日块交叉校验。
+  footprint.todayCount = extractTodaySongCount(today, week)
   footprint.todaySeconds = extractTodayListenSeconds(week)
-  footprint.weekSeconds = normalizeDuration(
-    extractMetric(week, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
-  )
-  footprint.monthSeconds = normalizeDuration(
-    extractMetric(month, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
-  )
-  footprint.totalSeconds = normalizeDuration(
-    extractMetric(total, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
-  )
+  footprint.weekSeconds = extractRealtimeListenSeconds(week)
+  footprint.monthSeconds = extractRealtimeListenSeconds(month)
+  footprint.totalSeconds = extractTotalListenSeconds(total)
   footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
   footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
 }
@@ -687,6 +679,16 @@ const refreshCurrent = async (): Promise<void> => {
   }
 }
 
+const handleNeteaseScrobble = (): void => {
+  if (activeTab.value !== 'footprint') return
+  if (footprintRefreshTimer !== null) window.clearTimeout(footprintRefreshTimer)
+  // 网易云统计写入不是严格事务同步；稍等片刻再读，减少刚上报就读到旧值的概率。
+  footprintRefreshTimer = window.setTimeout(() => {
+    footprintRefreshTimer = null
+    if (!refreshing.value) void loadFootprint()
+  }, 1800)
+}
+
 watch(
   () => currentTrack.value?.id,
   (id) => {
@@ -706,7 +708,16 @@ watch(activeTab, (tab) => {
 })
 
 onMounted(() => {
+  window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
   void loadFootprint()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
+  if (footprintRefreshTimer !== null) {
+    window.clearTimeout(footprintRefreshTimer)
+    footprintRefreshTimer = null
+  }
 })
 </script>
 
