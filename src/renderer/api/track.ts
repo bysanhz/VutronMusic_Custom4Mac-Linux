@@ -4,6 +4,16 @@ import request from '../utils/request'
 const isSuccessfulResponse = (result: any) =>
   Boolean(result) && (result.code === undefined || Number(result.code) === 200)
 
+const isLegacyScrobbleSuccessful = (result: any) => {
+  if (!isSuccessfulResponse(result)) return false
+
+  // Enhanced API 的 /scrobble 外层固定返回 code=200；真正的网易云反馈结果
+  // 位于 details.play。只看外层 code 会把“请求完成但上游拒绝”误判为成功，
+  // 从而永远不会执行 NCBL /scrobble/v1 回退。
+  const playResult = result?.details?.play
+  return Boolean(playResult) && isSuccessfulResponse(playResult)
+}
+
 export function getLyric(id: number) {
   return request({
     url: '/lyric/new',
@@ -95,41 +105,71 @@ export type ScrobbleParams = {
 /**
  * 听歌打卡。
  *
- * 这里优先使用传统 `/scrobble`：Enhanced API 的该端点会同时发送
- * `startplay` 与 `play` feedback 日志，其中 `play` 明确用于更新听歌排行计数，
- * 与“听歌足迹”页读取的 `/user/record`、`/listen/data/*` 语义更直接一致。
+ * 优先使用传统 `/scrobble`。Enhanced API 会先发送 `startplay`，再发送真正
+ * 增加听歌排行计数的 `play` feedback。这里必须检查 `details.play` 的真实响应，
+ * 不能只看外层固定的 `code=200`。
  *
- * 若传统端点不可用或返回失败，再回退 NCBL `/scrobble/v1`，保留新版桌面
- * 客户端 PLV/PLD 上报能力。这样既优先保证足迹/排行可见更新，也不牺牲兼容性。
+ * 若传统 feedback 没有拿到明确成功确认，则自动回退 NCBL `/scrobble/v1`。
+ * `sourceid` 若缺失或为 0 时使用歌曲自身 ID；官方示例要求原版接口必须有来源 ID，
+ * 旧逻辑传 0 会导致部分播放场景无法形成有效的听歌记录。
  */
 export async function scrobble(params: ScrobbleParams) {
+  const sourceid = params.sourceid || params.id
   const legacyResult = await request({
     url: '/scrobble',
     method: 'get',
     params: {
       id: params.id,
-      sourceid: params.sourceid,
+      sourceid,
       time: params.time,
       timestamp: Date.now()
     }
   })
 
-  if (isSuccessfulResponse(legacyResult)) return legacyResult
+  if (isLegacyScrobbleSuccessful(legacyResult)) {
+    console.info('[Track API] /scrobble 上报成功：', {
+      trackId: params.id,
+      sourceid,
+      time: params.time,
+      play: legacyResult?.details?.play
+    })
+    return legacyResult
+  }
 
-  console.warn('[Track API] /scrobble 上报失败，回退 /scrobble/v1：', legacyResult)
+  console.warn('[Track API] /scrobble 未获得有效 play 确认，回退 /scrobble/v1：', {
+    trackId: params.id,
+    sourceid,
+    time: params.time,
+    legacyResult
+  })
 
   const modernResult = await request({
     url: '/scrobble/v1',
     method: 'post',
     params: {
       ...params,
+      sourceid,
       timestamp: Date.now()
     }
   })
 
-  if (isSuccessfulResponse(modernResult)) return modernResult
+  if (isSuccessfulResponse(modernResult)) {
+    console.info('[Track API] /scrobble/v1 上报成功：', {
+      trackId: params.id,
+      sourceid,
+      time: params.time,
+      result: modernResult
+    })
+    return modernResult
+  }
 
-  console.warn('[Track API] /scrobble/v1 上报同样失败：', modernResult)
+  console.warn('[Track API] /scrobble/v1 上报同样失败：', {
+    trackId: params.id,
+    sourceid,
+    time: params.time,
+    modernResult,
+    legacyResult
+  })
   return modernResult ?? legacyResult
 }
 
