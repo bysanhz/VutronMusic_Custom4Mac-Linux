@@ -95,28 +95,15 @@ export type ScrobbleParams = {
 /**
  * 听歌打卡。
  *
- * 优先使用 NCBL `/scrobble/v1`，让桌面客户端的播放记录更贴近网易云当前
- * 客户端上报方式；若新版接口返回失败码或请求本身抛错，则回退传统 `/scrobble`。
- * 旧实现只处理“返回失败码”的情况，一旦 `/scrobble/v1` 直接 reject 就不会执行回退，
- * 会导致本机已经完成的播放没有进入网易云听歌记录。
+ * 这里优先使用传统 `/scrobble`：Enhanced API 的该端点会同时发送
+ * `startplay` 与 `play` feedback 日志，其中 `play` 明确用于更新听歌排行计数，
+ * 与“听歌足迹”页读取的 `/user/record`、`/listen/data/*` 语义更直接一致。
+ *
+ * 若传统端点不可用或返回失败，再回退 NCBL `/scrobble/v1`，保留新版桌面
+ * 客户端 PLV/PLD 上报能力。这样既优先保证足迹/排行可见更新，也不牺牲兼容性。
  */
 export async function scrobble(params: ScrobbleParams) {
-  try {
-    const modernResult = await request({
-      url: '/scrobble/v1',
-      method: 'post',
-      params: {
-        ...params,
-        timestamp: Date.now()
-      }
-    })
-
-    if (isSuccessfulResponse(modernResult)) return modernResult
-  } catch (error) {
-    console.warn('[Track API] /scrobble/v1 上报失败，回退旧接口：', error)
-  }
-
-  return request({
+  const legacyResult = await request({
     url: '/scrobble',
     method: 'get',
     params: {
@@ -126,6 +113,24 @@ export async function scrobble(params: ScrobbleParams) {
       timestamp: Date.now()
     }
   })
+
+  if (isSuccessfulResponse(legacyResult)) return legacyResult
+
+  console.warn('[Track API] /scrobble 上报失败，回退 /scrobble/v1：', legacyResult)
+
+  const modernResult = await request({
+    url: '/scrobble/v1',
+    method: 'post',
+    params: {
+      ...params,
+      timestamp: Date.now()
+    }
+  })
+
+  if (isSuccessfulResponse(modernResult)) return modernResult
+
+  console.warn('[Track API] /scrobble/v1 上报同样失败：', modernResult)
+  return modernResult ?? legacyResult
 }
 
 /**
