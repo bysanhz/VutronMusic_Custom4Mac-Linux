@@ -1,4 +1,5 @@
 import { ref, watch, type WatchStopHandle } from 'vue'
+import { scrobble } from '../api/track'
 import type { usePlayerStore } from '../store/player'
 import {
   applyHeartModeFeedbackToSession,
@@ -46,6 +47,10 @@ type ActivePlayback = {
   maxProgress: number
   likedAtEnd: boolean
   likedDuringPlayback: boolean
+  neteaseEligible: boolean
+  neteaseSourceId: number | string
+  neteaseTrackName: string
+  neteaseArtist: string
 }
 
 type PendingEndReason = {
@@ -139,6 +144,57 @@ const persistFeedback = (): void => {
   } catch (error) {
     console.warn('[PlaybackFeedback] 保存播放反馈失败：', error)
   }
+}
+
+/**
+ * 把 VutronMusic 内真实发生的网易云播放上报给网易云听歌记录。
+ *
+ * 播放统计页读取的是网易云服务端数据；过去这里只记录本机 Heart Mode feedback，
+ * 没有调用 `/scrobble/v1`/`/scrobble`，因此在本应用里完整听完歌曲后，服务端的
+ * 今日歌曲数、周/月时长和常听排行都可能不变化。
+ *
+ * 上报使用采样得到的“真实媒体进度”，seek 跳跃不会被当作有效收听时间；自然播放
+ * 到 ended 时则按完整曲长上报，补偿 ended 回调先把播放器 seek 归零导致的末尾采样缺口。
+ */
+const reportNeteasePlayback = (active: ActivePlayback, reason: PlaybackEndReason): void => {
+  if (!active.neteaseEligible || active.durationSeconds <= 0 || reason === 'playback-error') return
+
+  const rawPlayedSeconds =
+    reason === 'natural-end' ? active.durationSeconds : active.activeProgressSeconds
+  const playedSeconds = Math.min(
+    Math.max(1, Math.round(active.durationSeconds)),
+    Math.max(0, Math.round(rawPlayedSeconds))
+  )
+  if (playedSeconds <= 0) return
+
+  void scrobble({
+    id: active.trackId,
+    sourceid: active.neteaseSourceId,
+    time: playedSeconds,
+    total: Math.max(1, Math.round(active.durationSeconds)),
+    name: active.neteaseTrackName,
+    artist: active.neteaseArtist
+  })
+    .then((result: any) => {
+      if (result?.code !== undefined && Number(result.code) !== 200) {
+        console.warn('[PlaybackFeedback] 网易云听歌上报失败：', result)
+        return
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('vutronmusic-netease-scrobble', {
+          detail: {
+            trackId: active.trackId,
+            playedSeconds,
+            durationSeconds: active.durationSeconds,
+            reason
+          }
+        })
+      )
+    })
+    .catch((error) => {
+      console.warn('[PlaybackFeedback] 网易云听歌上报异常：', error)
+    })
 }
 
 const sampleActivePlayback = (): void => {
@@ -245,6 +301,7 @@ const finalizeActivePlayback = (reason: PlaybackEndReason): PlaybackFeedback | n
 
   playbackFeedback.value = [entry, ...playbackFeedback.value].slice(0, MAX_PLAYBACK_FEEDBACK)
   persistFeedback()
+  reportNeteasePlayback(active, reason)
 
   const preferenceScore = scorePlaybackFeedback(entry)
   if (entry.heartModeSessionId && entry.sourceSeedId) {
@@ -271,9 +328,21 @@ const startActivePlayback = (): void => {
   const trackID = normalizeID(store?.currentTrack?.id)
   if (!store || !trackID) return
 
-  const source = String(store.playlistSource?.type || store.currentTrack?.type || 'unknown')
+  const track = store.currentTrack as Record<string, any>
+  const source = String(store.playlistSource?.type || track?.type || 'unknown')
   const durationSeconds = Math.max(0, Number(store.currentTrackDuration) || 0)
   const heartModeContext = source === 'intelligence' ? getHeartModeTrackContext(trackID) : null
+  const artists = track?.artists ?? track?.ar ?? []
+  const album = track?.album ?? track?.al
+  const playlistSourceId = store.playlistSource?.id
+  const neteaseSourceId =
+    playlistSourceId !== undefined && playlistSourceId !== null && String(playlistSourceId) !== '0'
+      ? playlistSourceId
+      : (album?.id ?? trackID)
+
+  // stream 表示 Navidrome/Emby/QQ 等外部流媒体；未匹配的本地文件也没有可信的网易云 ID。
+  // 其他 online/cache，以及已经匹配到网易云歌曲 ID 的本地文件才参与网易云听歌上报。
+  const neteaseEligible = track?.type !== 'stream' && track?.matched !== false
 
   activePlayback = {
     trackId: trackID,
@@ -288,7 +357,11 @@ const startActivePlayback = (): void => {
     lastProgress: readPlaybackProgress(),
     maxProgress: readPlaybackProgress(),
     likedAtEnd: Boolean(store.isLiked),
-    likedDuringPlayback: false
+    likedDuringPlayback: false,
+    neteaseEligible,
+    neteaseSourceId,
+    neteaseTrackName: String(track?.name || ''),
+    neteaseArtist: String(artists[0]?.name || '')
   }
 
   if (heartModeContext) {
