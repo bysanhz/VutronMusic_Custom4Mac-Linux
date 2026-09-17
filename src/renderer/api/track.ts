@@ -115,8 +115,32 @@ export type ScrobbleParams = {
 }
 
 const SCROBBLE_DEDUP_WINDOW_MS = 10_000
+const MIN_NETEASE_SCROBBLE_SECONDS = 30
 const scrobbleInFlight = new Map<number, Promise<any>>()
 const lastSuccessfulScrobbleAt = new Map<number, number>()
+
+/**
+ * scrobble 的成功/回退/去重信息只在开发环境输出。
+ * 真正失败仍使用 console.warn，避免生产版控制台被正常回退路径刷屏。
+ */
+const debugScrobble = (...args: any[]) => {
+  if (import.meta.env.DEV) console.debug(...args)
+}
+
+/**
+ * VutronMusic 侧的短播放保护。
+ *
+ * 普通歌曲至少实际播放 30 秒才写入网易云听歌记录；不足 30 秒的短曲必须完整
+ * 播放才计入。该规则用于避免快速切歌、误触下一首等行为污染“听歌足迹”。
+ */
+const getMinimumScrobbleSeconds = (total?: number): number => {
+  const totalSeconds = Number(total)
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return MIN_NETEASE_SCROBBLE_SECONDS
+  }
+
+  return Math.min(MIN_NETEASE_SCROBBLE_SECONDS, Math.max(1, Math.floor(totalSeconds)))
+}
 
 /**
  * 执行一次真正的网易云听歌上报。
@@ -138,7 +162,7 @@ const performScrobble = async (params: ScrobbleParams) => {
   })
 
   if (isLegacyScrobbleSuccessful(legacyResult)) {
-    console.info('[Track API] /scrobble 上报成功：', {
+    debugScrobble('[Track API] /scrobble 上报成功：', {
       trackId: params.id,
       sourceid,
       originalSourceid: params.sourceid,
@@ -148,7 +172,9 @@ const performScrobble = async (params: ScrobbleParams) => {
     return legacyResult
   }
 
-  console.warn('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：', {
+  // 当前 Enhanced API 的 legacy feedback 经常没有返回有效 play 确认，
+  // 回退 NCBL 是正常路径，不应在生产环境制造 warning。
+  debugScrobble('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：', {
     trackId: params.id,
     sourceid,
     originalSourceid: params.sourceid,
@@ -167,7 +193,7 @@ const performScrobble = async (params: ScrobbleParams) => {
   })
 
   if (isSuccessfulResponse(modernResult)) {
-    console.info('[Track API] /scrobble-v1 上报成功：', {
+    debugScrobble('[Track API] /scrobble-v1 上报成功：', {
       trackId: params.id,
       sourceid,
       time: params.time,
@@ -176,7 +202,7 @@ const performScrobble = async (params: ScrobbleParams) => {
     return modernResult
   }
 
-  console.warn('[Track API] /scrobble-v1 上报同样失败：', {
+  console.warn('[Track API] /scrobble-v1 上报失败：', {
     trackId: params.id,
     sourceid,
     time: params.time,
@@ -200,15 +226,35 @@ const performScrobble = async (params: ScrobbleParams) => {
  * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
  * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
  *
- * 同一歌曲的并发请求会复用同一个 Promise；成功后 10 秒内的重复请求也直接
- * 返回去重结果。这样即使播放器的 ended/next 等异步回调在切歌边界发生竞争，
- * 也不会向网易云重复提交同一段播放记录。
+ * 快速切歌不会直接污染网易云听歌足迹：普通歌曲至少播放 30 秒；不足 30 秒的
+ * 短曲要求完整播放。随后再执行并发与 10 秒窗口去重，避免 ended/next 等异步
+ * 回调在切歌边界向网易云重复提交同一段播放记录。
  */
 export function scrobble(params: ScrobbleParams): Promise<any> {
   const trackId = Number(params.id)
+  const listenedSeconds = Number(params.time)
+  const minimumSeconds = getMinimumScrobbleSeconds(params.total)
+
+  if (!Number.isFinite(listenedSeconds) || listenedSeconds < minimumSeconds) {
+    debugScrobble('[Track API] 跳过过短的网易云 scrobble：', {
+      trackId,
+      listenedSeconds: Number.isFinite(listenedSeconds) ? listenedSeconds : null,
+      minimumSeconds,
+      total: params.total
+    })
+    return Promise.resolve({
+      code: 200,
+      skipped: true,
+      reason: 'short-playback',
+      trackId,
+      listenedSeconds: Number.isFinite(listenedSeconds) ? listenedSeconds : 0,
+      minimumSeconds
+    })
+  }
+
   const existing = scrobbleInFlight.get(trackId)
   if (existing) {
-    console.info('[Track API] 合并同歌曲的并发 scrobble：', {
+    debugScrobble('[Track API] 合并同歌曲的并发 scrobble：', {
       trackId,
       time: params.time
     })
@@ -217,7 +263,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
 
   const lastSuccessAt = lastSuccessfulScrobbleAt.get(trackId) || 0
   if (Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS) {
-    console.info('[Track API] 跳过短时间内的重复 scrobble：', {
+    debugScrobble('[Track API] 跳过短时间内的重复 scrobble：', {
       trackId,
       time: params.time
     })
