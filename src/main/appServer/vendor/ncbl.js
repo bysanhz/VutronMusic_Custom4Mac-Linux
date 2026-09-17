@@ -2,11 +2,12 @@
 // Vendored from NeteaseCloudMusicApiEnhanced v4.40.1 because the npm 4.40.1
 // artifact currently installed by VutronMusic does not contain util/ncbl.js.
 
-const crypto = require('crypto')
-const zlib = require('zlib')
-const axios = require('axios')
-const { APP_CONF } = require('./config.json')
+import * as crypto from 'node:crypto'
+import * as zlib from 'node:zlib'
+import axios from 'axios'
+import config from './config.json'
 
+const { APP_CONF } = config
 const DOMAIN3 = APP_CONF.clDomian3
 const SIGMA = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
 const MAGIC = Buffer.from('NCBL', 'ascii')
@@ -420,7 +421,7 @@ const doUpload = async (ctx, metaJson, body, cookieStr) => {
   return { success, fileName, payload, respBody }
 }
 
-module.exports = {
+export {
   buildPlv,
   buildPld,
   buildRecords,
