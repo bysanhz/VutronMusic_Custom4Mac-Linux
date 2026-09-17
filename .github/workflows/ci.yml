@@ -37,14 +37,18 @@ jobs:
         run: yarn run format:check
 
       - name: Lint source
+        if: ${{ always() }}
         run: yarn lint
 
       - name: Type check
+        if: ${{ always() }}
         run: yarn run vue:type-check
 
       - name: Run security and feature regression tests
+        if: ${{ always() }}
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/netease-scrobble-lifecycle.spec.ts
 
       - name: Build renderer and main process
+        if: ${{ always() }}
         run: yarn vite --config vite.config.ts build
