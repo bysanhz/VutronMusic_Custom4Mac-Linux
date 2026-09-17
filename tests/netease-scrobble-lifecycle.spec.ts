@@ -52,6 +52,30 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(trackApi).toContain('deduplicated: true')
   })
 
+  test('filters accidental short plays before writing NetEase history', () => {
+    const trackApi = readSource('src/renderer/api/track.ts')
+
+    expect(trackApi).toContain('const MIN_NETEASE_SCROBBLE_SECONDS = 30')
+    expect(trackApi).toContain('const getMinimumScrobbleSeconds =')
+    expect(trackApi).toContain(
+      'return Math.min(MIN_NETEASE_SCROBBLE_SECONDS, Math.max(1, Math.floor(totalSeconds)))'
+    )
+    expect(trackApi).toContain('listenedSeconds < minimumSeconds')
+    expect(trackApi).toContain("reason: 'short-playback'")
+  })
+
+  test('keeps normal scrobble diagnostics development-only but preserves failures', () => {
+    const trackApi = readSource('src/renderer/api/track.ts')
+
+    expect(trackApi).toContain('if (import.meta.env.DEV) console.debug(...args)')
+    expect(trackApi).toContain(
+      "debugScrobble('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：'"
+    )
+    expect(trackApi).toContain(
+      "console.warn('[Track API] /scrobble-v1 上报失败：'"
+    )
+  })
+
   test('validates feedback and sanitizes non-numeric source ids', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
