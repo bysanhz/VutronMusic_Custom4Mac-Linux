@@ -40,7 +40,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('neteaseScrobbledForCurrentSession = false')
   })
 
-  test('prioritizes the play-count feedback endpoint before the NCBL fallback', () => {
+  test('validates the nested play feedback before accepting legacy scrobble', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
     const legacyIndex = trackApi.indexOf("url: '/scrobble'")
@@ -48,8 +48,11 @@ test.describe('NetEase scrobble lifecycle', () => {
 
     expect(legacyIndex).toBeGreaterThan(-1)
     expect(modernIndex).toBeGreaterThan(legacyIndex)
+    expect(trackApi).toContain('const playResult = result?.details?.play')
+    expect(trackApi).toContain('return Boolean(playResult) && isSuccessfulResponse(playResult)')
+    expect(trackApi).toContain('const sourceid = params.sourceid || params.id')
     expect(trackApi).toContain(
-      "console.warn('[Track API] /scrobble 上报失败，回退 /scrobble/v1：', legacyResult)"
+      "console.warn('[Track API] /scrobble 未获得有效 play 确认，回退 /scrobble/v1：'"
     )
     expect(insights).toContain(
       "window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)"
