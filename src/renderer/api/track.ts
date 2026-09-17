@@ -96,20 +96,25 @@ export type ScrobbleParams = {
  * 听歌打卡。
  *
  * 优先使用 NCBL `/scrobble/v1`，让桌面客户端的播放记录更贴近网易云当前
- * 客户端上报方式；若新版接口因 Cookie、服务端能力或风控失败，则无感回退到
- * 传统 `/scrobble`，不影响现有播放流程。
+ * 客户端上报方式；若新版接口返回失败码或请求本身抛错，则回退传统 `/scrobble`。
+ * 旧实现只处理“返回失败码”的情况，一旦 `/scrobble/v1` 直接 reject 就不会执行回退，
+ * 会导致本机已经完成的播放没有进入网易云听歌记录。
  */
 export async function scrobble(params: ScrobbleParams) {
-  const modernResult = await request({
-    url: '/scrobble/v1',
-    method: 'post',
-    params: {
-      ...params,
-      timestamp: Date.now()
-    }
-  })
+  try {
+    const modernResult = await request({
+      url: '/scrobble/v1',
+      method: 'post',
+      params: {
+        ...params,
+        timestamp: Date.now()
+      }
+    })
 
-  if (isSuccessfulResponse(modernResult)) return modernResult
+    if (isSuccessfulResponse(modernResult)) return modernResult
+  } catch (error) {
+    console.warn('[Track API] /scrobble/v1 上报失败，回退旧接口：', error)
+  }
 
   return request({
     url: '/scrobble',
