@@ -63,19 +63,26 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(insights).toContain('}, 1800)')
   })
 
-  test('uses an app-owned stable route for scrobble v1', () => {
+  test('uses an app-owned stable route and bundled fallback for scrobble v1', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const neteaseServer = readSource('src/main/appServer/netease.ts')
+    const bundledScrobble = readSource('src/main/appServer/vendor/scrobbleV1.js')
+    const bundledNcbl = readSource('src/main/appServer/vendor/ncbl.js')
 
     expect(trackApi).toContain("url: '/scrobble-v1'")
+    expect(neteaseServer).toContain("import bundledScrobbleV1Api from './vendor/scrobbleV1'")
     expect(neteaseServer).toContain(
       "require('@neteasecloudmusicapienhanced/api/module/scrobble_v1')"
     )
+    expect(neteaseServer).toContain("let stableScrobbleV1Source = 'bundled'")
     expect(neteaseServer).toContain(
       "const stableScrobbleV1Url = '/netease/scrobble-v1'"
     )
-    expect(neteaseServer).toContain('fastify.get(stableScrobbleV1Url, stableScrobbleV1Handler)')
-    expect(neteaseServer).toContain('fastify.post(stableScrobbleV1Url, stableScrobbleV1Handler)')
+    expect(neteaseServer).toContain("appServerRevision: 'scrobble-v1-route-v3'")
+    expect(bundledScrobble).toContain("action: '_plv'")
+    expect(bundledScrobble).toContain("action: '_pld'")
+    expect(bundledNcbl).toContain('/api/clientlog/encrypt/upload?multiupload=true')
+    expect(bundledNcbl).toContain('const encryptNCBL =')
   })
 
   test('does not report non-NetEase stream tracks or unmatched local files', () => {
