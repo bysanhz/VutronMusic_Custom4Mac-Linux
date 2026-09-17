@@ -40,6 +40,18 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('neteaseScrobbledForCurrentSession = false')
   })
 
+  test('deduplicates concurrent and near-duplicate API writes for the same track', () => {
+    const trackApi = readSource('src/renderer/api/track.ts')
+
+    expect(trackApi).toContain('const SCROBBLE_DEDUP_WINDOW_MS = 10_000')
+    expect(trackApi).toContain('const scrobbleInFlight = new Map<number, Promise<any>>()')
+    expect(trackApi).toContain('const lastSuccessfulScrobbleAt = new Map<number, number>()')
+    expect(trackApi).toContain('const existing = scrobbleInFlight.get(trackId)')
+    expect(trackApi).toContain('return existing')
+    expect(trackApi).toContain('lastSuccessfulScrobbleAt.set(trackId, Date.now())')
+    expect(trackApi).toContain('deduplicated: true')
+  })
+
   test('validates feedback and sanitizes non-numeric source ids', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
