@@ -114,21 +114,17 @@ export type ScrobbleParams = {
   vip?: boolean
 }
 
+const SCROBBLE_DEDUP_WINDOW_MS = 10_000
+const scrobbleInFlight = new Map<number, Promise<any>>()
+const lastSuccessfulScrobbleAt = new Map<number, number>()
+
 /**
- * 听歌打卡。
+ * 执行一次真正的网易云听歌上报。
  *
- * 优先使用传统 `/scrobble`。Enhanced API 会先发送 `startplay`，再发送真正
- * 增加听歌排行计数的 `play` feedback。这里必须检查 `details.play` 的真实响应，
- * 不能只看外层固定的 `code=200`。
- *
- * 若传统 feedback 没有拿到明确成功确认，则回退到 VutronMusic 自己注册的
- * `/scrobble-v1` 稳定别名。该别名由主进程直接加载 vendor 的 `scrobble_v1`
- * 模块，不再依赖第三方导出名经过 `pathCase()` 后得到什么 HTTP 路径。
- *
- * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
- * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
+ * 该函数不负责并发去重；去重统一在导出的 scrobble() 外层完成，保证来自播放器
+ * 不同回调（例如 next/ended）甚至不同组件实例的重复调用也只产生一次网络写入。
  */
-export async function scrobble(params: ScrobbleParams) {
+const performScrobble = async (params: ScrobbleParams) => {
   const sourceid = normalizeScrobbleSourceId(params.sourceid, params.id)
   const legacyResult = await request({
     url: '/scrobble',
@@ -188,6 +184,65 @@ export async function scrobble(params: ScrobbleParams) {
     legacyResult
   })
   return modernResult ?? legacyResult
+}
+
+/**
+ * 听歌打卡。
+ *
+ * 优先使用传统 `/scrobble`。Enhanced API 会先发送 `startplay`，再发送真正
+ * 增加听歌排行计数的 `play` feedback。这里必须检查 `details.play` 的真实响应，
+ * 不能只看外层固定的 `code=200`。
+ *
+ * 若传统 feedback 没有拿到明确成功确认，则回退到 VutronMusic 自己注册的
+ * `/scrobble-v1` 稳定别名。该别名由主进程直接加载 vendor 的 `scrobble_v1`
+ * 模块，不再依赖第三方导出名经过 `pathCase()` 后得到什么 HTTP 路径。
+ *
+ * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
+ * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
+ *
+ * 同一歌曲的并发请求会复用同一个 Promise；成功后 10 秒内的重复请求也直接
+ * 返回去重结果。这样即使播放器的 ended/next 等异步回调在切歌边界发生竞争，
+ * 也不会向网易云重复提交同一段播放记录。
+ */
+export function scrobble(params: ScrobbleParams): Promise<any> {
+  const trackId = Number(params.id)
+  const existing = scrobbleInFlight.get(trackId)
+  if (existing) {
+    console.info('[Track API] 合并同歌曲的并发 scrobble：', {
+      trackId,
+      time: params.time
+    })
+    return existing
+  }
+
+  const lastSuccessAt = lastSuccessfulScrobbleAt.get(trackId) || 0
+  if (Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS) {
+    console.info('[Track API] 跳过短时间内的重复 scrobble：', {
+      trackId,
+      time: params.time
+    })
+    return Promise.resolve({
+      code: 200,
+      deduplicated: true,
+      trackId
+    })
+  }
+
+  const operation = performScrobble(params)
+    .then((result) => {
+      if (isSuccessfulResponse(result)) {
+        lastSuccessfulScrobbleAt.set(trackId, Date.now())
+      }
+      return result
+    })
+    .finally(() => {
+      if (scrobbleInFlight.get(trackId) === operation) {
+        scrobbleInFlight.delete(trackId)
+      }
+    })
+
+  scrobbleInFlight.set(trackId, operation)
+  return operation
 }
 
 /**
