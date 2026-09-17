@@ -2,7 +2,7 @@
 // Vendored from NeteaseCloudMusicApiEnhanced v4.40.1 because the npm 4.40.1
 // artifact used by VutronMusic does not contain module/scrobble_v1.js.
 
-const {
+import {
   buildPlv,
   buildPld,
   buildRecords,
@@ -11,9 +11,9 @@ const {
   buildCookieStr,
   buildMetaJson,
   doUpload
-} = require('./ncbl')
+} from './ncbl'
 
-module.exports = async (query) => {
+const scrobbleV1 = async (query) => {
   const songId = Number(query.id)
   if (!songId || isNaN(songId)) {
     return { status: 400, body: { code: 400, msg: '缺少有效的 id (歌曲ID)' } }
@@ -112,7 +112,9 @@ module.exports = async (query) => {
   } catch (err) {
     return {
       status: 502,
-      body: { code: 502, msg: `请求异常: ${err.message || err}` }
+      body: { code: 502, msg: `请求异常: ${err?.message || err}` }
     }
   }
 }
+
+export default scrobbleV1
