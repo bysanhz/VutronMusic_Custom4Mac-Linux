@@ -114,6 +114,7 @@ async function netease(fastify: FastifyInstance) {
       }
     }
   }
+
   Object.entries(NeteaseCloudMusicApi).forEach(([nameInSnakeCase, neteaseApi]: [string, any]) => {
     if (['serveNcmApi', 'getModulesDefinitions'].includes(nameInSnakeCase)) return
     const name = pathCase(nameInSnakeCase)
@@ -121,6 +122,25 @@ async function netease(fastify: FastifyInstance) {
     fastify.get(`/netease/${name}`, handler)
     fastify.post(`/netease/${name}`, handler)
   })
+
+  // v4.40.1 中 scrobble_v1 模块存在，但部分打包/枚举场景下没有生成
+  // `/netease/scrobble/v1`，renderer 因而会直接拿到 404。显式补齐这个稳定别名，
+  // 同时用 hasRoute 避免与动态注册出的同名路由冲突。
+  const scrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1
+  if (typeof scrobbleV1Api === 'function') {
+    const scrobbleV1Handler = getHandler('scrobble/v1', scrobbleV1Api)
+    const scrobbleV1Url = '/netease/scrobble/v1'
+
+    if (!fastify.hasRoute({ method: 'GET', url: scrobbleV1Url })) {
+      fastify.get(scrobbleV1Url, scrobbleV1Handler)
+    }
+    if (!fastify.hasRoute({ method: 'POST', url: scrobbleV1Url })) {
+      fastify.post(scrobbleV1Url, scrobbleV1Handler)
+    }
+  } else {
+    log.warn('[Netease] scrobble_v1 export missing; /netease/scrobble/v1 fallback unavailable')
+  }
+
   fastify.get('/netease', () => 'NeteaseCloudMusicApi')
 }
 
