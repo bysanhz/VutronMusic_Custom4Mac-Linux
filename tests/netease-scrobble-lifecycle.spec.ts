@@ -40,7 +40,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('neteaseScrobbledForCurrentSession = false')
   })
 
-  test('validates the nested play feedback before accepting legacy scrobble', () => {
+  test('validates feedback and sanitizes non-numeric source ids', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
     const legacyIndex = trackApi.indexOf("url: '/scrobble'")
@@ -50,14 +50,26 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(modernIndex).toBeGreaterThan(legacyIndex)
     expect(trackApi).toContain('const playResult = result?.details?.play')
     expect(trackApi).toContain('return Boolean(playResult) && isSuccessfulResponse(playResult)')
-    expect(trackApi).toContain('const sourceid = params.sourceid || params.id')
+    expect(trackApi).toContain('const normalizeScrobbleSourceId =')
+    expect(trackApi).toContain('const numericSourceId = Number(sourceid)')
+    expect(trackApi).toContain('return trackId')
     expect(trackApi).toContain(
-      "console.warn('[Track API] /scrobble 未获得有效 play 确认，回退 /scrobble/v1：'"
+      'const sourceid = normalizeScrobbleSourceId(params.sourceid, params.id)'
     )
+    expect(trackApi).toContain('originalSourceid: params.sourceid')
     expect(insights).toContain(
       "window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)"
     )
     expect(insights).toContain('}, 1800)')
+  })
+
+  test('guarantees the local app-server alias for scrobble v1', () => {
+    const neteaseServer = readSource('src/main/appServer/netease.ts')
+
+    expect(neteaseServer).toContain('const scrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1')
+    expect(neteaseServer).toContain("const scrobbleV1Url = '/netease/scrobble/v1'")
+    expect(neteaseServer).toContain("fastify.hasRoute({ method: 'GET', url: scrobbleV1Url })")
+    expect(neteaseServer).toContain("fastify.hasRoute({ method: 'POST', url: scrobbleV1Url })")
   })
 
   test('does not report non-NetEase stream tracks or unmatched local files', () => {
