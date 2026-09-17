@@ -5,6 +5,7 @@ import { CacheAPIs } from '../utils/CacheApis'
 import { handleNeteaseResult } from '../utils'
 import log from '../log'
 import { normalizeNeteaseAssetUrls } from '../../shared/neteaseAssetUrl'
+import bundledScrobbleV1Api from './vendor/scrobbleV1'
 import https from 'node:https'
 import tls from 'node:tls'
 
@@ -126,54 +127,51 @@ async function netease(fastify: FastifyInstance) {
   /**
    * 稳定的应用自有 scrobble-v1 路由。
    *
-   * 这条路由必须无条件注册：如果第三方模块不可用，返回 503 和明确诊断信息，
-   * 而不是让 renderer 看到无法区分“旧主进程”和“模块缺失”的 404。
+   * npm 发布的 @neteasecloudmusicapienhanced/api@4.40.1 与同名 Git tag 内容并不一致：
+   * 用户实机确认 npm artifact 缺少 module/scrobble_v1.js。优先使用包内实现；若缺失，
+   * 立即切到仓库内随应用打包的 NCBL 实现，避免再次因为 node_modules 内容漂移而 404/503。
    */
-  let stableScrobbleV1Api: ((params: any) => any) | undefined
-  let stableScrobbleV1LoadError = ''
+  let stableScrobbleV1Api = bundledScrobbleV1Api as (params: any) => any
+  let stableScrobbleV1Source = 'bundled'
+  let packageScrobbleV1LoadError = ''
+
   try {
-    stableScrobbleV1Api = require('@neteasecloudmusicapienhanced/api/module/scrobble_v1')
+    const packageScrobbleV1Api = require('@neteasecloudmusicapienhanced/api/module/scrobble_v1')
+    if (typeof packageScrobbleV1Api === 'function') {
+      stableScrobbleV1Api = packageScrobbleV1Api
+      stableScrobbleV1Source = 'package-submodule'
+    }
   } catch (error: any) {
-    stableScrobbleV1LoadError = getNeteaseErrorMessage(error)
-    log.warn('[Netease] 直接加载 scrobble_v1 模块失败，将尝试包导出', error)
-    stableScrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1
+    packageScrobbleV1LoadError = getNeteaseErrorMessage(error)
+    const exportedApi = NeteaseCloudMusicApi.scrobble_v1
+    if (typeof exportedApi === 'function') {
+      stableScrobbleV1Api = exportedApi
+      stableScrobbleV1Source = 'package-export'
+    } else {
+      log.warn(
+        '[Netease] npm artifact 缺少 scrobble_v1，已启用应用内置 NCBL 实现：',
+        packageScrobbleV1LoadError
+      )
+    }
   }
 
   const stableScrobbleV1Url = '/netease/scrobble-v1'
-  const stableScrobbleV1Handler = async (
-    req: FastifyRequest<{ Querystring: { [key: string]: string } }>,
-    reply: FastifyReply
-  ) => {
-    if (typeof stableScrobbleV1Api !== 'function') {
-      return reply.status(503).send({
-        code: 503,
-        retryable: false,
-        message: 'scrobble_v1 module unavailable',
-        loadError: stableScrobbleV1LoadError || undefined
-      })
-    }
-
-    return getHandler('scrobble/v1', stableScrobbleV1Api)(req, reply)
-  }
-
+  const stableScrobbleV1Handler = getHandler('scrobble/v1', stableScrobbleV1Api)
   fastify.get(stableScrobbleV1Url, stableScrobbleV1Handler)
   fastify.post(stableScrobbleV1Url, stableScrobbleV1Handler)
 
   fastify.get('/netease/runtime-info', () => ({
     code: 200,
-    appServerRevision: 'scrobble-v1-route-v2',
+    appServerRevision: 'scrobble-v1-route-v3',
     stableScrobbleV1Route: stableScrobbleV1Url,
-    stableScrobbleV1Available: typeof stableScrobbleV1Api === 'function',
-    loadError: stableScrobbleV1LoadError || undefined
+    stableScrobbleV1Available: true,
+    stableScrobbleV1Source,
+    packageLoadError: packageScrobbleV1LoadError || undefined
   }))
 
-  if (typeof stableScrobbleV1Api === 'function') {
-    log.info(`[Netease] 已注册稳定听歌上报路由 ${stableScrobbleV1Url}`)
-  } else {
-    log.warn(
-      `[Netease] ${stableScrobbleV1Url} 已注册为诊断路由，但 scrobble_v1 模块当前不可用`
-    )
-  }
+  log.info(
+    `[Netease] 已注册稳定听歌上报路由 ${stableScrobbleV1Url} (${stableScrobbleV1Source})`
+  )
 
   fastify.get('/netease', () => 'NeteaseCloudMusicApi')
 }
