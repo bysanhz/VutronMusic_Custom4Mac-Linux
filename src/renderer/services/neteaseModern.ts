@@ -244,17 +244,84 @@ export const extractCursor = (source: any) => {
   return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
+const parseDateLike = (value: unknown): Date | null => {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 1_000_000_000) return null
+    const timestamp = value < 10_000_000_000 ? value * 1000 : value
+    const date = new Date(timestamp)
+    return Number.isFinite(date.getTime()) ? date : null
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const date = new Date(value)
+    return Number.isFinite(date.getTime()) ? date : null
+  }
+
+  return null
+}
+
+const isSameLocalDay = (left: Date, right: Date): boolean =>
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate()
+
+const getDurationDetailDate = (item: any): Date | null => {
+  if (!item || typeof item !== 'object') return null
+  const candidates = [
+    item.date,
+    item.dayDate,
+    item.statDate,
+    item.bizDate,
+    item.timestamp,
+    item.time,
+    item.startTime
+  ]
+  for (const candidate of candidates) {
+    const parsed = parseDateLike(candidate)
+    if (parsed) return parsed
+  }
+  return null
+}
+
+/**
+ * 从周实时报告提取“今天”的累计收听时长。
+ *
+ * `durationDetails` 的 duration 与 playDuration 使用同一套分钟单位。
+ * 优先按日期字段匹配本地今天；旧返回若没有日期字段，则使用数组最后一项。
+ * 这里刻意不再“寻找最后一个非零项”，否则今天为 0 时会错误显示昨天的数据。
+ */
 export const extractTodayListenSeconds = (source: any): number | undefined => {
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details) || !details.length) return undefined
 
-  const latest = [...details]
-    .reverse()
-    .find((item) => Number.isFinite(Number(item?.duration)) && Number(item?.duration) >= 0)
-  if (!latest) return undefined
+  const now = new Date()
+  const today = details.find((item: any) => {
+    const date = getDurationDetailDate(item)
+    return date ? isSameLocalDay(date, now) : false
+  })
+  const candidate = today ?? details.at(-1)
+  const duration = Number(candidate?.duration)
+  if (!Number.isFinite(duration) || duration < 0) return undefined
 
-  // durationDetails uses minutes, matching playDuration in the realtime report.
-  return Number(latest.duration) * 60
+  return duration * 60
+}
+
+/**
+ * 从周/月实时报告读取该统计周期的累计收听时长（秒）。
+ */
+export const extractRealtimeListenSeconds = (source: any): number | undefined => {
+  const minutes = Number(source?.data?.listenTimeDistributionBlock?.playDuration)
+  return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : undefined
+}
+
+/**
+ * 从累计听歌接口读取总收听时长（秒）。
+ */
+export const extractTotalListenSeconds = (source: any): number | undefined => {
+  const seconds = Number(source?.data?.totalDuration)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined
 }
 
 export const extractListenReportRank = (source: any, limit = 20): any[] => {
@@ -348,6 +415,19 @@ const findListenSongRank = (
   return undefined
 }
 
+const countListenSongRank = (source: any): number | undefined => {
+  const rows = findListenSongRank(source)
+  if (!rows) return undefined
+
+  const ids = new Set<string>()
+  for (const item of rows) {
+    const id = item?.songId ?? item?.id ?? item?.song?.id ?? item?.song?.songId
+    if (id !== undefined && id !== null && String(id)) ids.add(String(id))
+  }
+
+  return ids.size > 0 ? ids.size : rows.length
+}
+
 const extractListenSongCount = (source: any): number | undefined => {
   const data = source?.data
   const directCandidates = [
@@ -363,41 +443,60 @@ const extractListenSongCount = (source: any): number | undefined => {
     .find((value) => Number.isFinite(value) && value >= 0)
   if (direct !== undefined) return direct
 
-  if (Array.isArray(data?.songDTOs)) return data.songDTOs.length
+  if (Array.isArray(data?.songDTOs)) {
+    const ids = new Set(
+      data.songDTOs
+        .map((item: any) => item?.songId ?? item?.id ?? item?.song?.id)
+        .filter((id: any) => id !== undefined && id !== null)
+        .map((id: any) => String(id))
+    )
+    return ids.size || data.songDTOs.length
+  }
 
-  // Current /listen/data/today/song is backed by the today song-play-rank endpoint.
-  // Rank rows expose per-song playCount; that value is NOT the number of songs listened to.
-  // Count the ranked song rows instead so "今日 N 首" and today's duration use compatible semantics.
-  return findListenSongRank(data)?.length
+  // /listen/data/today/song 返回的是今日歌曲播放排行；每一行的 playCount 是该歌曲
+  // 的播放次数，而不是“今天总歌曲数”。这里只统计不同歌曲条目。
+  return countListenSongRank(data)
+}
+
+/**
+ * 今日不同歌曲数。
+ *
+ * 主来源是专用 `/listen/data/today/song`；周实时报告里的
+ * `weekTodayListenBlock.songCount` 作为交叉校验。两个网易云端点存在短暂同步延迟时，
+ * 取同一天内较大的非负值，避免一个端点晚几秒同步导致数字倒退或长期卡住。
+ */
+export const extractTodaySongCount = (todaySource: any, weekSource?: any): number | undefined => {
+  const todayCount = extractListenSongCount(todaySource)
+  const reportCount = Number(weekSource?.data?.weekTodayListenBlock?.songCount)
+  const candidates = [todayCount, reportCount].filter(
+    (value): value is number => Number.isFinite(value) && Number(value) >= 0
+  )
+  return candidates.length ? Math.max(...candidates) : undefined
 }
 
 export const extractMetric = (source: any, keys: string[]) => {
   const data = source?.data
   const asksForSongCount = hasAnyKey(keys, ['songCount', 'count', 'listenSongCount', 'playCount'])
 
-  // These listen-footprint endpoints use different, stable response fields and units.
-  // Prefer those explicit schemas before the generic recursive fallback below.
   if (asksForSongCount) {
     const songCount = extractListenSongCount(source)
     if (songCount !== undefined) return songCount
   }
 
-  const playDuration = Number(data?.listenTimeDistributionBlock?.playDuration)
+  const realtimeSeconds = extractRealtimeListenSeconds(source)
   if (
-    Number.isFinite(playDuration) &&
+    realtimeSeconds !== undefined &&
     hasAnyKey(keys, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   ) {
-    // realtime report returns minutes; the UI duration formatter consumes seconds.
-    return playDuration * 60
+    return realtimeSeconds
   }
 
-  const totalDuration = Number(data?.totalDuration)
+  const totalSeconds = extractTotalListenSeconds(source)
   if (
-    Number.isFinite(totalDuration) &&
+    totalSeconds !== undefined &&
     hasAnyKey(keys, ['listenTime', 'totalTime', 'duration', 'playTime', 'time'])
   ) {
-    // totalDuration is already seconds.
-    return totalDuration
+    return totalSeconds
   }
 
   // playCount belongs to an individual rank row. Never treat the first row's playCount
@@ -409,8 +508,10 @@ export const extractMetric = (source: any, keys: string[]) => {
 }
 
 export const formatListenDuration = (seconds?: number) => {
-  if (!Number.isFinite(seconds) || !seconds || seconds <= 0) return '—'
+  if (!Number.isFinite(seconds) || Number(seconds) < 0) return '—'
   const value = Number(seconds)
+  if (value === 0) return '0分'
+
   const days = Math.floor(value / 86400)
   const hours = Math.floor((value % 86400) / 3600)
   const minutes = Math.floor((value % 3600) / 60)
