@@ -81,8 +81,12 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(neteaseServer).toContain("appServerRevision: 'scrobble-v1-route-v3'")
     expect(bundledScrobble).toContain("action: '_plv'")
     expect(bundledScrobble).toContain("action: '_pld'")
+    expect(bundledScrobble).toContain("from './ncbl'")
+    expect(bundledScrobble).toContain('export default scrobbleV1')
+    expect(bundledNcbl).toContain("import * as crypto from 'node:crypto'")
     expect(bundledNcbl).toContain('/api/clientlog/encrypt/upload?multiupload=true')
     expect(bundledNcbl).toContain('const encryptNCBL =')
+    expect(bundledNcbl).toContain('export {')
   })
 
   test('does not report non-NetEase stream tracks or unmatched local files', () => {
