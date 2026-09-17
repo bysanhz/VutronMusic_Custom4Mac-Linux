@@ -123,22 +123,30 @@ async function netease(fastify: FastifyInstance) {
     fastify.post(`/netease/${name}`, handler)
   })
 
-  // v4.40.1 中 scrobble_v1 模块存在，但部分打包/枚举场景下没有生成
-  // `/netease/scrobble/v1`，renderer 因而会直接拿到 404。显式补齐这个稳定别名，
-  // 同时用 hasRoute 避免与动态注册出的同名路由冲突。
-  const scrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1
-  if (typeof scrobbleV1Api === 'function') {
-    const scrobbleV1Handler = getHandler('scrobble/v1', scrobbleV1Api)
-    const scrobbleV1Url = '/netease/scrobble/v1'
+  /**
+   * 稳定的应用自有 scrobble-v1 别名。
+   *
+   * renderer 之前调用 `/netease/scrobble/v1`，但用户实机日志证明该路径在部分
+   * dev/build 组合下会 404。这里不再依赖 `pathCase()` 对第三方导出名的映射，也
+   * 不再依赖 `Object.entries()` 是否枚举到该导出；优先直接加载包内模块，并暴露
+   * 一个不会与动态路由冲突的 `/netease/scrobble-v1`。
+   */
+  let stableScrobbleV1Api: ((params: any) => any) | undefined
+  try {
+    stableScrobbleV1Api = require('@neteasecloudmusicapienhanced/api/module/scrobble_v1')
+  } catch (error) {
+    log.warn('[Netease] 直接加载 scrobble_v1 模块失败，将尝试包导出', error)
+    stableScrobbleV1Api = NeteaseCloudMusicApi.scrobble_v1
+  }
 
-    if (!fastify.hasRoute({ method: 'GET', url: scrobbleV1Url })) {
-      fastify.get(scrobbleV1Url, scrobbleV1Handler)
-    }
-    if (!fastify.hasRoute({ method: 'POST', url: scrobbleV1Url })) {
-      fastify.post(scrobbleV1Url, scrobbleV1Handler)
-    }
+  if (typeof stableScrobbleV1Api === 'function') {
+    const stableScrobbleV1Url = '/netease/scrobble-v1'
+    const stableScrobbleV1Handler = getHandler('scrobble/v1', stableScrobbleV1Api)
+    fastify.get(stableScrobbleV1Url, stableScrobbleV1Handler)
+    fastify.post(stableScrobbleV1Url, stableScrobbleV1Handler)
+    log.info(`[Netease] 已注册稳定听歌上报路由 ${stableScrobbleV1Url}`)
   } else {
-    log.warn('[Netease] scrobble_v1 export missing; /netease/scrobble/v1 fallback unavailable')
+    log.warn('[Netease] scrobble_v1 不可用，稳定听歌上报路由未注册')
   }
 
   fastify.get('/netease', () => 'NeteaseCloudMusicApi')
