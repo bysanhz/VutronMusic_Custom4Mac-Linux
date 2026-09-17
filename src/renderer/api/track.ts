@@ -9,7 +9,7 @@ const isLegacyScrobbleSuccessful = (result: any) => {
 
   // Enhanced API 的 /scrobble 外层固定返回 code=200；真正的网易云反馈结果
   // 位于 details.play。只看外层 code 会把“请求完成但上游拒绝”误判为成功，
-  // 从而永远不会执行 NCBL /scrobble/v1 回退。
+  // 从而永远不会执行 NCBL 回退。
   const playResult = result?.details?.play
   return Boolean(playResult) && isSuccessfulResponse(playResult)
 }
@@ -121,7 +121,10 @@ export type ScrobbleParams = {
  * 增加听歌排行计数的 `play` feedback。这里必须检查 `details.play` 的真实响应，
  * 不能只看外层固定的 `code=200`。
  *
- * 若传统 feedback 没有拿到明确成功确认，则自动回退 NCBL `/scrobble/v1`。
+ * 若传统 feedback 没有拿到明确成功确认，则回退到 VutronMusic 自己注册的
+ * `/scrobble-v1` 稳定别名。该别名由主进程直接加载 vendor 的 `scrobble_v1`
+ * 模块，不再依赖第三方导出名经过 `pathCase()` 后得到什么 HTTP 路径。
+ *
  * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
  * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
  */
@@ -149,7 +152,7 @@ export async function scrobble(params: ScrobbleParams) {
     return legacyResult
   }
 
-  console.warn('[Track API] /scrobble 未获得有效 play 确认，回退 /scrobble/v1：', {
+  console.warn('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：', {
     trackId: params.id,
     sourceid,
     originalSourceid: params.sourceid,
@@ -158,7 +161,7 @@ export async function scrobble(params: ScrobbleParams) {
   })
 
   const modernResult = await request({
-    url: '/scrobble/v1',
+    url: '/scrobble-v1',
     method: 'post',
     params: {
       ...params,
@@ -168,7 +171,7 @@ export async function scrobble(params: ScrobbleParams) {
   })
 
   if (isSuccessfulResponse(modernResult)) {
-    console.info('[Track API] /scrobble/v1 上报成功：', {
+    console.info('[Track API] /scrobble-v1 上报成功：', {
       trackId: params.id,
       sourceid,
       time: params.time,
@@ -177,7 +180,7 @@ export async function scrobble(params: ScrobbleParams) {
     return modernResult
   }
 
-  console.warn('[Track API] /scrobble/v1 上报同样失败：', {
+  console.warn('[Track API] /scrobble-v1 上报同样失败：', {
     trackId: params.id,
     sourceid,
     time: params.time,
