@@ -114,6 +114,8 @@
             type="playlist"
             sub-text="creator"
             :colunm-number="5"
+            class="library-cover-row"
+            :min-cover-physical-width="112"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -126,6 +128,8 @@
             type="album"
             sub-text="artist"
             :colunm-number="5"
+            class="library-cover-row"
+            :min-cover-physical-width="112"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -143,6 +147,8 @@
             sub-text="artist"
             :item-height="230"
             :colunm-number="5"
+            class="library-cover-row"
+            :min-cover-physical-width="112"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -598,6 +604,10 @@ onUnmounted(() => {
     }
   }
 }
+.library-cover-row {
+  width: calc(100% - 12px);
+}
+
 button.playHistory-button {
   color: var(--color-text);
   border-radius: 8px;
