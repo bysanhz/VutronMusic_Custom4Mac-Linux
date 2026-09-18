@@ -147,6 +147,7 @@ const goTo = () => {
 img {
   border-radius: 0.75em;
   width: 100%;
+  box-sizing: border-box;
   user-select: none;
   aspect-ratio: 1 / 1;
   border: 1px solid rgba(0, 0, 0, 0.04);
