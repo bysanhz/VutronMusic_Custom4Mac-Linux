@@ -25,37 +25,6 @@ const { tray } = storeToRefs(settingsStore)
 
 const { likeATrack } = useDataStore()
 
-const buildTrayLyricPayload = (value = currentLyric.value) => {
-  const rawContent = String(value?.content || '').trim()
-  const isTrackInfoFallback = !rawContent || Number(value?.time || 0) <= 0
-
-  if (!isTrackInfoFallback) {
-    return {
-      text: rawContent,
-      width: 0,
-      time: Math.max(1000, Number(value.time) * 1000),
-      loop: false
-    }
-  }
-
-  const track = currentTrack.value
-  const artists = track?.artists ?? track?.ar ?? []
-  const artistText = artists
-    .map((artist: { name?: string }) => artist?.name)
-    .filter(Boolean)
-    .join(' / ')
-  const title = track?.name || rawContent || '听你想听的音乐'
-
-  return {
-    text: artistText ? `${artistText} - ${title}` : title,
-    width: 0,
-    // 纯音乐或无歌词时不会再有下一句歌词来刷新托盘文本。
-    // 使用独立的循环滚动周期，避免长标题滚到末尾后永久只剩后半段。
-    time: 10000,
-    loop: true
-  }
-}
-
 class TrayLyric {
   _icon: Control | null
   _control: Control | null
@@ -69,15 +38,9 @@ class TrayLyric {
   }
 
   getIcons() {
-    const payload = buildTrayLyricPayload()
-    this._lyric = new Lyric({ width: Math.max(100, Number(tray.value.lyricWidth) || 192) })
-    this._lyric.frame = tray.value.scrollRate
-    if (currentTrack.value) {
-      // 不能只给 this._lyric.lyric 赋值后直接 draw()：
-      // Lyric.updateLyric() 才会测量真实文本宽度并启动长文本滚动。
-      // 纯音乐没有下一句歌词触发 watch，因此这个初始化路径尤其重要。
-      this._lyric.updateLyric(!playing.value, payload)
-    }
+    this._lyric = new Lyric({ width: tray.value.lyricWidth })
+    if (currentTrack.value)
+      this._lyric.lyric.text = currentLyric.value.content || currentTrack.value.name
     this._control = new Control([
       isPersonalFM.value ? thumbsDown : previous,
       playing.value ? pause : play,
@@ -168,12 +131,13 @@ class TrayLyric {
       this.buildTray()
     })
     watch(currentLyric, (value) => {
-      if (!tray.value.showLyric || !this._lyric) return
-
-      const payload = buildTrayLyricPayload(value)
-      this._lyric.frame = tray.value.scrollRate
-      this._lyric.updateLyric(!playing.value, payload)
-      this.buildTray()
+      if (!tray.value.showLyric) return
+      this._lyric!.lyric = {
+        text: value.content,
+        width: 0,
+        time: value.time * 1000
+      }
+      this._lyric?.updateLyric(!playing.value)
     })
     watch(playing, async (value) => {
       if (value) {
@@ -209,8 +173,11 @@ class TrayLyric {
     watch(
       () => tray.value.lyricWidth,
       async () => {
+        const currentLyric = this._lyric!.lyric
         this.getIcons()
         this.getCombineIcon()
+        this._lyric!.lyric = currentLyric
+        this._lyric!.updateLyric(!playing.value)
         await this.drawTray()
         this.buildTray()
       }
@@ -242,9 +209,8 @@ class TouchBarLyric {
   private _touchBar: Canvas
   constructor() {
     this._lyric = new Lyric({ width: 252, fontSize: 12 })
-    if (currentTrack.value) {
-      this._lyric.updateLyric(!playing.value, buildTrayLyricPayload())
-    }
+    if (currentTrack.value)
+      this._lyric.lyric.text = currentLyric.value.content || currentTrack.value.name
     this._touchBar = new Canvas({
       width: this._lyric.canvas.width,
       height: this._lyric.canvas.height,
@@ -267,7 +233,12 @@ class TouchBarLyric {
 
   handleEvent() {
     watch(currentLyric, (value) => {
-      this._lyric.updateLyric(!playing.value, buildTrayLyricPayload(value))
+      this._lyric!.lyric = {
+        text: value.content,
+        width: 0,
+        time: value.time * 1000
+      }
+      this._lyric.updateLyric(!playing.value)
     })
     eventBus.on('lyric-draw', () => {
       this.buildTouchBar()
