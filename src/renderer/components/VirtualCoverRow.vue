@@ -72,6 +72,7 @@ const props = defineProps({
   showPlayCount: { type: Boolean, default: false },
   containerHeight: { type: Number, default: 0 },
   colunmNumber: { type: Number, default: 1 },
+  minCoverPhysicalWidth: { type: Number, default: 126 },
   gap: { type: Number, default: 20 },
   playButtonSize: { type: Number, default: 22 },
   paddingBottom: { type: Number, default: 64 },
@@ -90,7 +91,6 @@ const { items } = toRefs(props)
  * resize 只启动一个尾随定时器，窗口连续拖动期间不读取布局；停顿后仅在列数
  * 真正变化时更新 key，使虚拟列表的位置缓存只重建一次。
  */
-const MIN_COVER_PHYSICAL_WIDTH = 126
 const COLUMN_UPDATE_DELAY_MS = 120
 const responsiveColumnNumber = ref(Math.max(1, props.colunmNumber))
 let columnUpdateTimer: number | null = null
@@ -118,7 +118,7 @@ const updateResponsiveColumnNumber = () => {
   const availableColumns = Math.max(
     1,
     Math.floor(
-      (physicalContentWidth + physicalGap) / (MIN_COVER_PHYSICAL_WIDTH + physicalGap)
+      (physicalContentWidth + physicalGap) / (props.minCoverPhysicalWidth + physicalGap)
     )
   )
   const nextColumnNumber = Math.min(props.colunmNumber, availableColumns)
@@ -134,7 +134,7 @@ const scheduleResponsiveColumnUpdate = () => {
 }
 
 watch(
-  () => [props.colunmNumber, props.gap],
+  () => [props.colunmNumber, props.gap, props.minCoverPhysicalWidth],
   () => {
     if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
     updateResponsiveColumnNumber()
