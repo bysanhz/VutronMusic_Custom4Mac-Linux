@@ -419,17 +419,6 @@ const onScrollToBottom = () => {
     listHeight: listHeight.value
   })
 
-  // 到达真正底端时强制把虚拟窗口锚定到尾部。
-  // 这样即使前一次滚动事件被 rAF 合并、窗口缩放或列表高度刚刚变化，
-  // 最后一行也一定进入 visibleData，不会出现“滚到底了但最后一首没刷新出来”的假象。
-  if (scrollTop + currentContainerHeight >= contentHeight - 2) {
-    const tailStartRow = Math.max(0, totalRowCount.value - visibleCount.value)
-    if (startRow.value !== tailStartRow) {
-      startRow.value = tailStartRow
-      setStartOffset()
-    }
-  }
-
   const loadMoreThreshold = Math.min(720, Math.max(320, currentContainerHeight * 0.8))
   if (scrollTop + currentContainerHeight >= contentHeight - loadMoreThreshold) {
     void requestLoadMore()
@@ -449,10 +438,8 @@ const onScroll = () => {
 }
 
 const scrollEvent = rafThrottle(() => {
-  // 先根据 scrollTop 更新普通虚拟窗口，再做触底兜底。
-  // 这样 onScroll() 不会在同一帧把尾部锚点重新覆盖掉。
-  onScroll()
   onScrollToBottom()
+  onScroll()
 })
 
 let parentScrollElement: HTMLElement | null = null
@@ -491,33 +478,74 @@ const unbindParentScrollListener = () => {
   parentScrollElement = null
 }
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    const element = getListElement()
-    if (!element) return
-    if (!props.enableVirtualScroll) {
-      element.style.overflowY = 'hidden'
-      styleBefore.value = 'hidden'
-      return
-    }
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        element.style.overflowY = 'scroll'
-        styleBefore.value = 'scroll'
-      } else {
-        element.style.overflowY = 'hidden'
-        styleBefore.value = 'hidden'
-      }
-    })
-  },
-  {
-    root: null,
-    rootMargin: `-64px 0px 0px 0px`,
-    threshold: 0.99
+let visibilityObserver: IntersectionObserver | null = null
+
+/**
+ * 虚拟列表和 #main 是两段式滚动：
+ * 1. 列表还没有完全进入“导航栏下方、播放器上方”的真实可视区时，由 #main 滚动；
+ * 2. 列表完全进入该区域后，才允许列表自身接管滚动。
+ *
+ * 旧实现有两个问题：
+ * - rootMargin 只避开顶部 64px，没有避开 fixed PlayerBar；
+ * - callback 只看 entry.isIntersecting。IntersectionObserver 初次回调即使只有一小部分
+ *   相交，isIntersecting 也会是 true，threshold=0.99 并不能保证这里已经达到 99%。
+ * 于是长列表会过早接管滚轮，列表底部实际伸到 PlayerBar 后面，最后一首看起来像没刷新。
+ */
+const syncScrollOwnership = (entry: IntersectionObserverEntry) => {
+  const element = getListElement()
+  if (!element) return
+
+  if (!props.enableVirtualScroll) {
+    element.style.overflowY = 'hidden'
+    styleBefore.value = 'hidden'
+    return
   }
-)
+
+  const ownsScroll = entry.isIntersecting && entry.intersectionRatio >= 0.99
+  element.style.overflowY = ownsScroll ? 'scroll' : 'hidden'
+  styleBefore.value = ownsScroll ? 'scroll' : 'hidden'
+}
+
+const observeScrollOwnership = () => {
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
+
+  const element = getListElement()
+  if (!element) return
+
+  if (!props.enableVirtualScroll) {
+    element.style.overflowY = 'hidden'
+    styleBefore.value = 'hidden'
+    return
+  }
+
+  const navBarHeight = hasCustomTitleBar.value ? 84 : 64
+  const bottomInset = Math.max(0, Number(playerBarInset.value) || 0)
+
+  visibilityObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) syncScrollOwnership(entry)
+    },
+    {
+      root: null,
+      // IntersectionObserver 的负 rootMargin 会缩小可视根区域。
+      // 这里明确排除顶部导航栏和底部 fixed PlayerBar。
+      rootMargin: `-${navBarHeight}px 0px -${bottomInset}px 0px`,
+      threshold: [0, 0.99, 1]
+    }
+  )
+
+  visibilityObserver.observe(element)
+}
 
 let loadMoreObserver: IntersectionObserver | null = null
+
+watch(
+  () => [hasCustomTitleBar.value, playerBarInset.value, props.enableVirtualScroll] as const,
+  () => {
+    nextTick(observeScrollOwnership)
+  }
+)
 
 /**
  * 用列表底部哨兵触发分页。scroll 阈值仍保留作为降级路径，两者共用请求锁。
@@ -628,8 +656,7 @@ eventBus.on('update-done', startEvent)
 
 onActivated(() => {
   nextTick(() => {
-    const element = getListElement()
-    if (element && props.enableVirtualScroll) observer.observe(element)
+    observeScrollOwnership()
     observeLoadMoreSentinel()
     bindParentScrollListener()
   })
@@ -637,10 +664,10 @@ onActivated(() => {
 
 onDeactivated(() => {
   unregisterInstance(instanceId.value)
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
-  const element = getListElement()
-  if (element && props.enableVirtualScroll) observer.unobserve(element)
   virtualScrolling.value = false
 })
 
@@ -649,8 +676,7 @@ onMounted(() => {
   registerInstance(instanceId.value)
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
-    const element = getListElement()
-    if (element && props.enableVirtualScroll) observer.observe(element)
+    observeScrollOwnership()
     observeLoadMoreSentinel()
     bindParentScrollListener()
   })
@@ -658,11 +684,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
+  visibilityObserver?.disconnect()
+  visibilityObserver = null
   loadMoreObserver?.disconnect()
   unbindParentScrollListener()
   window.removeEventListener('resize', updateWindowHeight)
-  const element = getListElement()
-  if (element && props.enableVirtualScroll) observer.unobserve(element)
   virtualScrolling.value = false
   eventBus.off('update-start', startEvent)
   // @ts-ignore
