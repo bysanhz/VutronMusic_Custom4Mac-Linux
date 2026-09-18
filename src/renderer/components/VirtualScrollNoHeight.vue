@@ -93,7 +93,6 @@ const styleBefore = ref()
 const startOffset = ref(0)
 const position = ref<any[]>([])
 const windowHeight = ref(window.innerHeight)
-const viewportTop = ref(0)
 const scrollToIndex = ref(0)
 const instanceId = ref('')
 const { list, itemSize } = toRefs(props)
@@ -146,13 +145,13 @@ const footerHeight = computed(() => footerRef.value?.clientHeight || 0)
 const containerHeight = computed(() => {
   const navBarHeight = hasCustomTitleBar.value ? 84 : 64
 
-  // 虚拟列表并不总是紧贴导航栏开始。像“本地音乐”这类页面上方还有概览区和标签栏，
-  // 如果只用 windowHeight - navBarHeight，会把列表可视高度算大，列表底部就会伸进
-  // 固定播放器后面，导致真正的最后一项永远滚不到完整可见位置。
-  const effectiveTop = Math.max(navBarHeight, viewportTop.value || navBarHeight)
+  // 虚拟列表和外层 #main 是两段式滚动：页面先把列表滚到导航栏下方，
+  // 之后才由列表自身接管滚动。这里必须保持一个稳定高度。
+  // 若把 getBoundingClientRect().top 持续写进响应式高度，外层每滚一帧都会改变
+  // 列表高度，浏览器需要反复重排并修正 scrollTop，表现就是周期性“卡一下”。
   const availableHeight = Math.max(
     itemSize.value,
-    windowHeight.value - effectiveTop - playerBarInset.value
+    windowHeight.value - navBarHeight - playerBarInset.value
   )
   const height = props.height || availableHeight
 
@@ -194,20 +193,6 @@ const playerBarInset = inject(
 )
 const mainRef = inject('mainRef', ref<HTMLElement>())
 const scrollMainTo = inject('scrollMainTo', (to: number) => {})
-
-const updateViewportMetrics = () => {
-  windowHeight.value = window.innerHeight
-
-  const element = getListElement()
-  const navBarHeight = hasCustomTitleBar.value ? 84 : 64
-  if (!element) {
-    viewportTop.value = navBarHeight
-    return
-  }
-
-  const top = element.getBoundingClientRect().top
-  viewportTop.value = Math.max(navBarHeight, Math.max(0, top))
-}
 
 const _isPrefixSubset = (oldArray: any[], newArray: any[]) => {
   if (newArray.length < oldArray.length || !oldArray.length) return false
@@ -464,15 +449,15 @@ const onScroll = () => {
 }
 
 const scrollEvent = rafThrottle(() => {
-  onScrollToBottom()
+  // 先根据 scrollTop 更新普通虚拟窗口，再做触底兜底。
+  // 这样 onScroll() 不会在同一帧把尾部锚点重新覆盖掉。
   onScroll()
+  onScrollToBottom()
 })
 
 let parentScrollElement: HTMLElement | null = null
 
 const parentScrollEvent = rafThrottle(() => {
-  updateViewportMetrics()
-
   if (!props.enableVirtualScroll || props.isEnd) return
   const element = getListElement()
   if (!element) return
@@ -562,7 +547,7 @@ const observeLoadMoreSentinel = () => {
 }
 
 const updateWindowHeight = () => {
-  updateViewportMetrics()
+  windowHeight.value = window.innerHeight
 }
 
 watch(enableScrolling, (value) => {
@@ -643,7 +628,6 @@ eventBus.on('update-done', startEvent)
 
 onActivated(() => {
   nextTick(() => {
-    updateViewportMetrics()
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
     observeLoadMoreSentinel()
@@ -665,7 +649,6 @@ onMounted(() => {
   registerInstance(instanceId.value)
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
-    updateViewportMetrics()
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
     observeLoadMoreSentinel()
