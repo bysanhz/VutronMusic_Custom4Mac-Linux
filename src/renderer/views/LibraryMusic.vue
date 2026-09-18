@@ -114,7 +114,7 @@
             type="playlist"
             sub-text="creator"
             :colunm-number="5"
-            :enable-virtual-scroll="true"
+            :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
           />
@@ -126,7 +126,7 @@
             type="album"
             sub-text="artist"
             :colunm-number="5"
-            :enable-virtual-scroll="true"
+            :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
           />
@@ -143,7 +143,7 @@
             sub-text="artist"
             :item-height="230"
             :colunm-number="5"
-            :enable-virtual-scroll="true"
+            :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
           />
