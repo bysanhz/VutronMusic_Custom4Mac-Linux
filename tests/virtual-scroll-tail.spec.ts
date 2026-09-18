@@ -5,16 +5,14 @@ import { resolve } from 'node:path'
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
 test.describe('virtual list tail visibility', () => {
-  test('computes viewport height from the list actual top and player bar inset', () => {
+  test('keeps the virtual viewport height stable while scrolling', () => {
     const source = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
 
-    expect(source).toContain('const viewportTop = ref(0)')
-    expect(source).toContain('const updateViewportMetrics = () =>')
-    expect(source).toContain('element.getBoundingClientRect().top')
     expect(source).toContain(
-      'windowHeight.value - effectiveTop - playerBarInset.value'
+      'windowHeight.value - navBarHeight - playerBarInset.value'
     )
-    expect(source).toContain('updateViewportMetrics()')
+    expect(source).not.toContain('const viewportTop = ref(0)')
+    expect(source).not.toContain('const updateViewportMetrics = () =>')
   })
 
   test('forces the virtual window to include the final row at the real scroll bottom', () => {
@@ -28,5 +26,13 @@ test.describe('virtual list tail visibility', () => {
     )
     expect(source).toContain('startRow.value = tailStartRow')
     expect(source).toContain('setStartOffset()')
+  })
+
+  test('applies the tail correction after the normal virtual-window update', () => {
+    const source = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+
+    expect(source).toContain(
+      'onScroll()\n  onScrollToBottom()'
+    )
   })
 })
