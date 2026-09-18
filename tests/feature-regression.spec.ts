@@ -1649,8 +1649,8 @@ test.describe('cover grids use a single outer scroll flow', () => {
   })
 })
 
-test.describe('library hydration and bounded rendering', () => {
-  test('repairs nullable persisted liked state and avoids mounting unbounded hidden cover grids', () => {
+test.describe('library hydration and stable rendering', () => {
+  test('repairs nullable persisted liked state and keeps the compact liked-song preview bounded', () => {
     const dataStore = readSource('src/renderer/store/data.ts')
     const library = readSource('src/renderer/views/LibraryMusic.vue')
 
@@ -1658,10 +1658,12 @@ test.describe('library hydration and bounded rendering', () => {
     expect(dataStore).toContain('afterHydrate: ({ store }) =>')
     expect(dataStore).toContain('normalizeLikedState(hydratedStore.liked)')
     expect(library).toContain('const libraryData = computed(() =>')
-    expect(library).toContain('const COVER_PAGE_SIZE = 40')
-    expect(library).toContain(':items="visiblePlaylists"')
-    expect(library).toContain(':items="visibleAlbums"')
-    expect(library).toContain(':items="visibleArtists"')
+    expect(library).toContain('const likedSongsPreview = computed(() =>')
+    expect(library).toContain(':items="likedSongsPreview"')
+    expect(library).toContain(':items="filterPlaylists"')
+    expect(library).toContain(':items="libraryData.albums"')
+    expect(library).toContain(':items="libraryData.artists"')
+    expect(library.match(/:enable-virtual-scroll="false"/g)?.length).toBeGreaterThanOrEqual(4)
     expect(library).toContain('v-if="currentTab === \'playlist\'"')
     expect(library).toContain('Promise.allSettled([')
     expect(library).toContain("console.error('[Library] 加载音乐库失败:', error)")
