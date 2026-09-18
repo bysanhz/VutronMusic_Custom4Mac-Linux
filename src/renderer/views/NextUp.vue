@@ -10,6 +10,7 @@
       :show-position="false"
       :dbclick-enable="false"
       :is-end="false"
+      :enable-virtual-scroll="false"
     />
 
     <h1 v-if="_playNextList.length > 0">
@@ -27,6 +28,7 @@
       :show-position="false"
       :extra-context-menu-item="['removeTrackFromInsert']"
       :is-end="filteredTracks.length === 0"
+      :enable-virtual-scroll="false"
     />
 
     <h1 class="next">{{ $t('next.nextPlaying') }}</h1>
@@ -42,6 +44,8 @@
       :colunm-number="1"
       :extra-context-menu-item="['removeTrackFromNext']"
       :is-end="true"
+      :enable-virtual-scroll="false"
+      :padding-bottom="96"
     />
   </div>
 </template>
@@ -67,6 +71,14 @@ const { streamTracks } = storeToRefs(streamMusicStore)
 const { clearPlayNextList } = playerStore
 
 const tracks = ref<any[]>([])
+
+/*
+ * “接下来播放”最多只展示约 100 首待播歌曲。
+ * 这里不使用内部虚拟滚动：三个 TrackList 连续堆叠时，如果每个列表都维护自己的
+ * viewport/overflow，会和 App.vue 的 #main 外层滚动形成嵌套滚动，页面滚到底时
+ * 最后一行可能停在内部容器裁剪边界上。数量上限很小，直接交给 #main 单层滚动
+ * 更稳定，也没有实际性能压力。
+ */
 
 const playNextTracks = computed(() => {
   return _playNextList.value.map((trackID: number) => {
