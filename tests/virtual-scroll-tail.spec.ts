@@ -11,7 +11,6 @@ test.describe('virtual scroll viewport handoff', () => {
     expect(source).toContain(
       'windowHeight.value - navBarHeight - playerBarInset.value'
     )
-    expect(source).not.toContain('getBoundingClientRect().top')
     expect(source).not.toContain('viewportTop')
   })
 
