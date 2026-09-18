@@ -12,28 +12,45 @@
     :style="containerStyle"
   >
     <div
-      v-for="(lyric, index) in lyricToShow"
-      :id="`lyric${index}`"
-      :key="index"
-      class="lyric"
-      :class="{
-        active: index === highlightIdx,
-        played: index < highlightIdx && !(isShowingNextGroup && index === 0),
-        center: lyricToShow.length === 1
-      }"
+      v-if="isMini && isFallbackTrackTitle"
+      ref="fallbackViewport"
+      class="fallback-track-info"
+      :class="{ 'is-marquee': fallbackNeedsMarquee }"
     >
-      <LyricLine
-        ref="lyricRefs"
-        :item="lyric"
-        :idx="index"
-        :current-index="highlightIdx"
-        :translation-mode="translationMode"
-        :playing="playing"
-        :is-word-by-word="!lineMode"
-        :playback-rate="playbackRate"
-        :is-mini="isMini"
-      />
+      <span
+        ref="fallbackTextEl"
+        class="fallback-track-info-text"
+        :style="fallbackTrackInfoStyle"
+      >
+        {{ fallbackTrackText }}
+      </span>
     </div>
+
+    <template v-else>
+      <div
+        v-for="(lyric, index) in lyricToShow"
+        :id="`lyric${index}`"
+        :key="index"
+        class="lyric"
+        :class="{
+          active: index === highlightIdx,
+          played: index < highlightIdx && !(isShowingNextGroup && index === 0),
+          center: lyricToShow.length === 1
+        }"
+      >
+        <LyricLine
+          ref="lyricRefs"
+          :item="lyric"
+          :idx="index"
+          :current-index="highlightIdx"
+          :translation-mode="translationMode"
+          :playing="playing"
+          :is-word-by-word="!lineMode"
+          :playback-rate="playbackRate"
+          :is-mini="isMini"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -68,6 +85,38 @@ const lyricOffset = ref(0)
 const isMini = computed(() => type.value === 'small')
 const playbackRate = ref(1.0)
 const isFallbackTrackTitle = ref(false)
+const fallbackTrackText = ref('')
+const fallbackViewport = ref<HTMLElement>()
+const fallbackTextEl = ref<HTMLElement>()
+const fallbackNeedsMarquee = ref(false)
+const fallbackTravelPx = ref(0)
+const fallbackDurationSeconds = ref(8)
+let fallbackResizeObserver: ResizeObserver | null = null
+
+const fallbackTrackInfoStyle = computed(() => ({
+  '--fallback-travel': `${fallbackTravelPx.value}px`,
+  '--fallback-duration': `${fallbackDurationSeconds.value}s`
+}))
+
+const measureFallbackTrackInfo = async () => {
+  await nextTick()
+
+  const viewport = fallbackViewport.value
+  const textElement = fallbackTextEl.value
+  if (!viewport || !textElement || !isMini.value || !isFallbackTrackTitle.value) {
+    fallbackNeedsMarquee.value = false
+    fallbackTravelPx.value = 0
+    return
+  }
+
+  const overflow = Math.max(0, textElement.scrollWidth - viewport.clientWidth)
+  fallbackNeedsMarquee.value = overflow > 2
+  fallbackTravelPx.value = -overflow
+
+  // 约 32 px/s 的移动速度，长标题不会飞快掠过；同时设置上下限，
+  // 保证短溢出也有足够时间看清，极长标题也不会滚得过慢。
+  fallbackDurationSeconds.value = Math.min(22, Math.max(7, 4 + overflow / 32))
+}
 
 /**
  * Pure-instrumental tracks can legitimately have no lyric payload. In that case we
@@ -78,20 +127,30 @@ const applyFallbackTrackTitle = (player: Record<string, any>) => {
   const track = player.currentTrack
   if (!track) {
     isFallbackTrackTitle.value = false
+    fallbackTrackText.value = ''
     return
   }
   const artists = track.artists ?? track.ar ?? []
+  const artistText = artists
+    .map((artist: { name?: string }) => artist?.name)
+    .filter(Boolean)
+    .join(' / ')
+  const titleText = track.name || '听你想听的音乐'
+  const displayText = artistText ? `${artistText} - ${titleText}` : titleText
+
   lyrics.value = [
     {
       start: 0,
       end: 0,
       lyric: {
-        text: `${artists[0]?.name || '未知歌手'} - ${track.name || '听你想听的音乐'}`
+        text: displayText
       }
     }
   ]
+  fallbackTrackText.value = displayText
   currentIndex.value = 0
   isFallbackTrackTitle.value = true
+  void measureFallbackTrackInfo()
 }
 
 const containerStyle = computed(() => {
@@ -246,6 +305,14 @@ const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
   }
 }
 
+watch(
+  [fallbackTrackText, fontSize, font, isMini, isFallbackTrackTitle],
+  () => {
+    void measureFallbackTrackInfo()
+  },
+  { flush: 'post' }
+)
+
 watch(lyricToShow, async () => {
   clearAnimations()
   await nextTick()
@@ -353,6 +420,8 @@ window.addEventListener('message', (event: MessageEvent) => {
     if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
       lyrics.value = data.lyrics
       isFallbackTrackTitle.value = false
+      fallbackTrackText.value = ''
+      fallbackNeedsMarquee.value = false
     } else {
       let player: Record<string, any> = {}
       try {
@@ -398,6 +467,10 @@ const handleVisebilitiyChange = () => {
 onMounted(async () => {
   document.addEventListener('visibilitychange', handleVisebilitiyChange)
 
+  fallbackResizeObserver = new ResizeObserver(() => {
+    void measureFallbackTrackInfo()
+  })
+
   let player: Record<string, any> = {}
   try {
     player = JSON.parse(localStorage.getItem('player') || '{}')
@@ -425,6 +498,10 @@ onMounted(async () => {
     isFallbackTrackTitle.value = false
   }
 
+  await nextTick()
+  if (fallbackViewport.value) fallbackResizeObserver?.observe(fallbackViewport.value)
+  void measureFallbackTrackInfo()
+
   scheduleAnimation()
 
   if (isMini.value) return
@@ -436,6 +513,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   // destroyController(true)
+  fallbackResizeObserver?.disconnect()
+  fallbackResizeObserver = null
   document.removeEventListener('visibilitychange', handleVisebilitiyChange)
 })
 </script>
@@ -534,6 +613,52 @@ onBeforeUnmount(() => {
         background-position: 100% 0% !important;
       }
     }
+  }
+}
+
+.fallback-track-info {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: v-bind(align);
+}
+
+.fallback-track-info-text {
+  display: inline-block;
+  flex: 0 0 auto;
+  max-width: none;
+  font-size: v-bind('`${fontSize}px`');
+  font-weight: 600;
+  line-height: 1.1;
+  color: v-bind('`${unplayLrcColor}`');
+  -webkit-text-fill-color: v-bind('`${unplayLrcColor}`');
+  text-shadow: 0 0 2px v-bind('textShadow');
+  will-change: transform;
+}
+
+.fallback-track-info.is-marquee {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.fallback-track-info.is-marquee .fallback-track-info-text {
+  animation: fallback-track-marquee var(--fallback-duration) ease-in-out infinite alternate;
+}
+
+@keyframes fallback-track-marquee {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+
+  88%,
+  100% {
+    transform: translateX(var(--fallback-travel));
   }
 }
 
