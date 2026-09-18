@@ -4,23 +4,34 @@ import { resolve } from 'node:path'
 
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
-test.describe('virtual cover scrolling paint stability', () => {
-  test('pre-renders buffered cover rows without content-visibility paint skipping', () => {
+test.describe('cover scrolling paint stability', () => {
+  test('keeps virtual cover buffers eager without content-visibility skipping', () => {
     const source = readSource('src/renderer/components/VirtualCoverRow.vue')
 
     expect(source).toContain(':above-value="4"')
     expect(source).toContain(':below-value="6"')
-    expect(source).toContain('image-loading="eager"')
+    expect(source).toContain(':image-loading="enableVirtualScroll ? \'eager\' : \'lazy\'"')
+    expect(source).toContain("'virtual-cover-row--virtualized': enableVirtualScroll")
+    expect(source).toContain('.virtual-cover-row--virtualized :deep(.infinite-list)')
     expect(source).toContain('will-change: transform')
-    expect(source).not.toContain('content-visibility: auto')
-    expect(source).not.toContain('contain-intrinsic-size')
   })
 
-  test('keeps lazy loading as the default for non-virtual cover callers', () => {
-    const source = readSource('src/renderer/components/CoverBox.vue')
+  test('uses native outer scrolling for library cover grids', () => {
+    const library = readSource('src/renderer/views/LibraryMusic.vue')
 
-    expect(source).toContain(':loading="imageLoading"')
-    expect(source).toContain("type: String as PropType<'lazy' | 'eager'>")
-    expect(source).toContain("default: 'lazy'")
+    expect(library.match(/:enable-virtual-scroll="false"/g)?.length).toBeGreaterThanOrEqual(4)
+    expect(library).not.toContain(':enable-virtual-scroll="true"')
+  })
+
+  test('skips offscreen native cover work without virtual row switching', () => {
+    const source = readSource('src/renderer/components/VirtualCoverRow.vue')
+    const coverBox = readSource('src/renderer/components/CoverBox.vue')
+
+    expect(source).toContain("'native-cover-item': !enableVirtualScroll")
+    expect(source).toContain('content-visibility: auto')
+    expect(source).toContain('contain-intrinsic-size: auto 280px')
+    expect(coverBox).toContain(':loading="imageLoading"')
+    expect(coverBox).toContain("type: String as PropType<'lazy' | 'eager'>")
+    expect(coverBox).toContain("default: 'lazy'")
   })
 })
