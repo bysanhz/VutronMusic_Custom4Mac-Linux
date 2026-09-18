@@ -57,7 +57,7 @@ export class Control extends Canvas {
 
 export class Lyric extends Canvas {
   fontSize: number
-  lyric: { text: any; width: number; time: number }
+  lyric: { text: any; width: number; time: number; loop?: boolean }
   x: number
   timer: any
   moveTimer: any
@@ -85,7 +85,8 @@ export class Lyric extends Canvas {
     this.lyric = {
       text: '听你想听的音乐',
       width: 0,
-      time: 0
+      time: 0,
+      loop: false
     }
     this.x = 0
     this.timer = null
@@ -115,7 +116,8 @@ export class Lyric extends Canvas {
     this.lyric = {
       text: arg.text,
       width: measureText.width,
-      time: arg.time
+      time: arg.time,
+      loop: Boolean(arg.loop)
     }
     if (this.lyric.width > this.canvas.width) {
       const rate = this.canvas.width / this.lyric.width
@@ -188,7 +190,15 @@ export class Lyric extends Canvas {
 
     this.timeoutTimer = setTimeout(() => {
       if (!this.isPaused) {
+        const shouldLoop = Boolean(this.lyric.loop)
         this.clearAllTimes()
+        if (shouldLoop) {
+          this.x = 0
+          this.lastRenderX = Infinity
+          this.moveTimer = setTimeout(() => {
+            if (!this.isPaused) this.updateLyric(false, this.lyric)
+          }, 900)
+        }
       }
     }, this.lyric.time)
   }
@@ -229,7 +239,7 @@ export class Lyric extends Canvas {
       this.x -= this.scrollPixelsPerMS * delta * this.devicePixelRatio
       return Math.abs(prevX - this.x) > 1
     }
-    this.clearAllTimes()
+    if (!this.lyric.loop) this.clearAllTimes()
     return false
   }
 
