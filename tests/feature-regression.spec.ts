@@ -1660,6 +1660,8 @@ test.describe('library hydration and stable rendering', () => {
     expect(library).toContain('const libraryData = computed(() =>')
     expect(library).toContain('const likedSongsPreview = computed(() =>')
     expect(library).toContain(':items="likedSongsPreview"')
+    expect(library).toContain(':item-height="64"')
+    expect(library).toContain(':height="256"')
     expect(library).toContain(':items="filterPlaylists"')
     expect(library).toContain(':items="libraryData.albums"')
     expect(library).toContain(':items="libraryData.artists"')

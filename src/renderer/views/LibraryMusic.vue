@@ -30,8 +30,8 @@
           :items="likedSongsPreview"
           :type="'tracklist'"
           :show-position="false"
-          :item-height="60"
-          :height="240"
+          :item-height="64"
+          :height="256"
           :is-end="true"
           :padding-bottom="0"
           :colunm-number="2"
@@ -269,8 +269,10 @@ const libraryData = computed(() => {
 })
 
 /*
- * 顶部右侧只承担“我喜欢的音乐”预览，不再把完整喜欢列表塞进一个 240px 高的虚拟滚动区。
- * 两列 x 四行正好填满 240px；只渲染 8 首可避免它抢占滚轮，也避免后台维护无意义的长列表。
+ * 顶部右侧只承担“我喜欢的音乐”预览，不再把完整喜欢列表塞进虚拟滚动区。
+ * TrackListItem 的实际基础行高是 64px（46px 封面 + 2px 边框 + 上下各 8px padding），
+ * 因此两列 x 四行需要 256px。此前使用 60px / 240px 会让第四行被容器裁掉。
+ * 这里只渲染 8 首，同时让左侧喜欢卡片随右侧预览自然拉伸到同一高度。
  */
 const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 8))
 
