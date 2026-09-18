@@ -109,6 +109,8 @@ const measureFallbackTrackInfo = async () => {
     return
   }
 
+  fallbackResizeObserver?.observe(viewport)
+
   const overflow = Math.max(0, textElement.scrollWidth - viewport.clientWidth)
   fallbackNeedsMarquee.value = overflow > 2
   fallbackTravelPx.value = -overflow
