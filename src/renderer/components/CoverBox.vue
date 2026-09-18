@@ -12,7 +12,12 @@
           ><svg-icon icon-class="play" />
         </button>
       </div>
-      <img :src="imageUrl" :style="imageStyles" loading="lazy" decoding="async" />
+      <img
+        :src="imageUrl"
+        :style="imageStyles"
+        :loading="imageLoading"
+        decoding="async"
+      />
       <Transition v-if="coverHover || alwaysShowShadow" name="fade">
         <div v-show="focus || alwaysShowShadow" class="shadow" :style="shadowStyles"></div>
       </Transition>
@@ -45,7 +50,11 @@ const props = defineProps({
   alwaysShowShadow: { type: Boolean, default: false },
   clickCoverToPlay: { type: Boolean, default: false },
   shadowMargin: { type: Number, default: 12 },
-  radius: { type: Number, default: 12 }
+  radius: { type: Number, default: 12 },
+  imageLoading: {
+    type: String as PropType<'lazy' | 'eager'>,
+    default: 'lazy'
+  }
 })
 
 const focus = ref(false)
