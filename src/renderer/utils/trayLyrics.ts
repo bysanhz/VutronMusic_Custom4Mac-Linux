@@ -25,6 +25,37 @@ const { tray } = storeToRefs(settingsStore)
 
 const { likeATrack } = useDataStore()
 
+const buildTrayLyricPayload = (value = currentLyric.value) => {
+  const rawContent = String(value?.content || '').trim()
+  const isTrackInfoFallback = !rawContent || Number(value?.time || 0) <= 0
+
+  if (!isTrackInfoFallback) {
+    return {
+      text: rawContent,
+      width: 0,
+      time: Math.max(1000, Number(value.time) * 1000),
+      loop: false
+    }
+  }
+
+  const track = currentTrack.value
+  const artists = track?.artists ?? track?.ar ?? []
+  const artistText = artists
+    .map((artist: { name?: string }) => artist?.name)
+    .filter(Boolean)
+    .join(' / ')
+  const title = track?.name || rawContent || '听你想听的音乐'
+
+  return {
+    text: artistText ? `${artistText} - ${title}` : title,
+    width: 0,
+    // 纯音乐或无歌词时不会再有下一句歌词来刷新托盘文本。
+    // 使用独立的循环滚动周期，避免长标题滚到末尾后永久只剩后半段。
+    time: 10000,
+    loop: true
+  }
+}
+
 class TrayLyric {
   _icon: Control | null
   _control: Control | null
@@ -39,8 +70,7 @@ class TrayLyric {
 
   getIcons() {
     this._lyric = new Lyric({ width: tray.value.lyricWidth })
-    if (currentTrack.value)
-      this._lyric.lyric.text = currentLyric.value.content || currentTrack.value.name
+    if (currentTrack.value) this._lyric.lyric = buildTrayLyricPayload()
     this._control = new Control([
       isPersonalFM.value ? thumbsDown : previous,
       playing.value ? pause : play,
@@ -132,11 +162,7 @@ class TrayLyric {
     })
     watch(currentLyric, (value) => {
       if (!tray.value.showLyric) return
-      this._lyric!.lyric = {
-        text: value.content,
-        width: 0,
-        time: value.time * 1000
-      }
+      this._lyric!.lyric = buildTrayLyricPayload(value)
       this._lyric?.updateLyric(!playing.value)
     })
     watch(playing, async (value) => {
@@ -209,8 +235,7 @@ class TouchBarLyric {
   private _touchBar: Canvas
   constructor() {
     this._lyric = new Lyric({ width: 252, fontSize: 12 })
-    if (currentTrack.value)
-      this._lyric.lyric.text = currentLyric.value.content || currentTrack.value.name
+    if (currentTrack.value) this._lyric.lyric = buildTrayLyricPayload()
     this._touchBar = new Canvas({
       width: this._lyric.canvas.width,
       height: this._lyric.canvas.height,
@@ -233,11 +258,7 @@ class TouchBarLyric {
 
   handleEvent() {
     watch(currentLyric, (value) => {
-      this._lyric!.lyric = {
-        text: value.content,
-        width: 0,
-        time: value.time * 1000
-      }
+      this._lyric!.lyric = buildTrayLyricPayload(value)
       this._lyric.updateLyric(!playing.value)
     })
     eventBus.on('lyric-draw', () => {
