@@ -15,15 +15,19 @@
     :show-footer="showFooter"
     :show-position="showPosition"
     class="virtual-cover-row"
+    :class="{ 'virtual-cover-row--virtualized': enableVirtualScroll }"
   >
     <template #default="{ item }">
-      <div class="cover-item" :class="{ artist: type === 'artist' }">
+      <div
+        class="cover-item"
+        :class="{ artist: type === 'artist', 'native-cover-item': !enableVirtualScroll }"
+      >
         <Cover
           :id="item.id"
           :image-url="getImageUrl(item)"
           :type="type"
           :service="item.service"
-          image-loading="eager"
+          :image-loading="enableVirtualScroll ? 'eager' : 'lazy'"
           :play-button-size="type === 'artist' ? 26 : playButtonSize"
         />
         <div class="text">
@@ -206,13 +210,21 @@ const getSubText = (item: any) => {
 }
 
 /*
- * VirtualScrollNoHeight 已经只挂载可视区附近的少量封面。
- * 再叠加 content-visibility:auto 会让 Chromium 在滚动过程中反复跳过/恢复
- * 这些已经虚拟化的节点，尤其配合 translateY 的绝对定位列表时会出现整块抽闪。
- * 因此这里让已挂载的缓冲行始终参与绘制；通过更大的 above/below buffer 提前完成图片解码。
+ * 两种滚动模式分开优化：
+ * 1. 虚拟滚动：已挂载节点始终参与绘制，并把 translateY 列表提升为合成层；
+ * 2. 原生外层滚动：不再依赖固定 itemSize 做窗口换行，离屏封面交给 Chromium
+ *    content-visibility + 图片 lazy loading 跳过绘制/解码。
+ *
+ * 这样既避免虚拟列表跨行时因“估算行高 != 实际行高”产生位置跳变，也避免
+ * 原生长列表一次性绘制全部封面。
  */
-.virtual-cover-row :deep(.infinite-list) {
+.virtual-cover-row--virtualized :deep(.infinite-list) {
   will-change: transform;
+}
+
+.cover-item.native-cover-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
 }
 .text {
   margin-top: 8px;
