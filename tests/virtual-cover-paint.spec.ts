@@ -25,13 +25,16 @@ test.describe('cover scrolling paint stability', () => {
     expect(library).not.toContain(':enable-virtual-scroll="true"')
   })
 
-  test('skips offscreen native cover work without virtual row switching', () => {
+  test('keeps native grid tracks equal while lazy-loading cover images', () => {
     const source = readSource('src/renderer/components/VirtualCoverRow.vue')
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
     const coverBox = readSource('src/renderer/components/CoverBox.vue')
 
-    expect(source).toContain("'native-cover-item': !enableVirtualScroll")
-    expect(source).toContain('content-visibility: auto')
-    expect(source).toContain('contain-intrinsic-size: auto 280px')
+    expect(source).not.toContain('content-visibility: auto')
+    expect(source).not.toContain('contain-intrinsic-size:')
+    expect(virtualScroll).toContain(
+      'gridTemplateColumns: `repeat(${props.columnNumber}, minmax(0, 1fr))`'
+    )
     expect(coverBox).toContain(':loading="imageLoading"')
     expect(coverBox).toContain("type: String as PropType<'lazy' | 'eager'>")
     expect(coverBox).toContain("default: 'lazy'")
