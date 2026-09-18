@@ -5,6 +5,8 @@
     :column-number="responsiveColumnNumber"
     :gap="gap"
     :item-size="itemHeight"
+    :above-value="4"
+    :below-value="6"
     :padding-bottom="paddingBottom"
     :height="containerHeight"
     :load-more="loadMore"
@@ -21,6 +23,7 @@
           :image-url="getImageUrl(item)"
           :type="type"
           :service="item.service"
+          image-loading="eager"
           :play-button-size="type === 'artist' ? 26 : playButtonSize"
         />
         <div class="text">
@@ -200,8 +203,16 @@ const getSubText = (item: any) => {
   color: var(--color-text);
   padding-bottom: 20px;
   min-width: 0;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 280px;
+}
+
+/*
+ * VirtualScrollNoHeight 已经只挂载可视区附近的少量封面。
+ * 再叠加 content-visibility:auto 会让 Chromium 在滚动过程中反复跳过/恢复
+ * 这些已经虚拟化的节点，尤其配合 translateY 的绝对定位列表时会出现整块抽闪。
+ * 因此这里让已挂载的缓冲行始终参与绘制；通过更大的 above/below buffer 提前完成图片解码。
+ */
+.virtual-cover-row :deep(.infinite-list) {
+  will-change: transform;
 }
 .text {
   margin-top: 8px;
