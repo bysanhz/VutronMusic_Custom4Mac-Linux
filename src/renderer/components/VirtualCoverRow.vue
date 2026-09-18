@@ -18,10 +18,7 @@
     :class="{ 'virtual-cover-row--virtualized': enableVirtualScroll }"
   >
     <template #default="{ item }">
-      <div
-        class="cover-item"
-        :class="{ artist: type === 'artist', 'native-cover-item': !enableVirtualScroll }"
-      >
+      <div class="cover-item" :class="{ artist: type === 'artist' }">
         <Cover
           :id="item.id"
           :image-url="getImageUrl(item)"
@@ -210,22 +207,15 @@ const getSubText = (item: any) => {
 }
 
 /*
- * 两种滚动模式分开优化：
- * 1. 虚拟滚动：已挂载节点始终参与绘制，并把 translateY 列表提升为合成层；
- * 2. 原生外层滚动：不再依赖固定 itemSize 做窗口换行，离屏封面交给 Chromium
- *    content-visibility + 图片 lazy loading 跳过绘制/解码。
- *
- * 这样既避免虚拟列表跨行时因“估算行高 != 实际行高”产生位置跳变，也避免
- * 原生长列表一次性绘制全部封面。
+ * 虚拟滚动模式把 translateY 列表提升为合成层。
+ * 原生外层滚动只保留图片 lazy loading；不要给 grid item 使用 content-visibility /
+ * contain-intrinsic-size，否则离屏项目的 intrinsic inline size 会参与 CSS Grid 轨道
+ * 计算，滚动后可能出现“第一列很宽、后续列很窄”以及最右列被挤出视口的问题。
  */
 .virtual-cover-row--virtualized :deep(.infinite-list) {
   will-change: transform;
 }
 
-.cover-item.native-cover-item {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 280px;
-}
 .text {
   margin-top: 8px;
 

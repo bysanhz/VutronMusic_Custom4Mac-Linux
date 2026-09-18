@@ -170,7 +170,7 @@ const visibleData = computed(() => {
 const listStyles = computed(() => {
   return {
     gap: `0 ${props.gap}px`,
-    gridTemplateColumns: `repeat(${props.columnNumber}, 1fr)`,
+    gridTemplateColumns: `repeat(${props.columnNumber}, minmax(0, 1fr))`,
     transform: contentTransform.value
   }
 })
