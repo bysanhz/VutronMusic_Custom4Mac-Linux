@@ -113,9 +113,9 @@
             :items="filterPlaylists"
             type="playlist"
             sub-text="creator"
-            :colunm-number="5"
+            :colunm-number="6"
             class="library-cover-row"
-            :min-cover-physical-width="112"
+            :min-cover-physical-width="96"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -127,9 +127,9 @@
             :items="libraryData.albums"
             type="album"
             sub-text="artist"
-            :colunm-number="5"
+            :colunm-number="6"
             class="library-cover-row"
-            :min-cover-physical-width="112"
+            :min-cover-physical-width="96"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -146,9 +146,9 @@
             type="artist"
             sub-text="artist"
             :item-height="230"
-            :colunm-number="5"
+            :colunm-number="6"
             class="library-cover-row"
-            :min-cover-physical-width="112"
+            :min-cover-physical-width="96"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -605,7 +605,7 @@ onUnmounted(() => {
   }
 }
 .library-cover-row {
-  width: calc(100% - 12px);
+  width: calc(100% - 24px);
 }
 
 button.playHistory-button {
