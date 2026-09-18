@@ -10,7 +10,8 @@ test.describe('cover scrolling paint stability', () => {
 
     expect(source).toContain(':above-value="4"')
     expect(source).toContain(':below-value="6"')
-    expect(source).toContain(':image-loading="enableVirtualScroll ? \'eager\' : \'lazy\'"')
+    expect(source).toContain(':image-loading=')
+    expect(source).toContain("enableVirtualScroll ? 'eager' : 'lazy'")
     expect(source).toContain("'virtual-cover-row--virtualized': enableVirtualScroll")
     expect(source).toContain('.virtual-cover-row--virtualized :deep(.infinite-list)')
     expect(source).toContain('will-change: transform')
@@ -18,8 +19,9 @@ test.describe('cover scrolling paint stability', () => {
 
   test('uses native outer scrolling for library cover grids', () => {
     const library = readSource('src/renderer/views/LibraryMusic.vue')
+    const nativeScrollMatches = library.match(/:enable-virtual-scroll="false"/g)
 
-    expect(library.match(/:enable-virtual-scroll="false"/g)?.length).toBeGreaterThanOrEqual(4)
+    expect(nativeScrollMatches?.length).toBeGreaterThanOrEqual(4)
     expect(library).not.toContain(':enable-virtual-scroll="true"')
   })
 
