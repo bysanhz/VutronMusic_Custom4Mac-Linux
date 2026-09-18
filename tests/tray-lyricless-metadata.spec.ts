@@ -5,20 +5,22 @@ import { resolve } from 'node:path'
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
 test.describe('macOS tray metadata for lyricless tracks', () => {
-  test('expands the tray lyric area to fit normal-length artist/title metadata', () => {
+  test('keeps a bounded tray width and starts marquee measurement on initial render', () => {
     const tray = readSource('src/renderer/utils/trayLyrics.ts')
 
-    expect(tray).toContain('const resolveTrayLyricWidth =')
-    expect(tray).toContain('measureTrayTextWidth(payload.text) + 18')
-    expect(tray).toContain('Math.min(520, Math.floor(screenWidth * 0.42))')
-    expect(tray).toContain('new Lyric({ width: resolveTrayLyricWidth(payload) })')
-    expect(tray).toContain('this.getCombineIcon()')
     expect(tray).toContain("join(' / ')")
+    expect(tray).toContain('new Lyric({ width: Math.max(100, Number(tray.value.lyricWidth) || 192) })')
+    expect(tray).toContain('this._lyric.updateLyric(!playing.value, payload)')
+    expect(tray).toContain('Lyric.updateLyric() 才会测量真实文本宽度并启动长文本滚动')
+    expect(tray).not.toContain('resolveTrayLyricWidth')
+    expect(tray).not.toContain('measureTrayTextWidth')
   })
 
-  test('keeps ordinary timed lyrics on the configured fixed width', () => {
+  test('uses looping metadata only for lyricless fallback text', () => {
     const tray = readSource('src/renderer/utils/trayLyrics.ts')
 
-    expect(tray).toContain('if (!payload.loop) return configuredWidth')
+    expect(tray).toContain('loop: true')
+    expect(tray).toContain('loop: false')
+    expect(tray).toContain('time: 10000')
   })
 })
