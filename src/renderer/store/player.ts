@@ -1690,6 +1690,21 @@ export const usePlayerStore = defineStore(
       }
     }
 
+    const buildOsdFallbackTrackInfo = () => {
+      const track = currentTrack.value
+      const artists = track?.artists ?? track?.ar ?? []
+      const artistText = artists
+        .map((artist: { name?: string }) => artist?.name)
+        .filter(Boolean)
+        .join(' / ')
+      const titleText = track?.name || '听你想听的音乐'
+
+      return {
+        isFallbackTrackInfo: !lyrics.value.length,
+        fallbackTrackText: artistText ? `${artistText} - ${titleText}` : titleText
+      }
+    }
+
     const handleIpcRenderer = () => {
       window.addEventListener('message', (event) => {
         if (event.data.type === 'init-from-osd') {
@@ -1697,15 +1712,14 @@ export const usePlayerStore = defineStore(
           const artists = track?.artists ?? track?.ar ?? []
           const currentTime = audioNodes.audio?.currentTime || 0
           const osdLyrics = _.cloneDeep(lyrics.value)
+          const fallbackTrackInfo = buildOsdFallbackTrackInfo()
 
           if (!osdLyrics.length) {
             osdLyrics[0] = {
               start: 0,
               end: 0,
               lyric: {
-                text: track
-                  ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
-                  : '听你想听的音乐'
+                text: fallbackTrackInfo.fallbackTrackText
               }
             }
           }
@@ -1714,6 +1728,8 @@ export const usePlayerStore = defineStore(
             type: 'update-osd-status',
             data: {
               lyrics: toRaw(osdLyrics),
+              isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
+              fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
               line: [currentIndex.value, currentTime],
               playing: playing.value,
               seek: currentTime,
@@ -1756,18 +1772,25 @@ export const usePlayerStore = defineStore(
       watch(lyrics, (value) => {
         if (osdLyricStore.show) {
           const newLyric = _.cloneDeep(value)
+          const fallbackTrackInfo = buildOsdFallbackTrackInfo()
+
           if (!newLyric.length) {
             newLyric[0] = {
               start: 0,
               end: 0,
               lyric: {
-                text: `${(currentTrack.value?.artists || currentTrack.value?.ar || [])[0]?.name || '未知歌手'} - ${currentTrack.value?.name || '听你想听的音乐'}`
+                text: fallbackTrackInfo.fallbackTrackText
               }
             }
           }
+
           window.mainApi?.sendMessage({
             type: 'update-osd-status',
-            data: { lyrics: toRaw(newLyric) }
+            data: {
+              lyrics: toRaw(newLyric),
+              isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
+              fallbackTrackText: fallbackTrackInfo.fallbackTrackText
+            }
           })
         }
       })
