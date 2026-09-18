@@ -411,6 +411,8 @@ type statusMap = {
   line: [number, number] // 当前行，当前播放进度
   rate: number
   seek: number // 目前这一项的触发是在当单双行切换、翻译切换时更新播放进度
+  isFallbackTrackInfo: boolean
+  fallbackTrackText: string
 }
 
 window.addEventListener('message', (event: MessageEvent) => {
@@ -419,7 +421,15 @@ window.addEventListener('message', (event: MessageEvent) => {
   const data = event.data.data as Partial<statusMap>
 
   if (data.lyrics !== undefined) {
-    if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
+    if (data.isFallbackTrackInfo === true) {
+      lyrics.value = Array.isArray(data.lyrics) ? data.lyrics : []
+      fallbackTrackText.value =
+        String(data.fallbackTrackText || data.lyrics?.[0]?.lyric?.text || '').trim() ||
+        '听你想听的音乐'
+      currentIndex.value = 0
+      isFallbackTrackTitle.value = true
+      void measureFallbackTrackInfo()
+    } else if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
       lyrics.value = data.lyrics
       isFallbackTrackTitle.value = false
       fallbackTrackText.value = ''
