@@ -11,11 +11,22 @@ test.describe('compact OSD instrumental metadata', () => {
     expect(osd).toContain('v-if="isMini && isFallbackTrackTitle"')
     expect(osd).toContain('class="fallback-track-info"')
     expect(osd).toContain('{{ fallbackTrackText }}')
-    expect(osd).toContain("join(' / ')")
     expect(osd).toContain('textElement.scrollWidth - viewport.clientWidth')
     expect(osd).toContain('fallbackNeedsMarquee.value = overflow > 2')
     expect(osd).toContain('@keyframes fallback-track-marquee')
     expect(osd).toContain('transform: translateX(var(--fallback-travel))')
     expect(osd).toContain('fallbackResizeObserver?.observe(viewport)')
+  })
+
+  test('marks injected lyricless metadata explicitly instead of treating it as a normal lyric', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const osd = readSource('src/renderer/components/OsdLyricContainer.vue')
+
+    expect(player).toContain('const buildOsdFallbackTrackInfo =')
+    expect(player).toContain('isFallbackTrackInfo: !lyrics.value.length')
+    expect(player).toContain('fallbackTrackText:')
+    expect(osd).toContain('if (data.isFallbackTrackInfo === true)')
+    expect(osd).toContain('isFallbackTrackTitle.value = true')
+    expect(osd).toContain('void measureFallbackTrackInfo()')
   })
 })
