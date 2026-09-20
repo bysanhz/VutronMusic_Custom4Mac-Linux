@@ -2,7 +2,7 @@ import { ref } from 'vue'
 
 type PendingListenState = {
   pendingSeconds: number
-  lastRemoteTotalSeconds?: number
+  lastRemoteWeekSeconds?: number
 }
 
 const STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'
@@ -12,12 +12,12 @@ const readState = (): PendingListenState => {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     const pendingSeconds = Math.max(0, Number(stored?.pendingSeconds) || 0)
-    const lastRemoteTotalSeconds = Number(stored?.lastRemoteTotalSeconds)
+    const lastRemoteWeekSeconds = Number(stored?.lastRemoteWeekSeconds)
     return {
       pendingSeconds,
-      lastRemoteTotalSeconds:
-        Number.isFinite(lastRemoteTotalSeconds) && lastRemoteTotalSeconds >= 0
-          ? lastRemoteTotalSeconds
+      lastRemoteWeekSeconds:
+        Number.isFinite(lastRemoteWeekSeconds) && lastRemoteWeekSeconds >= 0
+          ? lastRemoteWeekSeconds
           : undefined
     }
   } catch {
@@ -30,7 +30,7 @@ const state = readState()
 export const pendingNeteaseListenSeconds = ref(state.pendingSeconds)
 
 const PERSIST_INTERVAL_MS = 5_000
-let lastRemoteTotalSeconds = state.lastRemoteTotalSeconds
+let lastRemoteWeekSeconds = state.lastRemoteWeekSeconds
 let lastPersistAt = 0
 
 const persist = (force = false): void => {
@@ -42,7 +42,7 @@ const persist = (force = false): void => {
       STORAGE_KEY,
       JSON.stringify({
         pendingSeconds: Math.max(0, pendingNeteaseListenSeconds.value),
-        lastRemoteTotalSeconds
+        lastRemoteWeekSeconds
       })
     )
     lastPersistAt = now
@@ -63,23 +63,27 @@ export const flushPendingNeteaseListenSeconds = (): void => {
 }
 
 /**
- * 用网易云累计时长的增长量抵扣本机已经临时叠加的时长。
+ * 用网易云“本周收听时长”的增长量抵扣本机待同步时长。
  *
- * 网易云听歌统计并非实时刷新。播放器在实际播放过程中把有效收听时长持续加入
- * pending；洞察页每次读取累计时长时再用服务端新增量抵扣，避免服务端追上后重复计算。
+ * 不能再用 /listen/data/total 的 totalDuration 来抵扣：该累计字段与实时周/月报告
+ * 的更新节奏并不一致，可能在“首数已经同步、周时长尚未同步”时提前吃掉 pending，
+ * 结果就是页面看起来首数会变、时长却始终不变。
+ *
+ * 当前播放发生在本周，因此以 realtime/report(type=week) 的 playDuration 作为
+ * 是否真正同步了“时长”的唯一确认信号。只有周时长实际增长时才抵扣本机 pending。
  */
-export const reconcileNeteaseRemoteTotal = (remoteTotalSeconds?: number): void => {
-  const next = Number(remoteTotalSeconds)
+export const reconcileNeteaseRemoteWeekDuration = (remoteWeekSeconds?: number): void => {
+  const next = Number(remoteWeekSeconds)
   if (!Number.isFinite(next) || next < 0) return
 
-  if (lastRemoteTotalSeconds !== undefined && next > lastRemoteTotalSeconds) {
-    const syncedSeconds = next - lastRemoteTotalSeconds
+  if (lastRemoteWeekSeconds !== undefined && next > lastRemoteWeekSeconds) {
+    const syncedSeconds = next - lastRemoteWeekSeconds
     pendingNeteaseListenSeconds.value = Math.max(
       0,
       pendingNeteaseListenSeconds.value - syncedSeconds
     )
   }
 
-  lastRemoteTotalSeconds = next
+  lastRemoteWeekSeconds = next
   persist(true)
 }
