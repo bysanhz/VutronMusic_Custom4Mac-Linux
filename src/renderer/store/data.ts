@@ -349,19 +349,42 @@ export const useDataStore = defineStore(
         }
 
         /*
-         * 网易云可能从 /song/detail 的响应里省略已下架或当前账号不可用的歌曲。
-         * 如果只请求前 8 个 ID，顶部 2×4 预览就可能只剩 6～7 首。多取一段候选，
-         * 再从实际返回的可用详情里截前 8 首，保证预览尽量填满四行。
+         * /song/detail 可能省略下架或当前账号不可用的歌曲。一次只请求前 8 个 ID
+         * 会直接让 2×4 预览少格；单个大批次也可能被上游裁剪。这里把前 40 个候选
+         * 分成 8 首一批并行请求，再按喜欢歌单原始顺序回填，直到拿到 8 首可用详情。
          */
-        const detailResult = await getTrackDetail(
-          trackIDs
-            .slice(0, 24)
-            .map((track: any) => track?.id ?? track)
-            .join(',')
+        const candidateIDs = normalizeTrackIDs(
+          trackIDs.slice(0, 40).map((track: any) => track?.id ?? track)
         )
+        const batches: number[][] = []
+        for (let index = 0; index < candidateIDs.length; index += 8) {
+          batches.push(candidateIDs.slice(index, index + 8))
+        }
 
-        if (Array.isArray(detailResult?.songs)) {
-          liked.value.songsWithDetails = detailResult.songs.slice(0, 8)
+        const detailResults = await Promise.allSettled(
+          batches.map((ids) => getTrackDetail(ids.join(',')))
+        )
+        const detailByID = new Map<number, any>()
+
+        for (const result of detailResults) {
+          if (result.status !== 'fulfilled' || !Array.isArray(result.value?.songs)) continue
+          for (const song of result.value.songs) {
+            const songID = Number(song?.id)
+            if (Number.isFinite(songID) && songID > 0 && !detailByID.has(songID)) {
+              detailByID.set(songID, song)
+            }
+          }
+        }
+
+        liked.value.songsWithDetails = candidateIDs
+          .map((id) => detailByID.get(id))
+          .filter(Boolean)
+          .slice(0, 8)
+
+        if (liked.value.songsWithDetails.length < Math.min(8, candidateIDs.length)) {
+          console.warn(
+            `[Data] 喜欢歌曲预览仅获取到 ${liked.value.songsWithDetails.length}/8 首可用详情`
+          )
         }
       } catch (error) {
         console.warn('[Data] 获取喜欢歌曲详情失败，继续使用已有数据：', error)

@@ -25,24 +25,30 @@
         </div>
       </div>
       <div class="songs">
-        <div class="liked-preview-grid">
+        <div class="liked-preview-list">
           <div
-            v-for="track in likedSongsPreview"
-            :key="track.id || track.songId"
-            class="liked-preview-item"
-            @dblclick="playLikedPreviewTrack(track.id || track.songId)"
+            v-for="(row, rowIndex) in likedPreviewRows"
+            :key="`liked-preview-row-${rowIndex}`"
+            class="liked-preview-row"
           >
-            <img
-              class="liked-preview-cover"
-              :src="getLikedPreviewImage(track)"
-              loading="lazy"
-              decoding="async"
-            />
-            <div class="liked-preview-text">
-              <div class="liked-preview-title" :title="track.name">{{ track.name }}</div>
-              <div class="liked-preview-artist" :title="getLikedPreviewArtist(track)">{{
-                getLikedPreviewArtist(track)
-              }}</div>
+            <div
+              v-for="track in row"
+              :key="track.id || track.songId"
+              class="liked-preview-item"
+              @dblclick="playLikedPreviewTrack(track.id || track.songId)"
+            >
+              <img
+                class="liked-preview-cover"
+                :src="getLikedPreviewImage(track)"
+                loading="lazy"
+                decoding="async"
+              />
+              <div class="liked-preview-text">
+                <div class="liked-preview-title" :title="track.name">{{ track.name }}</div>
+                <div class="liked-preview-artist" :title="getLikedPreviewArtist(track)">{{
+                  getLikedPreviewArtist(track)
+                }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -287,6 +293,14 @@ const libraryData = computed(() => {
  * 字体、缩放和封面尺寸决定，避免固定 itemHeight / containerHeight 再次裁掉第四行。
  */
 const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 8))
+
+const likedPreviewRows = computed(() => {
+  const rows: any[][] = []
+  for (let index = 0; index < likedSongsPreview.value.length; index += 2) {
+    rows.push(likedSongsPreview.value.slice(index, index + 2))
+  }
+  return rows
+})
 
 const getLikedPreviewImage = (track: any) => {
   const rawUrl = track.al?.picUrl || track.album?.picUrl || track.picUrl
@@ -587,25 +601,31 @@ onUnmounted(() => {
     min-width: 0;
   }
 
-  .liked-preview-grid {
+  .liked-preview-list {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .liked-preview-row {
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 94px;
     column-gap: 18px;
-    row-gap: 0;
-    align-content: start;
-    width: 100%;
+    align-items: stretch;
   }
 
   .liked-preview-item {
     min-width: 0;
-    height: 94px;
-    padding: 8px 8px;
+    min-height: 68px;
+    padding: 7px 8px;
     box-sizing: border-box;
     border-radius: 12px;
     display: flex;
     align-items: center;
-    overflow: hidden;
+    overflow: visible;
     user-select: none;
     transition: background-color 0.2s;
 
@@ -627,11 +647,9 @@ onUnmounted(() => {
 
   .liked-preview-text {
     min-width: 0;
-    max-height: 78px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;
   }
 
   .liked-preview-title {
