@@ -16,8 +16,9 @@ test.describe('NetEase scrobble lifecycle', () => {
       'void scrobbleNetease(endedTrack, currentTrackDuration.value, true)'
     )
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
-    expect(player).toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
-    expect(player).toContain('!result?.skipped && !result?.deduplicated')
+    const trackApi = readSource('src/renderer/api/track.ts')
+    expect(trackApi).toContain("import { addPendingNeteaseListenSeconds } from '../utils/neteaseListenPending'")
+    expect(trackApi).toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
   })
 
   test('deduplicates natural-end and replacement reporting for one playback session', () => {
