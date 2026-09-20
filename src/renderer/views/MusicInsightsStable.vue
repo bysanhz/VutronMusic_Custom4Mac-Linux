@@ -202,9 +202,11 @@ import { storeToRefs } from 'pinia'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
 import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
 import { useDataStore } from '../store/data'
-import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
-import { calculateActiveListenIncrement } from '../utils/playbackFeedback'
+import {
+  pendingNeteaseListenSeconds,
+  reconcileNeteaseRemoteTotal
+} from '../utils/neteaseListenPending'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -251,7 +253,6 @@ const styleResourceTabs: Array<{ id: StyleResourceType; label: string }> = [
 
 const activeTab = ref<(typeof tabs)[number]['id']>('footprint')
 const dataStore = useDataStore()
-const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
 const { showToast } = stateStore
@@ -268,16 +269,9 @@ const footprint = reactive<{
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
 
-const localPendingListenSeconds = ref(0)
-const lastRemoteTotalSeconds = ref<number | undefined>(undefined)
-let listenSampleTimer: number | null = null
-let lastListenSampleAt = Date.now()
-let lastListenProgress = 0
-let lastListenTrackId: number | null = null
-
 const addPendingListenSeconds = (remoteSeconds?: number): number | undefined => {
   const remote = Number(remoteSeconds)
-  const pending = Math.max(0, localPendingListenSeconds.value)
+  const pending = Math.max(0, pendingNeteaseListenSeconds.value)
   if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
   return remote + pending
 }
@@ -286,47 +280,6 @@ const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.tod
 const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
 const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
 const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
-
-const isCurrentTrackNeteaseEligible = (): boolean => {
-  const track = playerStore.currentTrack as any
-  if (!track?.id) return false
-  if (track.type === 'stream') return false
-  return track.matched !== false
-}
-
-const sampleLocalListenTime = (): void => {
-  const now = Date.now()
-  const trackId = Number(playerStore.currentTrack?.id)
-  const progress = Number(playerStore.progress)
-
-  if (!Number.isFinite(trackId) || trackId <= 0 || !Number.isFinite(progress) || progress < 0) {
-    lastListenTrackId = null
-    lastListenSampleAt = now
-    lastListenProgress = 0
-    return
-  }
-
-  if (lastListenTrackId !== trackId) {
-    lastListenTrackId = trackId
-    lastListenSampleAt = now
-    lastListenProgress = progress
-    return
-  }
-
-  const wallDeltaSeconds = Math.max(0, (now - lastListenSampleAt) / 1000)
-  const progressDeltaSeconds = progress - lastListenProgress
-  if (isCurrentTrackNeteaseEligible()) {
-    localPendingListenSeconds.value += calculateActiveListenIncrement({
-      playing: Boolean(playerStore.playing),
-      wallDeltaSeconds,
-      progressDeltaSeconds,
-      playbackRate: Number(playerStore.playbackRate) || 1
-    })
-  }
-
-  lastListenSampleAt = now
-  lastListenProgress = progress
-}
 
 const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
@@ -384,15 +337,7 @@ const loadFootprint = async (): Promise<void> => {
   footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
   const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
-  if (
-    lastRemoteTotalSeconds.value !== undefined &&
-    nextRemoteTotalSeconds !== undefined &&
-    nextRemoteTotalSeconds > lastRemoteTotalSeconds.value
-  ) {
-    const syncedSeconds = nextRemoteTotalSeconds - lastRemoteTotalSeconds.value
-    localPendingListenSeconds.value = Math.max(0, localPendingListenSeconds.value - syncedSeconds)
-  }
-  lastRemoteTotalSeconds.value = nextRemoteTotalSeconds
+  reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)
   footprint.totalSeconds = nextRemoteTotalSeconds
 
   footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
@@ -583,11 +528,6 @@ watch(activeTab, (tab) => {
 
 onMounted(() => {
   window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
-  lastListenSampleAt = Date.now()
-  lastListenProgress = Number(playerStore.progress) || 0
-  lastListenTrackId = Number(playerStore.currentTrack?.id) || null
-  if (listenSampleTimer !== null) window.clearInterval(listenSampleTimer)
-  listenSampleTimer = window.setInterval(sampleLocalListenTime, 1000)
   void loadFootprint()
 })
 
@@ -596,10 +536,6 @@ onBeforeUnmount(() => {
   if (footprintRefreshTimer !== null) {
     window.clearTimeout(footprintRefreshTimer)
     footprintRefreshTimer = null
-  }
-  if (listenSampleTimer !== null) {
-    window.clearInterval(listenSampleTimer)
-    listenSampleTimer = null
   }
 })
 </script>
