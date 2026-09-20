@@ -40,30 +40,30 @@
           }}</strong>
           <small>
             累计收听 {{ formatListenDuration(displayTodaySeconds) }}
-            <span v-if="pendingNeteaseListenSeconds > 0">
-              · 本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+            <span v-if="pendingNeteaseListenByScope.today.value > 0">
+              · 本机 +{{ formatPendingListenDuration(pendingNeteaseListenByScope.today.value) }}
             </span>
           </small>
         </div>
         <div class="metric-card">
           <span>本周</span>
           <strong>{{ formatListenDuration(displayWeekSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          <small v-if="pendingNeteaseListenByScope.week.value > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenByScope.week.value) }}
           </small>
         </div>
         <div class="metric-card">
           <span>本月</span>
           <strong>{{ formatListenDuration(displayMonthSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          <small v-if="pendingNeteaseListenByScope.month.value > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenByScope.month.value) }}
           </small>
         </div>
         <div class="metric-card">
           <span>累计</span>
           <strong>{{ formatListenDuration(displayTotalSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          <small v-if="pendingNeteaseListenByScope.total.value > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenByScope.total.value) }}
           </small>
         </div>
       </div>
@@ -217,8 +217,9 @@ import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
 import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
 import {
+  pendingNeteaseListenByScope,
   pendingNeteaseListenSeconds,
-  reconcileNeteaseRemoteTotal
+  reconcileNeteaseRemoteDurations
 } from '../utils/neteaseListenPending'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
 import {
@@ -281,17 +282,28 @@ const footprint = reactive<{
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
 
-const addPendingListenSeconds = (remoteSeconds?: number): number | undefined => {
+const addPendingListenSeconds = (
+  remoteSeconds: number | undefined,
+  pendingSeconds: number
+): number | undefined => {
   const remote = Number(remoteSeconds)
-  const pending = Math.max(0, pendingNeteaseListenSeconds.value)
+  const pending = Math.max(0, Number(pendingSeconds) || 0)
   if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
   return remote + pending
 }
 
-const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.todaySeconds))
-const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
-const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
-const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
+const displayTodaySeconds = computed(() =>
+  addPendingListenSeconds(footprint.todaySeconds, pendingNeteaseListenByScope.today.value)
+)
+const displayWeekSeconds = computed(() =>
+  addPendingListenSeconds(footprint.weekSeconds, pendingNeteaseListenByScope.week.value)
+)
+const displayMonthSeconds = computed(() =>
+  addPendingListenSeconds(footprint.monthSeconds, pendingNeteaseListenByScope.month.value)
+)
+const displayTotalSeconds = computed(() =>
+  addPendingListenSeconds(footprint.totalSeconds, pendingNeteaseListenByScope.total.value)
+)
 
 const formatPendingListenDuration = (seconds: number): string => {
   const value = Math.max(0, Math.floor(Number(seconds) || 0))
@@ -362,7 +374,12 @@ const loadFootprint = async (): Promise<void> => {
     footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
     const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
-    reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)
+    reconcileNeteaseRemoteDurations({
+      today: footprint.todaySeconds,
+      week: footprint.weekSeconds,
+      month: footprint.monthSeconds,
+      total: nextRemoteTotalSeconds
+    })
     footprint.totalSeconds = nextRemoteTotalSeconds
 
     footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
