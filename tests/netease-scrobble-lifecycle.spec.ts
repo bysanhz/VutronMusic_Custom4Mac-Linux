@@ -17,7 +17,9 @@ test.describe('NetEase scrobble lifecycle', () => {
     )
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
     const trackApi = readSource('src/renderer/api/track.ts')
-    expect(trackApi).toContain("import { addPendingNeteaseListenSeconds } from '../utils/neteaseListenPending'")
+    expect(trackApi).toContain(
+      "import { addPendingNeteaseListenSeconds } from '../utils/neteaseListenPending'"
+    )
     expect(trackApi).toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
   })
 
