@@ -18,6 +18,27 @@ test.describe('music insights rendering stability', () => {
     expect(view).not.toContain('VirtualTrackList')
     expect(view).not.toContain('VirtualCoverRow')
     expect(view).not.toContain('clearStyleResources')
+    expect(view).toContain("{ id: 'footprint', label: '听歌足迹' }")
+    expect(view).toContain("{ id: 'style', label: '曲风漫游' }")
+    expect(view).toContain("{ id: 'cloud', label: '云盘 Pro' }")
+    expect(view).not.toContain("{ id: 'playlist', label: '歌单管理' }")
+    expect(view).not.toContain("{ id: 'insight', label: '歌曲洞察' }")
+    expect(view).not.toContain("activeTab === 'playlist'")
+    expect(view).not.toContain("activeTab === 'insight'")
+  })
+
+  test('keeps pending local listen time visible until NetEase statistics catch up', () => {
+    const view = readSource('src/renderer/views/MusicInsightsStable.vue')
+    const pending = readSource('src/renderer/utils/neteaseListenPending.ts')
+
+    expect(view).toContain('pendingNeteaseListenSeconds')
+    expect(view).toContain('reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)')
+    expect(view).toContain('formatListenDuration(displayWeekSeconds)')
+    expect(view).toContain('formatListenDuration(displayMonthSeconds)')
+    expect(view).toContain('formatListenDuration(displayTotalSeconds)')
+    expect(pending).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'")
+    expect(pending).toContain('pendingNeteaseListenSeconds.value += value')
+    expect(pending).toContain('next > lastRemoteTotalSeconds')
   })
 
   test('does not empty style results before the replacement request resolves', () => {
