@@ -244,18 +244,54 @@ export const extractCursor = (source: any) => {
   return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
-const parseDateLike = (value: unknown): Date | null => {
+const parseDateLike = (value: unknown, fallbackYear = new Date().getFullYear()): Date | null => {
   if (value instanceof Date && Number.isFinite(value.getTime())) return value
 
   if (typeof value === 'number') {
-    if (!Number.isFinite(value) || value < 1_000_000_000) return null
+    if (!Number.isFinite(value)) return null
+
+    // 网易云 durationDetails.period 偶尔以 YYYYMMDD 数字返回。
+    const compact = String(Math.trunc(value))
+    if (/^\d{8}$/.test(compact)) {
+      const year = Number(compact.slice(0, 4))
+      const month = Number(compact.slice(4, 6))
+      const day = Number(compact.slice(6, 8))
+      const date = new Date(year, month - 1, day)
+      return Number.isFinite(date.getTime()) ? date : null
+    }
+
+    if (value < 1_000_000_000) return null
     const timestamp = value < 10_000_000_000 ? value * 1000 : value
     const date = new Date(timestamp)
     return Number.isFinite(date.getTime()) ? date : null
   }
 
   if (typeof value === 'string' && value.trim()) {
-    const date = new Date(value)
+    const normalized = value.trim()
+
+    // API 的实际字段名是 period；常见格式包括 YYYY-MM-DD / YYYY.MM.DD / MM-DD。
+    const fullDate = normalized.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/)
+    if (fullDate) {
+      const date = new Date(Number(fullDate[1]), Number(fullDate[2]) - 1, Number(fullDate[3]))
+      return Number.isFinite(date.getTime()) ? date : null
+    }
+
+    const monthDay = normalized.match(/^(\d{1,2})[-/.月](\d{1,2})日?$/)
+    if (monthDay) {
+      const date = new Date(fallbackYear, Number(monthDay[1]) - 1, Number(monthDay[2]))
+      return Number.isFinite(date.getTime()) ? date : null
+    }
+
+    if (/^\d{8}$/.test(normalized)) {
+      const date = new Date(
+        Number(normalized.slice(0, 4)),
+        Number(normalized.slice(4, 6)) - 1,
+        Number(normalized.slice(6, 8))
+      )
+      return Number.isFinite(date.getTime()) ? date : null
+    }
+
+    const date = new Date(normalized)
     return Number.isFinite(date.getTime()) ? date : null
   }
 
@@ -267,9 +303,17 @@ const isSameLocalDay = (left: Date, right: Date): boolean =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate()
 
-const getDurationDetailDate = (item: any): Date | null => {
+const reportReferenceDate = (source: any): Date => {
+  const end = parseDateLike(source?.data?.endTime)
+  return end ?? new Date()
+}
+
+const getDurationDetailDate = (item: any, source: any, index: number): Date | null => {
   if (!item || typeof item !== 'object') return null
+
+  const reference = reportReferenceDate(source)
   const candidates = [
+    item.period,
     item.date,
     item.dayDate,
     item.statDate,
@@ -279,33 +323,81 @@ const getDurationDetailDate = (item: any): Date | null => {
     item.startTime
   ]
   for (const candidate of candidates) {
-    const parsed = parseDateLike(candidate)
+    const parsed = parseDateLike(candidate, reference.getFullYear())
     if (parsed) return parsed
+  }
+
+  // 兼容极少数没有 period 的旧响应：按报告 startTime + 数组索引恢复日期。
+  const reportStart = parseDateLike(source?.data?.startTime)
+  if (reportStart) {
+    const derived = new Date(reportStart)
+    derived.setHours(0, 0, 0, 0)
+    derived.setDate(derived.getDate() + index)
+    return derived
   }
   return null
 }
 
 /**
- * 从周实时报告提取“今天”的累计收听时长。
+ * 提取今天的收听时长（秒）。
  *
- * `durationDetails` 的 duration 与 playDuration 使用同一套分钟单位。
- * 优先按日期字段匹配本地今天；旧返回若没有日期字段，则使用数组最后一项。
- * 这里刻意不再“寻找最后一个非零项”，否则今天为 0 时会错误显示昨天的数据。
+ * 网易云 durationDetails 的日期字段实际叫 period。旧实现没有读取 period，
+ * 因而经常匹配不到“今天”，直接退化成 details 最后一项；周边界时会把周期值
+ * 误当作今日值。现在优先按 period/日期精确匹配。
  */
-export const extractTodayListenSeconds = (source: any): number | undefined => {
+export const extractTodayListenSeconds = (source: any, now = new Date()): number | undefined => {
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details) || !details.length) return undefined
 
-  const now = new Date()
-  const today = details.find((item: any) => {
-    const date = getDurationDetailDate(item)
+  const today = details.find((item: any, index: number) => {
+    const date = getDurationDetailDate(item, source, index)
     return date ? isSameLocalDay(date, now) : false
   })
-  const candidate = today ?? details.at(-1)
-  const duration = Number(candidate?.duration)
-  if (!Number.isFinite(duration) || duration < 0) return undefined
 
-  return duration * 60
+  const duration = Number(today?.duration)
+  return Number.isFinite(duration) && duration >= 0 ? duration * 60 : undefined
+}
+
+/**
+ * 按用户通常理解的“周一 00:00 → 今天”计算本周音乐时长。
+ *
+ * 网易云 realtime/report(type=week) 的周边界不保证与 UI 的周一制一致。
+ * 因此从 month 报告的逐日 durationDetails 中按日期重新求和，避免周日出现
+ * “今日 == 本周”但前六天明明也有收听的情况。
+ */
+export const extractCalendarWeekListenSeconds = (
+  source: any,
+  now = new Date()
+): number | undefined => {
+  const details = source?.data?.listenTimeDistributionBlock?.durationDetails
+  if (!Array.isArray(details) || !details.length) return undefined
+
+  const weekStart = new Date(now)
+  weekStart.setHours(0, 0, 0, 0)
+  const daysSinceMonday = (weekStart.getDay() + 6) % 7
+  weekStart.setDate(weekStart.getDate() - daysSinceMonday)
+
+  const todayEnd = new Date(now)
+  todayEnd.setHours(23, 59, 59, 999)
+
+  let found = false
+  let minutes = 0
+  details.forEach((item: any, index: number) => {
+    const date = getDurationDetailDate(item, source, index)
+    const duration = Number(item?.duration)
+    if (
+      date &&
+      date >= weekStart &&
+      date <= todayEnd &&
+      Number.isFinite(duration) &&
+      duration >= 0
+    ) {
+      found = true
+      minutes += duration
+    }
+  })
+
+  return found ? minutes * 60 : undefined
 }
 
 /**

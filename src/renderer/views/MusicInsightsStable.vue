@@ -27,8 +27,11 @@
         <div>
           <h2>听歌足迹</h2>
           <p>
-            今日显示不同歌曲数；时长以网易云统计为基线，并即时叠加本机尚未同步的有效播放时长。
+            今日显示不同歌曲数；本周按周一至今天统计，时长会即时叠加本机尚未同步的有效播放。
           </p>
+        </div>
+        <div v-if="pendingNeteaseListenSeconds > 0" class="sync-status">
+          待同步 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
         </div>
       </div>
 
@@ -38,33 +41,19 @@
           <strong>{{
             footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—'
           }}</strong>
-          <small>
-            累计收听 {{ formatListenDuration(displayTodaySeconds) }}
-            <span v-if="pendingNeteaseListenSeconds > 0">
-              · 本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
-            </span>
-          </small>
+          <small>今日收听 {{ formatListenDuration(displayTodaySeconds) }}</small>
         </div>
         <div class="metric-card">
-          <span>本周</span>
+          <span>本周（周一至今）</span>
           <strong>{{ formatListenDuration(displayWeekSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
-          </small>
         </div>
         <div class="metric-card">
           <span>本月</span>
           <strong>{{ formatListenDuration(displayMonthSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
-          </small>
         </div>
         <div class="metric-card">
           <span>累计</span>
           <strong>{{ formatListenDuration(displayTotalSeconds) }}</strong>
-          <small v-if="pendingNeteaseListenSeconds > 0">
-            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
-          </small>
         </div>
       </div>
 
@@ -237,6 +226,7 @@ import {
   deepFindValue,
   extractAlbums,
   extractArtists,
+  extractCalendarWeekListenSeconds,
   extractCursor,
   extractUserPlayRecord,
   extractPlaylists,
@@ -355,15 +345,18 @@ const loadFootprint = async (): Promise<void> => {
       uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
     ])
 
-    // 今日歌曲数使用专用“今日收听”接口，并与周实时报告的今日块交叉校验。
+    // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
     footprint.todayCount = extractTodaySongCount(today, week)
-    footprint.todaySeconds = extractTodayListenSeconds(week)
-    const nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
+    footprint.todaySeconds =
+      extractTodayListenSeconds(month) ?? extractTodayListenSeconds(week)
+
+    // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
+    const nextRemoteWeekSeconds =
+      extractCalendarWeekListenSeconds(month) ?? extractRealtimeListenSeconds(week)
     footprint.weekSeconds = nextRemoteWeekSeconds
     footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
-    // 只有“本周时长”真正增长，才说明网易云已经同步了时长。
-    // 首数同步或累计接口变化都不能提前清掉本机 pending。
+    // 只有 UI 实际使用的“本周时长”增长，才抵扣本机 pending。
     reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
     footprint.totalSeconds = extractTotalListenSeconds(total)
 
@@ -714,19 +707,21 @@ button:disabled {
 }
 
 .metric-card {
-  min-height: 128px;
+  min-height: 136px;
   padding: 18px 20px;
   border-radius: 14px;
   background: var(--color-body-bg);
   display: grid;
-  grid-template-rows: auto minmax(48px, 1fr) 20px;
+  grid-template-rows: auto 1fr auto;
+  row-gap: 8px;
   align-items: end;
   box-sizing: border-box;
   min-width: 0;
 
-  span {
+  > span {
     align-self: start;
     font-size: 12px;
+    line-height: 1.35;
     opacity: 0.58;
   }
 
@@ -738,13 +733,26 @@ button:disabled {
   }
 
   small {
+    display: block;
     align-self: end;
+    min-height: 18px;
     margin-top: 0;
     font-size: 12px;
     font-weight: 650;
-    line-height: 20px;
+    line-height: 1.4;
     opacity: 0.58;
   }
+}
+
+.sync-status {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .metric-grid:not(.compact) .metric-card:nth-child(4) strong {
