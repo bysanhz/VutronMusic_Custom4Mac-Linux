@@ -4,7 +4,7 @@
       <div>
         <div class="eyebrow">NETEASE INSIGHTS</div>
         <h1>音乐洞察</h1>
-        <p>发现、足迹和管理能力集中在一个稳定的网易云工具页。</p>
+        <p>把听歌足迹、曲风探索和云盘能力集中在一个稳定的网易云工具页。</p>
       </div>
       <button class="refresh-button" :disabled="refreshing" @click="refreshCurrent">
         {{ refreshing ? '刷新中…' : '刷新' }}
@@ -27,7 +27,7 @@
         <div>
           <h2>听歌足迹</h2>
           <p>
-            今日显示不同歌曲数；今日/周/月/累计时长来自网易云听歌足迹，常听榜来自账号真实播放记录。
+            今日显示不同歌曲数；时长以网易云统计为基线，并即时叠加本机尚未同步的有效播放时长。
           </p>
         </div>
       </div>
@@ -38,19 +38,19 @@
           <strong>{{
             footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—'
           }}</strong>
-          <small>{{ formatListenDuration(footprint.todaySeconds) }}</small>
+          <small>{{ formatListenDuration(displayTodaySeconds) }}</small>
         </div>
         <div class="metric-card">
           <span>本周</span>
-          <strong>{{ formatListenDuration(footprint.weekSeconds) }}</strong>
+          <strong>{{ formatListenDuration(displayWeekSeconds) }}</strong>
         </div>
         <div class="metric-card">
           <span>本月</span>
-          <strong>{{ formatListenDuration(footprint.monthSeconds) }}</strong>
+          <strong>{{ formatListenDuration(displayMonthSeconds) }}</strong>
         </div>
         <div class="metric-card">
           <span>累计</span>
-          <strong>{{ formatListenDuration(footprint.totalSeconds) }}</strong>
+          <strong>{{ formatListenDuration(displayTotalSeconds) }}</strong>
         </div>
       </div>
 
@@ -193,85 +193,6 @@
       <div v-show="!cloudTracks.length" class="empty">当前云盘为空，或账号尚未登录。</div>
     </section>
 
-    <section v-show="activeTab === 'playlist'" class="panel">
-      <div class="section-head">
-        <div>
-          <h2>歌单管理增强</h2>
-          <p>完整读取超长歌单，并支持歌单置顶和隐私歌单公开。</p>
-        </div>
-      </div>
-
-      <div class="tool-grid one-line">
-        <label>
-          <span>我的歌单</span>
-          <select v-model="selectedPlaylistId">
-            <option value="">请选择</option>
-            <option
-              v-for="playlist in ownPlaylists"
-              :key="playlist.id"
-              :value="String(playlist.id)"
-            >
-              {{ playlist.name }} · {{ playlist.trackCount ?? 0 }} 首
-            </option>
-          </select>
-        </label>
-      </div>
-      <div class="action-row">
-        <button @click="loadFullPlaylist">完整加载歌曲</button>
-        <button @click="pinPlaylistFirst">置顶当前歌单</button>
-        <button v-show="selectedPlaylist?.privacy === 10" @click="makePlaylistPublic"
-          >公开此歌单</button
-        >
-      </div>
-
-      <InsightsTrackList
-        :items="fullPlaylistTracks"
-        empty-text="选择一个自己的歌单后，可以完整读取歌曲。"
-      />
-    </section>
-
-    <section v-show="activeTab === 'insight'" class="panel">
-      <div class="section-head">
-        <div>
-          <h2>歌曲洞察与私人 DJ</h2>
-          <p>读取歌曲百科、音乐详情、红心数、动态封面、相似歌曲和私人 DJ。</p>
-        </div>
-      </div>
-
-      <div class="tool-grid one-line">
-        <label>
-          <span>歌曲 ID</span>
-          <input v-model.trim="insightTrackId" placeholder="播放歌曲后会自动填入" />
-        </label>
-      </div>
-      <div class="action-row">
-        <button @click="loadSongInsight">读取歌曲洞察</button>
-        <button @click="loadAiDj">刷新私人 DJ</button>
-      </div>
-
-      <div class="metric-grid compact">
-        <div class="metric-card">
-          <span>红心数量</span>
-          <strong>{{ songInsight.redCount ?? '—' }}</strong>
-        </div>
-        <div class="metric-card wide">
-          <span>歌曲信息</span>
-          <strong class="summary-text">{{ songInsight.summary || '暂无' }}</strong>
-        </div>
-      </div>
-      <img
-        v-show="songInsight.cover"
-        :src="songInsight.cover"
-        class="dynamic-cover"
-        alt="动态封面"
-      />
-
-      <h3>相似歌曲</h3>
-      <InsightsTrackList :items="similarTracks" empty-text="暂时没有相似歌曲。" />
-
-      <h3>私人 DJ</h3>
-      <InsightsTrackList :items="aiDjTracks" empty-text="私人 DJ 当前没有返回可播放歌曲。" />
-    </section>
   </div>
 </template>
 
@@ -283,25 +204,17 @@ import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
 import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
+import { calculateActiveListenIncrement } from '../utils/playbackFeedback'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
 import {
-  aiDjContentRecommend,
   cloudLyricGet,
   cloudMatch,
   listenRealtimeReport,
   userPlayRecord,
   listenTodaySongs,
   listenTotal,
-  playlistTrackAll,
-  publishPrivatePlaylist,
-  similarSongs,
-  songDynamicCover,
-  songMusicDetail,
-  songRedCount,
-  songWikiSummary,
   styleDetail,
   styleResource,
-  updatePlaylistOrder,
   type StyleResourceType
 } from '../api/modern'
 import {
@@ -326,9 +239,7 @@ import {
 const tabs = [
   { id: 'footprint', label: '听歌足迹' },
   { id: 'style', label: '曲风漫游' },
-  { id: 'cloud', label: '云盘 Pro' },
-  { id: 'playlist', label: '歌单管理' },
-  { id: 'insight', label: '歌曲洞察' }
+  { id: 'cloud', label: '云盘 Pro' }
 ] as const
 
 const styleResourceTabs: Array<{ id: StyleResourceType; label: string }> = [
@@ -343,7 +254,6 @@ const dataStore = useDataStore()
 const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
-const { currentTrack } = storeToRefs(playerStore)
 const { showToast } = stateStore
 
 const refreshing = ref(false)
@@ -357,6 +267,66 @@ const footprint = reactive<{
   allTracks: any[]
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
+
+const localPendingListenSeconds = ref(0)
+const lastRemoteTotalSeconds = ref<number | undefined>(undefined)
+let listenSampleTimer: number | null = null
+let lastListenSampleAt = Date.now()
+let lastListenProgress = 0
+let lastListenTrackId: number | null = null
+
+const addPendingListenSeconds = (remoteSeconds?: number): number | undefined => {
+  const remote = Number(remoteSeconds)
+  const pending = Math.max(0, localPendingListenSeconds.value)
+  if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
+  return remote + pending
+}
+
+const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.todaySeconds))
+const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
+const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
+const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
+
+const isCurrentTrackNeteaseEligible = (): boolean => {
+  const track = playerStore.currentTrack as any
+  if (!track?.id) return false
+  if (track.type === 'stream') return false
+  return track.matched !== false
+}
+
+const sampleLocalListenTime = (): void => {
+  const now = Date.now()
+  const trackId = Number(playerStore.currentTrack?.id)
+  const progress = Number(playerStore.progress)
+
+  if (!Number.isFinite(trackId) || trackId <= 0 || !Number.isFinite(progress) || progress < 0) {
+    lastListenTrackId = null
+    lastListenSampleAt = now
+    lastListenProgress = 0
+    return
+  }
+
+  if (lastListenTrackId !== trackId) {
+    lastListenTrackId = trackId
+    lastListenSampleAt = now
+    lastListenProgress = progress
+    return
+  }
+
+  const wallDeltaSeconds = Math.max(0, (now - lastListenSampleAt) / 1000)
+  const progressDeltaSeconds = progress - lastListenProgress
+  if (isCurrentTrackNeteaseEligible()) {
+    localPendingListenSeconds.value += calculateActiveListenIncrement({
+      playing: Boolean(playerStore.playing),
+      wallDeltaSeconds,
+      progressDeltaSeconds,
+      playbackRate: Number(playerStore.playbackRate) || 1
+    })
+  }
+
+  lastListenSampleAt = now
+  lastListenProgress = progress
+}
 
 const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
@@ -378,24 +348,7 @@ const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
 
-const ownPlaylists = computed(() =>
-  (liked.value.playlists ?? []).filter(
-    (playlist: any) => String(playlist?.creator?.userId) === String(user.value.userId)
-  )
-)
-const selectedPlaylistId = ref('')
-const fullPlaylistTracks = ref<any[]>([])
-const selectedPlaylist = computed(() =>
-  ownPlaylists.value.find((playlist: any) => String(playlist.id) === selectedPlaylistId.value)
-)
 
-const insightTrackId = ref('')
-const songInsight = reactive<{ redCount?: number; summary: string; cover: string }>({
-  summary: '',
-  cover: ''
-})
-const similarTracks = ref<any[]>([])
-const aiDjTracks = ref<any[]>([])
 
 const currentStyleCount = computed(() => {
   if (styleResourceType.value === 'song') return styleTracks.value.length
@@ -429,7 +382,19 @@ const loadFootprint = async (): Promise<void> => {
   footprint.todaySeconds = extractTodayListenSeconds(week)
   footprint.weekSeconds = extractRealtimeListenSeconds(week)
   footprint.monthSeconds = extractRealtimeListenSeconds(month)
-  footprint.totalSeconds = extractTotalListenSeconds(total)
+
+  const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
+  if (
+    lastRemoteTotalSeconds.value !== undefined &&
+    nextRemoteTotalSeconds !== undefined &&
+    nextRemoteTotalSeconds > lastRemoteTotalSeconds.value
+  ) {
+    const syncedSeconds = nextRemoteTotalSeconds - lastRemoteTotalSeconds.value
+    localPendingListenSeconds.value = Math.max(0, localPendingListenSeconds.value - syncedSeconds)
+  }
+  lastRemoteTotalSeconds.value = nextRemoteTotalSeconds
+  footprint.totalSeconds = nextRemoteTotalSeconds
+
   footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
   footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
 }
@@ -585,82 +550,6 @@ const removeCloudSong = async (): Promise<void> => {
   showToast('已从云盘删除')
 }
 
-const loadFullPlaylist = async (): Promise<void> => {
-  if (!selectedPlaylistId.value) {
-    showToast('请先选择歌单')
-    return
-  }
-  const result = await safeRequest(
-    playlistTrackAll({ id: selectedPlaylistId.value, limit: 5000 }),
-    '完整读取歌单'
-  )
-  fullPlaylistTracks.value = extractTracks(result, 5000)
-  if (!fullPlaylistTracks.value.length) showToast('完整歌曲读取失败或歌单为空')
-}
-
-const pinPlaylistFirst = async (): Promise<void> => {
-  if (!selectedPlaylistId.value) {
-    showToast('请先选择歌单')
-    return
-  }
-  const ordered = [
-    selectedPlaylistId.value,
-    ...ownPlaylists.value
-      .map((playlist: any) => String(playlist.id))
-      .filter((id: string) => id !== selectedPlaylistId.value)
-  ]
-  const result = await safeRequest(updatePlaylistOrder(ordered), '更新歌单顺序')
-  if (!isSuccessfulResponse(result)) {
-    showToast('歌单顺序更新失败')
-    return
-  }
-  await safeRequest(dataStore.fetchLikedPlaylist(), '刷新歌单')
-  showToast('已将歌单置顶')
-}
-
-const makePlaylistPublic = async (): Promise<void> => {
-  if (!selectedPlaylistId.value) return
-  const result = await safeRequest(publishPrivatePlaylist(selectedPlaylistId.value), '公开歌单')
-  if (!isSuccessfulResponse(result)) {
-    showToast('公开歌单失败')
-    return
-  }
-  await safeRequest(dataStore.fetchLikedPlaylist(), '刷新歌单')
-  showToast('歌单已公开')
-}
-
-const loadSongInsight = async (): Promise<void> => {
-  const id = Number(insightTrackId.value)
-  if (!Number.isFinite(id) || id <= 0) {
-    showToast('请输入有效歌曲 ID')
-    return
-  }
-
-  const [wiki, detail, red, cover, simi] = await Promise.all([
-    safeRequest(songWikiSummary(id), '歌曲百科'),
-    safeRequest(songMusicDetail(id), '歌曲音乐详情'),
-    safeRequest(songRedCount(id), '歌曲红心数'),
-    safeRequest(songDynamicCover(id), '歌曲动态封面'),
-    safeRequest(similarSongs(id), '相似歌曲')
-  ])
-
-  songInsight.redCount = extractMetric(red, ['count', 'redCount', 'likeCount', 'likedCount'])
-  songInsight.summary = String(
-    deepFindValue(wiki, ['summary', 'content', 'desc', 'description', 'text']) ??
-      deepFindValue(detail, ['summary', 'content', 'desc', 'description', 'text']) ??
-      ''
-  ).slice(0, 500)
-  songInsight.cover = String(
-    deepFindValue(cover, ['url', 'coverUrl', 'picUrl', 'imageUrl', 'videoUrl']) ?? ''
-  )
-  similarTracks.value = extractTracks(simi, 30)
-}
-
-const loadAiDj = async (): Promise<void> => {
-  const result = await safeRequest(aiDjContentRecommend(), '私人 DJ')
-  aiDjTracks.value = extractTracks(result, 50)
-  if (!aiDjTracks.value.length) showToast('私人 DJ 当前没有返回可播放歌曲')
-}
 
 const refreshCurrent = async (): Promise<void> => {
   if (refreshing.value) return
@@ -668,12 +557,7 @@ const refreshCurrent = async (): Promise<void> => {
   try {
     if (activeTab.value === 'footprint') await loadFootprint()
     else if (activeTab.value === 'style') await loadStyleCatalog()
-    else if (activeTab.value === 'cloud') await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
-    else if (activeTab.value === 'playlist') {
-      await safeRequest(dataStore.fetchLikedPlaylist(), '刷新歌单')
-    } else {
-      await Promise.all([loadSongInsight(), loadAiDj()])
-    }
+    else await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
   } finally {
     refreshing.value = false
   }
@@ -689,26 +573,21 @@ const handleNeteaseScrobble = (): void => {
   }, 1800)
 }
 
-watch(
-  () => currentTrack.value?.id,
-  (id) => {
-    if (id) insightTrackId.value = String(id)
-  },
-  { immediate: true }
-)
 
 watch(activeTab, (tab) => {
   if (tab === 'style' && !styleTags.value.length) void loadStyleCatalog()
   if (tab === 'cloud' && !cloudTracks.value.length) {
     void safeRequest(dataStore.fetchCloudDisk(), '加载云盘')
   }
-  if (tab === 'playlist' && !ownPlaylists.value.length) {
-    void safeRequest(dataStore.fetchLikedPlaylist(), '加载歌单')
-  }
 })
 
 onMounted(() => {
   window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
+  lastListenSampleAt = Date.now()
+  lastListenProgress = Number(playerStore.progress) || 0
+  lastListenTrackId = Number(playerStore.currentTrack?.id) || null
+  if (listenSampleTimer !== null) window.clearInterval(listenSampleTimer)
+  listenSampleTimer = window.setInterval(sampleLocalListenTime, 1000)
   void loadFootprint()
 })
 
@@ -717,6 +596,10 @@ onBeforeUnmount(() => {
   if (footprintRefreshTimer !== null) {
     window.clearTimeout(footprintRefreshTimer)
     footprintRefreshTimer = null
+  }
+  if (listenSampleTimer !== null) {
+    window.clearInterval(listenSampleTimer)
+    listenSampleTimer = null
   }
 })
 </script>
