@@ -301,7 +301,7 @@ const getLikedPreviewArtist = (track: any) => {
   return names.length ? names.join(' / ') : '未知歌手'
 }
 
-const playLikedPreviewTrack = (trackId: number) => {
+const playLikedPreviewTrack = (trackId: number | string) => {
   const trackIDs = likedSongsPreview.value
     .map((track: any) => Number(track.id || track.songId))
     .filter((id: number) => Number.isFinite(id) && id > 0)
