@@ -29,10 +29,14 @@ const state = readState()
 
 export const pendingNeteaseListenSeconds = ref(state.pendingSeconds)
 
+const PERSIST_INTERVAL_MS = 5_000
 let lastRemoteTotalSeconds = state.lastRemoteTotalSeconds
+let lastPersistAt = 0
 
-const persist = (): void => {
+const persist = (force = false): void => {
   if (typeof localStorage === 'undefined') return
+  const now = Date.now()
+  if (!force && now - lastPersistAt < PERSIST_INTERVAL_MS) return
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -41,6 +45,7 @@ const persist = (): void => {
         lastRemoteTotalSeconds
       })
     )
+    lastPersistAt = now
   } catch (error) {
     console.warn('[NetEaseListenPending] 保存待同步听歌时长失败：', error)
   }
@@ -50,7 +55,11 @@ export const addPendingNeteaseListenSeconds = (seconds: number): void => {
   const value = Number(seconds)
   if (!Number.isFinite(value) || value <= 0) return
   pendingNeteaseListenSeconds.value += value
-  persist()
+  persist(true)
+}
+
+export const flushPendingNeteaseListenSeconds = (): void => {
+  persist(true)
 }
 
 /**
