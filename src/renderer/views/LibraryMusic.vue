@@ -590,19 +590,22 @@ onUnmounted(() => {
   .liked-preview-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 20px;
+    grid-auto-rows: 94px;
+    column-gap: 18px;
+    row-gap: 0;
     align-content: start;
     width: 100%;
   }
 
   .liked-preview-item {
     min-width: 0;
-    min-height: 64px;
-    padding: 8px 10px;
+    height: 94px;
+    padding: 8px 8px;
     box-sizing: border-box;
     border-radius: 12px;
     display: flex;
     align-items: center;
+    overflow: hidden;
     user-select: none;
     transition: background-color 0.2s;
 
@@ -612,10 +615,10 @@ onUnmounted(() => {
   }
 
   .liked-preview-cover {
-    width: 46px;
-    height: 46px;
-    flex: 0 0 46px;
-    margin-right: 20px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    margin-right: 14px;
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
@@ -624,18 +627,22 @@ onUnmounted(() => {
 
   .liked-preview-text {
     min-width: 0;
+    max-height: 78px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    overflow: hidden;
   }
 
   .liked-preview-title {
     min-width: 0;
-    font-size: 16px !important;
-    line-height: 20px;
+    line-height: 19px;
     font-weight: 600;
-    white-space: normal;
-    overflow: visible;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
@@ -643,14 +650,32 @@ onUnmounted(() => {
   .liked-preview-artist {
     min-width: 0;
     margin-top: 2px;
-    font-size: 13px !important;
-    line-height: 18px;
+    line-height: 17px;
     opacity: 0.68;
-    white-space: normal;
-    overflow: visible;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
+}
+
+/*
+ * App.vue uses #app + !important for global typography. These selectors include #app as well,
+ * so the compact Library preview keeps its intended hierarchy instead of every line becoming 16/20px.
+ */
+:global(#app) .library .liked-preview-title {
+  font-size: var(--app-global-font-size) !important;
+}
+
+:global(#app) .library .liked-preview-artist {
+  font-size: calc(0.8125 * var(--app-global-font-size)) !important;
+}
+
+:global(#app) .library .liked-songs .bottom .title {
+  font-size: var(--app-global-font-size) !important;
 }
 
 .section-two {
