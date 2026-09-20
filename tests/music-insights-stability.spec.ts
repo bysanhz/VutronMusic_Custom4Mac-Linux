@@ -41,6 +41,11 @@ test.describe('music insights rendering stability', () => {
     expect(pending).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'")
     expect(pending).toContain('pendingNeteaseListenSeconds.value += value')
     expect(pending).toContain('next > lastRemoteTotalSeconds')
+    expect(view).toContain('const PENDING_SYNC_INTERVAL_MS = 30_000')
+    expect(view).toContain('startPendingSyncPolling()')
+    expect(view).toContain('stopPendingSyncPolling()')
+    expect(view).toContain('pendingNeteaseListenSeconds.value <= 0')
+    expect(view).toContain('if (footprintRequestInFlight) return')
   })
 
   test('does not empty style results before the replacement request resolves', () => {

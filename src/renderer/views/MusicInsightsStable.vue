@@ -314,7 +314,10 @@ const stylePlaylists = ref<any[]>([])
 const styleLoading = ref(false)
 let styleRequestRevision = 0
 let styleDetailRevision = 0
+const PENDING_SYNC_INTERVAL_MS = 30_000
 let footprintRefreshTimer: number | null = null
+let footprintSyncInterval: number | null = null
+let footprintRequestInFlight = false
 
 const selectedCloudSongId = ref('')
 const cloudTargetSongId = ref('')
@@ -338,28 +341,35 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
 }
 
 const loadFootprint = async (): Promise<void> => {
-  const uid = user.value.userId
-  const [today, week, month, total, weekRecord, allRecord] = await Promise.all([
-    safeRequest(listenTodaySongs(), '今日听歌'),
-    safeRequest(listenRealtimeReport('week'), '本周听歌'),
-    safeRequest(listenRealtimeReport('month'), '本月听歌'),
-    safeRequest(listenTotal(), '累计听歌'),
-    uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),
-    uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
-  ])
+  if (footprintRequestInFlight) return
+  footprintRequestInFlight = true
 
-  // 今日歌曲数使用专用“今日收听”接口，并与周实时报告的今日块交叉校验。
-  footprint.todayCount = extractTodaySongCount(today, week)
-  footprint.todaySeconds = extractTodayListenSeconds(week)
-  footprint.weekSeconds = extractRealtimeListenSeconds(week)
-  footprint.monthSeconds = extractRealtimeListenSeconds(month)
+  try {
+    const uid = user.value.userId
+    const [today, week, month, total, weekRecord, allRecord] = await Promise.all([
+      safeRequest(listenTodaySongs(), '今日听歌'),
+      safeRequest(listenRealtimeReport('week'), '本周听歌'),
+      safeRequest(listenRealtimeReport('month'), '本月听歌'),
+      safeRequest(listenTotal(), '累计听歌'),
+      uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),
+      uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
+    ])
 
-  const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
-  reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)
-  footprint.totalSeconds = nextRemoteTotalSeconds
+    // 今日歌曲数使用专用“今日收听”接口，并与周实时报告的今日块交叉校验。
+    footprint.todayCount = extractTodaySongCount(today, week)
+    footprint.todaySeconds = extractTodayListenSeconds(week)
+    footprint.weekSeconds = extractRealtimeListenSeconds(week)
+    footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
-  footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
-  footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
+    const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
+    reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)
+    footprint.totalSeconds = nextRemoteTotalSeconds
+
+    footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
+    footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
+  } finally {
+    footprintRequestInFlight = false
+  }
 }
 
 const loadStyleCatalog = async (): Promise<void> => {
@@ -525,6 +535,30 @@ const refreshCurrent = async (): Promise<void> => {
   }
 }
 
+const stopPendingSyncPolling = (): void => {
+  if (footprintSyncInterval === null) return
+  window.clearInterval(footprintSyncInterval)
+  footprintSyncInterval = null
+}
+
+const startPendingSyncPolling = (): void => {
+  if (
+    footprintSyncInterval !== null ||
+    activeTab.value !== 'footprint' ||
+    pendingNeteaseListenSeconds.value <= 0
+  ) {
+    return
+  }
+
+  footprintSyncInterval = window.setInterval(() => {
+    if (activeTab.value !== 'footprint' || pendingNeteaseListenSeconds.value <= 0) {
+      stopPendingSyncPolling()
+      return
+    }
+    void loadFootprint()
+  }, PENDING_SYNC_INTERVAL_MS)
+}
+
 const handleNeteaseScrobble = (): void => {
   if (activeTab.value !== 'footprint') return
   if (footprintRefreshTimer !== null) window.clearTimeout(footprintRefreshTimer)
@@ -535,16 +569,23 @@ const handleNeteaseScrobble = (): void => {
   }, 1800)
 }
 
-watch(activeTab, (tab) => {
-  if (tab === 'style' && !styleTags.value.length) void loadStyleCatalog()
-  if (tab === 'cloud' && !cloudTracks.value.length) {
-    void safeRequest(dataStore.fetchCloudDisk(), '加载云盘')
+watch(
+  () => [activeTab.value, pendingNeteaseListenSeconds.value] as const,
+  ([tab, pendingSeconds]) => {
+    if (tab === 'footprint' && pendingSeconds > 0) startPendingSyncPolling()
+    else stopPendingSyncPolling()
+
+    if (tab === 'style' && !styleTags.value.length) void loadStyleCatalog()
+    if (tab === 'cloud' && !cloudTracks.value.length) {
+      void safeRequest(dataStore.fetchCloudDisk(), '加载云盘')
+    }
   }
-})
+)
 
 onMounted(() => {
   window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
   void loadFootprint()
+  startPendingSyncPolling()
 })
 
 onBeforeUnmount(() => {
@@ -553,6 +594,7 @@ onBeforeUnmount(() => {
     window.clearTimeout(footprintRefreshTimer)
     footprintRefreshTimer = null
   }
+  stopPendingSyncPolling()
 })
 </script>
 
