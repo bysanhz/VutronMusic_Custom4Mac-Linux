@@ -55,7 +55,7 @@ export const addPendingNeteaseListenSeconds = (seconds: number): void => {
   const value = Number(seconds)
   if (!Number.isFinite(value) || value <= 0) return
   pendingNeteaseListenSeconds.value += value
-  persist(true)
+  persist()
 }
 
 export const flushPendingNeteaseListenSeconds = (): void => {
@@ -65,7 +65,7 @@ export const flushPendingNeteaseListenSeconds = (): void => {
 /**
  * 用网易云累计时长的增长量抵扣本机已经临时叠加的时长。
  *
- * 网易云听歌统计并非实时刷新。播放器成功 scrobble 后先把本机有效收听时长加入
+ * 网易云听歌统计并非实时刷新。播放器在实际播放过程中把有效收听时长持续加入
  * pending；洞察页每次读取累计时长时再用服务端新增量抵扣，避免服务端追上后重复计算。
  */
 export const reconcileNeteaseRemoteTotal = (remoteTotalSeconds?: number): void => {
@@ -81,5 +81,5 @@ export const reconcileNeteaseRemoteTotal = (remoteTotalSeconds?: number): void =
   }
 
   lastRemoteTotalSeconds = next
-  persist()
+  persist(true)
 }
