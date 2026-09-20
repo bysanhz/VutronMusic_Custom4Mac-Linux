@@ -30,6 +30,7 @@ import {
   registerSleepTimerPauseHandler
 } from '../utils/sleepTimerSettings'
 import { markPlaybackEndReason } from '../utils/playbackFeedback'
+import { addPendingNeteaseListenSeconds } from '../utils/neteaseListenPending'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -1019,6 +1020,10 @@ export const usePlayerStore = defineStore(
             result
           })
           return
+        }
+
+        if (!result?.skipped && !result?.deduplicated) {
+          addPendingNeteaseListenSeconds(listenedSeconds)
         }
 
         window.dispatchEvent(
