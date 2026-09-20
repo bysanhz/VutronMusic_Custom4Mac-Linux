@@ -348,15 +348,20 @@ export const useDataStore = defineStore(
           return
         }
 
+        /*
+         * 网易云可能从 /song/detail 的响应里省略已下架或当前账号不可用的歌曲。
+         * 如果只请求前 8 个 ID，顶部 2×4 预览就可能只剩 6～7 首。多取一段候选，
+         * 再从实际返回的可用详情里截前 8 首，保证预览尽量填满四行。
+         */
         const detailResult = await getTrackDetail(
           trackIDs
-            .slice(0, 8)
-            .map((track) => track.id)
+            .slice(0, 24)
+            .map((track: any) => track?.id ?? track)
             .join(',')
         )
 
         if (Array.isArray(detailResult?.songs)) {
-          liked.value.songsWithDetails = detailResult.songs
+          liked.value.songsWithDetails = detailResult.songs.slice(0, 8)
         }
       } catch (error) {
         console.warn('[Data] 获取喜欢歌曲详情失败，继续使用已有数据：', error)
