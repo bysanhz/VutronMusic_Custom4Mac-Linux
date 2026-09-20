@@ -36,6 +36,8 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('formatListenDuration(displayWeekSeconds)')
     expect(view).toContain('formatListenDuration(displayMonthSeconds)')
     expect(view).toContain('formatListenDuration(displayTotalSeconds)')
+    expect(view).toContain('formatPendingListenDuration(pendingNeteaseListenSeconds)')
+    expect(view).toContain('本机 +')
     expect(pending).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'")
     expect(pending).toContain('pendingNeteaseListenSeconds.value += value')
     expect(pending).toContain('next > lastRemoteTotalSeconds')
