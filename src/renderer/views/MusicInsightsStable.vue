@@ -226,7 +226,6 @@ import {
   extractArtists,
   extractCursor,
   extractUserPlayRecord,
-  extractMetric,
   extractPlaylists,
   extractRealtimeListenSeconds,
   extractTodayListenSeconds,
@@ -302,8 +301,7 @@ const cloudLyricPreview = ref('')
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
 
 
-
-const currentStyleCount = computed(() => {
+const currentStyleCount/ = computed(() => {
   if (styleResourceType.value === 'song') return styleTracks.value.length
   if (styleResourceType.value === 'album') return styleAlbums.value.length
   if (styleResourceType.value === 'artist') return styleArtists.value.length
@@ -495,8 +493,7 @@ const removeCloudSong = async (): Promise<void> => {
   showToast('已从云盘删除')
 }
 
-
-const refreshCurrent = async (): Promise<void> => {
+const refreshCurrent/ = async (): Promise<void> => {
   if (refreshing.value) return
   refreshing.value = true
   try {
@@ -518,8 +515,7 @@ const handleNeteaseScrobble = (): void => {
   }, 1800)
 }
 
-
-watch(activeTab, (tab) => {
+watch(activeTab/, (tab) => {
   if (tab === 'style' && !styleTags.value.length) void loadStyleCatalog()
   if (tab === 'cloud' && !cloudTracks.value.length) {
     void safeRequest(dataStore.fetchCloudDisk(), '加载云盘')
