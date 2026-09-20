@@ -30,6 +30,10 @@ import {
   registerSleepTimerPauseHandler
 } from '../utils/sleepTimerSettings'
 import { markPlaybackEndReason } from '../utils/playbackFeedback'
+import {
+  addPendingNeteaseListenSeconds,
+  flushPendingNeteaseListenSeconds
+} from '../utils/neteaseListenPending'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -621,6 +625,7 @@ export const usePlayerStore = defineStore(
       if (value) {
         updateIndex()
       } else {
+        flushPendingNeteaseListenSeconds()
         clearTimeout(timer)
         timer = null
       }
@@ -1419,14 +1424,40 @@ export const usePlayerStore = defineStore(
       return appended
     }
 
+    const shouldTrackNeteaseListenTime = (track: Track | null): boolean => {
+      if (!track) return false
+      if (track.type === 'stream') return false
+      if (track.type === 'local' && !track.matched) return false
+      return true
+    }
+
     const _handleTimeUpdate = () => {
       if (!audioNodes.audio) return
-      if (Math.abs(audioNodes.audio.currentTime - lastUpdateTime) >= 1) {
-        _progress.value = audioNodes.audio.currentTime
-        lastUpdateTime = audioNodes.audio.currentTime
+
+      const currentTime = audioNodes.audio.currentTime
+      const delta = currentTime - lastUpdateTime
+      if (Math.abs(delta) >= 1) {
+        /*
+         * 听歌足迹需要即时反映本机真实播放，而不是等切歌后的 scrobble 成功才累计。
+         * seek setter 会同步 lastUpdateTime，因此手动拖动进度条不会被算成收听时长。
+         * 对异常的大跳变再做一次上限保护，避免媒体恢复/外部修改 currentTime 污染统计。
+         */
+        const maxExpectedDelta = Math.max(5, 5 * Number(playbackRate.value || 1))
+        if (
+          playing.value &&
+          delta > 0 &&
+          delta <= maxExpectedDelta &&
+          shouldTrackNeteaseListenTime(currentTrack.value)
+        ) {
+          addPendingNeteaseListenSeconds(delta)
+        }
+
+        _progress.value = currentTime
+        lastUpdateTime = currentTime
       }
+
       if (window.env?.isLinux) {
-        window.mainApi?.send('updatePlayerState', { progress: audioNodes.audio.currentTime })
+        window.mainApi?.send('updatePlayerState', { progress: currentTime })
       }
     }
 
@@ -2105,6 +2136,7 @@ export const usePlayerStore = defineStore(
     })
 
     onBeforeUnmount(() => {
+      flushPendingNeteaseListenSeconds()
       if (currentTrack.value) {
         void scrobbleNetease(
           currentTrack.value,

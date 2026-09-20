@@ -29,10 +29,14 @@ const state = readState()
 
 export const pendingNeteaseListenSeconds = ref(state.pendingSeconds)
 
+const PERSIST_INTERVAL_MS = 5_000
 let lastRemoteTotalSeconds = state.lastRemoteTotalSeconds
+let lastPersistAt = 0
 
-const persist = (): void => {
+const persist = (force = false): void => {
   if (typeof localStorage === 'undefined') return
+  const now = Date.now()
+  if (!force && now - lastPersistAt < PERSIST_INTERVAL_MS) return
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -41,6 +45,7 @@ const persist = (): void => {
         lastRemoteTotalSeconds
       })
     )
+    lastPersistAt = now
   } catch (error) {
     console.warn('[NetEaseListenPending] 保存待同步听歌时长失败：', error)
   }
@@ -53,10 +58,14 @@ export const addPendingNeteaseListenSeconds = (seconds: number): void => {
   persist()
 }
 
+export const flushPendingNeteaseListenSeconds = (): void => {
+  persist(true)
+}
+
 /**
  * 用网易云累计时长的增长量抵扣本机已经临时叠加的时长。
  *
- * 网易云听歌统计并非实时刷新。播放器成功 scrobble 后先把本机有效收听时长加入
+ * 网易云听歌统计并非实时刷新。播放器在实际播放过程中把有效收听时长持续加入
  * pending；洞察页每次读取累计时长时再用服务端新增量抵扣，避免服务端追上后重复计算。
  */
 export const reconcileNeteaseRemoteTotal = (remoteTotalSeconds?: number): void => {
@@ -72,5 +81,5 @@ export const reconcileNeteaseRemoteTotal = (remoteTotalSeconds?: number): void =
   }
 
   lastRemoteTotalSeconds = next
-  persist()
+  persist(true)
 }
