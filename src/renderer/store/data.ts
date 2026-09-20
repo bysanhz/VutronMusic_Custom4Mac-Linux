@@ -356,7 +356,7 @@ export const useDataStore = defineStore(
         const detailResult = await getTrackDetail(
           trackIDs
             .slice(0, 24)
-            .map((track) => track.id)
+            .map((track: any) => track?.id ?? track)
             .join(',')
         )
 
