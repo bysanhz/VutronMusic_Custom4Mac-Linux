@@ -1,5 +1,6 @@
 import { lyricLine } from '@/types/music'
 import request from '../utils/request'
+import { addPendingNeteaseListenSeconds } from '../utils/neteaseListenPending'
 
 const isSuccessfulResponse = (result: any) =>
   Boolean(result) && (result.code === undefined || Number(result.code) === 200)
@@ -278,6 +279,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
     .then((result) => {
       if (isSuccessfulResponse(result)) {
         lastSuccessfulScrobbleAt.set(trackId, Date.now())
+        addPendingNeteaseListenSeconds(listenedSeconds)
       }
       return result
     })
