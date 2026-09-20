@@ -192,7 +192,6 @@
       <pre v-show="cloudLyricPreview" class="preview">{{ cloudLyricPreview }}</pre>
       <div v-show="!cloudTracks.length" class="empty">当前云盘为空，或账号尚未登录。</div>
     </section>
-
   </div>
 </template>
 
