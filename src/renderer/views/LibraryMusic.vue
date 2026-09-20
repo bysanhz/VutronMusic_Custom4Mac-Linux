@@ -25,18 +25,27 @@
         </div>
       </div>
       <div class="songs">
-        <TrackList
-          :id="libraryData.playlists.length > 0 ? libraryData.playlists[0].id : 0"
-          :items="likedSongsPreview"
-          :type="'tracklist'"
-          :show-position="false"
-          :item-height="64"
-          :height="256"
-          :is-end="true"
-          :padding-bottom="0"
-          :colunm-number="2"
-          :enable-virtual-scroll="false"
-        />
+        <div class="liked-preview-grid">
+          <div
+            v-for="track in likedSongsPreview"
+            :key="track.id || track.songId"
+            class="liked-preview-item"
+            @dblclick="playLikedPreviewTrack(track.id || track.songId)"
+          >
+            <img
+              class="liked-preview-cover"
+              :src="getLikedPreviewImage(track)"
+              loading="lazy"
+              decoding="async"
+            />
+            <div class="liked-preview-text">
+              <div class="liked-preview-title" :title="track.name">{{ track.name }}</div>
+              <div class="liked-preview-artist" :title="getLikedPreviewArtist(track)">{{
+                getLikedPreviewArtist(track)
+              }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -226,6 +235,7 @@ import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
 import { ref, computed, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { dailyTask, randomNum, pickedLyric } from '../utils'
+import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import { getTrackDetail } from '../api/track'
 import SvgIcon from '../components/SvgIcon.vue'
@@ -234,6 +244,7 @@ import CoverRow from '../components/VirtualCoverRow.vue'
 import Mvrow from '../components/MvRow.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { useRouter } from 'vue-router'
+import { usePlayerStore } from '../store/player'
 import { lyricLine } from '@/types/music'
 
 const dataStore = useDataStore()
@@ -244,6 +255,8 @@ const { newPlaylistModal } = storeToRefs(useNormalStateStore())
 const show = ref(false)
 const playHistoryMode = ref('week')
 const router = useRouter()
+const playerStore = usePlayerStore()
+const { replacePlaylist } = playerStore
 
 const lyric = ref<{ content: string }[]>([])
 const randomtrack = ref<{ [key: string]: any }>()
@@ -269,12 +282,40 @@ const libraryData = computed(() => {
 })
 
 /*
- * 顶部右侧只承担“我喜欢的音乐”预览，不再把完整喜欢列表塞进虚拟滚动区。
- * TrackListItem 的实际基础行高是 64px（46px 封面 + 2px 边框 + 上下各 8px padding），
- * 因此两列 x 四行需要 256px。此前使用 60px / 240px 会让第四行被容器裁掉。
- * 这里只渲染 8 首，同时让左侧喜欢卡片随右侧预览自然拉伸到同一高度。
+ * 顶部喜欢歌曲预览使用普通 CSS Grid，而不是 VirtualTrackList。
+ * 这里的数据量固定最多 8 首，不需要虚拟滚动；让内容进入正常文档流后，高度由实际
+ * 字体、缩放和封面尺寸决定，避免固定 itemHeight / containerHeight 再次裁掉第四行。
  */
 const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 8))
+
+const getLikedPreviewImage = (track: any) => {
+  const rawUrl = track.al?.picUrl || track.album?.picUrl || track.picUrl
+  if (!rawUrl) return 'atom://get-default-pic'
+  const url = rawUrl.startsWith('http:') ? rawUrl.replace('http:', 'https:') : rawUrl
+  return `${url}${url.includes('?') ? '&' : '?'}param=64y64`
+}
+
+const getLikedPreviewArtist = (track: any) => {
+  const artists = track.ar || track.artists || []
+  const names = artists.map((artist: any) => artist?.name).filter(Boolean)
+  return names.length ? names.join(' / ') : '未知歌手'
+}
+
+const playLikedPreviewTrack = (trackId: number | string) => {
+  const trackIDs = likedSongsPreview.value
+    .map((track: any) => Number(track.id || track.songId))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
+  const index = trackIDs.indexOf(Number(trackId))
+  if (index < 0) return
+
+  markPlaybackEndReason('manual-select')
+  replacePlaylist(
+    'tracklist',
+    libraryData.value.playlists.length > 0 ? libraryData.value.playlists[0].id : 0,
+    trackIDs,
+    index
+  )
+}
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
 
@@ -475,72 +516,139 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .section-one {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(280px, 3.2fr) minmax(0, 7fr);
+  gap: 20px;
+  align-items: stretch;
   margin-top: 24px;
 
   .liked-songs {
-    flex: 3.2;
+    min-width: 0;
     cursor: pointer;
     border-radius: 16px;
-    padding: 14px 24px 0 24px;
+    padding: 20px 24px;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    justify-items: center;
     transition: all 0.4s;
     background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
 
     .title {
       font-size: 20px;
       font-weight: 700;
-      margin: 24px 0 10px 0;
+      margin: 14px 0 10px 0;
       color: var(--color-primary);
     }
+
     .sub-title {
       font-size: 15px;
       margin-top: 2px;
     }
 
-    .bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .top {
+      flex: 1;
+      min-height: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      opacity: 0.88;
       color: var(--color-primary);
 
+      p {
+        margin: 2px 0 12px;
+        overflow: visible;
+      }
+    }
+
+    .bottom {
+      display: flex;
+      align-items: flex-end;
+      color: var(--color-primary);
+      margin-top: auto;
+
       .titles {
-        width: 80%;
+        width: 100%;
+        min-width: 0;
+
         .title {
           font-size: 16px;
           font-weight: 700;
+          margin: 8px 0 0;
           display: -webkit-box;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           text-overflow: ellipsis;
         }
       }
     }
+  }
 
-    .top {
-      display: flex;
-      flex-wrap: wrap;
-      font-size: 16px;
-      opacity: 0.88;
-      height: 94px;
-      overflow: hidden;
-      color: var(--color-primary);
-      p {
-        margin-top: 2px;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
+  .songs {
+    min-width: 0;
+  }
+
+  .liked-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+    align-content: start;
+    width: 100%;
+  }
+
+  .liked-preview-item {
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background: var(--color-secondary-bg);
     }
   }
-  .songs {
-    flex: 7;
-    margin-left: 20px;
+
+  .liked-preview-cover {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    margin-right: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+    object-fit: cover;
+  }
+
+  .liked-preview-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .liked-preview-title {
+    min-width: 0;
+    font-size: 16px !important;
+    line-height: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .liked-preview-artist {
+    min-width: 0;
+    margin-top: 2px;
+    font-size: 13px !important;
+    line-height: 18px;
+    opacity: 0.68;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
