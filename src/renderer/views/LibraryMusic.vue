@@ -570,15 +570,14 @@ onUnmounted(() => {
         min-width: 0;
 
         .title {
-          font-size: 16px;
+          font-size: 16px !important;
           font-weight: 700;
+          line-height: 1.3;
           margin: 8px 0 0;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow: visible;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
       }
     }
@@ -635,9 +634,10 @@ onUnmounted(() => {
     font-size: 16px !important;
     line-height: 20px;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .liked-preview-artist {
@@ -646,9 +646,10 @@ onUnmounted(() => {
     font-size: 13px !important;
     line-height: 18px;
     opacity: 0.68;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
 
