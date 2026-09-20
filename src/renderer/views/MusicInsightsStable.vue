@@ -38,19 +38,33 @@
           <strong>{{
             footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—'
           }}</strong>
-          <small>{{ formatListenDuration(displayTodaySeconds) }}</small>
+          <small>
+            累计收听 {{ formatListenDuration(displayTodaySeconds) }}
+            <span v-if="pendingNeteaseListenSeconds > 0">
+              · 本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+            </span>
+          </small>
         </div>
         <div class="metric-card">
           <span>本周</span>
           <strong>{{ formatListenDuration(displayWeekSeconds) }}</strong>
+          <small v-if="pendingNeteaseListenSeconds > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          </small>
         </div>
         <div class="metric-card">
           <span>本月</span>
           <strong>{{ formatListenDuration(displayMonthSeconds) }}</strong>
+          <small v-if="pendingNeteaseListenSeconds > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          </small>
         </div>
         <div class="metric-card">
           <span>累计</span>
           <strong>{{ formatListenDuration(displayTotalSeconds) }}</strong>
+          <small v-if="pendingNeteaseListenSeconds > 0">
+            本机 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          </small>
         </div>
       </div>
 
@@ -278,6 +292,14 @@ const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.tod
 const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
 const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
 const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
+
+const formatPendingListenDuration = (seconds: number): string => {
+  const value = Math.max(0, Math.floor(Number(seconds) || 0))
+  const minutes = Math.floor(value / 60)
+  const restSeconds = value % 60
+  if (minutes > 0) return `${minutes}分${restSeconds}秒`
+  return `${restSeconds}秒`
+}
 
 const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
