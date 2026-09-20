@@ -218,7 +218,7 @@ import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
 import {
   pendingNeteaseListenSeconds,
-  reconcileNeteaseRemoteTotal
+  reconcileNeteaseRemoteWeekDuration
 } from '../utils/neteaseListenPending'
 import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
 import {
@@ -358,12 +358,14 @@ const loadFootprint = async (): Promise<void> => {
     // 今日歌曲数使用专用“今日收听”接口，并与周实时报告的今日块交叉校验。
     footprint.todayCount = extractTodaySongCount(today, week)
     footprint.todaySeconds = extractTodayListenSeconds(week)
-    footprint.weekSeconds = extractRealtimeListenSeconds(week)
+    const nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
+    footprint.weekSeconds = nextRemoteWeekSeconds
     footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
-    const nextRemoteTotalSeconds = extractTotalListenSeconds(total)
-    reconcileNeteaseRemoteTotal(nextRemoteTotalSeconds)
-    footprint.totalSeconds = nextRemoteTotalSeconds
+    // 只有“本周时长”真正增长，才说明网易云已经同步了时长。
+    // 首数同步或累计接口变化都不能提前清掉本机 pending。
+    reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
+    footprint.totalSeconds = extractTotalListenSeconds(total)
 
     footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
     footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
