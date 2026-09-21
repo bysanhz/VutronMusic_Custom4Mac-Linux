@@ -480,7 +480,8 @@
     "publishTime": "发布时间：{time}",
     "playCount": "播放次数：{count}",
     "confirmLogout": "确定要退出登录吗？",
-    "comment": "评论"
+    "comment": "评论",
+    "update": "更新"
   },
   "settings": {
     "heartModeProfile": {
@@ -923,7 +924,7 @@
       "pending": "待同步 +{duration}",
       "today": "今日",
       "todayCount": "{count} 首",
-      "todayListen": "今日收听 {duration}",
+      "todayListen": "累计收听 {duration}",
       "week": "本周（周一至今）",
       "month": "本月",
       "total": "累计",
@@ -935,7 +936,8 @@
       "durationSeconds": "{seconds}秒",
       "durationDaysHours": "{days}天 {hours}小时",
       "durationHoursMinutes": "{hours}小时 {minutes}分",
-      "durationMinutes": "{minutes}分"
+      "durationMinutes": "{minutes}分",
+      "todayMetric": "今日 · 歌曲数"
     },
     "style": {
       "title": "曲风漫游 2.0",
@@ -1101,5 +1103,76 @@
   },
   "playerBar": {
     "lyrics": "歌词"
+  },
+  "list": {
+    "otherAlbumTracks": "听听《{name}》的其他歌曲",
+    "otherArtistTracks": "听听 {name} 的其他歌曲",
+    "trackCount": "共 {count} 首歌"
+  },
+  "dailyCard": {
+    "title": "每日推荐",
+    "play": "播放每日推荐",
+    "coverAlt": "每日推荐封面",
+    "loading": "每日推荐仍在加载，请稍后再试"
+  },
+  "fm": {
+    "dislike": "不喜欢",
+    "title": "私人 FM"
+  },
+  "insightsUi": {
+    "unnamed": "未命名",
+    "emptyResources": "当前没有可展示的资源。",
+    "emptyTracks": "当前没有可展示的歌曲。",
+    "playTrack": "播放 {name}",
+    "genericTrack": "歌曲"
+  },
+  "lyricPage": {
+    "advance": "提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）",
+    "delay": "延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）",
+    "none": "所有歌曲：未调整",
+    "advanced": "所有歌曲：提前{seconds}s",
+    "delayed": "所有歌曲：延后{seconds}s",
+    "reset": "已重置所有歌曲的全局歌词偏移",
+    "setAdvanced": "所有歌曲的全局歌词偏移已设为提前{seconds}s",
+    "setDelayed": "所有歌曲的全局歌词偏移已设为延后{seconds}s"
+  },
+  "backgroundSettings": {
+    "title": "背景设置",
+    "snow": "纯净雪域",
+    "sunshine": "落日余晖",
+    "letterImage": "模糊小图",
+    "lottie": "Lottie 动画",
+    "lottiePath": "Lottie 路径，可选默认值：snow、sunshine"
+  },
+  "playerFont": {
+    "title": "歌词设置",
+    "region": "区域设置",
+    "titleTop": "歌名（上）:",
+    "lyricTop": "歌词（上）:",
+    "lyricBottom": "歌词（下）:",
+    "lyricLeft": "歌词（左）:",
+    "lyricRight": "歌词（右）:"
+  },
+  "sense": {
+    "inUse": "使用中",
+    "coverType": "封面类型",
+    "defaultCover": "默认",
+    "circleCover": "圆形封面",
+    "rotateCover": "旋转封面",
+    "transition": "切换动画",
+    "alignLeft": "靠左",
+    "alignCenter": "居中",
+    "alignRight": "靠右",
+    "hingeFlyIn": "铰链翻入",
+    "focusRise": "聚焦上浮",
+    "scatterThrow": "抛散离场",
+    "flipReveal": "翻转显现",
+    "waveDrift": "波浪浮现",
+    "splitAndMerge": "双向聚拢"
+  },
+  "playerMenu": {
+    "background": "背景设置",
+    "lyrics": "歌词设置",
+    "saveTheme": "保存播放器主题"
   }
 }
