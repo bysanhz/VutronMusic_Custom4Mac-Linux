@@ -884,7 +884,8 @@
       "running": "Server is running normally",
       "error": "Server failed to start: {0}",
       "notRunning": "Server is not running"
-    }
+    },
+    "unblockSourcePlaceholder": "e.g. bodian, bilibili, kuwo"
   },
   "toast": {
     "createLocalPlaylistSuccess": "Playlist created",
@@ -1076,5 +1077,29 @@
   "osd": {
     "lock": "Lock Desktop Lyrics",
     "unlock": "Unlock Desktop Lyrics"
+  },
+  "modalPlaylist": {
+    "accurateTitle": "Accurate Local Track Match",
+    "match": "Match",
+    "modify": "Save Changes",
+    "create": "Create",
+    "updated": "Playlist updated",
+    "updateFailed": "Failed to update playlist",
+    "trackCount": "{count} tracks"
+  },
+  "userPage": {
+    "following": "{count} Following",
+    "followers": "{count} Followers",
+    "level": "Level {level}",
+    "chat": "Chat",
+    "history": "Listening Ranking",
+    "events": "Activity",
+    "podcasts": "Podcasts",
+    "follow": "Follow",
+    "followBack": "Follow Back",
+    "followingStatus": "Following"
+  },
+  "playerBar": {
+    "lyrics": "Lyrics"
   }
 }
