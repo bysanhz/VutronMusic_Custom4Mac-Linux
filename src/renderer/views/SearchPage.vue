@@ -2,7 +2,12 @@
   <div v-show="show" class="search-page">
     <div class="info">
       <span class="title">{{ keywords }}</span>
-      <span class="sub-title">找到 {{ result[`${searchTab}Count`] }} {{ tagMap[searchTab] }}</span>
+      <span class="sub-title">{{
+        t('searchPage.found', {
+          count: result[`${searchTab}Count`],
+          unit: t(`searchPage.units.${searchTab}`)
+        })
+      }}</span>
     </div>
     <div v-if="searchTab === 'track'" class="container">
       <TrackList
@@ -47,18 +52,12 @@ import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import TrackList from '../components/VirtualTrackList.vue'
 import CoverRow from '../components/VirtualCoverRow.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const show = ref(false)
 const keywords = ref('')
 const hasMore = ref(true)
-const tagMap = {
-  track: '首歌曲',
-  album: '张专辑',
-  artist: '位歌手',
-  playlist: '个歌单',
-  user: '位用户',
-  lyric: '个歌词'
-}
 const result = reactive<{ [key: string]: any }>({
   track: [],
   trackCount: 0,
