@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="comment-container">
     <div class="comment-head">
-      <label>回复({{ floorCommentInfo.totalCount }})</label>
+      <label>{{ t('comments.replyTitle', { count: floorCommentInfo.totalCount }) }}</label>
       <div class="btns">
-        <button class="btn" @click="switchToCommentPage">关闭</button>
+        <button class="btn" @click="switchToCommentPage">{{ t('comments.close') }}</button>
       </div>
     </div>
     <div ref="mainRef" class="comment-main">
@@ -41,18 +41,20 @@
                 <label v-if="item.beReplied[0].content" class="comment-nickname"
                   >@{{ item.beReplied[0].user.nickname }}:
                 </label>
-                <label>{{ item.beReplied[0].content ?? '该评论已删除' }}</label>
+                <label>{{ item.beReplied[0].content ?? t('comments.deleted') }}</label>
               </div>
               <div class="comment-ex">
                 <div class="time-ip">
-                  <span class="time">{{ formatDate(item.time, 'YYYY年MM月DD日 H:mm') }}</span>
-                  <span v-if="item.ipLocation?.location">来自{{ item.ipLocation.location }}</span>
+                  <span class="time">{{ formatDate(item.time, 'YYYY-MM-DD H:mm') }}</span>
+                  <span v-if="item.ipLocation?.location">{{
+                    t('comments.from', { location: item.ipLocation.location })
+                  }}</span>
                 </div>
                 <div class="comment-btns">
                   <button
                     v-if="isAccountLoggedIn && item.owner"
                     @click.stop="handleDeleteComment(item)"
-                    >删除</button
+                    >{{ t('comments.delete') }}</button
                   >
                   <button @click.stop="handleLikeComment(item)"
                     ><svg-icon :icon-class="item.liked ? 'liked' : 'like'" />{{
@@ -123,7 +125,7 @@ const floorCommentInfo = reactive({
   commentId: 0
 })
 const placeholder = computed(() => {
-  return `回复${selectedComment.value.user.nickname}:`
+  return t('comments.replyTo', { nickname: selectedComment.value.user.nickname })
 })
 
 const commentHeight = ref(mainRef.value?.offsetHeight || 0)
@@ -228,7 +230,7 @@ const handleDeleteComment = (comment: any) => {
     showToast(t('toast.needToLogin'))
     return
   }
-  if (confirm(`确定要删除评论'${comment.content}'吗？`)) {
+  if (confirm(t('comments.deleteConfirm', { content: comment.content }))) {
     const params = {
       t: 0,
       type: typeMap[props.type],

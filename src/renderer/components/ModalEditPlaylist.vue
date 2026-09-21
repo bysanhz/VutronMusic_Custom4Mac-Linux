@@ -21,7 +21,7 @@
       </div>
     </template>
     <template #footer>
-      <button class="primary block" @click="updatePlaylist">修改</button>
+      <button class="primary block" @click="updatePlaylist">{{ t('modalPlaylist.modify') }}</button>
     </template>
   </BaseModal>
 </template>
@@ -34,7 +34,9 @@ import { updatePlaylist as updateOnlinePlaylist } from '../api/playlist'
 import { useNormalStateStore } from '../store/state'
 import { useLocalMusicStore } from '../store/localMusic'
 import { useStreamMusicStore } from '../store/streamingMusic'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const stateStore = useNormalStateStore()
 const { showToast } = stateStore
 const { editPlaylistModal } = storeToRefs(stateStore)
@@ -67,7 +69,7 @@ const updatePlaylist = () => {
       name: modal.info.title,
       desc: modal.info.description
     }).then((result) => {
-      showToast(`更新歌单信息${result ? '成功' : '失败'}`)
+      showToast(t(result ? 'modalPlaylist.updated' : 'modalPlaylist.updateFailed'))
       if (result) close()
       return result
     })
@@ -78,7 +80,7 @@ const updatePlaylist = () => {
       desc: modal.info.description,
       tags: modal.info.tags.join(';')
     }).then((result) => {
-      showToast(`更新歌单信息${result.code === 200 ? '成功' : '失败'}`)
+      showToast(t(result.code === 200 ? 'modalPlaylist.updated' : 'modalPlaylist.updateFailed'))
       if (result.code === 200) close()
       return result
     })
@@ -87,7 +89,7 @@ const updatePlaylist = () => {
       name: modal.info.title,
       desc: modal.info.description
     }).then((result) => {
-      showToast(`更新歌单信息${result ? '成功' : '失败'}`)
+      showToast(t(result ? 'modalPlaylist.updated' : 'modalPlaylist.updateFailed'))
       if (result) close()
       return result
     })

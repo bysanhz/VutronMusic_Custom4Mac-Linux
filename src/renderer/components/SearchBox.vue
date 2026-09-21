@@ -17,14 +17,16 @@
       @blur="doblur"
     />
     <div v-if="props.suggestions && showSuggestions && showInput" class="search-suggestions">
-      <div class="suggestion-title">{{ keywords ? '搜索' : '热搜' }}</div>
+      <div class="suggestion-title">{{
+        keywords ? t('searchBox.search') : t('searchBox.hotSearch')
+      }}</div>
       <button
         v-if="keywords"
         class="suggestion-item keyword-item"
         @mousedown.prevent="chooseSuggestion(keywords)"
       >
         <span class="rank search-mark">↵</span>
-        <span class="word">搜索 “{{ keywords }}”</span>
+        <span class="word">{{ t('searchBox.searchFor', { keyword: keywords }) }}</span>
       </button>
       <button
         v-for="(item, index) in hotKeywords"
@@ -47,6 +49,9 @@
 import { computed, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { searchDefault, searchHotDetail } from '../api/discovery'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   showInputInitially: {
@@ -59,7 +64,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: '搜索'
+    default: ''
   },
   clearKeywords: {
     type: Boolean,
@@ -82,7 +87,9 @@ const defaultKeyword = ref('')
 const hotKeywords = ref<Array<{ searchWord: string; content?: string }>>([])
 const suggestionsLoaded = ref(false)
 
-const effectivePlaceholder = computed(() => defaultKeyword.value || props.placeholder)
+const effectivePlaceholder = computed(
+  () => defaultKeyword.value || props.placeholder || t('searchBox.search')
+)
 
 const loadSuggestions = async () => {
   if (!props.suggestions || suggestionsLoaded.value) return

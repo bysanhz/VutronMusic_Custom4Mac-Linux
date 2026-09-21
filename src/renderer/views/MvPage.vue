@@ -14,10 +14,10 @@
           <div class="desc">{{ mv.data.desc }}</div>
           <div class="info">
             <div>
-              <span>发布时间：{{ mv.data.publishTime }}</span>
-              <span style="margin-left: 20px"
-                >播放次数：{{ formatPlayCount(mv.data.playCount) }}</span
-              >
+              <span>{{ t('mv.publishTime', { time: mv.data.publishTime }) }}</span>
+              <span style="margin-left: 20px">{{
+                t('mv.playCount', { count: formatPlayCount(mv.data.playCount) })
+              }}</span>
             </div>
             <div class="btns">
               <button @click="handleLikeMv(mv)"

@@ -15,7 +15,7 @@
 
     <h1 v-if="_playNextList.length > 0">
       {{ $t('next.insertPlaying') }}
-      <button @click="clearPlayNextList">清除队列</button>
+      <button @click="clearPlayNextList">{{ t('next.clearQueue') }}</button>
     </h1>
     <TrackList
       v-if="tracks.length > 0"
@@ -59,7 +59,9 @@ import { useStreamMusicStore } from '../store/streamingMusic'
 import { storeToRefs } from 'pinia'
 import { getTrackDetail } from '../api/track'
 import _ from 'lodash'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const localMusicStore = useLocalMusicStore()
 const streamMusicStore = useStreamMusicStore()

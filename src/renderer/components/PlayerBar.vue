@@ -148,7 +148,7 @@
         </div>
         <button-icon
           class="lyrics-button"
-          title="歌词"
+          :title="t('playerBar.lyrics')"
           style="margin-left: 12px"
           @click.stop="showLyrics = !showLyrics"
           ><svg-icon icon-class="arrow-up"
@@ -173,7 +173,9 @@ import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 

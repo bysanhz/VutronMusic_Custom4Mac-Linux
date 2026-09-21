@@ -31,16 +31,16 @@
       </div>
       <button class="insights-card" @click="router.push('/insights')">
         <div class="insights-eyebrow">NEW</div>
-        <div class="insights-title">音乐洞察</div>
-        <div class="insights-desc">听歌足迹 · 曲风漫游 · 云盘 Pro · 私人 DJ</div>
-        <div class="insights-link">打开 →</div>
+        <div class="insights-title">{{ t('home.insightsTitle') }}</div>
+        <div class="insights-desc">{{ t('home.insightsDesc') }}</div>
+        <div class="insights-link">{{ t('home.openInsights') }}</div>
       </button>
     </div>
 
     <div v-if="personalizedTracks.length" class="index-row">
       <div class="title">
-        猜你喜欢
-        <a @click="router.push('/insights')">查看更多</a>
+        {{ t('home.guessYouLike') }}
+        <a @click="router.push('/insights')">{{ $t('home.seeMore') }}</a>
       </div>
       <TrackList
         id="home-personalized-tracks"
@@ -55,7 +55,7 @@
 
     <div class="index-row">
       <div class="title">
-        {{ personalizedPlaylists.length ? '为你定制' : $t('home.recommendPlaylist') }}
+        {{ personalizedPlaylists.length ? t('home.personalized') : t('home.recommendPlaylist') }}
         <a @click="toExplore('playlist', '推荐歌单')">{{ $t('home.seeMore') }}</a>
       </div>
       <CoverRow
@@ -107,6 +107,7 @@ import { useSettingsStore } from '../store/settings'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import Utils from '../utils'
 
 const toplistOfArtistsAreaTable = {
@@ -121,6 +122,7 @@ const { exploreTab, showLyrics } = storeToRefs(useNormalStateStore())
 const { addTrackToPlayNext } = usePlayerStore()
 
 const router = useRouter()
+const { t } = useI18n()
 
 const banner = ref<any[]>([])
 const left = ref(-1)

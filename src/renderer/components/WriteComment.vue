@@ -3,18 +3,21 @@
     <textarea
       v-model="comment"
       class="comment-input"
-      :placeholder="placeholder"
+      :placeholder="placeholder || t('comments.inputPlaceholder')"
       @keydown.enter="handleEnterKey"
     ></textarea>
-    <button class="comment-button" @click="submitComment">发送</button>
+    <button class="comment-button" @click="submitComment">{{ t('comments.send') }}</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps({
-  placeholder: { type: String, default: '请输入评论' }
+  placeholder: { type: String, default: '' }
 })
 
 const $emit = defineEmits(['keydown-enter'])

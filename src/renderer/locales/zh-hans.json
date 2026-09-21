@@ -19,14 +19,23 @@
     "mv": "MV",
     "chart": "排行榜",
     "newTrack": "新歌速递",
-    "newAlbum": "新专速递"
+    "newAlbum": "新专速递",
+    "insights": "音乐洞察",
+    "style": "曲风",
+    "followingWorks": "关注新作",
+    "logoutConfirm": "确定要退出登录吗？"
   },
   "home": {
     "recommendPlaylist": "推荐歌单",
     "recommendArtist": "推荐艺人",
     "newAlbum": "新专速递",
     "charts": "排行榜",
-    "seeMore": "查看全部"
+    "seeMore": "查看全部",
+    "insightsTitle": "音乐洞察",
+    "insightsDesc": "听歌足迹 · 曲风漫游 · 云盘 Pro",
+    "openInsights": "打开 →",
+    "guessYouLike": "猜你喜欢",
+    "personalized": "为你定制"
   },
   "library": {
     "userProfileMenu": {
@@ -53,7 +62,10 @@
       "title": "听歌排行",
       "all": "所有时间",
       "week": "最近一周"
-    }
+    },
+    "playTrack": "播放 {name}",
+    "lyricTrackLoading": "歌词歌曲加载中",
+    "unknownArtist": "未知歌手"
   },
   "explore": {
     "allPlaylist": "歌单",
@@ -61,7 +73,108 @@
     "recommendArtist": "歌手",
     "newAlbum": "新专速递",
     "charts": "排行榜",
-    "seeMore": "查看全部"
+    "seeMore": "查看全部",
+    "styleRoam": "曲风漫游",
+    "styleRoamDesc": "来自网易云曲风标签与账号偏好，选择曲风直接发现歌曲。",
+    "followingWorks": "关注歌手新作",
+    "followingWorksDesc": "集中查看你已关注歌手最近发布的歌曲和 MV。",
+    "newSongs": "新歌",
+    "weekNewAlbums": "本周新碟",
+    "monthNewAlbums": "本月新碟",
+    "loadingMore": "正在加载更多...",
+    "noStyleSongs": "当前曲风暂时没有可展示的歌曲",
+    "noFollowingWorks": "暂无关注歌手新作，或当前账号尚未登录",
+    "styleLoadFailed": "曲风歌曲加载失败，请稍后重试",
+    "categories": {
+      "全部": "全部",
+      "推荐歌单": "推荐歌单",
+      "精品歌单": "精品歌单",
+      "官方": "官方",
+      "华语": "华语",
+      "欧美": "欧美",
+      "日语": "日语",
+      "韩语": "韩语",
+      "粤语": "粤语",
+      "流行": "流行",
+      "摇滚": "摇滚",
+      "民谣": "民谣",
+      "电子": "电子",
+      "舞曲": "舞曲",
+      "说唱": "说唱",
+      "轻音乐": "轻音乐",
+      "爵士": "爵士",
+      "乡村": "乡村",
+      "R&B/Soul": "R&B/Soul",
+      "古典": "古典",
+      "民族": "民族",
+      "英伦": "英伦",
+      "金属": "金属",
+      "朋克": "朋克",
+      "蓝调": "蓝调",
+      "雷鬼": "雷鬼",
+      "世界音乐": "世界音乐",
+      "拉丁": "拉丁",
+      "New Age": "New Age",
+      "古风": "古风",
+      "后摇": "后摇",
+      "Bossa Nova": "Bossa Nova",
+      "清晨": "清晨",
+      "夜晚": "夜晚",
+      "学习": "学习",
+      "工作": "工作",
+      "午休": "午休",
+      "下午茶": "下午茶",
+      "地铁": "地铁",
+      "驾车": "驾车",
+      "运动": "运动",
+      "旅行": "旅行",
+      "散步": "散步",
+      "酒吧": "酒吧",
+      "怀旧": "怀旧",
+      "清新": "清新",
+      "浪漫": "浪漫",
+      "伤感": "伤感",
+      "治愈": "治愈",
+      "放松": "放松",
+      "孤独": "孤独",
+      "感动": "感动",
+      "兴奋": "兴奋",
+      "快乐": "快乐",
+      "安静": "安静",
+      "思念": "思念",
+      "综艺": "综艺",
+      "影视原声": "影视原声",
+      "ACG": "ACG",
+      "儿童": "儿童",
+      "校园": "校园",
+      "游戏": "游戏",
+      "70后": "70后",
+      "80后": "80后",
+      "90后": "90后",
+      "网络歌曲": "网络歌曲",
+      "KTV": "KTV",
+      "经典": "经典",
+      "翻唱": "翻唱",
+      "吉他": "吉他",
+      "钢琴": "钢琴",
+      "器乐": "器乐",
+      "榜单": "榜单",
+      "00后": "00后",
+      "语种": "语种",
+      "风格": "风格",
+      "场景": "场景",
+      "情感": "情感",
+      "主题": "主题",
+      "分类": "分类",
+      "筛选": "筛选",
+      "日本": "日本",
+      "韩国": "韩国",
+      "其他": "其他",
+      "男歌手": "男歌手",
+      "女歌手": "女歌手",
+      "乐队组合": "乐队组合",
+      "热门": "热门"
+    }
   },
   "streamMusic": {
     "track": "全部歌曲",
@@ -72,7 +185,18 @@
       "newPlaylist": "新建流媒体歌单"
     },
     "album": "专辑",
-    "artist": "艺人"
+    "artist": "艺人",
+    "summaryTitle": "流媒体歌曲 - {group}",
+    "aggregate": "聚合",
+    "allSongs": "全部歌曲",
+    "totalDuration": "歌曲总时长",
+    "playlistsSummary": "流媒体歌单",
+    "diskUsage": "歌曲占用",
+    "trackCount": "{count}首",
+    "playlistCount": "{count}个",
+    "search": "搜索{target}",
+    "serviceOffline": "当前服务离线，请稍后再试",
+    "aggregateActionDisabled": "在聚合视图下无法进行操作，请先选择具体的流媒体服务"
   },
   "localMusic": {
     "latedAdd": "最近添加",
@@ -124,7 +248,15 @@
       "ignore": "跳过",
       "rewrite": "覆盖"
     },
-    "positionTrack": "定位歌曲"
+    "positionTrack": "定位歌曲",
+    "summaryTitle": "本地歌曲",
+    "allSongs": "全部歌曲",
+    "totalDuration": "歌曲总时长",
+    "offlinePlaylists": "离线歌单",
+    "diskUsage": "歌曲占用",
+    "trackCount": "{count}首",
+    "playlistCount": "{count}个",
+    "search": "搜索{target}"
   },
   "artist": {
     "artist": "艺人",
@@ -144,7 +276,13 @@
   },
   "album": {
     "released": "发行于",
-    "albumDesc": "专辑介绍"
+    "albumDesc": "专辑介绍",
+    "comment": "评论",
+    "saved": "已保存到音乐库",
+    "removed": "已从音乐库删除",
+    "moreBy": "更多 {artist} 的作品",
+    "typeBy": "{type} by",
+    "compilationBy": "合辑 by Various Artists"
   },
   "playlist": {
     "search": "搜索歌单音乐"
@@ -196,7 +334,12 @@
     "loginWithPhone": "手机号登录",
     "loginWithQr": "二维码登录",
     "loginWithCookie": "Cookie登录",
-    "noticeElectron": "你的密码会在本地进行MD5加密后再传输到网易云API。VutronMusic 不会传输你的账号数据到任何非网易云音乐官方的服务器。"
+    "noticeElectron": "你的密码会在本地进行MD5加密后再传输到网易云API。VutronMusic 不会传输你的账号数据到任何非网易云音乐官方的服务器。",
+    "cookiePlaceholder": "请输入 cookie",
+    "qrOpen": "打开网易云音乐 APP 扫码登录",
+    "qrExpired": "二维码已失效，请重新获取",
+    "qrScanned": "扫描成功，请在手机上确认登录",
+    "qrSuccessWait": "登录成功，请稍等..."
   },
   "player": {
     "play": "播放",
@@ -321,7 +464,23 @@
     "confirm": "确定",
     "login": "登录",
     "logout": "登出",
-    "space": "空格"
+    "space": "空格",
+    "refresh": "刷新",
+    "refreshing": "刷新中…",
+    "loading": "加载中…",
+    "loadMore": "加载更多",
+    "items": "{count} 项",
+    "unknownArtist": "未知歌手",
+    "unknownAlbum": "未知专辑",
+    "unknownTrack": "未知歌曲",
+    "search": "搜索",
+    "hotSearch": "热搜",
+    "searchFor": "搜索 “{keyword}”",
+    "clearQueue": "清除队列",
+    "publishTime": "发布时间：{time}",
+    "playCount": "播放次数：{count}",
+    "confirmLogout": "确定要退出登录吗？",
+    "comment": "评论"
   },
   "settings": {
     "heartModeProfile": {
@@ -410,7 +569,14 @@
         "low": "普通",
         "medium": "较高",
         "high": "极高",
-        "lossless": "无损"
+        "lossless": "无损",
+        "standard": "标准",
+        "higher": "较高",
+        "exhigh": "极高",
+        "jyeffect": "高清环绕声",
+        "sky": "沉浸环绕声",
+        "vivid": "臻音全景声",
+        "jymaster": "超清母带"
       },
       "lyricBackground": {
         "text": "显示歌词背景",
@@ -441,7 +607,8 @@
       "appFontSize": {
         "text": "主界面字体大小",
         "desc": "调节主窗口整体字号，不影响桌面歌词和菜单栏歌词"
-      }
+      },
+      "vipLabel": "黑胶VIP"
     },
     "theme": {
       "auto": "跟随系统",
@@ -534,7 +701,11 @@
         "played": "已播放颜色",
         "unplayed": "未播放颜色",
         "shadow": "阴影颜色"
-      }
+      },
+      "dragWindow": "拖动桌面歌词窗口",
+      "lockAction": "锁定桌面歌词",
+      "unlockAction": "解锁桌面歌词",
+      "fallbackTitle": "听你想听的音乐"
     },
     "lyric": {
       "fontFamily": "歌词字体",
@@ -713,7 +884,8 @@
       "running": "服务正常运行中",
       "error": "服务启动失败：{0}",
       "notRunning": "服务未启动"
-    }
+    },
+    "unblockSourcePlaceholder": "例 bodian, bilibili, kuwo"
   },
   "toast": {
     "createLocalPlaylistSuccess": "成功创建歌单",
@@ -734,6 +906,200 @@
     "nowPlaying": "正在播放",
     "insertPlaying": "插队播放",
     "nextPlaying": "即将播放",
-    "historyPlaying": "历史播放"
+    "historyPlaying": "历史播放",
+    "clearQueue": "清除队列"
+  },
+  "insights": {
+    "title": "音乐洞察",
+    "description": "把听歌足迹、曲风探索和云盘能力集中在一个稳定的网易云工具页。",
+    "tabs": {
+      "footprint": "听歌足迹",
+      "style": "曲风漫游",
+      "cloud": "云盘 Pro"
+    },
+    "footprint": {
+      "title": "听歌足迹",
+      "description": "今日显示不同歌曲数；本周按周一至今天统计，时长会即时叠加本机尚未同步的有效播放。",
+      "pending": "待同步 +{duration}",
+      "today": "今日",
+      "todayCount": "{count} 首",
+      "todayListen": "今日收听 {duration}",
+      "week": "本周（周一至今）",
+      "month": "本月",
+      "total": "累计",
+      "weekTop": "本周常听",
+      "historyTop": "历史常听",
+      "noWeek": "当前账号暂时没有本周听歌排行。",
+      "noHistory": "当前账号暂时没有历史播放排行，或网易云未开放该数据。",
+      "durationMinutesSeconds": "{minutes}分{seconds}秒",
+      "durationSeconds": "{seconds}秒",
+      "durationDaysHours": "{days}天 {hours}小时",
+      "durationHoursMinutes": "{hours}小时 {minutes}分",
+      "durationMinutes": "{minutes}分"
+    },
+    "style": {
+      "title": "曲风漫游 2.0",
+      "description": "基于网易云曲风标签与账号偏好，继续探索歌曲、专辑、歌手和歌单。",
+      "hot": "综合 / 热门",
+      "latest": "最新",
+      "song": "歌曲",
+      "album": "专辑",
+      "artist": "歌手",
+      "playlist": "歌单",
+      "noSong": "这个曲风暂时没有歌曲。",
+      "noAlbum": "这个曲风暂时没有专辑。",
+      "noArtist": "这个曲风暂时没有歌手。",
+      "noPlaylist": "这个曲风暂时没有歌单。",
+      "loadFailed": "曲风资源加载失败，请稍后重试"
+    },
+    "cloud": {
+      "title": "云盘 Pro",
+      "description": "在原有查看/删除之外，支持重新匹配和云盘歌词读取。",
+      "track": "云盘歌曲",
+      "select": "请选择",
+      "targetId": "目标网易云歌曲 ID",
+      "targetPlaceholder": "例如 33894312",
+      "rematch": "重新匹配",
+      "readLyric": "读取云盘歌词",
+      "delete": "从云盘删除",
+      "empty": "当前云盘为空，或账号尚未登录。",
+      "unknownTrack": "未知歌曲",
+      "selectAndTarget": "请选择云盘歌曲并填写目标歌曲 ID",
+      "rematchFailed": "云盘重新匹配失败",
+      "rematched": "云盘歌曲已重新匹配",
+      "selectFirst": "请先选择云盘歌曲",
+      "noLyric": "没有找到云盘歌词",
+      "deleteConfirm": "确定从网易云云盘删除这首歌曲吗？",
+      "deleteFailed": "云盘删除失败",
+      "deleted": "已从云盘删除"
+    }
+  },
+  "streamLogin": {
+    "hostPlaceholder": "主机地址，例如 http://192.168.1.10:4533",
+    "accountPlaceholder": "账号",
+    "savedPasswordHint": "已保存的密码由系统安全存储保护；留空会继续使用该密码。",
+    "loggingIn": "正在登录…",
+    "savedPasswordPlaceholder": "已保存密码，留空继续使用",
+    "passwordPlaceholder": "密码",
+    "incomplete": "请完整填写主机地址、账号和密码。",
+    "failed": "登录失败，请检查服务器地址和凭据。"
+  },
+  "searchBox": {
+    "search": "搜索",
+    "hotSearch": "热搜",
+    "searchFor": "搜索 “{keyword}”"
+  },
+  "searchPage": {
+    "found": "找到 {count} {unit}",
+    "units": {
+      "track": "首歌曲",
+      "album": "张专辑",
+      "artist": "位歌手",
+      "playlist": "个歌单",
+      "user": "位用户",
+      "lyric": "个歌词"
+    }
+  },
+  "mv": {
+    "publishTime": "发布时间：{time}",
+    "playCount": "播放次数：{count}"
+  },
+  "dailyTracks": {
+    "title": "每日歌曲推荐",
+    "todayDesc": "根据你的音乐口味生成 · 每天6:00更新",
+    "historyDesc": "历史日推 · {date}",
+    "today": "今日推荐",
+    "history": "历史日推",
+    "feedbackHint": "右键歌曲可选择“不感兴趣”，反馈会同步给网易云推荐。"
+  },
+  "artistMv": {
+    "title": "{artist}的 MV"
+  },
+  "playlistPage": {
+    "offline": "离线歌单",
+    "stream": "{service} 歌单 by {creator}",
+    "online": "歌单 by",
+    "comment": "评论",
+    "liked": "我喜欢的音乐",
+    "streamLiked": "我收藏的流媒体",
+    "heartMode": "心动模式",
+    "description": "歌单介绍",
+    "saved": "已保存到音乐库",
+    "removed": "已从音乐库删除",
+    "heartNoTrack": "当前歌单没有可用于心动模式的歌曲",
+    "heartNoSeed": "无法选择心动模式的起始歌曲",
+    "heartNoResult": "心动模式暂时没有返回可播放歌曲，请稍后重试",
+    "heartFailed": "心动模式加载失败，请稍后重试",
+    "deleteConfirm": "确定要删除歌单 {name}？",
+    "offlineBy": "离线歌单{creator}",
+    "streamBy": "{service} 歌单 by {creator}",
+    "onlineBy": "歌单 by"
+  },
+  "comments": {
+    "title": "评论({count})",
+    "replyTitle": "回复({count})",
+    "recommend": "推荐",
+    "hottest": "最热",
+    "latest": "最新",
+    "deleted": "该评论已删除",
+    "from": "来自{location}",
+    "delete": "删除",
+    "placeholder": "随乐而起，有感而发",
+    "replyTo": "回复{nickname}:",
+    "close": "关闭",
+    "deleteConfirm": "确定要删除评论“{content}”吗？",
+    "send": "发送",
+    "inputPlaceholder": "请输入评论"
+  },
+  "modalTheme": {
+    "selectOrDelete": "单击选择，右击删除",
+    "deleted": "自定义主题删除成功",
+    "saveTitle": "保存播放器主题",
+    "namePlaceholder": "填写播放器主题名称",
+    "create": "创建",
+    "duplicate": "主题名称重复"
+  },
+  "trackList": {
+    "dislike": "不感兴趣",
+    "deleteCloud": "从云盘删除",
+    "aggregateDisabled": "在聚合视图下无法进行操作，请先选择具体的流媒体服务",
+    "disliked": "已减少此类推荐",
+    "operationFailed": "操作失败，请稍后重试",
+    "deleteCloudConfirm": "确定要从网易云云盘删除 {name}？此操作会同步到网易云账号。",
+    "cloudDeleted": "已从云盘删除",
+    "cloudDeleteFailed": "云盘删除失败，请稍后重试",
+    "removePlaylistConfirm": "确定要从歌单删除 {name}？",
+    "removeStreamPlaylistConfirm": "确定要从 {service} 歌单删除 {name}？",
+    "trackFallback": "这首歌曲",
+    "removeConfirm": "确定要从歌单删除 {name}？",
+    "removeStreamConfirm": "确定要从 {service} 歌单删除 {name}？"
+  },
+  "osd": {
+    "lock": "锁定桌面歌词",
+    "unlock": "解锁桌面歌词"
+  },
+  "modalPlaylist": {
+    "accurateTitle": "本地歌曲精确匹配",
+    "match": "匹配",
+    "modify": "修改",
+    "create": "创建",
+    "updated": "更新歌单信息成功",
+    "updateFailed": "更新歌单信息失败",
+    "trackCount": "{count} 首"
+  },
+  "userPage": {
+    "following": "{count} 关注",
+    "followers": "{count} 粉丝",
+    "level": "Lv.{level} 等级",
+    "chat": "聊天",
+    "history": "TA的听歌排行",
+    "events": "动态",
+    "podcasts": "播客",
+    "follow": "关注",
+    "followBack": "回关",
+    "followingStatus": "已关注"
+  },
+  "playerBar": {
+    "lyrics": "歌词"
   }
 }

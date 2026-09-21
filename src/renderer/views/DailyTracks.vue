@@ -1,17 +1,21 @@
 <template>
   <div v-show="show">
     <div class="special-playlist1">
-      <div class="title gradient">每日歌曲推荐</div>
+      <div class="title gradient">{{ t('dailyTracks.title') }}</div>
       <div class="subtitle">
         {{
-          mode === 'today' ? '根据你的音乐口味生成 · 每天6:00更新' : `历史日推 · ${selectedDate}`
+          mode === 'today'
+            ? t('dailyTracks.todayDesc')
+            : t('dailyTracks.historyDesc', { date: selectedDate })
         }}
       </div>
       <div class="mode-row">
-        <button :class="{ active: mode === 'today' }" @click="switchMode('today')">今日推荐</button>
-        <button :class="{ active: mode === 'history' }" @click="switchMode('history')"
-          >历史日推</button
-        >
+        <button :class="{ active: mode === 'today' }" @click="switchMode('today')">{{
+          t('dailyTracks.today')
+        }}</button>
+        <button :class="{ active: mode === 'history' }" @click="switchMode('history')">{{
+          t('dailyTracks.history')
+        }}</button>
       </div>
       <div v-if="mode === 'history' && historyDates.length" class="history-dates">
         <button
@@ -29,9 +33,9 @@
         </ButtonTwoTone>
         <SearchBox ref="pSearchBoxRef" :placeholder="$t('playlist.search')" />
       </div>
-      <div v-if="mode === 'today'" class="feedback-hint"
-        >右键歌曲可选择“不感兴趣”，反馈会同步给网易云推荐。</div
-      >
+      <div v-if="mode === 'today'" class="feedback-hint">
+        {{ t('dailyTracks.feedbackHint') }}
+      </div>
     </div>
 
     <TrackList
@@ -55,7 +59,9 @@ import SearchBox from '../components/SearchBox.vue'
 import { dailyRecommendTracks } from '../api/playlist'
 import { historyRecommendSongs, historyRecommendSongsDetail } from '../api/discovery'
 import { usePlayerStore } from '../store/player'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const show = ref(false)
 const mode = ref<'today' | 'history'>('today')
 const historyDates = ref<string[]>([])

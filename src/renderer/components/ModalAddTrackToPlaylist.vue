@@ -20,7 +20,9 @@
         <img :src="playlist?.coverImgUrl" loading="lazy" />
         <div class="info">
           <div class="title">{{ playlist?.name }}</div>
-          <div class="track-count">{{ playlist?.trackCount || 0 }} 首</div>
+          <div class="track-count">{{
+            t('modalPlaylist.trackCount', { count: playlist?.trackCount || 0 })
+          }}</div>
         </div>
       </div>
     </template>
@@ -148,7 +150,7 @@ const addTrackToPlaylist = (playlistId: number | string) => {
     })
   } else {
     if (type.value === 'all') {
-      showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+      showToast(t('trackList.aggregateDisabled'))
       return
     }
     addOrRemoveTrackFromStreamPlaylist(

@@ -19,13 +19,18 @@
           >{{ playlist?.name }}</div
         >
         <div v-if="playlistType === 'local'" class="artist">
-          离线歌单 {{ user.nickname ? `by ${user.nickname}` : `` }}
+          {{ t('playlistPage.offline') }} {{ user.nickname ? `by ${user.nickname}` : `` }}
         </div>
         <div v-else-if="playlistType === 'stream'" class="artist">
-          {{ currentService + ' 歌单 by ' + playlist.creator.nickname }}
+          {{
+            t('playlistPage.stream', {
+              service: currentService,
+              creator: playlist.creator.nickname
+            })
+          }}
         </div>
         <div v-else class="artist">
-          歌单 by
+          {{ t('playlistPage.online') }}
           <span
             v-if="
               [5277771961, 5277965913, 5277969451, 5277778542, 5278068783].includes(playlist.id)
@@ -54,7 +59,7 @@
             icon-class="floor-comment"
             @click="openComment"
           >
-            {{ '评论' }}
+            {{ t('playlistPage.comment') }}
           </ButtonTwoTone>
           <ButtonTwoTone
             v-if="playlistType === 'online' && playlist?.creator?.userId !== user.userId"
@@ -92,7 +97,7 @@
           {{ $t('common.play') }}
         </ButtonTwoTone>
         <ButtonTwoTone color="grey" icon-class="floor-comment" @click="openComment">
-          {{ '评论' }}
+          {{ t('playlistPage.comment') }}
         </ButtonTwoTone>
         <ButtonTwoTone
           v-if="playlist.creator.userId !== user.userId"
@@ -110,10 +115,12 @@
     </div>
 
     <div v-if="isLikedSongsPage" class="special-playlist">
-      <div v-show="playlistType === 'online'" class="title gradient-red">我喜欢的音乐</div>
-      <div v-show="playlistType === 'streamLiked'" class="title gradient-sky-blue"
-        >我收藏的流媒体</div
-      >
+      <div v-show="playlistType === 'online'" class="title gradient-red">{{
+        t('playlistPage.liked')
+      }}</div>
+      <div v-show="playlistType === 'streamLiked'" class="title gradient-sky-blue">{{
+        t('playlistPage.streamLiked')
+      }}</div>
       <div class="buttons">
         <ButtonTwoTone class="play-button" icon-class="play" color="grey" @click="play">
           {{ $t('common.play') }}
@@ -124,7 +131,7 @@
           icon-class="play"
           color="grey"
           @click="playIntelligenceList"
-          >心动模式</ButtonTwoTone
+          >{{ t('playlistPage.heartMode') }}</ButtonTwoTone
         >
         <ButtonTwoTone
           v-if="playlistType === 'online'"
@@ -132,7 +139,7 @@
           icon-class="floor-comment"
           @click="openComment"
         >
-          {{ '评论' }}
+          {{ t('playlistPage.comment') }}
         </ButtonTwoTone>
         <SearchBox ref="pSearchBoxRef" :placeholder="$t('playlist.search')" />
       </div>
@@ -159,7 +166,7 @@
       :close-fn="toggleFullDescription"
       :show-footer="false"
       :click-outside-hide="true"
-      title="歌单介绍"
+      :title="t('playlistPage.description')"
       style="white-space: pre-wrap"
       >{{ playlist.description }}</Modal
     >
@@ -478,7 +485,7 @@ const likePlaylist = (toast = false) => {
       if (data.code === 200) {
         playlist.value.subscribed = !playlist.value.subscribed
         if (toast) {
-          showToast(playlist.value.subscribed ? '已保存到音乐库' : '已从音乐库删除')
+          showToast(playlist.value.subscribed ? t('playlistPage.saved') : t('playlistPage.removed'))
         }
       }
       getPlaylistDetail(playlist.value.id, true).then((data: any) => {
@@ -496,7 +503,7 @@ const play = () => {
 
 const playIntelligenceList = async () => {
   if (!tracks.value.length) {
-    showToast('当前歌单没有可用于心动模式的歌曲')
+    showToast(t('playlistPage.heartNoTrack'))
     return
   }
 
@@ -505,7 +512,7 @@ const playIntelligenceList = async () => {
   const songId = tracks.value[randomIndex]?.id
 
   if (songId === undefined || songId === null) {
-    showToast('无法选择心动模式的起始歌曲')
+    showToast(t('playlistPage.heartNoSeed'))
     return
   }
 
@@ -520,7 +527,7 @@ const playIntelligenceList = async () => {
       : []
 
     if (!trackIDs.length) {
-      showToast('心动模式暂时没有返回可播放歌曲，请稍后重试')
+      showToast(t('playlistPage.heartNoResult'))
       return
     }
 
@@ -529,7 +536,7 @@ const playIntelligenceList = async () => {
   } catch (error) {
     if (requestID !== intelligenceRequestID) return
     console.warn('[PlaylistPage] 心动模式加载失败：', error)
-    showToast('心动模式加载失败，请稍后重试')
+    showToast(t('playlistPage.heartFailed'))
   }
 }
 
@@ -547,7 +554,7 @@ const deleteAPlaylist = () => {
     return
   }
 
-  if (confirm(`确定要删除歌单 ${playlist.value.name}？`)) {
+  if (confirm(t('playlistPage.deleteConfirm', { name: playlist.value.name }))) {
     if (playlistType.value === 'local') {
       deleteLocalPlaylist(playlist.value.id).then((result) => {
         if (result) {

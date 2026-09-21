@@ -1,25 +1,25 @@
 <template>
   <div v-if="show" class="comment-container">
     <div class="comment-head">
-      <label>评论({{ commentInfo.totalCount }})</label>
+      <label>{{ t('comments.title', { count: commentInfo.totalCount }) }}</label>
       <div class="btns">
         <button
           class="btn"
           :class="{ active: commentInfo.sortType === 1 }"
           @click="handleClickSortType(1)"
-          >推荐</button
+          >{{ t('comments.recommend') }}</button
         >
         <button
           class="btn"
           :class="{ active: commentInfo.sortType === 2 }"
           @click="handleClickSortType(2)"
-          >最热</button
+          >{{ t('comments.hottest') }}</button
         >
         <button
           class="btn"
           :class="{ active: commentInfo.sortType === 3 }"
           @click="handleClickSortType(3)"
-          >最新</button
+          >{{ t('comments.latest') }}</button
         >
       </div>
     </div>
@@ -58,16 +58,20 @@
                 <label v-if="item.beReplied[0].content" class="comment-nickname"
                   >@{{ item.beReplied[0].user.nickname }}:
                 </label>
-                <label>{{ item.beReplied[0].content ?? '该评论已删除' }}</label>
+                <label>{{ item.beReplied[0].content ?? t('comments.deleted') }}</label>
               </div>
               <div class="comment-ex">
                 <div class="time-ip">
-                  <span class="time">{{ formatDate(item.time, 'YYYY年MM月DD日 H:mm') }}</span>
-                  <span v-if="item.ipLocation?.location">来自{{ item.ipLocation.location }}</span>
+                  <span class="time">{{ formatDate(item.time, 'YYYY-MM-DD H:mm') }}</span>
+                  <span v-if="item.ipLocation?.location">{{
+                    t('comments.from', { location: item.ipLocation.location })
+                  }}</span>
                 </div>
                 <div class="comment-btns">
-                  <button v-if="isAccountLoggedIn && item.owner" @click="handleDeleteComment(item)"
-                    >删除</button
+                  <button
+                    v-if="isAccountLoggedIn && item.owner"
+                    @click="handleDeleteComment(item)"
+                    >{{ t('comments.delete') }}</button
                   >
                   <button @click="handleLikeComment(item)"
                     ><svg-icon :icon-class="item.liked ? 'liked' : 'like'" />{{
@@ -89,7 +93,7 @@
     <div class="write-comment">
       <WriteComment
         ref="commentSubmitRef"
-        placeholder="随乐而起，有感而发"
+        :placeholder="t('comments.placeholder')"
         @keydown-enter="handleSubmitComment"
       />
     </div>
@@ -260,7 +264,7 @@ const handleDeleteComment = (comment: any) => {
     showToast(t('toast.needToLogin'))
     return
   }
-  if (confirm(`确定要删除评论'${comment.content}'吗？`)) {
+  if (confirm(t('comments.deleteConfirm', { content: comment.content }))) {
     const params = {
       t: 0,
       type: typeMap[props.type],

@@ -16,7 +16,11 @@
           :class="{ disabled: !randomtrack?.id }"
           role="button"
           :tabindex="randomtrack?.id ? 0 : -1"
-          :aria-label="randomtrack?.name ? `播放 ${randomtrack.name}` : '歌词歌曲加载中'"
+          :aria-label="
+            randomtrack?.name
+              ? t('library.playTrack', { name: randomtrack.name })
+              : t('library.lyricTrackLoading')
+          "
           @click="playRandomLyricTrack"
           @keydown.enter="playRandomLyricTrack"
         >
@@ -272,7 +276,9 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../store/player'
 import { lyricLine } from '@/types/music'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const dataStore = useDataStore()
 const { liked, libraryPlaylistFilter, user, likedSongPlaylistID } = storeToRefs(dataStore)
 
@@ -331,7 +337,7 @@ const getLikedPreviewImage = (track: any) => {
 const getLikedPreviewArtist = (track: any) => {
   const artists = track.ar || track.artists || []
   const names = artists.map((artist: any) => artist?.name).filter(Boolean)
-  return names.length ? names.join(' / ') : '未知歌手'
+  return names.length ? names.join(' / ') : t('library.unknownArtist')
 }
 
 const playLikedPreviewTrack = (trackId: number | string) => {

@@ -2,15 +2,15 @@
   <BaseModal
     class="save-theme-modal"
     :show="setSaveThemeModal"
-    title="保存播放器主题"
+    :title="t('modalTheme.saveTitle')"
     :close-fn="close"
     width="25vw"
   >
     <template #default>
-      <input v-model="name" type="text" placeholder="填写播放器主题名称" />
+      <input v-model="name" type="text" :placeholder="t('modalTheme.namePlaceholder')" />
     </template>
     <template #footer>
-      <button class="primary block" @click="save">创建</button>
+      <button class="primary block" @click="save">{{ t('modalTheme.create') }}</button>
     </template>
   </BaseModal>
 </template>
@@ -21,7 +21,9 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import BaseModal from './BaseModal.vue'
 import { storeToRefs } from 'pinia'
 import { nextTick, ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const stateStore = useNormalStateStore()
 const { setSaveThemeModal } = storeToRefs(stateStore)
 const { showToast } = stateStore
@@ -44,7 +46,7 @@ const close = () => {
 
 const save = async () => {
   if (nameList.value.includes(name.value)) {
-    showToast('主题名称重复')
+    showToast(t('modalTheme.duplicate'))
     return
   }
 

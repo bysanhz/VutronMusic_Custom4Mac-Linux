@@ -19,14 +19,23 @@
     "mv": "MV",
     "chart": "Charts",
     "newTrack": "New Tracks",
-    "newAlbum": "New Albums"
+    "newAlbum": "New Albums",
+    "insights": "Music Insights",
+    "style": "Styles",
+    "followingWorks": "Following",
+    "logoutConfirm": "Log out now?"
   },
   "home": {
     "recommendPlaylist": "Recommended Playlists",
     "recommendArtist": "Recommended Artists",
     "newAlbum": "New Albums",
     "charts": "Charts",
-    "seeMore": "See All"
+    "seeMore": "See All",
+    "insightsTitle": "Music Insights",
+    "insightsDesc": "Listening Footprint · Style Explorer · Cloud Pro",
+    "openInsights": "Open →",
+    "guessYouLike": "Made for You",
+    "personalized": "Personalized"
   },
   "library": {
     "userProfileMenu": {
@@ -53,7 +62,10 @@
       "title": "Play History",
       "all": "All Time",
       "week": "Past Week"
-    }
+    },
+    "playTrack": "Play {name}",
+    "lyricTrackLoading": "Lyric track is loading",
+    "unknownArtist": "Unknown artist"
   },
   "explore": {
     "allPlaylist": "Playlists",
@@ -61,7 +73,108 @@
     "recommendArtist": "Artists",
     "newAlbum": "New Albums",
     "charts": "Charts",
-    "seeMore": "See All"
+    "seeMore": "See All",
+    "styleRoam": "Style Explorer",
+    "styleRoamDesc": "Discover tracks from NetEase style tags and your account preferences.",
+    "followingWorks": "New from Followed Artists",
+    "followingWorksDesc": "See recent songs and MVs from artists you follow.",
+    "newSongs": "New Songs",
+    "weekNewAlbums": "New Albums This Week",
+    "monthNewAlbums": "New Albums This Month",
+    "loadingMore": "Loading more...",
+    "noStyleSongs": "No tracks are available for this style yet.",
+    "noFollowingWorks": "No new releases from followed artists, or you are not signed in.",
+    "styleLoadFailed": "Failed to load style tracks. Please try again later.",
+    "categories": {
+      "全部": "All",
+      "推荐歌单": "Recommended",
+      "精品歌单": "Featured",
+      "官方": "Official",
+      "华语": "Chinese",
+      "欧美": "Western",
+      "日语": "Japanese",
+      "韩语": "Korean",
+      "粤语": "Cantonese",
+      "流行": "Pop",
+      "摇滚": "Rock",
+      "民谣": "Folk",
+      "电子": "Electronic",
+      "舞曲": "Dance",
+      "说唱": "Rap",
+      "轻音乐": "Easy Listening",
+      "爵士": "Jazz",
+      "乡村": "Country",
+      "R&B/Soul": "R&B/Soul",
+      "古典": "Classical",
+      "民族": "Ethnic",
+      "英伦": "Britpop",
+      "金属": "Metal",
+      "朋克": "Punk",
+      "蓝调": "Blues",
+      "雷鬼": "Reggae",
+      "世界音乐": "World Music",
+      "拉丁": "Latin",
+      "New Age": "New Age",
+      "古风": "Chinese Traditional",
+      "后摇": "Post-Rock",
+      "Bossa Nova": "Bossa Nova",
+      "清晨": "Morning",
+      "夜晚": "Night",
+      "学习": "Study",
+      "工作": "Work",
+      "午休": "Nap",
+      "下午茶": "Afternoon Tea",
+      "地铁": "Subway",
+      "驾车": "Driving",
+      "运动": "Workout",
+      "旅行": "Travel",
+      "散步": "Walking",
+      "酒吧": "Bar",
+      "怀旧": "Nostalgic",
+      "清新": "Fresh",
+      "浪漫": "Romantic",
+      "伤感": "Melancholy",
+      "治愈": "Healing",
+      "放松": "Relaxing",
+      "孤独": "Lonely",
+      "感动": "Moving",
+      "兴奋": "Excited",
+      "快乐": "Happy",
+      "安静": "Calm",
+      "思念": "Longing",
+      "综艺": "Variety Shows",
+      "影视原声": "Soundtracks",
+      "ACG": "ACG",
+      "儿童": "Children",
+      "校园": "Campus",
+      "游戏": "Games",
+      "70后": "Post-70s",
+      "80后": "Post-80s",
+      "90后": "Post-90s",
+      "网络歌曲": "Internet Hits",
+      "KTV": "KTV",
+      "经典": "Classics",
+      "翻唱": "Covers",
+      "吉他": "Guitar",
+      "钢琴": "Piano",
+      "器乐": "Instrumental",
+      "榜单": "Charts",
+      "00后": "Post-00s",
+      "语种": "Language",
+      "风格": "Style",
+      "场景": "Scene",
+      "情感": "Mood",
+      "主题": "Theme",
+      "分类": "Category",
+      "筛选": "Filter",
+      "日本": "Japan",
+      "韩国": "Korea",
+      "其他": "Other",
+      "男歌手": "Male",
+      "女歌手": "Female",
+      "乐队组合": "Bands",
+      "热门": "Popular"
+    }
   },
   "streamMusic": {
     "track": "All Track",
@@ -72,7 +185,18 @@
       "newPlaylist": "New Stream Playlist"
     },
     "album": "Album",
-    "artist": "Artist"
+    "artist": "Artist",
+    "summaryTitle": "Streaming Tracks - {group}",
+    "aggregate": "All Services",
+    "allSongs": "All Tracks",
+    "totalDuration": "Total Duration",
+    "playlistsSummary": "Streaming Playlists",
+    "diskUsage": "Disk Usage",
+    "trackCount": "{count} tracks",
+    "playlistCount": "{count} playlists",
+    "search": "Search {target}",
+    "serviceOffline": "The current service is offline. Please try again later.",
+    "aggregateActionDisabled": "This action is unavailable in the aggregated view. Select a specific streaming service first."
   },
   "localMusic": {
     "latedAdd": "Recently Added",
@@ -124,7 +248,15 @@
       "ignore": "Ignore",
       "rewrite": "Rewrite"
     },
-    "positionTrack": "Locate Track"
+    "positionTrack": "Locate Track",
+    "summaryTitle": "Local Music",
+    "allSongs": "All Tracks",
+    "totalDuration": "Total Duration",
+    "offlinePlaylists": "Offline Playlists",
+    "diskUsage": "Disk Usage",
+    "trackCount": "{count} tracks",
+    "playlistCount": "{count} playlists",
+    "search": "Search {target}"
   },
   "artist": {
     "artist": "Artist",
@@ -144,7 +276,13 @@
   },
   "album": {
     "released": "Released",
-    "albumDesc": "Album Description"
+    "albumDesc": "Album Description",
+    "comment": "Comments",
+    "saved": "Saved to Library",
+    "removed": "Removed from Library",
+    "moreBy": "More by {artist}",
+    "typeBy": "{type} by",
+    "compilationBy": "Compilation by Various Artists"
   },
   "playlist": {
     "search": "Search Playlist Tracks"
@@ -196,7 +334,12 @@
     "loginWithPhone": "Login with Phone",
     "loginWithQr": "Login with QrCode",
     "loginWithCookie": "Login with Cookie",
-    "noticeElectron": "Your password is hashed with MD5 locally before transmission to NetEase API. VutronMusic does not transmit your account data to any non-official servers."
+    "noticeElectron": "Your password is hashed with MD5 locally before transmission to NetEase API. VutronMusic does not transmit your account data to any non-official servers.",
+    "cookiePlaceholder": "Enter cookie",
+    "qrOpen": "Open the NetEase Music app and scan the QR code",
+    "qrExpired": "QR code expired. Request a new one.",
+    "qrScanned": "Scanned. Confirm the login on your phone.",
+    "qrSuccessWait": "Login successful. Please wait..."
   },
   "player": {
     "play": "Play",
@@ -321,7 +464,23 @@
     "confirm": "Confirm",
     "login": "Log in",
     "logout": "Log out",
-    "space": "Space"
+    "space": "Space",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "items": "{count} items",
+    "unknownArtist": "Unknown artist",
+    "unknownAlbum": "Unknown album",
+    "unknownTrack": "Unknown track",
+    "search": "Search",
+    "hotSearch": "Trending",
+    "searchFor": "Search “{keyword}”",
+    "clearQueue": "Clear queue",
+    "publishTime": "Published: {time}",
+    "playCount": "Plays: {count}",
+    "confirmLogout": "Log out now?",
+    "comment": "Comments"
   },
   "settings": {
     "heartModeProfile": {
@@ -410,7 +569,14 @@
         "low": "Low",
         "medium": "Medium",
         "high": "High",
-        "lossless": "Lossless"
+        "lossless": "Lossless",
+        "standard": "Standard",
+        "higher": "Higher",
+        "exhigh": "Very High",
+        "jyeffect": "HD Surround",
+        "sky": "Immersive Surround",
+        "vivid": "Spatial Audio",
+        "jymaster": "Master Quality"
       },
       "lyricBackground": {
         "text": "Show lyrics background",
@@ -441,7 +607,8 @@
       "appFontSize": {
         "text": "Main UI Font Size",
         "desc": "Adjust the main-window UI font size without changing desktop or menu-bar lyrics."
-      }
+      },
+      "vipLabel": "Vinyl VIP"
     },
     "theme": {
       "auto": "Auto",
@@ -527,7 +694,18 @@
         "played": "Played lyric",
         "unplayed": "Unplayed lyric",
         "shadow": "Text shadow"
-      }
+      },
+      "lineGap": "Line Spacing",
+      "position": {
+        "text": "Lyrics Position",
+        "top": "Top",
+        "center": "Center",
+        "bottom": "Bottom"
+      },
+      "dragWindow": "Drag Desktop Lyrics Window",
+      "lockAction": "Lock Desktop Lyrics",
+      "unlockAction": "Unlock Desktop Lyrics",
+      "fallbackTitle": "Play what you want to hear"
     },
     "lyric": {
       "fontFamily": "Lyric Font Family",
@@ -706,7 +884,8 @@
       "running": "Server is running normally",
       "error": "Server failed to start: {0}",
       "notRunning": "Server is not running"
-    }
+    },
+    "unblockSourcePlaceholder": "e.g. bodian, bilibili, kuwo"
   },
   "toast": {
     "createLocalPlaylistSuccess": "Playlist created",
@@ -727,6 +906,200 @@
     "nowPlaying": "Now Playing",
     "insertPlaying": "Play Next",
     "nextPlaying": "Up Next",
-    "historyPlaying": "History"
+    "historyPlaying": "History",
+    "clearQueue": "Clear queue"
+  },
+  "insights": {
+    "title": "Music Insights",
+    "description": "A stable NetEase toolkit for listening history, style discovery, and cloud music.",
+    "tabs": {
+      "footprint": "Listening Footprint",
+      "style": "Style Explorer",
+      "cloud": "Cloud Pro"
+    },
+    "footprint": {
+      "title": "Listening Footprint",
+      "description": "Today counts unique tracks; This Week runs from Monday through today, with unsynced local listening time added immediately.",
+      "pending": "Pending +{duration}",
+      "today": "Today",
+      "todayCount": "{count} tracks",
+      "todayListen": "Today {duration}",
+      "week": "This Week (Mon–Today)",
+      "month": "This Month",
+      "total": "All Time",
+      "weekTop": "Top This Week",
+      "historyTop": "All-Time Favorites",
+      "noWeek": "No weekly listening ranking is available for this account.",
+      "noHistory": "No historical listening ranking is available, or NetEase has not exposed this data.",
+      "durationMinutesSeconds": "{minutes}m {seconds}s",
+      "durationSeconds": "{seconds}s",
+      "durationDaysHours": "{days}d {hours}h",
+      "durationHoursMinutes": "{hours}h {minutes}m",
+      "durationMinutes": "{minutes}m"
+    },
+    "style": {
+      "title": "Style Explorer 2.0",
+      "description": "Explore tracks, albums, artists, and playlists from NetEase style tags and your preferences.",
+      "hot": "Overall / Popular",
+      "latest": "Latest",
+      "song": "Tracks",
+      "album": "Albums",
+      "artist": "Artists",
+      "playlist": "Playlists",
+      "noSong": "No tracks are available for this style.",
+      "noAlbum": "No albums are available for this style.",
+      "noArtist": "No artists are available for this style.",
+      "noPlaylist": "No playlists are available for this style.",
+      "loadFailed": "Failed to load style resources. Please try again later."
+    },
+    "cloud": {
+      "title": "Cloud Pro",
+      "description": "Adds rematching and cloud-lyric reading to existing browse/delete controls.",
+      "track": "Cloud Track",
+      "select": "Select",
+      "targetId": "Target NetEase Track ID",
+      "targetPlaceholder": "e.g. 33894312",
+      "rematch": "Rematch",
+      "readLyric": "Read Cloud Lyrics",
+      "delete": "Delete from Cloud",
+      "empty": "Cloud storage is empty, or you are not signed in.",
+      "unknownTrack": "Unknown track",
+      "selectAndTarget": "Select a cloud track and enter the target track ID.",
+      "rematchFailed": "Cloud rematch failed.",
+      "rematched": "Cloud track rematched.",
+      "selectFirst": "Select a cloud track first.",
+      "noLyric": "No cloud lyrics found.",
+      "deleteConfirm": "Delete this track from NetEase Cloud?",
+      "deleteFailed": "Cloud deletion failed.",
+      "deleted": "Deleted from cloud."
+    }
+  },
+  "streamLogin": {
+    "hostPlaceholder": "Server address, e.g. http://192.168.1.10:4533",
+    "accountPlaceholder": "Account",
+    "savedPasswordHint": "The saved password is protected by the system credential store; leave this blank to keep using it.",
+    "loggingIn": "Signing in…",
+    "savedPasswordPlaceholder": "Saved password; leave blank to reuse",
+    "passwordPlaceholder": "Password",
+    "incomplete": "Enter the server address, account, and password.",
+    "failed": "Login failed. Check the server address and credentials."
+  },
+  "searchBox": {
+    "search": "Search",
+    "hotSearch": "Trending",
+    "searchFor": "Search “{keyword}”"
+  },
+  "searchPage": {
+    "found": "Found {count} {unit}",
+    "units": {
+      "track": "tracks",
+      "album": "albums",
+      "artist": "artists",
+      "playlist": "playlists",
+      "user": "users",
+      "lyric": "lyric matches"
+    }
+  },
+  "mv": {
+    "publishTime": "Published: {time}",
+    "playCount": "Plays: {count}"
+  },
+  "dailyTracks": {
+    "title": "Daily Recommendations",
+    "todayDesc": "Generated from your music taste · updates daily at 6:00",
+    "historyDesc": "Recommendation history · {date}",
+    "today": "Today",
+    "history": "History",
+    "feedbackHint": "Right-click a track and choose “Not interested” to sync feedback to NetEase recommendations."
+  },
+  "artistMv": {
+    "title": "{artist}'s MVs"
+  },
+  "playlistPage": {
+    "offline": "Offline Playlist",
+    "stream": "{service} playlist by {creator}",
+    "online": "Playlist by",
+    "comment": "Comments",
+    "liked": "Liked Songs",
+    "streamLiked": "Liked Streaming Music",
+    "heartMode": "Heart Mode",
+    "description": "Playlist Description",
+    "saved": "Saved to Library",
+    "removed": "Removed from Library",
+    "heartNoTrack": "This playlist has no tracks available for Heart Mode.",
+    "heartNoSeed": "Could not choose a starting track for Heart Mode.",
+    "heartNoResult": "Heart Mode did not return playable tracks. Please try again later.",
+    "heartFailed": "Heart Mode failed to load. Please try again later.",
+    "deleteConfirm": "Delete playlist {name}?",
+    "offlineBy": "Offline Playlist{creator}",
+    "streamBy": "{service} playlist by {creator}",
+    "onlineBy": "Playlist by"
+  },
+  "comments": {
+    "title": "Comments ({count})",
+    "replyTitle": "Replies ({count})",
+    "recommend": "Recommended",
+    "hottest": "Top",
+    "latest": "Latest",
+    "deleted": "This comment was deleted",
+    "from": "From {location}",
+    "delete": "Delete",
+    "placeholder": "Share what this music makes you feel",
+    "replyTo": "Reply to {nickname}:",
+    "close": "Close",
+    "deleteConfirm": "Delete comment “{content}”?",
+    "send": "Send",
+    "inputPlaceholder": "Enter a comment"
+  },
+  "modalTheme": {
+    "selectOrDelete": "Click to select; right-click to delete",
+    "deleted": "Custom theme deleted",
+    "saveTitle": "Save Player Theme",
+    "namePlaceholder": "Enter a theme name",
+    "create": "Create",
+    "duplicate": "A theme with this name already exists"
+  },
+  "trackList": {
+    "dislike": "Not interested",
+    "deleteCloud": "Delete from Cloud",
+    "aggregateDisabled": "This action is unavailable in the aggregated view. Select a specific streaming service first.",
+    "disliked": "Fewer recommendations like this will be shown",
+    "operationFailed": "Operation failed. Please try again later.",
+    "deleteCloudConfirm": "Delete {name} from NetEase Cloud? This change will sync to your NetEase account.",
+    "cloudDeleted": "Deleted from cloud",
+    "cloudDeleteFailed": "Cloud deletion failed. Please try again later.",
+    "removePlaylistConfirm": "Remove {name} from this playlist?",
+    "removeStreamPlaylistConfirm": "Remove {name} from the {service} playlist?",
+    "trackFallback": "this track",
+    "removeConfirm": "Remove {name} from this playlist?",
+    "removeStreamConfirm": "Remove {name} from the {service} playlist?"
+  },
+  "osd": {
+    "lock": "Lock Desktop Lyrics",
+    "unlock": "Unlock Desktop Lyrics"
+  },
+  "modalPlaylist": {
+    "accurateTitle": "Accurate Local Track Match",
+    "match": "Match",
+    "modify": "Save Changes",
+    "create": "Create",
+    "updated": "Playlist updated",
+    "updateFailed": "Failed to update playlist",
+    "trackCount": "{count} tracks"
+  },
+  "userPage": {
+    "following": "{count} Following",
+    "followers": "{count} Followers",
+    "level": "Level {level}",
+    "chat": "Chat",
+    "history": "Listening Ranking",
+    "events": "Activity",
+    "podcasts": "Podcasts",
+    "follow": "Follow",
+    "followBack": "Follow Back",
+    "followingStatus": "Following"
+  },
+  "playerBar": {
+    "lyrics": "Lyrics"
   }
 }

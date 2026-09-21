@@ -29,7 +29,7 @@
               v-model.trim="url"
               type="url"
               autocomplete="url"
-              placeholder="主机地址，例如 http://192.168.1.10:4533"
+              :placeholder="t('streamLogin.hostPlaceholder')"
               required
               @focus="inputFocus = 'web'"
               @blur="inputFocus = ''"
@@ -46,7 +46,7 @@
               v-model.trim="user"
               type="text"
               autocomplete="username"
-              placeholder="账号"
+              :placeholder="t('streamLogin.accountPlaceholder')"
               required
               @focus="inputFocus = 'user'"
               @blur="inputFocus = ''"
@@ -73,12 +73,12 @@
       </div>
 
       <div v-if="hasSavedPassword && !password" class="credential-hint">
-        已保存的密码由系统安全存储保护；留空会继续使用该密码。
+        {{ t('streamLogin.savedPasswordHint') }}
       </div>
 
       <div class="confirm">
         <button type="submit" :disabled="submitting">
-          {{ submitting ? '正在登录…' : $t('login.login') }}
+          {{ submitting ? t('streamLogin.loggingIn') : t('login.login') }}
         </button>
       </div>
       <label v-if="error" class="error-message" role="alert">{{ error }}</label>
@@ -93,7 +93,9 @@ import { useStreamMusicStore } from '../store/streamingMusic'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { serviceName } from '@/types/music.d'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const iconWrappers = ref<HTMLElement[]>([])
 const indicatorStyle = ref({ width: '0px', left: '0px' })
 const isIndicatorReady = ref(false)
@@ -114,7 +116,9 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 
 const passwordPlaceholder = computed(() =>
-  hasSavedPassword.value ? '已保存密码，留空继续使用' : '密码'
+  hasSavedPassword.value
+    ? t('streamLogin.savedPasswordPlaceholder')
+    : t('streamLogin.passwordPlaceholder')
 )
 
 const getImagePath = (platform: serviceName) => {
@@ -160,7 +164,7 @@ const selectPlatform = (platform: serviceName) => {
 const login = async () => {
   if (submitting.value) return
   if (!url.value || !user.value || (!password.value && !hasSavedPassword.value)) {
-    error.value = '请完整填写主机地址、账号和密码。'
+    error.value = t('streamLogin.incomplete')
     return
   }
 
@@ -183,7 +187,7 @@ const login = async () => {
       hasSavedPassword.value = true
       await router.push('/stream')
     } else {
-      error.value = response?.message || '登录失败，请检查服务器地址和凭据。'
+      error.value = response?.message || t('streamLogin.failed')
     }
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : String(reason)

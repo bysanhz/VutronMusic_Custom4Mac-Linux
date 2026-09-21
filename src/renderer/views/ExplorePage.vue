@@ -9,7 +9,7 @@
           :class="{ active: category === activeCategory && !showCatOptions }"
           @click="goToCategory('playlist', category)"
         >
-          {{ category }}
+          {{ categoryLabel(category) }}
         </div>
         <div
           class="button more"
@@ -22,7 +22,7 @@
 
       <div v-show="showCatOptions" class="panel">
         <div v-for="bigCat in allBigCats" :key="bigCat" class="big-cat">
-          <div class="name">{{ bigCat }}</div>
+          <div class="name">{{ categoryLabel(bigCat) }}</div>
           <div class="cats">
             <div
               v-for="cat in getCatsByBigCat(bigCat)"
@@ -30,7 +30,7 @@
               class="cat"
               :class="{ active: general.enabledPlaylistCategories.includes(cat.name) }"
               @click="togglePlaylistCategory(cat.name)"
-              ><span>{{ cat.name }}</span></div
+              ><span>{{ categoryLabel(cat.name) }}</span></div
             >
           </div>
         </div>
@@ -59,7 +59,7 @@
           class="big-cat"
           style="margin-bottom: 10px"
         >
-          <div class="name">{{ bigCat }}</div>
+          <div class="name">{{ categoryLabel(bigCat) }}</div>
           <div class="cats">
             <div
               v-for="cat in getArtistCatsByBigCat(bigCat)"
@@ -67,7 +67,7 @@
               class="cat unset"
               :class="{ active: activeArtistCat.includes(cat) }"
               @click="toggleArtistCategory(cat)"
-              ><span>{{ cat.name }}</span></div
+              ><span>{{ categoryLabel(cat.name) }}</span></div
             >
           </div>
         </div>
@@ -83,7 +83,7 @@
           :class="{ active: category === activeCategory }"
           @click="goToCategory('newTrack', category)"
         >
-          {{ category }}
+          {{ categoryLabel(category) }}
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
           :class="{ active: category === activeCategory }"
           @click="goToCategory('newAlbum', category)"
         >
-          {{ category }}
+          {{ categoryLabel(category) }}
         </div>
       </div>
       <div class="buttons">
@@ -108,7 +108,7 @@
           :class="{ active: itemType === albumType }"
           :style="{ backgroundColor: 'unset', margin: '10px 0 6px 0' }"
           @click="updateType(itemType)"
-          >{{ itemType }}</div
+          >{{ categoryLabel(itemType) }}</div
         >
       </div>
     </div>
@@ -116,8 +116,8 @@
     <div v-if="exploreTab === 'style'" class="style-section">
       <div class="section-heading">
         <div>
-          <div class="section-title">曲风漫游</div>
-          <div class="section-desc">来自网易云曲风标签与账号偏好，选择曲风直接发现歌曲。</div>
+          <div class="section-title">{{ t('explore.styleRoam') }}</div>
+          <div class="section-desc">{{ t('explore.styleRoamDesc') }}</div>
         </div>
       </div>
       <div class="buttons style-buttons">
@@ -136,15 +136,15 @@
     <div v-if="exploreTab === 'following'" class="following-section">
       <div class="section-heading">
         <div>
-          <div class="section-title">关注歌手新作</div>
-          <div class="section-desc">集中查看你已关注歌手最近发布的歌曲和 MV。</div>
+          <div class="section-title">{{ t('explore.followingWorks') }}</div>
+          <div class="section-desc">{{ t('explore.followingWorksDesc') }}</div>
         </div>
         <div class="buttons compact-buttons">
           <div
             class="button"
             :class="{ active: followingMode === 'song' }"
             @click="switchFollowingMode('song')"
-            >新歌</div
+            >{{ t('explore.newSongs') }}</div
           >
           <div
             class="button"
@@ -162,7 +162,9 @@
 
     <div v-else-if="exploreTab === 'newAlbum'" class="playlists">
       <div v-if="albumType === '热门' && newAlbumInfo.topAlbum.weekData.length !== 0">
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">本周新碟</div>
+        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+          t('explore.weekNewAlbums')
+        }}</div>
         <CoverRow
           v-if="show"
           :items="newAlbumInfo.topAlbum.weekData"
@@ -178,7 +180,9 @@
         />
       </div>
       <div>
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">本月新碟</div>
+        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+          t('explore.monthNewAlbums')
+        }}</div>
         <CoverRow
           v-if="show"
           :items="
@@ -198,7 +202,7 @@
         />
         <div v-if="loadingMore" class="load-more-state" aria-live="polite">
           <span class="load-more-spinner" aria-hidden="true"></span>
-          <span>正在加载更多...</span>
+          <span>{{ t('explore.loadingMore') }}</span>
         </div>
       </div>
     </div>
@@ -212,7 +216,7 @@
         type="playlist"
         :is-end="true"
       />
-      <div v-else-if="show" class="empty-state">当前曲风暂时没有可展示的歌曲</div>
+      <div v-else-if="show" class="empty-state">{{ t('explore.noStyleSongs') }}</div>
     </div>
 
     <div v-else-if="exploreTab === 'following'" class="playlists">
@@ -229,7 +233,7 @@
         :mvs="followingMvs"
         :is-end="true"
       />
-      <div v-else-if="show" class="empty-state">暂无关注歌手新作，或当前账号尚未登录</div>
+      <div v-else-if="show" class="empty-state">{{ t('explore.noFollowingWorks') }}</div>
     </div>
 
     <div v-else class="playlists">
@@ -251,7 +255,7 @@
       />
       <div v-if="loadingMore" class="load-more-state" aria-live="polite">
         <span class="load-more-spinner" aria-hidden="true"></span>
-        <span>正在加载更多...</span>
+        <span>{{ t('explore.loadingMore') }}</span>
       </div>
     </div>
   </div>
@@ -270,6 +274,7 @@ import TrackList from '../components/VirtualTrackList.vue'
 import MvRow from '../components/MvRow.vue'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import { useRouter, useRoute, onBeforeRouteUpdate } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getRecommendPlayList } from '../utils/playlist'
 import { highQualityPlaylist, topPlaylist, toplists, toplistDetail } from '../api/playlist'
 import { getArtistList } from '../api/artist'
@@ -289,6 +294,7 @@ interface StyleTag {
   preferred?: boolean
 }
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const stateStore = useNormalStateStore()
@@ -328,6 +334,8 @@ const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
 const loadingMore = ref(false)
 const PLAYLIST_PAGE_SIZE = 24
+
+const categoryLabel = (value: string) => t(`explore.categories.${value}`, value)
 
 const subText = computed(() => {
   if (activeCategory.value === '排行榜') return 'updateFrequency'
@@ -544,7 +552,7 @@ const selectStyle = (tag: StyleTag) => {
     })
     .catch((error) => {
       console.warn('[Explore] 加载曲风歌曲失败:', error)
-      showToast('曲风歌曲加载失败，请稍后重试')
+      showToast(t('explore.styleLoadFailed'))
     })
     .finally(() => {
       tricklingProgress.done()
