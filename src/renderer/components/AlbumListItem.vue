@@ -8,7 +8,7 @@
         </div>
         <div class="artist">
           <ArtistsInLine :artists="artists" />
-          - 共 {{ tracks.length }} 首歌
+          · {{ $t('list.trackCount', { count: tracks.length }) }}
         </div>
       </div>
     </div>
