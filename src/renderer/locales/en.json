@@ -1064,7 +1064,9 @@
     "cloudDeleteFailed": "Cloud deletion failed. Please try again later.",
     "removePlaylistConfirm": "Remove {name} from this playlist?",
     "removeStreamPlaylistConfirm": "Remove {name} from the {service} playlist?",
-    "trackFallback": "this track"
+    "trackFallback": "this track",
+    "removeConfirm": "Remove {name} from this playlist?",
+    "removeStreamConfirm": "Remove {name} from the {service} playlist?"
   },
   "osd": {
     "lock": "Lock Desktop Lyrics",
