@@ -49,10 +49,10 @@
       <div v-if="showAlbumName" class="album">
         <div
           v-if="album && album.matched !== false && album.id && album.name"
-          :title="album.name || '未知专辑'"
+          :title="album.name || t('common.unknownAlbum')"
           ><router-link :to="`/album/${album.id}`">{{ album.name }}</router-link></div
         >
-        <div v-else :title="album.name || '未知专辑'"> {{ album.name || '未知专辑' }}</div>
+        <div v-else :title="album.name || t('common.unknownAlbum')"> {{ album.name || t('common.unknownAlbum') }}</div>
       </div>
 
       <div v-if="showService" class="service">{{
@@ -194,7 +194,7 @@ const artists = computed(() => {
   const useAr = track.value.ar ?? track.value.artists
   useAr.forEach((artist: any) => {
     if (artist && !artist.name) {
-      artist.name = '未知歌手'
+      artist.name = t('common.unknownArtist')
     }
   })
   return useAr
