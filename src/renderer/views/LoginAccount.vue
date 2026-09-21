@@ -54,7 +54,7 @@
             <textarea
               v-model="inputCookie"
               class="cookie-input"
-              placeholder="请输入cookie"
+              :placeholder="t('login.cookiePlaceholder')"
             ></textarea>
           </div>
         </div>
@@ -95,7 +95,7 @@
           v-for="mode in [...loginModes.filter((m) => !m.selected)]"
           :key="mode.mode"
           @click="changeMode(mode.mode)"
-          >{{ mode.text }}</a
+          >{{ loginModeLabel(mode.mode) }}</a
         >
       </div>
       <div v-show="['phone', 'email'].includes(selectedMode.mode)" class="notice">{{
@@ -132,11 +132,21 @@ const { t } = useI18n()
 const modeList = ['phone', 'email', 'qrCode', 'cookie'] as const
 
 const loginModes = ref([
-  { mode: 'phone' as (typeof modeList)[number], selected: false, text: t('login.loginWithPhone') },
-  { mode: 'email' as (typeof modeList)[number], selected: false, text: t('login.loginWithEmail') },
-  { mode: 'qrCode' as (typeof modeList)[number], selected: true, text: t('login.loginWithQr') },
-  { mode: 'cookie' as (typeof modeList)[number], selected: false, text: t('login.loginWithCookie') }
+  { mode: 'phone' as (typeof modeList)[number], selected: false },
+  { mode: 'email' as (typeof modeList)[number], selected: false },
+  { mode: 'qrCode' as (typeof modeList)[number], selected: true },
+  { mode: 'cookie' as (typeof modeList)[number], selected: false }
 ])
+
+const loginModeLabel = (mode: (typeof modeList)[number]) => {
+  const keyMap = {
+    phone: 'login.loginWithPhone',
+    email: 'login.loginWithEmail',
+    qrCode: 'login.loginWithQr',
+    cookie: 'login.loginWithCookie'
+  } as const
+  return t(keyMap[mode])
+}
 
 const selectedMode = computed(() => loginModes.value.find((M) => M.selected)!)
 
@@ -149,7 +159,7 @@ const password = ref('')
 const qrCodeSvg = ref('')
 const qrCodeKey = ref('')
 const qrCodeCheckInterval = ref<any>(null)
-const qrCodeInformation = ref('打开网易云音乐APP扫码登录')
+const qrCodeInformation = ref(t('login.qrOpen'))
 const inputCookie = ref('')
 
 const dataStore = useDataStore()
@@ -198,14 +208,14 @@ const checkQrCodeLogin = () => {
     loginQrCodeCheck(qrCodeKey.value).then((result) => {
       if (result.code === 800) {
         getQrCodeKey()
-        qrCodeInformation.value = '二维码已失效，请重新获取'
+        qrCodeInformation.value = t('login.qrExpired')
       } else if (result.code === 802) {
-        qrCodeInformation.value = '扫描成功，请在手机上确认登录'
+        qrCodeInformation.value = t('login.qrScanned')
       } else if (result.code === 801) {
-        qrCodeInformation.value = '打开网易云音乐APP扫码登录'
+        qrCodeInformation.value = t('login.qrOpen')
       } else if (result.code === 803) {
         clearInterval(qrCodeCheckInterval.value)
-        qrCodeInformation.value = '登录成功，请稍等...'
+        qrCodeInformation.value = t('login.qrSuccessWait')
         result.code = 200
         result.cookie = result.cookie.replaceAll(' HTTPOnly', '')
         handleLoginResponse(result)
