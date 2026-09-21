@@ -279,7 +279,10 @@
     "albumDesc": "Album Description",
     "comment": "Comments",
     "saved": "Saved to Library",
-    "removed": "Removed from Library"
+    "removed": "Removed from Library",
+    "moreBy": "More by {artist}",
+    "typeBy": "{type} by",
+    "compilationBy": "Compilation by Various Artists"
   },
   "playlist": {
     "search": "Search Playlist Tracks"
@@ -1021,7 +1024,10 @@
     "heartNoSeed": "Could not choose a starting track for Heart Mode.",
     "heartNoResult": "Heart Mode did not return playable tracks. Please try again later.",
     "heartFailed": "Heart Mode failed to load. Please try again later.",
-    "deleteConfirm": "Delete playlist {name}?"
+    "deleteConfirm": "Delete playlist {name}?",
+    "offlineBy": "Offline Playlist{creator}",
+    "streamBy": "{service} playlist by {creator}",
+    "onlineBy": "Playlist by"
   },
   "comments": {
     "title": "Comments ({count})",
@@ -1035,7 +1041,9 @@
     "placeholder": "Share what this music makes you feel",
     "replyTo": "Reply to {nickname}:",
     "close": "Close",
-    "deleteConfirm": "Delete comment “{content}”?"
+    "deleteConfirm": "Delete comment “{content}”?",
+    "send": "Send",
+    "inputPlaceholder": "Enter a comment"
   },
   "modalTheme": {
     "selectOrDelete": "Click to select; right-click to delete",
@@ -1053,6 +1061,13 @@
     "operationFailed": "Operation failed. Please try again later.",
     "deleteCloudConfirm": "Delete {name} from NetEase Cloud? This change will sync to your NetEase account.",
     "cloudDeleted": "Deleted from cloud",
-    "cloudDeleteFailed": "Cloud deletion failed. Please try again later."
+    "cloudDeleteFailed": "Cloud deletion failed. Please try again later.",
+    "removePlaylistConfirm": "Remove {name} from this playlist?",
+    "removeStreamPlaylistConfirm": "Remove {name} from the {service} playlist?",
+    "trackFallback": "this track"
+  },
+  "osd": {
+    "lock": "Lock Desktop Lyrics",
+    "unlock": "Unlock Desktop Lyrics"
   }
 }
