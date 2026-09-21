@@ -36,6 +36,10 @@ jobs:
       - name: Check formatting
         run: yarn run format:check
 
+      - name: Run i18n coverage regression
+        if: ${{ always() }}
+        run: yarn playwright test tests/i18n-coverage.spec.ts
+
       - name: Lint source
         if: ${{ always() }}
         run: yarn lint
