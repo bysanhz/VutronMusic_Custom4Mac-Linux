@@ -37,7 +37,11 @@
                 `${randomtrack?.ar[0].name} -- ${randomtrack?.name}`
               }}</div>
             </div>
-            <span v-show="randomtrack?.id" class="lyric-play-hint" aria-hidden="true">
+            <span
+              v-show="randomtrack?.id"
+              class="lyric-play-hint"
+              aria-hidden="true"
+            >
               <SvgIcon icon-class="play" />
             </span>
           </div>
@@ -273,7 +277,8 @@ import { usePlayerStore } from '../store/player'
 import { lyricLine } from '@/types/music'
 
 const dataStore = useDataStore()
-const { liked, libraryPlaylistFilter, user, likedSongPlaylistID } = storeToRefs(dataStore)
+const { liked, libraryPlaylistFilter, user, likedSongPlaylistID } =
+  storeToRefs(dataStore)
 
 const { newPlaylistModal } = storeToRefs(useNormalStateStore())
 
@@ -361,7 +366,12 @@ const playRandomLyricTrack = () => {
   if (index < 0) return
 
   markPlaybackEndReason('manual-select')
-  void replacePlaylist('playlist', likedSongPlaylistID.value || 0, trackIDs, index)
+  void replacePlaylist(
+    'playlist',
+    likedSongPlaylistID.value || 0,
+    trackIDs,
+    index
+  )
 }
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
