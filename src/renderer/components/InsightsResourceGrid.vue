@@ -10,16 +10,19 @@
         <img :src="resourceImage(item)" alt="" loading="lazy" />
         <div class="cover-play" aria-hidden="true">▶</div>
       </div>
-      <div class="resource-name">{{ item?.name || '未命名' }}</div>
+      <div class="resource-name">{{ item?.name || t('insightsUi.unnamed') }}</div>
       <div v-if="resourceSubtitle(item)" class="resource-subtitle">
         {{ resourceSubtitle(item) }}
       </div>
     </router-link>
-    <div v-if="!items.length" class="empty">{{ emptyText }}</div>
+    <div v-if="!items.length" class="empty">{{ emptyText || t('insightsUi.emptyResources') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     items: any[]
@@ -27,7 +30,7 @@ const props = withDefaults(
     emptyText?: string
   }>(),
   {
-    emptyText: '当前没有可展示的资源。'
+    emptyText: ''
   }
 )
 
