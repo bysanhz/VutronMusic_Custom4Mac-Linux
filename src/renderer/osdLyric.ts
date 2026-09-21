@@ -1,4 +1,8 @@
 import { createApp } from 'vue'
+import { createI18n } from 'vue-i18n'
+import en from './locales/en.json'
+import zh from './locales/zh-hans.json'
+import zht from './locales/zh-hant.json'
 import OSDLyric from './views/OSDLyric.vue'
 import 'virtual:svg-icons-register'
 import { createPinia, storeToRefs } from 'pinia'
@@ -49,8 +53,39 @@ initializeOsdLyricSyncGuard()
 // =========== newADD end ========
 
 const app = createApp(OSDLyric)
+
+const readOsdLanguage = (): 'zh' | 'zht' | 'en' => {
+  try {
+    const settings = JSON.parse(localStorage.getItem('settings') || '{}')
+    const language = settings?.general?.language
+    return language === 'zh' || language === 'zht' ? language : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+const osdI18n = createI18n({
+  legacy: false,
+  locale: readOsdLanguage(),
+  fallbackLocale: 'en',
+  globalInjection: true,
+  messages: { en, zh, zht }
+})
+
+const handleOsdLanguageStorage = (event: StorageEvent) => {
+  if (event.key !== 'settings') return
+  osdI18n.global.locale.value = readOsdLanguage()
+}
+window.addEventListener('storage', handleOsdLanguageStorage)
+window.addEventListener(
+  'beforeunload',
+  () => window.removeEventListener('storage', handleOsdLanguageStorage),
+  { once: true }
+)
+
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
+app.use(osdI18n)
 app.use(pinia)
 
 // ======== newADD start======
