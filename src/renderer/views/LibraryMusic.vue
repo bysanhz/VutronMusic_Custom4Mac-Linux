@@ -75,7 +75,6 @@
 
     <div class="section-two">
       <div
-        ref="tabsRowRef"
         class="tabs-row"
         :style="{
           height: (hasCustomTitleBar ? 84 : 64) + 'px',
@@ -146,9 +145,10 @@
             :items="filterPlaylists"
             type="playlist"
             sub-text="creator"
-            :colunm-number="5"
+            :colunm-number="4"
             class="library-cover-row"
             :min-cover-physical-width="112"
+            :fixed-column-number="true"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -160,9 +160,10 @@
             :items="libraryData.albums"
             type="album"
             sub-text="artist"
-            :colunm-number="5"
+            :colunm-number="4"
             class="library-cover-row"
             :min-cover-physical-width="112"
+            :fixed-column-number="true"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -179,9 +180,10 @@
             type="artist"
             sub-text="artist"
             :item-height="230"
-            :colunm-number="5"
+            :colunm-number="4"
             class="library-cover-row"
             :min-cover-physical-width="112"
+            :fixed-column-number="true"
             :enable-virtual-scroll="false"
             :is-end="true"
             :padding-bottom="96"
@@ -286,7 +288,6 @@ const lyric = ref<{ content: string }[]>([])
 const randomtrack = ref<{ [key: string]: any }>()
 const currentTab = ref('playlist')
 const playlistTabMenu = ref<InstanceType<typeof ContextMenu>>()
-const tabsRowRef = ref()
 
 const libraryData = computed(() => {
   const value = liked.value
@@ -364,8 +365,6 @@ const playRandomLyricTrack = () => {
 }
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
-
-const isMac = computed(() => window.env?.isMac)
 
 const tabStyle = computed(() => {
   const marginTop = hasCustomTitleBar.value ? 20 : 0
@@ -498,64 +497,12 @@ const changePlaylistFilter = (type: string) => {
   libraryPlaylistFilter.value = type
 }
 
-let tabObserverFrame: number | null = null
-let pendingTabIntersectionRatio = 1
-let lastTabPaddingLeft = -1
-let lastTabPaddingRight = -1
-
-const applyTabIntersection = () => {
-  tabObserverFrame = null
-  const element = tabsRowRef.value as HTMLElement | undefined
-  if (!element) return
-
-  const ratio = Math.max(0, Math.min(1, pendingTabIntersectionRatio))
-  const maxPadding = 42
-  const maxPaddingRight = 224
-  const paddingLeft = isMac.value ? Math.round(maxPadding * (1 - ratio)) : 0
-  const paddingRight = Math.round(maxPaddingRight * (1 - ratio))
-
-  if (isMac.value && paddingLeft !== lastTabPaddingLeft) {
-    element.style.paddingLeft = `${paddingLeft}px`
-    lastTabPaddingLeft = paddingLeft
-  }
-  if (paddingRight !== lastTabPaddingRight) {
-    element.style.width = `calc(100% - ${paddingRight}px)`
-    lastTabPaddingRight = paddingRight
-  }
-}
-
-const observeTab = new IntersectionObserver(
-  (entries) => {
-    const entry = entries[entries.length - 1]
-    if (!entry) return
-    pendingTabIntersectionRatio = entry.intersectionRatio
-    if (tabObserverFrame === null) {
-      tabObserverFrame = window.requestAnimationFrame(applyTabIntersection)
-    }
-  },
-  {
-    root: null,
-    rootMargin: `-${hasCustomTitleBar.value ? 84 : 64}px 0px 0px 0px`,
-    // 旧实现 100 个 threshold 会在约 64px 的过渡区里几乎逐像素触发回调并写 layout。
-    // 只保留 5 个关键点，配合 rAF 合并 DOM 写入，避免滚到标签栏附近出现明显卡顿。
-    threshold: [0, 0.25, 0.5, 0.75, 1]
-  }
-)
-
 const handleResize = () => {
   winHeight.value = window.innerHeight
-  if (tabsRowRef.value) {
-    observeTab.unobserve(tabsRowRef.value)
-  }
-  observeTab.disconnect()
-  if (tabsRowRef.value) observeTab.observe(tabsRowRef.value)
 }
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
-  if (tabsRowRef.value) {
-    observeTab.observe(tabsRowRef.value)
-  }
   setTimeout(() => {
     if (!show.value) tricklingProgress.start()
   }, 1000)
@@ -571,11 +518,6 @@ onMounted(() => {
 })
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  observeTab.disconnect()
-  if (tabObserverFrame !== null) {
-    window.cancelAnimationFrame(tabObserverFrame)
-    tabObserverFrame = null
-  }
   updatePadding(96)
 })
 </script>
