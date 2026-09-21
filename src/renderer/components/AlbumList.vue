@@ -44,13 +44,9 @@
           v-if="albums[selectedIdx]?.matched && albums[selectedIdx]?.id !== 0"
           class="listen-more"
         >
-          <span
-            >听听
-            <router-link :to="`/album/${albums[selectedIdx].id}`">{{
-              albums[selectedIdx].name
-            }}</router-link>
-            的其他歌曲</span
-          >
+          <router-link :to="`/album/${albums[selectedIdx].id}`">
+            {{ $t('list.otherAlbumTracks', { name: albums[selectedIdx].name }) }}
+          </router-link>
         </div>
       </template>
     </VirtualScroll>
