@@ -17,7 +17,9 @@
       @blur="doblur"
     />
     <div v-if="props.suggestions && showSuggestions && showInput" class="search-suggestions">
-      <div class="suggestion-title">{{ keywords ? t('searchBox.search') : t('searchBox.hotSearch') }}</div>
+      <div class="suggestion-title">{{
+        keywords ? t('searchBox.search') : t('searchBox.hotSearch')
+      }}</div>
       <button
         v-if="keywords"
         class="suggestion-item keyword-item"

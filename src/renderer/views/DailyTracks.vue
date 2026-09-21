@@ -10,10 +10,12 @@
         }}
       </div>
       <div class="mode-row">
-        <button :class="{ active: mode === 'today' }" @click="switchMode('today')">{{ t('dailyTracks.today') }}</button>
-        <button :class="{ active: mode === 'history' }" @click="switchMode('history')"
-          >{{ t('dailyTracks.history') }}</button
-        >
+        <button :class="{ active: mode === 'today' }" @click="switchMode('today')">{{
+          t('dailyTracks.today')
+        }}</button>
+        <button :class="{ active: mode === 'history' }" @click="switchMode('history')">{{
+          t('dailyTracks.history')
+        }}</button>
       </div>
       <div v-if="mode === 'history' && historyDates.length" class="history-dates">
         <button

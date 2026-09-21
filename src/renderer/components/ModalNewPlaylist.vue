@@ -22,7 +22,9 @@
       </div>
     </template>
     <template #footer>
-      <button class="primary block" @click="createAPlaylist">{{ t('modalPlaylist.create') }}</button>
+      <button class="primary block" @click="createAPlaylist">{{
+        t('modalPlaylist.create')
+      }}</button>
     </template>
   </BaseModal>
 </template>

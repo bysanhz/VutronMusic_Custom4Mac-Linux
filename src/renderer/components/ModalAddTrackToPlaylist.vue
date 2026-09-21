@@ -20,7 +20,9 @@
         <img :src="playlist?.coverImgUrl" loading="lazy" />
         <div class="info">
           <div class="title">{{ playlist?.name }}</div>
-          <div class="track-count">{{ t('modalPlaylist.trackCount', { count: playlist?.trackCount || 0 }) }}</div>
+          <div class="track-count">{{
+            t('modalPlaylist.trackCount', { count: playlist?.trackCount || 0 })
+          }}</div>
         </div>
       </div>
     </template>

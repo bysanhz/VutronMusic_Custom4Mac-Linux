@@ -42,14 +42,8 @@ test.describe('renderer i18n coverage', () => {
         'src/renderer/views/HomePage.vue',
         ['<div class="insights-title">音乐洞察</div>', '>猜你喜欢<', '>为你定制<']
       ],
-      [
-        'src/renderer/views/LibraryMusic.vue',
-        ["'歌词歌曲加载中'", "'未知歌手'"]
-      ],
-      [
-        'src/renderer/views/DailyTracks.vue',
-        ['>每日歌曲推荐<', '>今日推荐<', '>历史日推<']
-      ],
+      ['src/renderer/views/LibraryMusic.vue', ["'歌词歌曲加载中'", "'未知歌手'"]],
+      ['src/renderer/views/DailyTracks.vue', ['>每日歌曲推荐<', '>今日推荐<', '>历史日推<']],
       [
         'src/renderer/views/LocalMusic.vue',
         ['>本地歌曲<', '>全部歌曲<', '>歌曲总时长<', '>离线歌单<']
@@ -58,10 +52,7 @@ test.describe('renderer i18n coverage', () => {
         'src/renderer/views/StreamPage.vue',
         ['>流媒体歌曲', '>全部歌曲<', '>流媒体歌单<', '>聚合<']
       ],
-      [
-        'src/renderer/views/UserPage.vue',
-        ['>TA的听歌排行<', '>动态<', '>播客<', "'已关注'"]
-      ],
+      ['src/renderer/views/UserPage.vue', ['>TA的听歌排行<', '>动态<', '>播客<', "'已关注'"]],
       [
         'src/renderer/components/VirtualTrackList.vue',
         ['>不感兴趣<', '>从云盘删除<', "'已从云盘删除'"]

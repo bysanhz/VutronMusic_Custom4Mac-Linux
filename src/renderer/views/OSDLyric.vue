@@ -71,7 +71,9 @@
         class="osd-lock-button"
         :class="{ visible: hover }"
         :title="isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')"
-        :aria-label="isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')"
+        :aria-label="
+          isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')
+        "
         @click.stop="handleLock"
       >
         <SvgIcon :icon-class="isLock ? 'unlock' : 'lock'" />

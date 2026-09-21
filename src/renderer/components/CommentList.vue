@@ -63,10 +63,14 @@
               <div class="comment-ex">
                 <div class="time-ip">
                   <span class="time">{{ formatDate(item.time, 'YYYY-MM-DD H:mm') }}</span>
-                  <span v-if="item.ipLocation?.location">{{ t('comments.from', { location: item.ipLocation.location }) }}</span>
+                  <span v-if="item.ipLocation?.location">{{
+                    t('comments.from', { location: item.ipLocation.location })
+                  }}</span>
                 </div>
                 <div class="comment-btns">
-                  <button v-if="isAccountLoggedIn && item.owner" @click="handleDeleteComment(item)"
+                  <button
+                    v-if="isAccountLoggedIn && item.owner"
+                    @click="handleDeleteComment(item)"
                     >{{ t('comments.delete') }}</button
                   >
                   <button @click="handleLikeComment(item)"

@@ -22,7 +22,12 @@
           {{ t('playlistPage.offline') }} {{ user.nickname ? `by ${user.nickname}` : `` }}
         </div>
         <div v-else-if="playlistType === 'stream'" class="artist">
-          {{ t('playlistPage.stream', { service: currentService, creator: playlist.creator.nickname }) }}
+          {{
+            t('playlistPage.stream', {
+              service: currentService,
+              creator: playlist.creator.nickname
+            })
+          }}
         </div>
         <div v-else class="artist">
           {{ t('playlistPage.online') }}
@@ -110,10 +115,12 @@
     </div>
 
     <div v-if="isLikedSongsPage" class="special-playlist">
-      <div v-show="playlistType === 'online'" class="title gradient-red">{{ t('playlistPage.liked') }}</div>
-      <div v-show="playlistType === 'streamLiked'" class="title gradient-sky-blue"
-        >{{ t('playlistPage.streamLiked') }}</div
-      >
+      <div v-show="playlistType === 'online'" class="title gradient-red">{{
+        t('playlistPage.liked')
+      }}</div>
+      <div v-show="playlistType === 'streamLiked'" class="title gradient-sky-blue">{{
+        t('playlistPage.streamLiked')
+      }}</div>
       <div class="buttons">
         <ButtonTwoTone class="play-button" icon-class="play" color="grey" @click="play">
           {{ $t('common.play') }}

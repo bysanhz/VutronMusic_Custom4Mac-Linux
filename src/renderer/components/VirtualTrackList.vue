@@ -390,7 +390,14 @@ const rmTrackFromPlaylist = () => {
       showToast(t('trackList.aggregateDisabled'))
       return
     }
-    if (confirm(t('trackList.removeStreamConfirm', { service: props.groupBy, name: rightClickedTrackComputed.value.name }))) {
+    if (
+      confirm(
+        t('trackList.removeStreamConfirm', {
+          service: props.groupBy,
+          name: rightClickedTrackComputed.value.name
+        })
+      )
+    ) {
       const idx = rightClickedTrackIndex.value
       const playlistItemId = rightClickedTrackComputed.value.playlistItemId
       addOrRemoveTrackFromStreamPlaylist(

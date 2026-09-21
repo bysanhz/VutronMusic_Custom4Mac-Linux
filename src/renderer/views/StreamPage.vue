@@ -12,7 +12,9 @@
           <div class="content-info">
             <div>
               <div class="subtitle">{{ t('streamMusic.allSongs') }}</div>
-              <div class="text">{{ t('streamMusic.trackCount', { count: defaultTracks.length }) }}</div>
+              <div class="text">{{
+                t('streamMusic.trackCount', { count: defaultTracks.length })
+              }}</div>
             </div>
             <div>
               <div class="subtitle">{{ t('streamMusic.totalDuration') }}</div>
@@ -20,7 +22,9 @@
             </div>
             <div>
               <div class="subtitle">{{ t('streamMusic.playlistsSummary') }}</div>
-              <div class="text">{{ t('streamMusic.playlistCount', { count: defaultPlaylists.length }) }}</div>
+              <div class="text">{{
+                t('streamMusic.playlistCount', { count: defaultPlaylists.length })
+              }}</div>
             </div>
             <div>
               <div class="subtitle">{{ t('streamMusic.diskUsage') }}</div>
@@ -138,7 +142,9 @@
     </div>
 
     <ContextMenu ref="streamTabMenu">
-      <div class="item" :class="{ active: groundBy === 'all' }" @click="groundBy = 'all'">{{ t('streamMusic.aggregate') }}</div>
+      <div class="item" :class="{ active: groundBy === 'all' }" @click="groundBy = 'all'">{{
+        t('streamMusic.aggregate')
+      }}</div>
       <div
         v-for="service in loginedServices"
         :key="service.name"

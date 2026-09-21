@@ -162,7 +162,9 @@
 
     <div v-else-if="exploreTab === 'newAlbum'" class="playlists">
       <div v-if="albumType === '热门' && newAlbumInfo.topAlbum.weekData.length !== 0">
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{ t('explore.weekNewAlbums') }}</div>
+        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+          t('explore.weekNewAlbums')
+        }}</div>
         <CoverRow
           v-if="show"
           :items="newAlbumInfo.topAlbum.weekData"
@@ -178,7 +180,9 @@
         />
       </div>
       <div>
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{ t('explore.monthNewAlbums') }}</div>
+        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+          t('explore.monthNewAlbums')
+        }}</div>
         <CoverRow
           v-if="show"
           :items="

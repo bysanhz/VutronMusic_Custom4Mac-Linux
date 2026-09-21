@@ -10,7 +10,9 @@
       <input v-model="title" type="text" :placeholder="selectedTrack?.name" maxlength="40" />
     </template>
     <template #footer>
-      <button class="primary block" @click="accurateMatchTrack">{{ t('modalPlaylist.match') }}</button>
+      <button class="primary block" @click="accurateMatchTrack">{{
+        t('modalPlaylist.match')
+      }}</button>
     </template>
   </BaseModal>
 </template>

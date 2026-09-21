@@ -66,9 +66,9 @@
           @click="toExplore('artist')"
           >{{ $t('nav.artist') }}</div
         >
-        <div class="item" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')"
-          >{{ $t('nav.style') }}</div
-        >
+        <div class="item" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')">{{
+          $t('nav.style')
+        }}</div>
         <div
           class="item"
           :class="{ active: exploreTab === 'following' }"

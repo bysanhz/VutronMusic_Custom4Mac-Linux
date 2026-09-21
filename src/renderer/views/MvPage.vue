@@ -15,9 +15,9 @@
           <div class="info">
             <div>
               <span>{{ t('mv.publishTime', { time: mv.data.publishTime }) }}</span>
-              <span style="margin-left: 20px"
-                >{{ t('mv.playCount', { count: formatPlayCount(mv.data.playCount) }) }}</span
-              >
+              <span style="margin-left: 20px">{{
+                t('mv.playCount', { count: formatPlayCount(mv.data.playCount) })
+              }}</span>
             </div>
             <div class="btns">
               <button @click="handleLikeMv(mv)"

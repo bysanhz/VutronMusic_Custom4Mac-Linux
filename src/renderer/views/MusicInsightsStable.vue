@@ -29,7 +29,11 @@
           <p>{{ t('insights.footprint.description') }}</p>
         </div>
         <div v-if="pendingNeteaseListenSeconds > 0" class="sync-status">
-          {{ t('insights.footprint.pending', { duration: formatPendingListenDuration(pendingNeteaseListenSeconds) }) }}
+          {{
+            t('insights.footprint.pending', {
+              duration: formatPendingListenDuration(pendingNeteaseListenSeconds)
+            })
+          }}
         </div>
       </div>
 
@@ -41,7 +45,11 @@
               ? t('insights.footprint.todayCount', { count: footprint.todayCount })
               : '—'
           }}</strong>
-          <small>{{ t('insights.footprint.todayListen', { duration: formatDisplayListenDuration(displayTodaySeconds) }) }}</small>
+          <small>{{
+            t('insights.footprint.todayListen', {
+              duration: formatDisplayListenDuration(displayTodaySeconds)
+            })
+          }}</small>
         </div>
         <div class="metric-card">
           <span>{{ t('insights.footprint.week') }}</span>
@@ -87,9 +95,7 @@
       <div class="section-head">
         <div>
           <h2>{{ t('insights.style.title') }}</h2>
-          <p>{{
-            styleDescription || t('insights.style.description')
-          }}</p>
+          <p>{{ styleDescription || t('insights.style.description') }}</p>
         </div>
         <select v-model="styleSort" :disabled="styleLoading" @change="loadStyleResources(true)">
           <option :value="0">{{ t('insights.style.hot') }}</option>
@@ -121,7 +127,9 @@
       </div>
 
       <div class="results-header">
-        <span>{{ styleLoading ? t('common.loading') : t('common.items', { count: currentStyleCount }) }}</span>
+        <span>{{
+          styleLoading ? t('common.loading') : t('common.items', { count: currentStyleCount })
+        }}</span>
       </div>
 
       <div class="stable-results" :class="{ loading: styleLoading }">
@@ -184,7 +192,10 @@
         </label>
         <label>
           <span>{{ t('insights.cloud.targetId') }}</span>
-          <input v-model.trim="cloudTargetSongId" :placeholder="t('insights.cloud.targetPlaceholder')" />
+          <input
+            v-model.trim="cloudTargetSongId"
+            :placeholder="t('insights.cloud.targetPlaceholder')"
+          />
         </label>
       </div>
       <div class="action-row">
@@ -306,7 +317,9 @@ const formatDisplayListenDuration = (seconds?: number): string => {
   const minutes = Math.floor((value % 3600) / 60)
   if (days > 0) return t('insights.footprint.durationDaysHours', { days, hours })
   if (hours > 0) return t('insights.footprint.durationHoursMinutes', { hours, minutes })
-  return t('insights.footprint.durationMinutes', { minutes: Math.max(value === 0 ? 0 : 1, minutes) })
+  return t('insights.footprint.durationMinutes', {
+    minutes: Math.max(value === 0 ? 0 : 1, minutes)
+  })
 }
 
 const styleTags = ref<StyleTag[]>([])
@@ -365,8 +378,7 @@ const loadFootprint = async (): Promise<void> => {
 
     // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
     footprint.todayCount = extractTodaySongCount(today, week)
-    footprint.todaySeconds =
-      extractTodayListenSeconds(month) ?? extractTodayListenSeconds(week)
+    footprint.todaySeconds = extractTodayListenSeconds(month) ?? extractTodayListenSeconds(week)
 
     // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
     const nextRemoteWeekSeconds =

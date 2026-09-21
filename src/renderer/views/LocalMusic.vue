@@ -8,7 +8,9 @@
           <div class="content-info">
             <div>
               <div class="subtitle">{{ t('localMusic.allSongs') }}</div>
-              <div class="text">{{ t('localMusic.trackCount', { count: defaultTracks.length }) }}</div>
+              <div class="text">{{
+                t('localMusic.trackCount', { count: defaultTracks.length })
+              }}</div>
             </div>
             <div>
               <div class="subtitle">{{ t('localMusic.totalDuration') }}</div>
@@ -16,7 +18,9 @@
             </div>
             <div>
               <div class="subtitle">{{ t('localMusic.offlinePlaylists') }}</div>
-              <div class="text">{{ t('localMusic.playlistCount', { count: playlists.length }) }}</div>
+              <div class="text">{{
+                t('localMusic.playlistCount', { count: playlists.length })
+              }}</div>
             </div>
             <div>
               <div class="subtitle">{{ t('localMusic.diskUsage') }}</div>

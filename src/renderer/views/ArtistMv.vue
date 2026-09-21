@@ -1,6 +1,10 @@
 <template>
   <div v-show="show">
-    <h1><img class="avatar" :src="image" loading="lazy" />{{ t('artistMv.title', { artist: artist.name }) }}</h1>
+    <h1
+      ><img class="avatar" :src="image" loading="lazy" />{{
+        t('artistMv.title', { artist: artist.name })
+      }}</h1
+    >
     <MvRow
       :mvs="mvs"
       :is-end="true"
