@@ -16,7 +16,7 @@
                 :key="item.name"
                 class="theme-item"
                 :class="{ selected: currentPath.mode === type && currentPath.index === index }"
-                :title="type === 'Customize' ? '单击选择，右击删除' : ''"
+                :title="type === 'Customize' ? t('modalTheme.selectOrDelete') : ''"
                 @click="selectTheme(type, index)"
                 @click.right="deleteTheme(type, item.name)"
               >
@@ -38,7 +38,9 @@ import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerThemeStore } from '../store/playerTheme'
 import Modal from './BaseModal.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const stateStore = useNormalStateStore()
 const { setThemeModal } = storeToRefs(stateStore)
 const { showToast } = stateStore
@@ -76,7 +78,7 @@ const deleteTheme = (type: 'Classic' | 'Creative' | 'Customize', name: string) =
   window.mainApi?.send('delete-screenshot', image)
   cThemes.splice(idx, 1)
   copyThemes.splice(idx, 1)
-  showToast('自定义主题删除成功')
+  showToast(t('modalTheme.deleted'))
 }
 
 const closeFn = () => {
