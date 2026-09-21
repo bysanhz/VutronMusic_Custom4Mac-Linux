@@ -276,7 +276,10 @@
   },
   "album": {
     "released": "Released",
-    "albumDesc": "Album Description"
+    "albumDesc": "Album Description",
+    "comment": "Comments",
+    "saved": "Saved to Library",
+    "removed": "Removed from Library"
   },
   "playlist": {
     "search": "Search Playlist Tracks"
@@ -473,7 +476,8 @@
     "clearQueue": "Clear queue",
     "publishTime": "Published: {time}",
     "playCount": "Plays: {count}",
-    "confirmLogout": "Log out now?"
+    "confirmLogout": "Log out now?",
+    "comment": "Comments"
   },
   "settings": {
     "heartModeProfile": {
@@ -990,5 +994,65 @@
   "mv": {
     "publishTime": "Published: {time}",
     "playCount": "Plays: {count}"
+  },
+  "dailyTracks": {
+    "title": "Daily Recommendations",
+    "todayDesc": "Generated from your music taste · updates daily at 6:00",
+    "historyDesc": "Recommendation history · {date}",
+    "today": "Today",
+    "history": "History",
+    "feedbackHint": "Right-click a track and choose “Not interested” to sync feedback to NetEase recommendations."
+  },
+  "artistMv": {
+    "title": "{artist}'s MVs"
+  },
+  "playlistPage": {
+    "offline": "Offline Playlist",
+    "stream": "{service} playlist by {creator}",
+    "online": "Playlist by",
+    "comment": "Comments",
+    "liked": "Liked Songs",
+    "streamLiked": "Liked Streaming Music",
+    "heartMode": "Heart Mode",
+    "description": "Playlist Description",
+    "saved": "Saved to Library",
+    "removed": "Removed from Library",
+    "heartNoTrack": "This playlist has no tracks available for Heart Mode.",
+    "heartNoSeed": "Could not choose a starting track for Heart Mode.",
+    "heartNoResult": "Heart Mode did not return playable tracks. Please try again later.",
+    "heartFailed": "Heart Mode failed to load. Please try again later.",
+    "deleteConfirm": "Delete playlist {name}?"
+  },
+  "comments": {
+    "title": "Comments ({count})",
+    "replyTitle": "Replies ({count})",
+    "recommend": "Recommended",
+    "hottest": "Top",
+    "latest": "Latest",
+    "deleted": "This comment was deleted",
+    "from": "From {location}",
+    "delete": "Delete",
+    "placeholder": "Share what this music makes you feel",
+    "replyTo": "Reply to {nickname}:",
+    "close": "Close",
+    "deleteConfirm": "Delete comment “{content}”?"
+  },
+  "modalTheme": {
+    "selectOrDelete": "Click to select; right-click to delete",
+    "deleted": "Custom theme deleted",
+    "saveTitle": "Save Player Theme",
+    "namePlaceholder": "Enter a theme name",
+    "create": "Create",
+    "duplicate": "A theme with this name already exists"
+  },
+  "trackList": {
+    "dislike": "Not interested",
+    "deleteCloud": "Delete from Cloud",
+    "aggregateDisabled": "This action is unavailable in the aggregated view. Select a specific streaming service first.",
+    "disliked": "Fewer recommendations like this will be shown",
+    "operationFailed": "Operation failed. Please try again later.",
+    "deleteCloudConfirm": "Delete {name} from NetEase Cloud? This change will sync to your NetEase account.",
+    "cloudDeleted": "Deleted from cloud",
+    "cloudDeleteFailed": "Cloud deletion failed. Please try again later."
   }
 }
