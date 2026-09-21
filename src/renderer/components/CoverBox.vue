@@ -6,7 +6,11 @@
     @mouseleave="doHover(false)"
     @click="clickCoverToPlay ? play() : goTo()"
   >
-    <div class="cover-container" :class="{ 'cover-container--artist': type === 'artist' }">
+    <div
+      ref="coverContainerRef"
+      class="cover-container"
+      :class="{ 'cover-container--artist': type === 'artist' }"
+    >
       <div v-if="coverHover" class="shade">
         <button v-show="focus" class="play-button" :style="playButtonStyles" @click.stop="play()"
           ><svg-icon icon-class="play" />
@@ -42,6 +46,7 @@ import { getPlaylistDetail } from '../api/playlist'
 import { getArtist } from '../api/artist'
 import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
+import { observeCoverVisibility } from '../utils/coverVisibility'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -63,46 +68,42 @@ const props = defineProps({
 })
 
 const focus = ref(false)
+const coverContainerRef = ref<HTMLElement>()
 const imageLoaded = ref(false)
-const showImageLoading = ref(false)
-let imageLoadingTimer: number | null = null
-
-const clearImageLoadingTimer = () => {
-  if (imageLoadingTimer !== null) {
-    window.clearTimeout(imageLoadingTimer)
-    imageLoadingTimer = null
-  }
-}
-
-const scheduleImageLoadingIndicator = () => {
-  clearImageLoadingTimer()
-  imageLoaded.value = false
-  showImageLoading.value = false
-  imageLoadingTimer = window.setTimeout(() => {
-    imageLoadingTimer = null
-    if (!imageLoaded.value) showImageLoading.value = true
-  }, 180)
-}
+const isNearViewport = ref(false)
+const showImageLoading = computed(() => isNearViewport.value && !imageLoaded.value)
+let stopObservingCover: (() => void) | null = null
 
 const handleImageLoad = () => {
   imageLoaded.value = true
-  showImageLoading.value = false
-  clearImageLoadingTimer()
 }
 
 const handleImageError = () => {
   imageLoaded.value = true
-  showImageLoading.value = false
-  clearImageLoadingTimer()
 }
 
 watch(
   () => props.imageUrl,
-  () => scheduleImageLoadingIndicator()
+  () => {
+    imageLoaded.value = false
+  }
 )
 
-onMounted(scheduleImageLoadingIndicator)
-onBeforeUnmount(clearImageLoadingTimer)
+onMounted(() => {
+  const element = coverContainerRef.value
+  if (!element) {
+    isNearViewport.value = true
+    return
+  }
+  stopObservingCover = observeCoverVisibility(element, (visible) => {
+    isNearViewport.value = visible
+  })
+})
+
+onBeforeUnmount(() => {
+  stopObservingCover?.()
+  stopObservingCover = null
+})
 const router = useRouter()
 const playerStore = usePlayerStore()
 const { _shuffle } = storeToRefs(playerStore)
@@ -214,7 +215,16 @@ const goTo = () => {
   border: 2px solid color-mix(in srgb, var(--color-text), transparent 84%);
   border-top-color: color-mix(in srgb, var(--color-text), transparent 35%);
   border-radius: 50%;
-  animation: cover-loading-spin 0.8s linear infinite;
+  opacity: 0;
+  animation:
+    cover-loading-reveal 0.01s linear 120ms forwards,
+    cover-loading-spin 0.8s linear infinite;
+}
+
+@keyframes cover-loading-reveal {
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes cover-loading-spin {
