@@ -61,10 +61,10 @@
       >{{ $t('contextMenu.showComment') }}</div
     >
     <div v-if="id === '/daily/songs'" class="item" @click="dislikeDailyRecommendation">
-      不感兴趣
+      {{ t('trackList.dislike') }}
     </div>
     <div v-if="type === 'cloudDisk'" class="item danger" @click="deleteFromCloudDisk">
-      从云盘删除
+      {{ t('trackList.deleteCloud') }}
     </div>
     <div
       v-if="extraContextMenuItem.includes('accurateMatch')"
