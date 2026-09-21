@@ -354,7 +354,7 @@ const openMenu = (e: MouseEvent, track: { [key: string]: any }, index: number) =
 const { removeTrackFromPlaylist } = useLocalMusicStore()
 const rmTrackFromPlaylist = () => {
   if (typeType.value === 'local') {
-    if (confirm(`确定要从歌单删除 ${rightClickedTrack.value.name}？`)) {
+    if (confirm(t('trackList.removeConfirm', { name: rightClickedTrack.value.name }))) {
       const idx = rightClickedTrackIndex.value
       removeTrackFromPlaylist(props.id as number, rightClickedTrackComputed.value.id).then(
         (result) => {
@@ -370,7 +370,7 @@ const rmTrackFromPlaylist = () => {
       showToast(t('toast.needToLogin'))
       return
     }
-    if (confirm(`确定要从歌单删除 ${rightClickedTrackComputed.value.name}？`)) {
+    if (confirm(t('trackList.removeConfirm', { name: rightClickedTrackComputed.value.name }))) {
       const idx = rightClickedTrackIndex.value
       addOrRemoveTrackFromPlaylist({
         op: 'del',
@@ -387,10 +387,10 @@ const rmTrackFromPlaylist = () => {
     }
   } else {
     if (props.groupBy === 'all') {
-      showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+      showToast(t('trackList.aggregateDisabled'))
       return
     }
-    if (confirm(`确定要从${props.groupBy}歌单删除 ${rightClickedTrackComputed.value.name}？`)) {
+    if (confirm(t('trackList.removeStreamConfirm', { service: props.groupBy, name: rightClickedTrackComputed.value.name }))) {
       const idx = rightClickedTrackIndex.value
       const playlistItemId = rightClickedTrackComputed.value.playlistItemId
       addOrRemoveTrackFromStreamPlaylist(
@@ -436,7 +436,7 @@ const removeFromQueue = (playlist: 'insert' | 'next', id: string | number) => {
 
 const addToSteamPlaylist = (trackIDs: number[] = []) => {
   if (props.groupBy === 'all') {
-    showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+    showToast(t('trackList.aggregateDisabled'))
     return
   }
   if (!trackIDs.length) {
@@ -490,19 +490,19 @@ const dislikeDailyRecommendation = async () => {
     }
     removeTrack(trackId)
     trackListMenuRef.value?.closeMenu?.()
-    showToast('已减少此类推荐')
+    showToast(t('trackList.disliked'))
   } catch (error) {
     console.warn('[DailyTracks] 提交不感兴趣失败:', error)
-    showToast('操作失败，请稍后重试')
+    showToast(t('trackList.operationFailed'))
   }
 }
 
 const deleteFromCloudDisk = async () => {
   const rawTrack: any = rightClickedTrack.value
   const trackId = Number(rawTrack.songId ?? rawTrack.simpleSong?.id ?? rawTrack.id)
-  const trackName = rawTrack.simpleSong?.name ?? rawTrack.name ?? '这首歌曲'
+  const trackName = rawTrack.simpleSong?.name ?? rawTrack.name ?? t('common.unknownTrack')
   if (!Number.isFinite(trackId) || trackId <= 0) return
-  if (!confirm(`确定要从网易云云盘删除 ${trackName}？此操作会同步到网易云账号。`)) return
+  if (!confirm(t('trackList.deleteCloudConfirm', { name: trackName }))) return
 
   try {
     const result = await deleteCloudSong(trackId)
@@ -511,10 +511,10 @@ const deleteFromCloudDisk = async () => {
     }
     await dataStore.fetchCloudDisk()
     trackListMenuRef.value?.closeMenu?.()
-    showToast('已从云盘删除')
+    showToast(t('trackList.cloudDeleted'))
   } catch (error) {
     console.warn('[CloudDisk] 删除云盘歌曲失败:', error)
-    showToast('云盘删除失败，请稍后重试')
+    showToast(t('trackList.cloudDeleteFailed'))
   }
 }
 
