@@ -480,7 +480,8 @@
     "publishTime": "發佈時間：{time}",
     "playCount": "播放次數：{count}",
     "confirmLogout": "確定要登出嗎？",
-    "comment": "評論"
+    "comment": "評論",
+    "update": "更新"
   },
   "settings": {
     "heartModeProfile": {
@@ -923,7 +924,7 @@
       "pending": "待同步 +{duration}",
       "today": "今日",
       "todayCount": "{count} 首",
-      "todayListen": "今日收聽 {duration}",
+      "todayListen": "累計收聽 {duration}",
       "week": "本週（週一至今）",
       "month": "本月",
       "total": "累計",
@@ -935,7 +936,8 @@
       "durationSeconds": "{seconds}秒",
       "durationDaysHours": "{days}天 {hours}小時",
       "durationHoursMinutes": "{hours}小時 {minutes}分",
-      "durationMinutes": "{minutes}分"
+      "durationMinutes": "{minutes}分",
+      "todayMetric": "今日 · 歌曲數"
     },
     "style": {
       "title": "曲風漫遊 2.0",
@@ -1101,5 +1103,76 @@
   },
   "playerBar": {
     "lyrics": "歌詞"
+  },
+  "list": {
+    "otherAlbumTracks": "聽聽《{name}》的其他歌曲",
+    "otherArtistTracks": "聽聽 {name} 的其他歌曲",
+    "trackCount": "共 {count} 首歌"
+  },
+  "dailyCard": {
+    "title": "每日推薦",
+    "play": "播放每日推薦",
+    "coverAlt": "每日推薦封面",
+    "loading": "每日推薦仍在載入，請稍後再試"
+  },
+  "fm": {
+    "dislike": "不喜歡",
+    "title": "私人 FM"
+  },
+  "insightsUi": {
+    "unnamed": "未命名",
+    "emptyResources": "目前沒有可顯示的資源。",
+    "emptyTracks": "目前沒有可顯示的歌曲。",
+    "playTrack": "播放 {name}",
+    "genericTrack": "歌曲"
+  },
+  "lyricPage": {
+    "advance": "提前0.5s；按住 Shift 精調0.1s（套用於所有歌曲）",
+    "delay": "延後0.5s；按住 Shift 精調0.1s（套用於所有歌曲）",
+    "none": "所有歌曲：未調整",
+    "advanced": "所有歌曲：提前{seconds}s",
+    "delayed": "所有歌曲：延後{seconds}s",
+    "reset": "已重設所有歌曲的全域歌詞偏移",
+    "setAdvanced": "所有歌曲的全域歌詞偏移已設為提前{seconds}s",
+    "setDelayed": "所有歌曲的全域歌詞偏移已設為延後{seconds}s"
+  },
+  "backgroundSettings": {
+    "title": "背景設定",
+    "snow": "純淨雪域",
+    "sunshine": "落日餘暉",
+    "letterImage": "模糊小圖",
+    "lottie": "Lottie 動畫",
+    "lottiePath": "Lottie 路徑，可選預設值：snow、sunshine"
+  },
+  "playerFont": {
+    "title": "歌詞設定",
+    "region": "區域設定",
+    "titleTop": "歌名（上）:",
+    "lyricTop": "歌詞（上）:",
+    "lyricBottom": "歌詞（下）:",
+    "lyricLeft": "歌詞（左）:",
+    "lyricRight": "歌詞（右）:"
+  },
+  "sense": {
+    "inUse": "使用中",
+    "coverType": "封面類型",
+    "defaultCover": "預設",
+    "circleCover": "圓形封面",
+    "rotateCover": "旋轉封面",
+    "transition": "切換動畫",
+    "alignLeft": "靠左",
+    "alignCenter": "置中",
+    "alignRight": "靠右",
+    "hingeFlyIn": "鉸鏈翻入",
+    "focusRise": "聚焦上浮",
+    "scatterThrow": "拋散離場",
+    "flipReveal": "翻轉顯現",
+    "waveDrift": "波浪浮現",
+    "splitAndMerge": "雙向聚攏"
+  },
+  "playerMenu": {
+    "background": "背景設定",
+    "lyrics": "歌詞設定",
+    "saveTheme": "儲存播放器主題"
   }
 }
