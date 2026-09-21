@@ -6,7 +6,7 @@
     @mouseleave="doHover(false)"
     @click="clickCoverToPlay ? play() : goTo()"
   >
-    <div class="cover-container">
+    <div class="cover-container" :class="{ 'cover-container--artist': type === 'artist' }">
       <div v-if="coverHover" class="shade">
         <button v-show="focus" class="play-button" :style="playButtonStyles" @click.stop="play()"
           ><svg-icon icon-class="play" />
@@ -188,9 +188,12 @@ const goTo = () => {
 }
 .cover-container {
   position: relative;
-  overflow: hidden;
   border-radius: 0.75em;
   background: var(--color-secondary-bg);
+}
+
+.cover-container--artist {
+  border-radius: 50%;
 }
 
 .cover-loading {
@@ -199,6 +202,8 @@ const goTo = () => {
   z-index: 0;
   display: grid;
   place-items: center;
+  border-radius: inherit;
+  overflow: hidden;
   pointer-events: none;
 }
 
@@ -282,7 +287,7 @@ img {
 
 .shadow {
   position: absolute;
-  z-index: 0;
+  z-index: -1;
   top: 12px;
   height: 100%;
   width: 100%;
