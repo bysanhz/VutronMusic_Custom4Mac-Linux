@@ -884,7 +884,8 @@
       "running": "服务正常运行中",
       "error": "服务启动失败：{0}",
       "notRunning": "服务未启动"
-    }
+    },
+    "unblockSourcePlaceholder": "例 bodian, bilibili, kuwo"
   },
   "toast": {
     "createLocalPlaylistSuccess": "成功创建歌单",
@@ -1076,5 +1077,29 @@
   "osd": {
     "lock": "锁定桌面歌词",
     "unlock": "解锁桌面歌词"
+  },
+  "modalPlaylist": {
+    "accurateTitle": "本地歌曲精确匹配",
+    "match": "匹配",
+    "modify": "修改",
+    "create": "创建",
+    "updated": "更新歌单信息成功",
+    "updateFailed": "更新歌单信息失败",
+    "trackCount": "{count} 首"
+  },
+  "userPage": {
+    "following": "{count} 关注",
+    "followers": "{count} 粉丝",
+    "level": "Lv.{level} 等级",
+    "chat": "聊天",
+    "history": "TA的听歌排行",
+    "events": "动态",
+    "podcasts": "播客",
+    "follow": "关注",
+    "followBack": "回关",
+    "followingStatus": "已关注"
+  },
+  "playerBar": {
+    "lyrics": "歌词"
   }
 }
