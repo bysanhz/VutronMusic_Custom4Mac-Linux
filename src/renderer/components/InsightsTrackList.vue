@@ -8,7 +8,7 @@
     >
       <img :src="trackCover(track)" alt="" loading="lazy" />
       <div class="track-copy">
-        <div class="track-name">{{ track?.name || '未知歌曲' }}</div>
+        <div class="track-name">{{ track?.name || t('common.unknownTrack') }}</div>
         <div class="track-meta">
           <span>{{ trackArtists(track) }}</span>
           <span v-if="trackAlbum(track)"> · {{ trackAlbum(track) }}</span>
@@ -17,18 +17,19 @@
       <div class="track-duration">{{ trackTrailingText(track) }}</div>
       <button
         class="play-button"
-        :aria-label="`播放 ${track?.name || '歌曲'}`"
+        :aria-label="t('insightsUi.playTrack', { name: track?.name || t('insightsUi.genericTrack') })"
         @click="playTrack(track)"
       >
         <span aria-hidden="true">▶</span>
       </button>
     </div>
-    <div v-if="!items.length" class="empty">{{ emptyText }}</div>
+    <div v-if="!items.length" class="empty">{{ emptyText || t('insightsUi.emptyTracks') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { usePlayerStore } from '../store/player'
+import { useI18n } from 'vue-i18n'
 
 withDefaults(
   defineProps<{
@@ -36,10 +37,11 @@ withDefaults(
     emptyText?: string
   }>(),
   {
-    emptyText: '当前没有可展示的歌曲。'
+    emptyText: ''
   }
 )
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 
 const trackID = (track: any): number => Number(track?.id ?? track?.songId ?? 0)
@@ -63,12 +65,12 @@ const trackCover = (track: any): string => {
 
 const trackArtists = (track: any): string => {
   const artists = track?.ar ?? track?.artists ?? track?.simpleSong?.ar ?? []
-  if (!Array.isArray(artists) || !artists.length) return '未知歌手'
+  if (!Array.isArray(artists) || !artists.length) return t('common.unknownArtist')
   return (
     artists
       .map((artist: any) => artist?.name)
       .filter(Boolean)
-      .join(' / ') || '未知歌手'
+      .join(' / ') || t('common.unknownArtist')
   )
 }
 
