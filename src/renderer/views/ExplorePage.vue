@@ -190,7 +190,7 @@
           :show-play-count="false"
           :show-position="true"
           :padding-bottom="0"
-          :is-end="true"
+          :is-end="!canLoadMore()"
           :colunm-number="4"
           :fixed-column-number="true"
           :enable-virtual-scroll="false"
@@ -241,7 +241,7 @@
         :show-play-button="true"
         :show-position="true"
         :padding-bottom="0"
-        :is-end="true"
+        :is-end="!canLoadMore()"
         :show-play-count="activeCategory !== '排行榜' && exploreTab !== 'artist'"
         :item-height="exploreTab === 'artist' ? 224 : 270"
         :colunm-number="4"
@@ -647,7 +647,7 @@ const getPlaylist = () => {
   if (exploreTab.value === 'following') return getFollowingWorks()
   if (exploreTab.value === 'playlist') {
     if (activeCategory.value === '推荐歌单') {
-      return getRecommendPlayList(PLAYLIST_PAGE_SIZE, true).then((list) => {
+      return getRecommendPlayList(100, true).then((list) => {
         playlists.value = []
         updatePlaylist(list)
       })
