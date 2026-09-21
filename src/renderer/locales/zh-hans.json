@@ -919,7 +919,10 @@
       "noWeek": "当前账号暂时没有本周听歌排行。",
       "noHistory": "当前账号暂时没有历史播放排行，或网易云未开放该数据。",
       "durationMinutesSeconds": "{minutes}分{seconds}秒",
-      "durationSeconds": "{seconds}秒"
+      "durationSeconds": "{seconds}秒",
+      "durationDaysHours": "{days}天 {hours}小时",
+      "durationHoursMinutes": "{hours}小时 {minutes}分",
+      "durationMinutes": "{minutes}分"
     },
     "style": {
       "title": "曲风漫游 2.0",
