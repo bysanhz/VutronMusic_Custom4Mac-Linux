@@ -33,13 +33,6 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
-      - name: Diagnose Library formatting
-        run: |
-          cp src/renderer/views/LibraryMusic.vue /tmp/LibraryMusic.before.vue
-          yarn prettier src/renderer/views/LibraryMusic.vue --write
-          diff -u /tmp/LibraryMusic.before.vue src/renderer/views/LibraryMusic.vue || true
-          cp /tmp/LibraryMusic.before.vue src/renderer/views/LibraryMusic.vue
-
       - name: Check formatting
         run: yarn run format:check
 
