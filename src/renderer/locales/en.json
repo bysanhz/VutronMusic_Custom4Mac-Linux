@@ -919,7 +919,10 @@
       "noWeek": "No weekly listening ranking is available for this account.",
       "noHistory": "No historical listening ranking is available, or NetEase has not exposed this data.",
       "durationMinutesSeconds": "{minutes}m {seconds}s",
-      "durationSeconds": "{seconds}s"
+      "durationSeconds": "{seconds}s",
+      "durationDaysHours": "{days}d {hours}h",
+      "durationHoursMinutes": "{hours}h {minutes}m",
+      "durationMinutes": "{minutes}m"
     },
     "style": {
       "title": "Style Explorer 2.0",
