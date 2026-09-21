@@ -884,7 +884,8 @@
       "running": "服務正常運行中",
       "error": "服務啟動失敗：{0}",
       "notRunning": "服務未啟動"
-    }
+    },
+    "unblockSourcePlaceholder": "例如 bodian, bilibili, kuwo"
   },
   "toast": {
     "createLocalPlaylistSuccess": "成功建立歌單",
@@ -1076,5 +1077,29 @@
   "osd": {
     "lock": "鎖定桌面歌詞",
     "unlock": "解鎖桌面歌詞"
+  },
+  "modalPlaylist": {
+    "accurateTitle": "本機歌曲精確匹配",
+    "match": "匹配",
+    "modify": "修改",
+    "create": "建立",
+    "updated": "更新歌單資訊成功",
+    "updateFailed": "更新歌單資訊失敗",
+    "trackCount": "{count} 首"
+  },
+  "userPage": {
+    "following": "{count} 關注",
+    "followers": "{count} 粉絲",
+    "level": "Lv.{level} 等級",
+    "chat": "聊天",
+    "history": "TA 的聽歌排行",
+    "events": "動態",
+    "podcasts": "Podcast",
+    "follow": "關注",
+    "followBack": "回關",
+    "followingStatus": "已關注"
+  },
+  "playerBar": {
+    "lyrics": "歌詞"
   }
 }
