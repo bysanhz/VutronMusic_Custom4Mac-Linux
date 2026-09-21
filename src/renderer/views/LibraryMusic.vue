@@ -1,26 +1,45 @@
 <template>
   <div v-show="show" class="library">
     <div class="section-one">
-      <div class="liked-songs" @click="goToLikedSongsList">
-        <div class="title"
-          >{{ $t('library.likedSongs') }} - {{ libraryData.songs.length
-          }}{{ $t('common.songs') }}</div
+      <div class="liked-songs">
+        <div
+          class="title liked-songs-link"
+          role="button"
+          tabindex="0"
+          @click="goToLikedSongsList"
+          @keydown.enter="goToLikedSongsList"
         >
-        <div class="top">
-          <p>
-            <span
-              v-for="(line, index) in pickedLyricLines"
-              v-show="line !== ''"
-              :key="`${line}${index}`"
-              >{{ line }}<br
-            /></span>
-          </p>
+          {{ $t('library.likedSongs') }} - {{ libraryData.songs.length
+          }}{{ $t('common.songs') }}
         </div>
-        <div class="bottom">
-          <div class="titles">
-            <div v-show="randomtrack?.ar[0].name" class="title">{{
-              `${randomtrack?.ar[0].name} -- ${randomtrack?.name}`
-            }}</div>
+        <div
+          class="lyric-preview-action"
+          :class="{ disabled: !randomtrack?.id }"
+          role="button"
+          :tabindex="randomtrack?.id ? 0 : -1"
+          :aria-label="randomtrack?.name ? `播放 ${randomtrack.name}` : '歌词歌曲加载中'"
+          @click="playRandomLyricTrack"
+          @keydown.enter="playRandomLyricTrack"
+        >
+          <div class="top">
+            <p>
+              <span
+                v-for="(line, index) in pickedLyricLines"
+                v-show="line !== ''"
+                :key="`${line}${index}`"
+                >{{ line }}<br
+              /></span>
+            </p>
+          </div>
+          <div class="bottom">
+            <div class="titles">
+              <div v-show="randomtrack?.ar[0].name" class="title">{{
+                `${randomtrack?.ar[0].name} -- ${randomtrack?.name}`
+              }}</div>
+            </div>
+            <span v-show="randomtrack?.id" class="lyric-play-hint" aria-hidden="true">
+              <SvgIcon icon-class="play" />
+            </span>
           </div>
         </div>
       </div>
@@ -254,7 +273,7 @@ import { usePlayerStore } from '../store/player'
 import { lyricLine } from '@/types/music'
 
 const dataStore = useDataStore()
-const { liked, libraryPlaylistFilter, user } = storeToRefs(dataStore)
+const { liked, libraryPlaylistFilter, user, likedSongPlaylistID } = storeToRefs(dataStore)
 
 const { newPlaylistModal } = storeToRefs(useNormalStateStore())
 
@@ -289,10 +308,10 @@ const libraryData = computed(() => {
 
 /*
  * 顶部喜欢歌曲预览使用普通 CSS Grid，而不是 VirtualTrackList。
- * 这里的数据量固定最多 8 首，不需要虚拟滚动；让内容进入正常文档流后，高度由实际
- * 字体、缩放和封面尺寸决定，避免固定 itemHeight / containerHeight 再次裁掉第四行。
+ * 这里固定展示 6 首（2 列 × 3 行），不需要虚拟滚动；让内容进入正常文档流后，高度由实际
+ * 字体、缩放和封面尺寸决定，同时减少首屏详情请求与图片解码量。
  */
-const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 8))
+const likedSongsPreview = computed(() => libraryData.value.songsWithDetails.slice(0, 6))
 
 const likedPreviewRows = computed(() => {
   const rows: any[][] = []
@@ -329,6 +348,20 @@ const playLikedPreviewTrack = (trackId: number | string) => {
     trackIDs,
     index
   )
+}
+
+const playRandomLyricTrack = () => {
+  const trackId = Number(randomtrack.value?.id)
+  if (!Number.isFinite(trackId) || trackId <= 0) return
+
+  const trackIDs = libraryData.value.songs
+    .map((track: any) => Number(track?.id ?? track))
+    .filter((id: number) => Number.isFinite(id) && id > 0)
+  const index = trackIDs.indexOf(trackId)
+  if (index < 0) return
+
+  markPlaybackEndReason('manual-select')
+  void replacePlaylist('playlist', likedSongPlaylistID.value || 0, trackIDs, index)
 }
 
 const hasCustomTitleBar = inject('hasCustomTitleBar', ref(true))
@@ -466,31 +499,47 @@ const changePlaylistFilter = (type: string) => {
   libraryPlaylistFilter.value = type
 }
 
+let tabObserverFrame: number | null = null
+let pendingTabIntersectionRatio = 1
+let lastTabPaddingLeft = -1
+let lastTabPaddingRight = -1
+
+const applyTabIntersection = () => {
+  tabObserverFrame = null
+  const element = tabsRowRef.value as HTMLElement | undefined
+  if (!element) return
+
+  const ratio = Math.max(0, Math.min(1, pendingTabIntersectionRatio))
+  const maxPadding = 42
+  const maxPaddingRight = 224
+  const paddingLeft = isMac.value ? Math.round(maxPadding * (1 - ratio)) : 0
+  const paddingRight = Math.round(maxPaddingRight * (1 - ratio))
+
+  if (isMac.value && paddingLeft !== lastTabPaddingLeft) {
+    element.style.paddingLeft = `${paddingLeft}px`
+    lastTabPaddingLeft = paddingLeft
+  }
+  if (paddingRight !== lastTabPaddingRight) {
+    element.style.width = `calc(100% - ${paddingRight}px)`
+    lastTabPaddingRight = paddingRight
+  }
+}
+
 const observeTab = new IntersectionObserver(
   (entries) => {
-    entries.forEach((entry) => {
-      const intersectionRatio = entry.intersectionRatio
-      const maxPadding = 42
-      const maxPaddingRight = 224
-      if (intersectionRatio > 0) {
-        if (isMac.value) {
-          const paddingLeft = maxPadding * (1 - intersectionRatio)
-          tabsRowRef.value.style.paddingLeft = `${paddingLeft}px`
-        }
-        const paddingRight = maxPaddingRight * (1 - intersectionRatio)
-        tabsRowRef.value.style.width = `calc(100% - ${paddingRight}px)`
-      } else {
-        if (isMac.value) {
-          tabsRowRef.value.style.paddingLeft = `${maxPadding}px`
-        }
-        tabsRowRef.value.style.width = `calc(100% - ${maxPaddingRight}px)`
-      }
-    })
+    const entry = entries[entries.length - 1]
+    if (!entry) return
+    pendingTabIntersectionRatio = entry.intersectionRatio
+    if (tabObserverFrame === null) {
+      tabObserverFrame = window.requestAnimationFrame(applyTabIntersection)
+    }
   },
   {
     root: null,
     rootMargin: `-${hasCustomTitleBar.value ? 84 : 64}px 0px 0px 0px`,
-    threshold: Array.from({ length: 100 }, (v, i) => i / 100)
+    // 旧实现 100 个 threshold 会在约 64px 的过渡区里几乎逐像素触发回调并写 layout。
+    // 只保留 5 个关键点，配合 rAF 合并 DOM 写入，避免滚到标签栏附近出现明显卡顿。
+    threshold: [0, 0.25, 0.5, 0.75, 1]
   }
 )
 
@@ -524,6 +573,10 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   observeTab.disconnect()
+  if (tabObserverFrame !== null) {
+    window.cancelAnimationFrame(tabObserverFrame)
+    tabObserverFrame = null
+  }
   updatePadding(96)
 })
 </script>
@@ -538,13 +591,12 @@ onUnmounted(() => {
 
   .liked-songs {
     min-width: 0;
-    cursor: pointer;
     border-radius: 16px;
     padding: 20px 24px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    transition: all 0.4s;
+    transition: background-color 0.25s;
     background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
 
     .title {
@@ -552,6 +604,49 @@ onUnmounted(() => {
       font-weight: 700;
       margin: 14px 0 10px 0;
       color: var(--color-primary);
+    }
+
+    .liked-songs-link {
+      width: fit-content;
+      max-width: 100%;
+      cursor: pointer;
+      border-radius: 8px;
+      outline: none;
+      transition:
+        opacity 0.2s ease,
+        background-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        opacity: 0.82;
+        background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+      }
+    }
+
+    .lyric-preview-action {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      border-radius: 12px;
+      outline: none;
+      transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+      }
+
+      &:active:not(.disabled) {
+        transform: scale(0.992);
+      }
+
+      &.disabled {
+        cursor: default;
+      }
     }
 
     .sub-title {
@@ -576,6 +671,7 @@ onUnmounted(() => {
     .bottom {
       display: flex;
       align-items: flex-end;
+      gap: 10px;
       color: var(--color-primary);
       margin-top: auto;
 
@@ -594,6 +690,32 @@ onUnmounted(() => {
           word-break: break-word;
         }
       }
+
+      .lyric-play-hint {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 2px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-primary) 13%, transparent);
+        opacity: 0.58;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+
+        .svg-icon {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    .lyric-preview-action:hover .lyric-play-hint,
+    .lyric-preview-action:focus-visible .lyric-play-hint {
+      opacity: 0.95;
+      transform: scale(1.04);
     }
   }
 
