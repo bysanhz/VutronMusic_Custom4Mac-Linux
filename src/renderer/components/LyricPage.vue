@@ -3,7 +3,7 @@
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
         <button-icon
-          title="提前0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          :title="t('lyricPage.advance')"
           @click="setOffset(+0.5, $event)"
         >
           <svg-icon icon-class="back5s" />
@@ -12,7 +12,7 @@
           <svg-icon icon-class="recovery" />
         </button-icon>
         <button-icon
-          title="延后0.5s；按住 Shift 精调0.1s（应用于所有歌曲）"
+          :title="t('lyricPage.delay')"
           @click="setOffset(-0.5, $event)"
         >
           <svg-icon icon-class="forward5s" />
@@ -56,6 +56,9 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricLine from './LyricLine.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   hover: { type: Boolean, default: false },
@@ -108,13 +111,9 @@ const highlight = computed(() => Math.min(currentIndex.value, lyrics.value.lengt
 // ======== newADD start======
 const offset = computed(() => {
   const lrcOffset = globalLyricOffset.value
-  if (lrcOffset === 0) {
-    return '所有歌曲：未调整'
-  } else if (lrcOffset > 0) {
-    return `所有歌曲：提前${lrcOffset}s`
-  } else {
-    return `所有歌曲：延后${Math.abs(lrcOffset)}s`
-  }
+  if (lrcOffset === 0) return t('lyricPage.none')
+  if (lrcOffset > 0) return t('lyricPage.advanced', { seconds: lrcOffset })
+  return t('lyricPage.delayed', { seconds: Math.abs(lrcOffset) })
 })
 // =========== newADD end ========
 
@@ -139,12 +138,14 @@ const setOffset = (offset: number, event?: MouseEvent) => {
   const nextOffset = setGlobalLyricOffset(step === 0 ? 0 : globalLyricOffset.value + step)
 
   if (nextOffset === 0) {
-    showToast('已重置所有歌曲的全局歌词偏移')
+    showToast(t('lyricPage.reset'))
     return
   }
 
   showToast(
-    `所有歌曲的全局歌词偏移已设为${nextOffset > 0 ? '提前' : '延后'}${Math.abs(nextOffset)}s`
+    t(nextOffset > 0 ? 'lyricPage.setAdvanced' : 'lyricPage.setDelayed', {
+      seconds: Math.abs(nextOffset)
+    })
   )
 }
 // =========== newADD end ========
