@@ -46,12 +46,9 @@
       </template>
       <template #footer>
         <div v-if="artistsArray[selectedIdx]?.matched" class="listen-more">
-          <span
-            >听听<router-link :to="`/artist/${artistsArray[selectedIdx].id}`">{{
-              artistsArray[selectedIdx].name
-            }}</router-link
-            >的其他歌曲</span
-          >
+          <router-link :to="`/artist/${artistsArray[selectedIdx].id}`">
+            {{ $t('list.otherArtistTracks', { name: artistsArray[selectedIdx].name }) }}
+          </router-link>
         </div>
       </template>
     </VirtualScroll>
