@@ -1064,7 +1064,9 @@
     "cloudDeleteFailed": "雲端硬碟刪除失敗，請稍後重試",
     "removePlaylistConfirm": "確定要從歌單刪除 {name}？",
     "removeStreamPlaylistConfirm": "確定要從 {service} 歌單刪除 {name}？",
-    "trackFallback": "這首歌曲"
+    "trackFallback": "這首歌曲",
+    "removeConfirm": "確定要從歌單刪除 {name}？",
+    "removeStreamConfirm": "確定要從 {service} 歌單刪除 {name}？"
   },
   "osd": {
     "lock": "鎖定桌面歌詞",
