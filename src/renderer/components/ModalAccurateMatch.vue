@@ -3,14 +3,14 @@
     class="accurate-match-track-modal"
     :show="show"
     :close-fn="close"
-    title="本地歌曲精确匹配"
+    :title="t('modalPlaylist.accurateTitle')"
     width="25vw"
   >
     <template #default>
       <input v-model="title" type="text" :placeholder="selectedTrack?.name" maxlength="40" />
     </template>
     <template #footer>
-      <button class="primary block" @click="accurateMatchTrack">匹配</button>
+      <button class="primary block" @click="accurateMatchTrack">{{ t('modalPlaylist.match') }}</button>
     </template>
   </BaseModal>
 </template>
@@ -23,7 +23,9 @@ import BaseModal from './BaseModal.vue'
 import { useLocalMusicStore } from '../store/localMusic'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const localMusicStore = useLocalMusicStore()
 const { updateTrack } = localMusicStore
 const { localTracks } = storeToRefs(localMusicStore)
