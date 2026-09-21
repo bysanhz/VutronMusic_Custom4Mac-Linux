@@ -87,17 +87,24 @@ const fetchData = () => {
   fetchCloudDisk()
 }
 
-const scrollEvent = () => {
-  const scrollTop = mainRef.value.scrollTop
-  const containerHeight = mainRef.value.clientHeight
-  const contentHeight = mainRef.value.scrollHeight
+let mainScrollFrame: number | null = null
+
+const syncMainScrollState = () => {
+  mainScrollFrame = null
+  const element = mainRef.value as HTMLElement | undefined
+  if (!element) return
 
   registerInstance(instanceId.value)
   updateScroll(instanceId.value, {
-    scrollTop,
-    containerHeight,
-    listHeight: contentHeight
+    scrollTop: element.scrollTop,
+    containerHeight: element.clientHeight,
+    listHeight: element.scrollHeight
   })
+}
+
+const scrollEvent = () => {
+  if (mainScrollFrame !== null) return
+  mainScrollFrame = window.requestAnimationFrame(syncMainScrollState)
 }
 
 const handleEventBus = () => {
@@ -357,6 +364,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (mainScrollFrame !== null) {
+    window.cancelAnimationFrame(mainScrollFrame)
+    mainScrollFrame = null
+  }
   window.removeEventListener(HEART_MODE_SESSION_CHANGE_EVENT, handleHeartModeSessionChange)
   unregisterInstance(instanceId.value)
 })
