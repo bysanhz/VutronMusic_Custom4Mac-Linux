@@ -1582,6 +1582,8 @@ test.describe('modern NetEase API integration', () => {
     expect(explore.match(/:colunm-number="4"/g)?.length).toBeGreaterThanOrEqual(3)
     expect(explore.match(/:fixed-column-number="true"/g)?.length).toBeGreaterThanOrEqual(3)
     expect(explore).toContain('const PLAYLIST_PAGE_SIZE = 24')
+    expect(explore).toContain('getRecommendPlayList(100, true)')
+    expect(explore.match(/:is-end="!canLoadMore\(\)"/g)?.length).toBeGreaterThanOrEqual(2)
     expect(explore).toContain('class="load-more-state"')
     expect(dataStore).toContain('recentSongs(100)')
   })
