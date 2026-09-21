@@ -2,6 +2,10 @@
   <div
     ref="listRef"
     class="infinite-list-container"
+    :class="{
+      'infinite-list-container--virtualized': enableVirtualScroll,
+      'infinite-list-container--outer-flow': !enableVirtualScroll
+    }"
     :style="{ height: containerHeight + 'px' }"
     @scroll="scrollEvent"
   >
