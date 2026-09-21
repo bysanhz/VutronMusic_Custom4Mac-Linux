@@ -480,7 +480,8 @@
     "publishTime": "Published: {time}",
     "playCount": "Plays: {count}",
     "confirmLogout": "Log out now?",
-    "comment": "Comments"
+    "comment": "Comments",
+    "update": "Update"
   },
   "settings": {
     "heartModeProfile": {
@@ -923,7 +924,7 @@
       "pending": "Pending +{duration}",
       "today": "Today",
       "todayCount": "{count} tracks",
-      "todayListen": "Today {duration}",
+      "todayListen": "Today’s listening · {duration}",
       "week": "This Week (Mon–Today)",
       "month": "This Month",
       "total": "All Time",
@@ -935,7 +936,8 @@
       "durationSeconds": "{seconds}s",
       "durationDaysHours": "{days}d {hours}h",
       "durationHoursMinutes": "{hours}h {minutes}m",
-      "durationMinutes": "{minutes}m"
+      "durationMinutes": "{minutes}m",
+      "todayMetric": "Today · Track Count"
     },
     "style": {
       "title": "Style Explorer 2.0",
@@ -1101,5 +1103,76 @@
   },
   "playerBar": {
     "lyrics": "Lyrics"
+  },
+  "list": {
+    "otherAlbumTracks": "Listen to more tracks from “{name}”",
+    "otherArtistTracks": "Listen to more tracks by {name}",
+    "trackCount": "{count} tracks"
+  },
+  "dailyCard": {
+    "title": "Daily Recommendations",
+    "play": "Play Daily Recommendations",
+    "coverAlt": "Daily Recommendations cover",
+    "loading": "Daily Recommendations are still loading. Please try again shortly."
+  },
+  "fm": {
+    "dislike": "Dislike",
+    "title": "Personal FM"
+  },
+  "insightsUi": {
+    "unnamed": "Untitled",
+    "emptyResources": "No resources to display.",
+    "emptyTracks": "No tracks to display.",
+    "playTrack": "Play {name}",
+    "genericTrack": "Track"
+  },
+  "lyricPage": {
+    "advance": "Advance 0.5s; hold Shift for 0.1s fine adjustment (all tracks)",
+    "delay": "Delay 0.5s; hold Shift for 0.1s fine adjustment (all tracks)",
+    "none": "All tracks: no adjustment",
+    "advanced": "All tracks: {seconds}s early",
+    "delayed": "All tracks: {seconds}s late",
+    "reset": "Global lyric offset reset for all tracks",
+    "setAdvanced": "Global lyric offset set to {seconds}s early for all tracks",
+    "setDelayed": "Global lyric offset set to {seconds}s late for all tracks"
+  },
+  "backgroundSettings": {
+    "title": "Background Settings",
+    "snow": "Pure Snow",
+    "sunshine": "Sunset Glow",
+    "letterImage": "Blurred Thumbnail",
+    "lottie": "Lottie Animation",
+    "lottiePath": "Lottie path; defaults include snow and sunshine"
+  },
+  "playerFont": {
+    "title": "Lyrics Settings",
+    "region": "Layout",
+    "titleTop": "Title (Top):",
+    "lyricTop": "Lyrics (Top):",
+    "lyricBottom": "Lyrics (Bottom):",
+    "lyricLeft": "Lyrics (Left):",
+    "lyricRight": "Lyrics (Right):"
+  },
+  "sense": {
+    "inUse": "Active",
+    "coverType": "Cover Type",
+    "defaultCover": "Default",
+    "circleCover": "Circular Cover",
+    "rotateCover": "Spinning Cover",
+    "transition": "Transition Animation",
+    "alignLeft": "Left",
+    "alignCenter": "Center",
+    "alignRight": "Right",
+    "hingeFlyIn": "Hinge Fly In",
+    "focusRise": "Focus Rise",
+    "scatterThrow": "Scatter Throw",
+    "flipReveal": "Flip Reveal",
+    "waveDrift": "Wave Drift",
+    "splitAndMerge": "Split & Merge"
+  },
+  "playerMenu": {
+    "background": "Background Settings",
+    "lyrics": "Lyrics Settings",
+    "saveTheme": "Save Player Theme"
   }
 }
