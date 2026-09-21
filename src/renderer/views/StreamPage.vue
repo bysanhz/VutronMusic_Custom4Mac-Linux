@@ -4,24 +4,26 @@
       <div class="left" style="width: 100%">
         <InfoBG />
         <div class="content">
-          <label class="left-title"
-            >流媒体歌曲 - {{ defaultGroupBy === 'all' ? '聚合' : defaultGroupBy }}</label
-          >
+          <label class="left-title">{{
+            t('streamMusic.summaryTitle', {
+              group: defaultGroupBy === 'all' ? t('streamMusic.aggregate') : defaultGroupBy
+            })
+          }}</label>
           <div class="content-info">
             <div>
-              <div class="subtitle">全部歌曲</div>
-              <div class="text">{{ defaultTracks.length }}首</div>
+              <div class="subtitle">{{ t('streamMusic.allSongs') }}</div>
+              <div class="text">{{ t('streamMusic.trackCount', { count: defaultTracks.length }) }}</div>
             </div>
             <div>
-              <div class="subtitle">歌曲总时长</div>
+              <div class="subtitle">{{ t('streamMusic.totalDuration') }}</div>
               <div class="text">{{ formatedTime }}</div>
             </div>
             <div>
-              <div class="subtitle">流媒体歌单</div>
-              <div class="text">{{ defaultPlaylists.length }}个</div>
+              <div class="subtitle">{{ t('streamMusic.playlistsSummary') }}</div>
+              <div class="text">{{ t('streamMusic.playlistCount', { count: defaultPlaylists.length }) }}</div>
             </div>
             <div>
-              <div class="subtitle">歌曲占用</div>
+              <div class="subtitle">{{ t('streamMusic.diskUsage') }}</div>
               <div class="text">{{ formatedMemory }}</div>
             </div>
           </div>
@@ -89,7 +91,13 @@
         <div v-show="idx !== 1" class="search-box">
           <SearchBox
             ref="streamSearchBoxRef"
-            :placeholder="`搜索${placeHolderMap(idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string))}`"
+            :placeholder="
+              t('streamMusic.search', {
+                target: placeHolderMap(
+                  idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string)
+                )
+              })
+            "
           />
         </div>
         <button v-show="idx === 1" class="tab-button" @click="openAddPlaylistModal"
@@ -130,7 +138,7 @@
     </div>
 
     <ContextMenu ref="streamTabMenu">
-      <div class="item" :class="{ active: groundBy === 'all' }" @click="groundBy = 'all'">聚合</div>
+      <div class="item" :class="{ active: groundBy === 'all' }" @click="groundBy = 'all'">{{ t('streamMusic.aggregate') }}</div>
       <div
         v-for="service in loginedServices"
         :key="service.name"
@@ -237,7 +245,7 @@ const defaultGroupBy = computed(() => {
 })
 
 const streamMessage = computed(() => {
-  return loginedServices.value.length === 0 ? message.value : '当前服务离线，请稍后再试'
+  return loginedServices.value.length === 0 ? message.value : t('streamMusic.serviceOffline')
 })
 
 const defaultPlaylists = computed(() => {
@@ -365,7 +373,7 @@ const goToLikedSongsList = () => {
 
 const openAddPlaylistModal = () => {
   if (groundBy.value === 'all' && loginedServices.value.length > 1) {
-    showToast('在聚合视图下无法进行操作，请先选择具体的流媒体服务')
+    showToast(t('streamMusic.aggregateActionDisabled'))
     return
   }
   newPlaylistModal.value = {
