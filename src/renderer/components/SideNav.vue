@@ -23,7 +23,7 @@
     </button-icon>
     <button-icon
       :class="{ active: isCurrentRoute('/insights') }"
-      data-tip="音乐洞察"
+      :data-tip="`${$t('nav.insights')}`"
       @click="handleRoute('/insights')"
     >
       <svg-icon class="icon" icon-class="insights" />
