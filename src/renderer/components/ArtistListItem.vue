@@ -4,7 +4,7 @@
     <div class="title-and-artist">
       <div class="container">
         <div class="title"> {{ artistProp.name }} </div>
-        <div class="artist">共 {{ trackProp.length }} 首歌 </div>
+        <div class="artist">{{ $t('list.trackCount', { count: trackProp.length }) }}</div>
       </div>
     </div>
   </div>
