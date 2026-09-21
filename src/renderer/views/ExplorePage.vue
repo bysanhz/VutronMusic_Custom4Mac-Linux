@@ -383,7 +383,10 @@ const updatePlaylist = (playlistList: any[] = []) => {
 
 const getHighQualityPlaylist = () => {
   if (!playlistInfo.more) return
-  return highQualityPlaylist({ limit: PLAYLIST_PAGE_SIZE, before: playlistInfo.lasttime }).then((data) => {
+  return highQualityPlaylist({
+    limit: PLAYLIST_PAGE_SIZE,
+    before: playlistInfo.lasttime
+  }).then((data) => {
     playlistInfo.more = data.more
     playlistInfo.lasttime = data.lasttime
     playlistInfo.total = data.total
