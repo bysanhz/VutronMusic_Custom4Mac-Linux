@@ -1,17 +1,14 @@
 <template>
   <div class="daily-recommend-card" @click="goToDailyTracks">
-    <img :src="coverUrl" :class="{ paused }" loading="lazy" alt="每日推荐封面" />
+    <img :src="coverUrl" :class="{ paused }" loading="lazy" :alt="t('dailyCard.coverAlt')" />
     <div class="container">
       <div class="title-box">
-        <div class="title" aria-label="每日推荐">
-          <span>每</span>
-          <span>日</span>
-          <span>推</span>
-          <span>荐</span>
+        <div class="title" :aria-label="t('dailyCard.title')">
+          <span>{{ t('dailyCard.title') }}</span>
         </div>
       </div>
     </div>
-    <button class="play-button" aria-label="播放每日推荐" @click.stop="playDailyTracks">
+    <button class="play-button" :aria-label="t('dailyCard.play')" @click.stop="playDailyTracks">
       <svg-icon icon-class="play" />
     </button>
   </div>
@@ -61,7 +58,7 @@ const playDailyTracks = () => {
   }
   const trackIDs = dailyTracks.value.map((track) => track.id)
   if (!trackIDs.length) {
-    showToast('每日推荐仍在加载，请稍后再试')
+    showToast(t('dailyCard.loading'))
     return
   }
   const idx = _shuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
@@ -171,10 +168,12 @@ img {
     font-size: 38px;
     line-height: 1;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.72);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-items: center;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    box-sizing: border-box;
+    text-align: center;
   }
 }
 
