@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -23,8 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -34,20 +32,6 @@ jobs:
 
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
-
-      - name: Format i18n audit files and push
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          yarn prettier src/renderer/components/CommentFloor.vue src/renderer/components/CommentList.vue src/renderer/components/ModalAccurateMatch.vue src/renderer/components/ModalAddTrackToPlaylist.vue src/renderer/components/ModalEditPlaylist.vue src/renderer/components/ModalNewPlaylist.vue src/renderer/components/ModalPlayerTheme.vue src/renderer/components/ModalSaveTheme.vue src/renderer/components/NavBar.vue src/renderer/components/PlayerBar.vue src/renderer/components/SearchBox.vue src/renderer/components/SideNav.vue src/renderer/components/VirtualTrackList.vue src/renderer/components/WriteComment.vue src/renderer/locales/en.json src/renderer/locales/zh-hans.json src/renderer/locales/zh-hant.json src/renderer/views/AlbumPage.vue src/renderer/views/ArtistMv.vue src/renderer/views/DailyTracks.vue src/renderer/views/ExplorePage.vue src/renderer/views/HomePage.vue src/renderer/views/LibraryMusic.vue src/renderer/views/LocalMusic.vue src/renderer/views/LoginAccount.vue src/renderer/views/MusicInsightsStable.vue src/renderer/views/MvPage.vue src/renderer/views/NextUp.vue src/renderer/views/OSDLyric.vue src/renderer/views/PlaylistPage.vue src/renderer/views/SearchPage.vue src/renderer/views/StreamLogin.vue src/renderer/views/StreamPage.vue src/renderer/views/SystemSettings.vue src/renderer/views/UserPage.vue tests/i18n-coverage.spec.ts --write
-          if git diff --quiet -- src/renderer/components/CommentFloor.vue src/renderer/components/CommentList.vue src/renderer/components/ModalAccurateMatch.vue src/renderer/components/ModalAddTrackToPlaylist.vue src/renderer/components/ModalEditPlaylist.vue src/renderer/components/ModalNewPlaylist.vue src/renderer/components/ModalPlayerTheme.vue src/renderer/components/ModalSaveTheme.vue src/renderer/components/NavBar.vue src/renderer/components/PlayerBar.vue src/renderer/components/SearchBox.vue src/renderer/components/SideNav.vue src/renderer/components/VirtualTrackList.vue src/renderer/components/WriteComment.vue src/renderer/locales/en.json src/renderer/locales/zh-hans.json src/renderer/locales/zh-hant.json src/renderer/views/AlbumPage.vue src/renderer/views/ArtistMv.vue src/renderer/views/DailyTracks.vue src/renderer/views/ExplorePage.vue src/renderer/views/HomePage.vue src/renderer/views/LibraryMusic.vue src/renderer/views/LocalMusic.vue src/renderer/views/LoginAccount.vue src/renderer/views/MusicInsightsStable.vue src/renderer/views/MvPage.vue src/renderer/views/NextUp.vue src/renderer/views/OSDLyric.vue src/renderer/views/PlaylistPage.vue src/renderer/views/SearchPage.vue src/renderer/views/StreamLogin.vue src/renderer/views/StreamPage.vue src/renderer/views/SystemSettings.vue src/renderer/views/UserPage.vue tests/i18n-coverage.spec.ts; then
-            echo "No i18n formatting changes needed"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/renderer/components/CommentFloor.vue src/renderer/components/CommentList.vue src/renderer/components/ModalAccurateMatch.vue src/renderer/components/ModalAddTrackToPlaylist.vue src/renderer/components/ModalEditPlaylist.vue src/renderer/components/ModalNewPlaylist.vue src/renderer/components/ModalPlayerTheme.vue src/renderer/components/ModalSaveTheme.vue src/renderer/components/NavBar.vue src/renderer/components/PlayerBar.vue src/renderer/components/SearchBox.vue src/renderer/components/SideNav.vue src/renderer/components/VirtualTrackList.vue src/renderer/components/WriteComment.vue src/renderer/locales/en.json src/renderer/locales/zh-hans.json src/renderer/locales/zh-hant.json src/renderer/views/AlbumPage.vue src/renderer/views/ArtistMv.vue src/renderer/views/DailyTracks.vue src/renderer/views/ExplorePage.vue src/renderer/views/HomePage.vue src/renderer/views/LibraryMusic.vue src/renderer/views/LocalMusic.vue src/renderer/views/LoginAccount.vue src/renderer/views/MusicInsightsStable.vue src/renderer/views/MvPage.vue src/renderer/views/NextUp.vue src/renderer/views/OSDLyric.vue src/renderer/views/PlaylistPage.vue src/renderer/views/SearchPage.vue src/renderer/views/StreamLogin.vue src/renderer/views/StreamPage.vue src/renderer/views/SystemSettings.vue src/renderer/views/UserPage.vue tests/i18n-coverage.spec.ts
-          git commit -m "style: format i18n audit changes"
-          git push origin HEAD:${{ github.head_ref }}
 
       - name: Check formatting
         run: yarn run format:check
