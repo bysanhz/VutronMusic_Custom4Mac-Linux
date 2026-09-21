@@ -12,11 +12,16 @@
           ><svg-icon icon-class="play" />
         </button>
       </div>
+      <div v-if="showImageLoading" class="cover-loading" aria-hidden="true">
+        <span class="cover-loading-spinner"></span>
+      </div>
       <img
         :src="imageUrl"
         :style="imageStyles"
         :loading="imageLoading"
         decoding="async"
+        @load="handleImageLoad"
+        @error="handleImageError"
       />
       <Transition v-if="coverHover || alwaysShowShadow" name="fade">
         <div v-show="focus || alwaysShowShadow" class="shadow" :style="shadowStyles"></div>
@@ -27,7 +32,7 @@
 
 <script setup lang="ts">
 import SvgIcon from './SvgIcon.vue'
-import { ref, computed, PropType } from 'vue'
+import { ref, computed, PropType, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../store/player'
 import { useLocalMusicStore } from '../store/localMusic'
@@ -58,6 +63,46 @@ const props = defineProps({
 })
 
 const focus = ref(false)
+const imageLoaded = ref(false)
+const showImageLoading = ref(false)
+let imageLoadingTimer: number | null = null
+
+const clearImageLoadingTimer = () => {
+  if (imageLoadingTimer !== null) {
+    window.clearTimeout(imageLoadingTimer)
+    imageLoadingTimer = null
+  }
+}
+
+const scheduleImageLoadingIndicator = () => {
+  clearImageLoadingTimer()
+  imageLoaded.value = false
+  showImageLoading.value = false
+  imageLoadingTimer = window.setTimeout(() => {
+    imageLoadingTimer = null
+    if (!imageLoaded.value) showImageLoading.value = true
+  }, 180)
+}
+
+const handleImageLoad = () => {
+  imageLoaded.value = true
+  showImageLoading.value = false
+  clearImageLoadingTimer()
+}
+
+const handleImageError = () => {
+  imageLoaded.value = true
+  showImageLoading.value = false
+  clearImageLoadingTimer()
+}
+
+watch(
+  () => props.imageUrl,
+  () => scheduleImageLoadingIndicator()
+)
+
+onMounted(scheduleImageLoadingIndicator)
+onBeforeUnmount(clearImageLoadingTimer)
 const router = useRouter()
 const playerStore = usePlayerStore()
 const { _shuffle } = storeToRefs(playerStore)
@@ -143,8 +188,45 @@ const goTo = () => {
 }
 .cover-container {
   position: relative;
+  overflow: hidden;
+  border-radius: 0.75em;
+  background: var(--color-secondary-bg);
+}
+
+.cover-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.cover-loading-spinner {
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--color-text), transparent 84%);
+  border-top-color: color-mix(in srgb, var(--color-text), transparent 35%);
+  border-radius: 50%;
+  animation: cover-loading-spin 0.8s linear infinite;
+}
+
+@keyframes cover-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-loading-spinner {
+    animation: none;
+  }
 }
 img {
+  position: relative;
+  z-index: 1;
+  display: block;
   border-radius: 0.75em;
   width: 100%;
   box-sizing: border-box;
@@ -162,6 +244,7 @@ img {
 
 .shade {
   position: absolute;
+  z-index: 3;
   top: 0;
   height: calc(100% - 3px);
   width: 100%;
@@ -199,12 +282,12 @@ img {
 
 .shadow {
   position: absolute;
+  z-index: 0;
   top: 12px;
   height: 100%;
   width: 100%;
   filter: blur(16px) opacity(0.6);
   transform: scale(0.92, 0.96);
-  z-index: -1;
   background-size: cover;
   border-radius: 0.75em;
   aspect-ratio: 1 / 1;
