@@ -276,7 +276,10 @@
   },
   "album": {
     "released": "发行于",
-    "albumDesc": "专辑介绍"
+    "albumDesc": "专辑介绍",
+    "comment": "评论",
+    "saved": "已保存到音乐库",
+    "removed": "已从音乐库删除"
   },
   "playlist": {
     "search": "搜索歌单音乐"
@@ -473,7 +476,8 @@
     "clearQueue": "清除队列",
     "publishTime": "发布时间：{time}",
     "playCount": "播放次数：{count}",
-    "confirmLogout": "确定要退出登录吗？"
+    "confirmLogout": "确定要退出登录吗？",
+    "comment": "评论"
   },
   "settings": {
     "heartModeProfile": {
@@ -990,5 +994,65 @@
   "mv": {
     "publishTime": "发布时间：{time}",
     "playCount": "播放次数：{count}"
+  },
+  "dailyTracks": {
+    "title": "每日歌曲推荐",
+    "todayDesc": "根据你的音乐口味生成 · 每天6:00更新",
+    "historyDesc": "历史日推 · {date}",
+    "today": "今日推荐",
+    "history": "历史日推",
+    "feedbackHint": "右键歌曲可选择“不感兴趣”，反馈会同步给网易云推荐。"
+  },
+  "artistMv": {
+    "title": "{artist}的 MV"
+  },
+  "playlistPage": {
+    "offline": "离线歌单",
+    "stream": "{service} 歌单 by {creator}",
+    "online": "歌单 by",
+    "comment": "评论",
+    "liked": "我喜欢的音乐",
+    "streamLiked": "我收藏的流媒体",
+    "heartMode": "心动模式",
+    "description": "歌单介绍",
+    "saved": "已保存到音乐库",
+    "removed": "已从音乐库删除",
+    "heartNoTrack": "当前歌单没有可用于心动模式的歌曲",
+    "heartNoSeed": "无法选择心动模式的起始歌曲",
+    "heartNoResult": "心动模式暂时没有返回可播放歌曲，请稍后重试",
+    "heartFailed": "心动模式加载失败，请稍后重试",
+    "deleteConfirm": "确定要删除歌单 {name}？"
+  },
+  "comments": {
+    "title": "评论({count})",
+    "replyTitle": "回复({count})",
+    "recommend": "推荐",
+    "hottest": "最热",
+    "latest": "最新",
+    "deleted": "该评论已删除",
+    "from": "来自{location}",
+    "delete": "删除",
+    "placeholder": "随乐而起，有感而发",
+    "replyTo": "回复{nickname}:",
+    "close": "关闭",
+    "deleteConfirm": "确定要删除评论“{content}”吗？"
+  },
+  "modalTheme": {
+    "selectOrDelete": "单击选择，右击删除",
+    "deleted": "自定义主题删除成功",
+    "saveTitle": "保存播放器主题",
+    "namePlaceholder": "填写播放器主题名称",
+    "create": "创建",
+    "duplicate": "主题名称重复"
+  },
+  "trackList": {
+    "dislike": "不感兴趣",
+    "deleteCloud": "从云盘删除",
+    "aggregateDisabled": "在聚合视图下无法进行操作，请先选择具体的流媒体服务",
+    "disliked": "已减少此类推荐",
+    "operationFailed": "操作失败，请稍后重试",
+    "deleteCloudConfirm": "确定要从网易云云盘删除 {name}？此操作会同步到网易云账号。",
+    "cloudDeleted": "已从云盘删除",
+    "cloudDeleteFailed": "云盘删除失败，请稍后重试"
   }
 }
