@@ -39,7 +39,7 @@
 
       <div class="metric-grid">
         <div class="metric-card">
-          <span>{{ t('insights.footprint.today') }}</span>
+          <span>{{ t('insights.footprint.todayMetric') }}</span>
           <strong>{{
             footprint.todayCount !== undefined
               ? t('insights.footprint.todayCount', { count: footprint.todayCount })
