@@ -607,7 +607,8 @@
       "appFontSize": {
         "text": "Main UI Font Size",
         "desc": "Adjust the main-window UI font size without changing desktop or menu-bar lyrics."
-      }
+      },
+      "vipLabel": "Vinyl VIP"
     },
     "theme": {
       "auto": "Auto",
@@ -700,7 +701,11 @@
         "top": "Top",
         "center": "Center",
         "bottom": "Bottom"
-      }
+      },
+      "dragWindow": "Drag Desktop Lyrics Window",
+      "lockAction": "Lock Desktop Lyrics",
+      "unlockAction": "Unlock Desktop Lyrics",
+      "fallbackTitle": "Play what you want to hear"
     },
     "lyric": {
       "fontFamily": "Lyric Font Family",
