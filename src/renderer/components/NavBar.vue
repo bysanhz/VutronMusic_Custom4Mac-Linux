@@ -67,13 +67,13 @@
           >{{ $t('nav.artist') }}</div
         >
         <div class="item" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')"
-          >曲风</div
+          >{{ $t('nav.style') }}</div
         >
         <div
           class="item"
           :class="{ active: exploreTab === 'following' }"
           @click="toExplore('following')"
-          >关注新作</div
+          >{{ $t('nav.followingWorks') }}</div
         >
       </div>
       <div class="right-part">
@@ -122,7 +122,9 @@ import { useSettingsStore } from '../store/settings'
 import { storeToRefs } from 'pinia'
 import { doLogout } from '../utils/auth'
 import { openExternal } from '../utils'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const { searchTab, exploreTab } = storeToRefs(useNormalStateStore())
 const { general } = storeToRefs(useSettingsStore())
 const { useCustomTitlebar } = toRefs(general.value)
@@ -180,7 +182,7 @@ const toExplore = (category: string) => {
 }
 
 const logout = () => {
-  if (!confirm('确定要退出登录吗？')) return
+  if (!confirm(t('nav.logoutConfirm'))) return
   doLogout()
   router.push({ name: 'HomePage' })
 }
