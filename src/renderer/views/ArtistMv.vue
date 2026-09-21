@@ -1,6 +1,6 @@
 <template>
   <div v-show="show">
-    <h1> <img class="avatar" :src="image" loading="lazy" />{{ artist.name }}的 MV </h1>
+    <h1><img class="avatar" :src="image" loading="lazy" />{{ t('artistMv.title', { artist: artist.name }) }}</h1>
     <MvRow
       :mvs="mvs"
       :is-end="true"
@@ -18,7 +18,9 @@ import { useRoute } from 'vue-router'
 import { artistMv, getArtist } from '../api/artist'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import MvRow from '../components/MvRow.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const show = ref(false)
 const hasMore = ref(true)
 const artist = ref<any>({})
