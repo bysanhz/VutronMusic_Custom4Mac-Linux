@@ -1,6 +1,6 @@
 type VisibilityCallback = (isNearViewport: boolean) => void
 
-const callbacks = new WeakMap<Element, VisibilityCallback>()
+const listeners = new WeakMap<Element, VisibilityCallback>()
 let observer: IntersectionObserver | null = null
 
 const getObserver = (): IntersectionObserver | null => {
@@ -10,7 +10,7 @@ const getObserver = (): IntersectionObserver | null => {
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        callbacks.get(entry.target)?.(entry.isIntersecting)
+        listeners.get(entry.target)?.(entry.isIntersecting)
       }
     },
     {
@@ -29,19 +29,19 @@ const getObserver = (): IntersectionObserver | null => {
  */
 export const observeCoverVisibility = (
   element: Element,
-  callback: VisibilityCallback
+  listener: VisibilityCallback
 ): (() => void) => {
   const sharedObserver = getObserver()
-  callbacks.set(element, callback)
+  listeners.set(element, listener)
 
   if (!sharedObserver) {
-    callback(true)
-    return () => callbacks.delete(element)
+    listener(true)
+    return () => listeners.delete(element)
   }
 
   sharedObserver.observe(element)
   return () => {
     sharedObserver.unobserve(element)
-    callbacks.delete(element)
+    listeners.delete(element)
   }
 }
