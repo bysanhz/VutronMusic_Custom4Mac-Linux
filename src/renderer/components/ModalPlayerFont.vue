@@ -2,7 +2,7 @@
   <div :class="{ 'creative-container': activeTheme.theme.activeLayout === 'Creative' }">
     <Modal
       :show="setFontModal"
-      title="歌词设置"
+      :title="t('playerFont.title')"
       width="60vw"
       :show-footer="false"
       :close-fn="close"
@@ -139,7 +139,7 @@
         </div>
         <div v-if="activeTheme.theme.activeLayout === 'Creative'" class="region-setting">
           <div class="title">
-            <span :style="{ fontWeight: 600 }">区域设置</span>
+            <span :style="{ fontWeight: 600 }">{{ t('playerFont.region') }}</span>
             <span class="reset button" style="margin: 0" @click="reset">{{
               $t('player.frequad.reset')
             }}</span>
@@ -380,14 +380,14 @@ const region = computed(() => {
   return null
 })
 
-const settingList = [
-  { name: '歌名(上):', key: 'titleTop', type: 'slide', dw: 'vh', min: 0, max: 110 },
+const settingList = computed(() => [
+  { name: t('playerFont.titleTop'), key: 'titleTop', type: 'slide', dw: 'vh', min: 0, max: 110 },
   { name: '', key: '', type: '', dw: '', min: 0, max: 0 },
-  { name: '歌词(上):', key: 'top', type: 'slide', dw: 'vh', min: 0, max: 100 },
-  { name: '歌词(下):', key: 'bottom', type: 'slide', dw: 'vh', min: 0, max: 100 },
-  { name: '歌词(左):', key: 'left', type: 'slide', dw: 'vw', min: 0, max: 50 },
-  { name: '歌词(右):', key: 'right', type: 'slide', dw: 'vw', min: 0, max: 50 }
-]
+  { name: t('playerFont.lyricTop'), key: 'top', type: 'slide', dw: 'vh', min: 0, max: 100 },
+  { name: t('playerFont.lyricBottom'), key: 'bottom', type: 'slide', dw: 'vh', min: 0, max: 100 },
+  { name: t('playerFont.lyricLeft'), key: 'left', type: 'slide', dw: 'vw', min: 0, max: 50 },
+  { name: t('playerFont.lyricRight'), key: 'right', type: 'slide', dw: 'vw', min: 0, max: 50 }
+])
 
 const contentStyle = computed(() => {
   const type = activeTheme.value.theme.activeLayout
