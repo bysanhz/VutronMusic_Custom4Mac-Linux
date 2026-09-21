@@ -607,7 +607,8 @@
       "appFontSize": {
         "text": "主介面字體大小",
         "desc": "調整主視窗整體字級，不影響桌面歌詞與選單列歌詞"
-      }
+      },
+      "vipLabel": "黑膠VIP"
     },
     "theme": {
       "auto": "跟隨系統",
@@ -700,7 +701,11 @@
         "top": "頂部",
         "center": "置中",
         "bottom": "底部"
-      }
+      },
+      "dragWindow": "拖動桌面歌詞視窗",
+      "lockAction": "鎖定桌面歌詞",
+      "unlockAction": "解鎖桌面歌詞",
+      "fallbackTitle": "聽你想聽的音樂"
     },
     "lyric": {
       "fontFamily": "歌詞字型",
