@@ -607,7 +607,8 @@
       "appFontSize": {
         "text": "主界面字体大小",
         "desc": "调节主窗口整体字号，不影响桌面歌词和菜单栏歌词"
-      }
+      },
+      "vipLabel": "黑胶VIP"
     },
     "theme": {
       "auto": "跟随系统",
@@ -700,7 +701,11 @@
         "played": "已播放颜色",
         "unplayed": "未播放颜色",
         "shadow": "阴影颜色"
-      }
+      },
+      "dragWindow": "拖动桌面歌词窗口",
+      "lockAction": "锁定桌面歌词",
+      "unlockAction": "解锁桌面歌词",
+      "fallbackTitle": "听你想听的音乐"
     },
     "lyric": {
       "fontFamily": "歌词字体",
