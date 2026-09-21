@@ -919,7 +919,10 @@
       "noWeek": "目前帳號暫時沒有本週聽歌排行。",
       "noHistory": "目前帳號暫時沒有歷史播放排行，或網易雲未開放該資料。",
       "durationMinutesSeconds": "{minutes}分{seconds}秒",
-      "durationSeconds": "{seconds}秒"
+      "durationSeconds": "{seconds}秒",
+      "durationDaysHours": "{days}天 {hours}小時",
+      "durationHoursMinutes": "{hours}小時 {minutes}分",
+      "durationMinutes": "{minutes}分"
     },
     "style": {
       "title": "曲風漫遊 2.0",
