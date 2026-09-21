@@ -59,7 +59,7 @@
       <div
         class="osd-drag-bar"
         :class="{ disabled: isLock }"
-        title="拖动桌面歌词窗口"
+        :title="t('settings.osdLyric.dragWindow')"
         @mousedown="startCustomOsdDrag"
       />
 
@@ -70,8 +70,8 @@
         type="button"
         class="osd-lock-button"
         :class="{ visible: hover }"
-        :title="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
-        :aria-label="isLock ? '解锁桌面歌词' : '锁定桌面歌词'"
+        :title="isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')"
+        :aria-label="isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')"
         @click.stop="handleLock"
       >
         <SvgIcon :icon-class="isLock ? 'unlock' : 'lock'" />
@@ -100,6 +100,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 
 import Header from '../components/OsdHeader.vue'
 import LyricContainer from '../components/OsdLyricContainer.vue'
@@ -111,6 +112,7 @@ import CompactCoverControls from '../components/CompactCoverControls.vue'
 
 import { useOsdLyricStore } from '../store/osdLyric'
 
+const { t } = useI18n()
 const isLinux = window.env?.isLinux
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 
@@ -119,7 +121,7 @@ const osdLyricStore = useOsdLyricStore()
 const { isLock, type, backgroundColor, showButtonWhenLock } = storeToRefs(osdLyricStore)
 
 const hover = ref(false)
-const title = ref('听你想听的音乐')
+const title = ref(t('settings.osdLyric.fallbackTitle'))
 const coverControlsVisible = ref(
   window.localStorage.getItem(COVER_CONTROLS_STORAGE_KEY) !== 'false'
 )
