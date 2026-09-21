@@ -1634,6 +1634,11 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     expect(cover).toContain('width: 35px;')
     expect(interaction).toContain("scroller.style.overflowY = 'auto'")
     expect(interaction).toContain('native scrolling is much faster and smoother')
+    expect(virtualScroll).toContain("'infinite-list-container--virtualized': enableVirtualScroll")
+    expect(interaction).toContain('.infinite-list-container--virtualized')
+    expect(interaction).not.toContain(
+      '.explore-page .infinite-list-container, .library .infinite-list-container'
+    )
     expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')
     const app = readSource('src/renderer/App.vue')
     expect(app).toContain('let mainScrollFrame: number | null = null')
