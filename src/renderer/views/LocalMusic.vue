@@ -4,22 +4,22 @@
       <div class="left" style="width: 100%">
         <InfoBG />
         <div class="content">
-          <label class="left-title">本地歌曲</label>
+          <label class="left-title">{{ t('localMusic.summaryTitle') }}</label>
           <div class="content-info">
             <div>
-              <div class="subtitle">全部歌曲</div>
-              <div class="text">{{ defaultTracks.length }}首</div>
+              <div class="subtitle">{{ t('localMusic.allSongs') }}</div>
+              <div class="text">{{ t('localMusic.trackCount', { count: defaultTracks.length }) }}</div>
             </div>
             <div>
-              <div class="subtitle">歌曲总时长</div>
+              <div class="subtitle">{{ t('localMusic.totalDuration') }}</div>
               <div class="text">{{ formatedTime }}</div>
             </div>
             <div>
-              <div class="subtitle">离线歌单</div>
-              <div class="text">{{ playlists.length }}个</div>
+              <div class="subtitle">{{ t('localMusic.offlinePlaylists') }}</div>
+              <div class="text">{{ t('localMusic.playlistCount', { count: playlists.length }) }}</div>
             </div>
             <div>
-              <div class="subtitle">歌曲占用</div>
+              <div class="subtitle">{{ t('localMusic.diskUsage') }}</div>
               <div class="text">{{ formatedMemory }}</div>
             </div>
           </div>
@@ -87,7 +87,13 @@
         <div v-if="idx !== 1" class="search-box">
           <SearchBox
             ref="localSearchBoxRef"
-            :placeholder="`搜索${placeHolderMap(idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string))}`"
+            :placeholder="
+              t('localMusic.search', {
+                target: placeHolderMap(
+                  idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string)
+                )
+              })
+            "
           />
         </div>
         <button v-show="idx === 1" class="tab-button" @click="openAddPlaylistModal"
