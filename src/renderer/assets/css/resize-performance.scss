@@ -115,21 +115,6 @@ html.vutron-window-resizing #app .modal {
 }
 
 /*
- * “听歌足迹”的今日卡片同时展示两个不同统计维度：
- * - 主数字是今天听过的歌曲数；
- * - 次数字是今日累计收听时长，会包含重复播放产生的时间。
- *
- * 明确补充标签，避免把“7 首”和“1 小时 21 分”误解为 7 首歌曲的总曲长。
- */
-#app .insights-page .metric-grid:not(.compact) .metric-card:first-child > span::after {
-  content: ' · 歌曲数';
-}
-
-#app .insights-page .metric-grid:not(.compact) .metric-card:first-child > small::before {
-  content: '累计收听 ';
-}
-
-/*
  * 探索页在连续窗口缩放下必须始终以 #main 的可用宽度为上限。
  * VirtualScroll 的 grid item 默认 min-width:auto，会让封面/图片的 intrinsic width
  * 把 1fr 轨道撑宽，最终产生横向溢出。这里把整条封面布局链路的最小宽度归零，
