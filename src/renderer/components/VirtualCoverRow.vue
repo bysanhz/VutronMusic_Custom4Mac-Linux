@@ -70,6 +70,7 @@ const props = defineProps({
   containerHeight: { type: Number, default: 0 },
   colunmNumber: { type: Number, default: 1 },
   minCoverPhysicalWidth: { type: Number, default: 126 },
+  fixedColumnNumber: { type: Boolean, default: false },
   gap: { type: Number, default: 20 },
   playButtonSize: { type: Number, default: 22 },
   paddingBottom: { type: Number, default: 64 },
@@ -94,6 +95,14 @@ let columnUpdateTimer: number | null = null
 
 const updateResponsiveColumnNumber = () => {
   columnUpdateTimer = null
+
+  if (props.fixedColumnNumber) {
+    const fixedColumns = Math.max(1, props.colunmNumber)
+    if (responsiveColumnNumber.value !== fixedColumns) {
+      responsiveColumnNumber.value = fixedColumns
+    }
+    return
+  }
 
   if (props.colunmNumber <= 1) {
     if (responsiveColumnNumber.value !== 1) responsiveColumnNumber.value = 1
@@ -125,26 +134,49 @@ const updateResponsiveColumnNumber = () => {
   }
 }
 
+let resizeListenerBound = false
+
 const scheduleResponsiveColumnUpdate = () => {
+  if (props.fixedColumnNumber) return
   if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
   columnUpdateTimer = window.setTimeout(updateResponsiveColumnNumber, COLUMN_UPDATE_DELAY_MS)
 }
 
+const syncResizeListener = () => {
+  const shouldBind = !props.fixedColumnNumber
+  if (shouldBind === resizeListenerBound) return
+
+  if (shouldBind) {
+    window.addEventListener('resize', scheduleResponsiveColumnUpdate, { passive: true })
+  } else {
+    window.removeEventListener('resize', scheduleResponsiveColumnUpdate)
+  }
+  resizeListenerBound = shouldBind
+}
+
 watch(
-  () => [props.colunmNumber, props.gap, props.minCoverPhysicalWidth],
+  () => [
+    props.colunmNumber,
+    props.gap,
+    props.minCoverPhysicalWidth,
+    props.fixedColumnNumber
+  ],
   () => {
     if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
+    syncResizeListener()
     updateResponsiveColumnNumber()
   }
 )
 
 onMounted(() => {
+  syncResizeListener()
   updateResponsiveColumnNumber()
-  window.addEventListener('resize', scheduleResponsiveColumnUpdate, { passive: true })
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', scheduleResponsiveColumnUpdate)
+  if (resizeListenerBound) {
+    window.removeEventListener('resize', scheduleResponsiveColumnUpdate)
+  }
   if (columnUpdateTimer !== null) window.clearTimeout(columnUpdateTimer)
 })
 // =========== newADD end ========
