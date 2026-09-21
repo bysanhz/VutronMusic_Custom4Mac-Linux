@@ -1,5 +1,5 @@
 <template>
-  <BaseModal title="背景设置" :show="show" :show-footer="false" :close-fn="close">
+  <BaseModal :title="t('backgroundSettings.title')" :show="show" :show-footer="false" :close-fn="close">
     <template #default>
       <div class="item">
         <div class="left">
@@ -31,8 +31,8 @@
           />
           <div class="right">
             <template v-if="activeBG.type === 'lottie'">
-              <button @click="activeBG.src = 'snow'">纯净雪域</button>
-              <button @click="activeBG.src = 'sunshine'">落日余晖</button>
+              <button @click="activeBG.src = 'snow'">{{ t('backgroundSettings.snow') }}</button>
+              <button @click="activeBG.src = 'sunshine'">{{ t('backgroundSettings.sunshine') }}</button>
             </template>
             <button v-if="activeBG.type !== 'api'" @click="selectSource">{{
               $t('settings.lyric.browse')
@@ -170,10 +170,10 @@ const bgMap = {
   gradient: t('settings.general.lyricBackground.true'),
   'blur-image': t('settings.general.lyricBackground.blur'),
   'dynamic-image': t('settings.general.lyricBackground.dynamic'),
-  'letter-image': '模糊小图',
+  'letter-image': t('backgroundSettings.letterImage'),
   'custom-image': t('settings.lyric.bgType.image'),
   'custom-video': t('settings.lyric.bgType.video'),
-  lottie: 'lottie动画',
+  lottie: t('backgroundSettings.lottie'),
   'random-folder': t('settings.lyric.bgType.folder'),
   api: t('settings.lyric.bgType.api')
 }
@@ -204,7 +204,7 @@ const bgSourcePlaceholder = computed(() => {
     case 'custom-video':
       return t('settings.lyric.placeholder.video')
     case 'lottie':
-      return 'lottie路径，默认可选择：snow和sunshine'
+      return t('backgroundSettings.lottiePath')
     case 'random-folder':
       return t('settings.lyric.placeholder.folder')
     case 'api':
