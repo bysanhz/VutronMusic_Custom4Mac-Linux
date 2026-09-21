@@ -276,7 +276,10 @@
   },
   "album": {
     "released": "發行於",
-    "albumDesc": "專輯介紹"
+    "albumDesc": "專輯介紹",
+    "comment": "評論",
+    "saved": "已儲存到音樂庫",
+    "removed": "已從音樂庫移除"
   },
   "playlist": {
     "search": "搜尋歌單音樂"
@@ -473,7 +476,8 @@
     "clearQueue": "清除佇列",
     "publishTime": "發佈時間：{time}",
     "playCount": "播放次數：{count}",
-    "confirmLogout": "確定要登出嗎？"
+    "confirmLogout": "確定要登出嗎？",
+    "comment": "評論"
   },
   "settings": {
     "heartModeProfile": {
@@ -990,5 +994,65 @@
   "mv": {
     "publishTime": "發佈時間：{time}",
     "playCount": "播放次數：{count}"
+  },
+  "dailyTracks": {
+    "title": "每日歌曲推薦",
+    "todayDesc": "根據你的音樂口味產生 · 每天 6:00 更新",
+    "historyDesc": "歷史日推 · {date}",
+    "today": "今日推薦",
+    "history": "歷史日推",
+    "feedbackHint": "右鍵歌曲可選擇「不感興趣」，回饋會同步給網易雲推薦。"
+  },
+  "artistMv": {
+    "title": "{artist}的 MV"
+  },
+  "playlistPage": {
+    "offline": "離線歌單",
+    "stream": "{service} 歌單 by {creator}",
+    "online": "歌單 by",
+    "comment": "評論",
+    "liked": "我喜歡的音樂",
+    "streamLiked": "我收藏的串流音樂",
+    "heartMode": "心動模式",
+    "description": "歌單介紹",
+    "saved": "已儲存到音樂庫",
+    "removed": "已從音樂庫移除",
+    "heartNoTrack": "目前歌單沒有可用於心動模式的歌曲",
+    "heartNoSeed": "無法選擇心動模式的起始歌曲",
+    "heartNoResult": "心動模式暫時沒有返回可播放歌曲，請稍後重試",
+    "heartFailed": "心動模式載入失敗，請稍後重試",
+    "deleteConfirm": "確定要刪除歌單 {name}？"
+  },
+  "comments": {
+    "title": "評論({count})",
+    "replyTitle": "回覆({count})",
+    "recommend": "推薦",
+    "hottest": "最熱門",
+    "latest": "最新",
+    "deleted": "該評論已刪除",
+    "from": "來自{location}",
+    "delete": "刪除",
+    "placeholder": "隨樂而起，有感而發",
+    "replyTo": "回覆{nickname}:",
+    "close": "關閉",
+    "deleteConfirm": "確定要刪除評論「{content}」嗎？"
+  },
+  "modalTheme": {
+    "selectOrDelete": "單擊選擇，右擊刪除",
+    "deleted": "自訂主題刪除成功",
+    "saveTitle": "儲存播放器主題",
+    "namePlaceholder": "填寫播放器主題名稱",
+    "create": "建立",
+    "duplicate": "主題名稱重複"
+  },
+  "trackList": {
+    "dislike": "不感興趣",
+    "deleteCloud": "從雲端硬碟刪除",
+    "aggregateDisabled": "彙總檢視下無法進行操作，請先選擇特定的串流服務",
+    "disliked": "已減少此類推薦",
+    "operationFailed": "操作失敗，請稍後重試",
+    "deleteCloudConfirm": "確定要從網易雲雲端硬碟刪除 {name}？此操作會同步到網易雲帳號。",
+    "cloudDeleted": "已從雲端硬碟刪除",
+    "cloudDeleteFailed": "雲端硬碟刪除失敗，請稍後重試"
   }
 }
