@@ -9,16 +9,16 @@
         <div class="name">{{ user.nickname }}</div>
         <div class="signature">{{ user.signature }}</div>
         <div class="follows">
-          <span>{{ user.follows }} 关注</span>
+          <span>{{ t('userPage.following', { count: user.follows }) }}</span>
           ·
-          <span>{{ user.followeds }} 粉丝</span>
+          <span>{{ t('userPage.followers', { count: user.followeds }) }}</span>
           ·
-          <span>Lv.{{ user.level }} 等级</span>
+          <span>{{ t('userPage.level', { level: user.level }) }}</span>
         </div>
         <div class="buttons">
           <ButtonTwoTone color="grey">{{ followStatus }}</ButtonTwoTone>
           <ButtonTwoTone color="grey">
-            <span>聊天</span>
+            <span>{{ t('userPage.chat') }}</span>
           </ButtonTwoTone>
           <ButtonTwoTone
             icon-class="more"
@@ -52,19 +52,19 @@
         class="tab"
         :class="{ active: currentTab === 'history' }"
         @click="updateCurrentTab('history')"
-        >TA的听歌排行</div
+        >{{ t('userPage.history') }}</div
       >
       <div
         class="tab"
         :class="{ active: currentTab === 'event' }"
         @click="updateCurrentTab('event')"
-        >动态</div
+        >{{ t('userPage.events') }}</div
       >
       <div
         class="tab"
         :class="{ active: currentTab === 'voicelist' }"
         @click="updateCurrentTab('voicelist')"
-        >播客</div
+        >{{ t('userPage.podcasts') }}</div
       >
     </div>
     <div class="content" style="padding-top: 20px">
@@ -156,13 +156,13 @@ const playlistHistory = ref<{ weekData: any[]; allData: any[] }>({
 
 const image = computed(() => user.value?.avatarUrl + '?param=512y512')
 const followStatus = computed(() => {
-  let status = '关注'
+  let status = t('userPage.follow')
   if (user.value.followed && user.value.followMe) {
     status = user.value.followTime as string
   } else if (user.value.followMe) {
-    status = '回关'
+    status = t('userPage.followBack')
   } else if (user.value.followed) {
-    status = '已关注'
+    status = t('userPage.followingStatus')
   }
   return status
 })
