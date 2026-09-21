@@ -19,14 +19,23 @@
     "mv": "MV",
     "chart": "排行榜",
     "newTrack": "新歌速遞",
-    "newAlbum": "新專速遞"
+    "newAlbum": "新專速遞",
+    "insights": "音樂洞察",
+    "style": "曲風",
+    "followingWorks": "關注新作",
+    "logoutConfirm": "確定要登出嗎？"
   },
   "home": {
     "recommendPlaylist": "推薦歌單",
     "recommendArtist": "推薦藝人",
     "newAlbum": "新專速遞",
     "charts": "排行榜",
-    "seeMore": "查看全部"
+    "seeMore": "查看全部",
+    "insightsTitle": "音樂洞察",
+    "insightsDesc": "聽歌足跡 · 曲風漫遊 · 雲端硬碟 Pro",
+    "openInsights": "開啟 →",
+    "guessYouLike": "猜你喜歡",
+    "personalized": "為你訂製"
   },
   "library": {
     "userProfileMenu": {
@@ -53,7 +62,10 @@
       "title": "聽歌排行",
       "all": "所有時間",
       "week": "最近一週"
-    }
+    },
+    "playTrack": "播放 {name}",
+    "lyricTrackLoading": "歌詞歌曲載入中",
+    "unknownArtist": "未知歌手"
   },
   "explore": {
     "allPlaylist": "歌單",
@@ -61,7 +73,108 @@
     "recommendArtist": "歌手",
     "newAlbum": "新專速遞",
     "charts": "排行榜",
-    "seeMore": "查看全部"
+    "seeMore": "查看全部",
+    "styleRoam": "曲風漫遊",
+    "styleRoamDesc": "來自網易雲曲風標籤與帳號偏好，選擇曲風直接探索歌曲。",
+    "followingWorks": "關注歌手新作",
+    "followingWorksDesc": "集中查看你已關注歌手最近發佈的歌曲和 MV。",
+    "newSongs": "新歌",
+    "weekNewAlbums": "本週新碟",
+    "monthNewAlbums": "本月新碟",
+    "loadingMore": "正在載入更多...",
+    "noStyleSongs": "目前曲風暫時沒有可顯示的歌曲",
+    "noFollowingWorks": "暫無關注歌手新作，或目前帳號尚未登入",
+    "styleLoadFailed": "曲風歌曲載入失敗，請稍後重試",
+    "categories": {
+      "全部": "全部",
+      "推荐歌单": "推薦歌單",
+      "精品歌单": "精品歌單",
+      "官方": "官方",
+      "华语": "華語",
+      "欧美": "歐美",
+      "日语": "日語",
+      "韩语": "韓語",
+      "粤语": "粵語",
+      "流行": "流行",
+      "摇滚": "搖滾",
+      "民谣": "民謠",
+      "电子": "電子",
+      "舞曲": "舞曲",
+      "说唱": "饒舌",
+      "轻音乐": "輕音樂",
+      "爵士": "爵士",
+      "乡村": "鄉村",
+      "R&B/Soul": "R&B/Soul",
+      "古典": "古典",
+      "民族": "民族",
+      "英伦": "英倫",
+      "金属": "金屬",
+      "朋克": "龐克",
+      "蓝调": "藍調",
+      "雷鬼": "雷鬼",
+      "世界音乐": "世界音樂",
+      "拉丁": "拉丁",
+      "New Age": "New Age",
+      "古风": "古風",
+      "后摇": "後搖",
+      "Bossa Nova": "Bossa Nova",
+      "清晨": "清晨",
+      "夜晚": "夜晚",
+      "学习": "學習",
+      "工作": "工作",
+      "午休": "午休",
+      "下午茶": "下午茶",
+      "地铁": "地鐵",
+      "驾车": "駕車",
+      "运动": "運動",
+      "旅行": "旅行",
+      "散步": "散步",
+      "酒吧": "酒吧",
+      "怀旧": "懷舊",
+      "清新": "清新",
+      "浪漫": "浪漫",
+      "伤感": "傷感",
+      "治愈": "療癒",
+      "放松": "放鬆",
+      "孤独": "孤獨",
+      "感动": "感動",
+      "兴奋": "興奮",
+      "快乐": "快樂",
+      "安静": "安靜",
+      "思念": "思念",
+      "综艺": "綜藝",
+      "影视原声": "影視原聲",
+      "ACG": "ACG",
+      "儿童": "兒童",
+      "校园": "校園",
+      "游戏": "遊戲",
+      "70后": "70後",
+      "80后": "80後",
+      "90后": "90後",
+      "网络歌曲": "網路歌曲",
+      "KTV": "KTV",
+      "经典": "經典",
+      "翻唱": "翻唱",
+      "吉他": "吉他",
+      "钢琴": "鋼琴",
+      "器乐": "器樂",
+      "榜单": "榜單",
+      "00后": "00後",
+      "语种": "語種",
+      "风格": "風格",
+      "场景": "場景",
+      "情感": "情感",
+      "主题": "主題",
+      "分类": "分類",
+      "筛选": "篩選",
+      "日本": "日本",
+      "韩国": "韓國",
+      "其他": "其他",
+      "男歌手": "男歌手",
+      "女歌手": "女歌手",
+      "乐队组合": "樂團組合",
+      "热门": "熱門"
+    }
   },
   "streamMusic": {
     "track": "全部歌曲",
@@ -72,7 +185,18 @@
       "newPlaylist": "新建串流媒體歌單"
     },
     "album": "專輯",
-    "artist": "藝人"
+    "artist": "藝人",
+    "summaryTitle": "串流歌曲 - {group}",
+    "aggregate": "彙總",
+    "allSongs": "全部歌曲",
+    "totalDuration": "歌曲總時長",
+    "playlistsSummary": "串流歌單",
+    "diskUsage": "歌曲佔用空間",
+    "trackCount": "{count}首",
+    "playlistCount": "{count}個",
+    "search": "搜尋{target}",
+    "serviceOffline": "目前服務離線，請稍後再試",
+    "aggregateActionDisabled": "彙總檢視下無法進行操作，請先選擇特定的串流服務"
   },
   "localMusic": {
     "latedAdd": "最近新增",
@@ -124,7 +248,15 @@
       "ignore": "跳過",
       "rewrite": "覆蓋"
     },
-    "positionTrack": "定位歌曲"
+    "positionTrack": "定位歌曲",
+    "summaryTitle": "本機歌曲",
+    "allSongs": "全部歌曲",
+    "totalDuration": "歌曲總時長",
+    "offlinePlaylists": "離線歌單",
+    "diskUsage": "歌曲佔用空間",
+    "trackCount": "{count}首",
+    "playlistCount": "{count}個",
+    "search": "搜尋{target}"
   },
   "artist": {
     "artist": "藝人",
@@ -196,7 +328,12 @@
     "loginWithPhone": "手機號碼登入",
     "loginWithQr": "QrCode登入",
     "loginWithCookie": "Cookie登入",
-    "noticeElectron": "你的密碼會在本地進行MD5加密後傳輸到網易雲API。VutronMusic 不會傳輸你的帳號資料到任何非網易雲音樂官方的伺服器。"
+    "noticeElectron": "你的密碼會在本地進行MD5加密後傳輸到網易雲API。VutronMusic 不會傳輸你的帳號資料到任何非網易雲音樂官方的伺服器。",
+    "cookiePlaceholder": "請輸入 cookie",
+    "qrOpen": "開啟網易雲音樂 APP 掃碼登入",
+    "qrExpired": "QR Code 已失效，請重新取得",
+    "qrScanned": "掃描成功，請在手機上確認登入",
+    "qrSuccessWait": "登入成功，請稍候..."
   },
   "player": {
     "play": "播放",
@@ -321,7 +458,22 @@
     "confirm": "確定",
     "login": "登入",
     "logout": "登出",
-    "space": "空白鍵"
+    "space": "空白鍵",
+    "refresh": "重新整理",
+    "refreshing": "重新整理中…",
+    "loading": "載入中…",
+    "loadMore": "載入更多",
+    "items": "{count} 項",
+    "unknownArtist": "未知歌手",
+    "unknownAlbum": "未知專輯",
+    "unknownTrack": "未知歌曲",
+    "search": "搜尋",
+    "hotSearch": "熱門搜尋",
+    "searchFor": "搜尋「{keyword}」",
+    "clearQueue": "清除佇列",
+    "publishTime": "發佈時間：{time}",
+    "playCount": "播放次數：{count}",
+    "confirmLogout": "確定要登出嗎？"
   },
   "settings": {
     "heartModeProfile": {
@@ -410,7 +562,14 @@
         "low": "普通",
         "medium": "較高",
         "high": "極高",
-        "lossless": "無損"
+        "lossless": "無損",
+        "standard": "標準",
+        "higher": "較高",
+        "exhigh": "極高",
+        "jyeffect": "高清環繞聲",
+        "sky": "沉浸環繞聲",
+        "vivid": "臻音全景聲",
+        "jymaster": "超清母帶"
       },
       "lyricBackground": {
         "text": "顯示歌詞背景",
@@ -527,6 +686,13 @@
         "played": "已播放顏色",
         "unplayed": "未播放顏色",
         "shadow": "陰影顏色"
+      },
+      "lineGap": "行距",
+      "position": {
+        "text": "歌詞位置",
+        "top": "頂部",
+        "center": "置中",
+        "bottom": "底部"
       }
     },
     "lyric": {
@@ -727,6 +893,99 @@
     "nowPlaying": "正在播放",
     "insertPlaying": "插隊播放",
     "nextPlaying": "即將播放",
-    "historyPlaying": "歷史播放"
+    "historyPlaying": "歷史播放",
+    "clearQueue": "清除佇列"
+  },
+  "insights": {
+    "title": "音樂洞察",
+    "description": "把聽歌足跡、曲風探索和雲端硬碟能力集中在一個穩定的網易雲工具頁。",
+    "tabs": {
+      "footprint": "聽歌足跡",
+      "style": "曲風漫遊",
+      "cloud": "雲端硬碟 Pro"
+    },
+    "footprint": {
+      "title": "聽歌足跡",
+      "description": "今日顯示不同歌曲數；本週按週一至今天統計，時長會即時疊加本機尚未同步的有效播放。",
+      "pending": "待同步 +{duration}",
+      "today": "今日",
+      "todayCount": "{count} 首",
+      "todayListen": "今日收聽 {duration}",
+      "week": "本週（週一至今）",
+      "month": "本月",
+      "total": "累計",
+      "weekTop": "本週常聽",
+      "historyTop": "歷史常聽",
+      "noWeek": "目前帳號暫時沒有本週聽歌排行。",
+      "noHistory": "目前帳號暫時沒有歷史播放排行，或網易雲未開放該資料。",
+      "durationMinutesSeconds": "{minutes}分{seconds}秒",
+      "durationSeconds": "{seconds}秒"
+    },
+    "style": {
+      "title": "曲風漫遊 2.0",
+      "description": "基於網易雲曲風標籤與帳號偏好，繼續探索歌曲、專輯、歌手和歌單。",
+      "hot": "綜合 / 熱門",
+      "latest": "最新",
+      "song": "歌曲",
+      "album": "專輯",
+      "artist": "歌手",
+      "playlist": "歌單",
+      "noSong": "這個曲風暫時沒有歌曲。",
+      "noAlbum": "這個曲風暫時沒有專輯。",
+      "noArtist": "這個曲風暫時沒有歌手。",
+      "noPlaylist": "這個曲風暫時沒有歌單。",
+      "loadFailed": "曲風資源載入失敗，請稍後重試"
+    },
+    "cloud": {
+      "title": "雲端硬碟 Pro",
+      "description": "在原有查看/刪除之外，支援重新匹配和雲端硬碟歌詞讀取。",
+      "track": "雲端硬碟歌曲",
+      "select": "請選擇",
+      "targetId": "目標網易雲歌曲 ID",
+      "targetPlaceholder": "例如 33894312",
+      "rematch": "重新匹配",
+      "readLyric": "讀取雲端硬碟歌詞",
+      "delete": "從雲端硬碟刪除",
+      "empty": "目前雲端硬碟為空，或帳號尚未登入。",
+      "unknownTrack": "未知歌曲",
+      "selectAndTarget": "請選擇雲端硬碟歌曲並填寫目標歌曲 ID",
+      "rematchFailed": "雲端硬碟重新匹配失敗",
+      "rematched": "雲端硬碟歌曲已重新匹配",
+      "selectFirst": "請先選擇雲端硬碟歌曲",
+      "noLyric": "沒有找到雲端硬碟歌詞",
+      "deleteConfirm": "確定從網易雲雲端硬碟刪除這首歌曲嗎？",
+      "deleteFailed": "雲端硬碟刪除失敗",
+      "deleted": "已從雲端硬碟刪除"
+    }
+  },
+  "streamLogin": {
+    "hostPlaceholder": "主機位址，例如 http://192.168.1.10:4533",
+    "accountPlaceholder": "帳號",
+    "savedPasswordHint": "已儲存的密碼由系統安全儲存保護；留空會繼續使用該密碼。",
+    "loggingIn": "正在登入…",
+    "savedPasswordPlaceholder": "已儲存密碼，留空繼續使用",
+    "passwordPlaceholder": "密碼",
+    "incomplete": "請完整填寫主機位址、帳號和密碼。",
+    "failed": "登入失敗，請檢查伺服器位址和憑證。"
+  },
+  "searchBox": {
+    "search": "搜尋",
+    "hotSearch": "熱門搜尋",
+    "searchFor": "搜尋「{keyword}」"
+  },
+  "searchPage": {
+    "found": "找到 {count} {unit}",
+    "units": {
+      "track": "首歌曲",
+      "album": "張專輯",
+      "artist": "位歌手",
+      "playlist": "個歌單",
+      "user": "位使用者",
+      "lyric": "個歌詞結果"
+    }
+  },
+  "mv": {
+    "publishTime": "發佈時間：{time}",
+    "playCount": "播放次數：{count}"
   }
 }
