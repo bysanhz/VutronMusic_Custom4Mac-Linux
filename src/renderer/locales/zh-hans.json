@@ -279,7 +279,10 @@
     "albumDesc": "专辑介绍",
     "comment": "评论",
     "saved": "已保存到音乐库",
-    "removed": "已从音乐库删除"
+    "removed": "已从音乐库删除",
+    "moreBy": "更多 {artist} 的作品",
+    "typeBy": "{type} by",
+    "compilationBy": "合辑 by Various Artists"
   },
   "playlist": {
     "search": "搜索歌单音乐"
@@ -1021,7 +1024,10 @@
     "heartNoSeed": "无法选择心动模式的起始歌曲",
     "heartNoResult": "心动模式暂时没有返回可播放歌曲，请稍后重试",
     "heartFailed": "心动模式加载失败，请稍后重试",
-    "deleteConfirm": "确定要删除歌单 {name}？"
+    "deleteConfirm": "确定要删除歌单 {name}？",
+    "offlineBy": "离线歌单{creator}",
+    "streamBy": "{service} 歌单 by {creator}",
+    "onlineBy": "歌单 by"
   },
   "comments": {
     "title": "评论({count})",
@@ -1035,7 +1041,9 @@
     "placeholder": "随乐而起，有感而发",
     "replyTo": "回复{nickname}:",
     "close": "关闭",
-    "deleteConfirm": "确定要删除评论“{content}”吗？"
+    "deleteConfirm": "确定要删除评论“{content}”吗？",
+    "send": "发送",
+    "inputPlaceholder": "请输入评论"
   },
   "modalTheme": {
     "selectOrDelete": "单击选择，右击删除",
@@ -1053,6 +1061,13 @@
     "operationFailed": "操作失败，请稍后重试",
     "deleteCloudConfirm": "确定要从网易云云盘删除 {name}？此操作会同步到网易云账号。",
     "cloudDeleted": "已从云盘删除",
-    "cloudDeleteFailed": "云盘删除失败，请稍后重试"
+    "cloudDeleteFailed": "云盘删除失败，请稍后重试",
+    "removePlaylistConfirm": "确定要从歌单删除 {name}？",
+    "removeStreamPlaylistConfirm": "确定要从 {service} 歌单删除 {name}？",
+    "trackFallback": "这首歌曲"
+  },
+  "osd": {
+    "lock": "锁定桌面歌词",
+    "unlock": "解锁桌面歌词"
   }
 }
