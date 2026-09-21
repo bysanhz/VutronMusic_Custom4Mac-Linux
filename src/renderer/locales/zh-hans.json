@@ -1064,7 +1064,9 @@
     "cloudDeleteFailed": "云盘删除失败，请稍后重试",
     "removePlaylistConfirm": "确定要从歌单删除 {name}？",
     "removeStreamPlaylistConfirm": "确定要从 {service} 歌单删除 {name}？",
-    "trackFallback": "这首歌曲"
+    "trackFallback": "这首歌曲",
+    "removeConfirm": "确定要从歌单删除 {name}？",
+    "removeStreamConfirm": "确定要从 {service} 歌单删除 {name}？"
   },
   "osd": {
     "lock": "锁定桌面歌词",
