@@ -60,7 +60,9 @@ import { useOsdLyricStore } from '../store/osdLyric'
 import LyricLine from './LyricLine.vue'
 import { storeToRefs } from 'pinia'
 import { lyricLine, TranslationMode, word } from '@/types/music.d'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const osdLyricStore = useOsdLyricStore()
 const {
   isWordByWord,
@@ -137,7 +139,7 @@ const applyFallbackTrackTitle = (player: Record<string, any>) => {
     .map((artist: { name?: string }) => artist?.name)
     .filter(Boolean)
     .join(' / ')
-  const titleText = track.name || '听你想听的音乐'
+  const titleText = track.name || t('settings.osdLyric.fallbackTitle')
   const displayText = artistText ? `${artistText} - ${titleText}` : titleText
 
   lyrics.value = [
@@ -425,7 +427,7 @@ window.addEventListener('message', (event: MessageEvent) => {
       lyrics.value = Array.isArray(data.lyrics) ? data.lyrics : []
       fallbackTrackText.value =
         String(data.fallbackTrackText || data.lyrics?.[0]?.lyric?.text || '').trim() ||
-        '听你想听的音乐'
+        t('settings.osdLyric.fallbackTitle')
       currentIndex.value = 0
       isFallbackTrackTitle.value = true
       void measureFallbackTrackInfo()
