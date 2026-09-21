@@ -8,7 +8,7 @@
       </div>
       <div class="controls">
         <div class="buttons">
-          <button-icon title="不喜欢" @click="moveToFMTrash">
+          <button-icon :title="$t('fm.dislike')" @click="moveToFMTrash">
             <svg-icon id="thumbs-down" icon-class="thumbs-down" />
           </button-icon>
           <button-icon
@@ -22,7 +22,7 @@
             <svg-icon icon-class="next" />
           </button-icon>
         </div>
-        <div class="card-name"><svg-icon icon-class="fm" />私人FM</div>
+        <div class="card-name"><svg-icon icon-class="fm" />{{ $t('fm.title') }}</div>
       </div>
     </div>
   </div>
