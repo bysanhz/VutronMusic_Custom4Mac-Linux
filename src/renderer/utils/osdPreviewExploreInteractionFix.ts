@@ -335,7 +335,7 @@ const isMainAtBottom = (main: HTMLElement): boolean =>
 const findExploreVirtualScroller = (target: EventTarget | null): HTMLElement | null => {
   if (!(target instanceof Element)) return null
   return target.closest(
-    '.explore-page .infinite-list-container, .library .infinite-list-container'
+    '.explore-page .infinite-list-container--virtualized, .library .infinite-list-container--virtualized'
   ) as HTMLElement | null
 }
 
@@ -344,11 +344,14 @@ const dispatchVirtualScrollCheck = (scroller: HTMLElement): void => {
 }
 
 /**
- * The Explore page uses a parent page scroller plus a nested virtual scroller. When
- * the parent reaches its bottom, Electron/Chromium does not always chain the next
- * wheel gesture into the nested element (especially while the virtual list observer
- * still has overflow hidden). Programmatically moving scrollTop works even for an
- * overflow-hidden element and still emits the component's normal scroll path.
+ * Only true nested virtual scrollers need wheel handoff assistance.
+ *
+ * Library and the cover-heavy Explore grids deliberately use outer/native scrolling.
+ * The old selector also matched those non-virtual lists, so every wheel gesture still
+ * queried dimensions / computed styles and dispatched synthetic scroll events even
+ * though there was no inner scroll range. That work showed up as a small hitch at the
+ * cover-grid boundary. Restrict this legacy handoff path to explicitly virtualized
+ * containers only.
  */
 const handleExploreWheel = (event: WheelEvent): void => {
   const scroller = findExploreVirtualScroller(event.target)
@@ -388,7 +391,7 @@ const handleCapturedScroll = (event: Event): void => {
 
   const scrollers = [
     ...document.querySelectorAll<HTMLElement>(
-      '.explore-page .infinite-list-container, .library .infinite-list-container'
+      '.explore-page .infinite-list-container--virtualized, .library .infinite-list-container--virtualized'
     )
   ]
   const visibleBottom = window.innerHeight - 64

@@ -172,7 +172,8 @@
           :show-play-count="false"
           :show-position="true"
           :padding-bottom="0"
-          :colunm-number="5"
+          :colunm-number="4"
+          :fixed-column-number="true"
           :is-end="true"
         />
       </div>
@@ -189,11 +190,16 @@
           :show-play-count="false"
           :show-position="true"
           :padding-bottom="0"
-          :is-end="true"
-          :colunm-number="5"
+          :is-end="!canLoadMore()"
+          :colunm-number="4"
+          :fixed-column-number="true"
           :enable-virtual-scroll="false"
           :load-more="loadMore"
         />
+        <div v-if="loadingMore" class="load-more-state" aria-live="polite">
+          <span class="load-more-spinner" aria-hidden="true"></span>
+          <span>正在加载更多...</span>
+        </div>
       </div>
     </div>
 
@@ -235,13 +241,18 @@
         :show-play-button="true"
         :show-position="true"
         :padding-bottom="0"
-        :is-end="true"
+        :is-end="!canLoadMore()"
         :show-play-count="activeCategory !== '排行榜' && exploreTab !== 'artist'"
         :item-height="exploreTab === 'artist' ? 224 : 270"
-        :colunm-number="5"
+        :colunm-number="4"
+        :fixed-column-number="true"
         :enable-virtual-scroll="false"
         :load-more="loadMore"
       />
+      <div v-if="loadingMore" class="load-more-state" aria-live="polite">
+        <span class="load-more-spinner" aria-hidden="true"></span>
+        <span>正在加载更多...</span>
+      </div>
     </div>
   </div>
 </template>
@@ -316,7 +327,7 @@ const activeStyleId = ref<number | string>('')
 const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
 const loadingMore = ref(false)
-const PLAYLIST_PAGE_SIZE = 50
+const PLAYLIST_PAGE_SIZE = 24
 
 const subText = computed(() => {
   if (activeCategory.value === '排行榜') return 'updateFrequency'
@@ -372,7 +383,10 @@ const updatePlaylist = (playlistList: any[] = []) => {
 
 const getHighQualityPlaylist = () => {
   if (!playlistInfo.more) return
-  return highQualityPlaylist({ limit: 50, before: playlistInfo.lasttime }).then((data) => {
+  return highQualityPlaylist({
+    limit: PLAYLIST_PAGE_SIZE,
+    before: playlistInfo.lasttime
+  }).then((data) => {
     playlistInfo.more = data.more
     playlistInfo.lasttime = data.lasttime
     playlistInfo.total = data.total
@@ -457,7 +471,7 @@ const getNewAlbum = () => {
   }
   return newAlbums({
     area: albumMap[activeCategory.value] ?? 'ALL',
-    limit: 50,
+    limit: PLAYLIST_PAGE_SIZE,
     offset: newAlbumInfo.newAlbums.albums.length
   }).then((data) => {
     newAlbumInfo.newAlbums.albums.push(...(data.albums ?? []))
@@ -473,7 +487,7 @@ const getArtists = () => {
     type: activeArtistCat.value[1].code,
     area: activeArtistCat.value[0].code,
     initial: activeArtistCat.value[2].code ?? activeArtistCat.value[2].name,
-    limit: 50,
+    limit: PLAYLIST_PAGE_SIZE,
     offset: playlists.value.length
   }
   return getArtistList(params).then((data) => {
@@ -918,6 +932,39 @@ onBeforeUnmount(() => {
   text-align: center;
   opacity: 0.5;
   font-size: 15px;
+}
+
+.load-more-state {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--color-text);
+  font-size: 13px;
+  opacity: 0.58;
+}
+
+.load-more-spinner {
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--color-text), transparent 84%);
+  border-top-color: color-mix(in srgb, var(--color-text), transparent 32%);
+  border-radius: 50%;
+  animation: explore-load-more-spin 0.8s linear infinite;
+}
+
+@keyframes explore-load-more-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-more-spinner {
+    animation: none;
+  }
 }
 
 .button.more .svg-icon {
