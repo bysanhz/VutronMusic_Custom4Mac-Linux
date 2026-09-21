@@ -23,7 +23,7 @@
               }"
               @click="updateSense(idx as 0 | 1 | 2)"
             >
-              <div class="sense-active">使用中</div>
+              <div class="sense-active">{{ t('sense.inUse') }}</div>
               <img :src="senseImg(idx)" loading="lazy" />
               <div>{{ sense.name }}</div>
             </div>
@@ -61,6 +61,9 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import { gsap } from 'gsap'
 import { storeToRefs } from 'pinia'
 import { AniName } from '@/types/theme'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -82,28 +85,28 @@ let tl: gsap.core.Timeline | null = null
 const playerTheme = usePlayerThemeStore()
 const { senses: currentSenses, activeTheme } = storeToRefs(playerTheme)
 
-const senses = {
+const senses = computed(() => ({
   Classic: {
-    title: ['封面类型'],
+    title: [t('sense.coverType')],
     sense: [
-      { name: '默认', img: 'common' },
-      { name: '圆形封面', img: 'circle' },
-      { name: '旋转封面', img: 'rotate' }
+      { name: t('sense.defaultCover'), img: 'common' },
+      { name: t('sense.circleCover'), img: 'circle' },
+      { name: t('sense.rotateCover'), img: 'rotate' }
     ]
   },
   Creative: {
-    title: ['切换动画'],
+    title: [t('sense.transition')],
     sense: [
-      { name: '靠左', img: 'creative_snow' },
-      { name: '居中', img: 'sunshine' },
-      { name: '靠右', img: 'sunshine' }
+      { name: t('sense.alignLeft'), img: 'creative_snow' },
+      { name: t('sense.alignCenter'), img: 'sunshine' },
+      { name: t('sense.alignRight'), img: 'sunshine' }
     ]
   },
   Letter: {
-    title: ['切换动画'],
+    title: [t('sense.transition')],
     sense: [] as { name: string; img: string }[]
   }
-} as const
+}))
 
 const tempAni = ref<AniName>(
   props.type === 'Classic'
@@ -111,14 +114,14 @@ const tempAni = ref<AniName>(
     : currentSenses.value[props.type].lyric.align[currentSenses.value[props.type].align]
 )
 
-const animations: { name: string; ani: AniName }[] = [
-  { name: '铰链翻入', ani: 'hingeFlyIn' },
-  { name: '聚焦上浮', ani: 'focusRise' },
-  { name: '抛散离场', ani: 'scatterThrow' },
-  { name: '翻转显现', ani: 'flipReveal' },
-  { name: '波浪浮现', ani: 'waveDrift' },
-  { name: '双向聚拢', ani: 'splitAndMerge' }
-]
+const animations = computed<{ name: string; ani: AniName }[]>(() => [
+  { name: t('sense.hingeFlyIn'), ani: 'hingeFlyIn' },
+  { name: t('sense.focusRise'), ani: 'focusRise' },
+  { name: t('sense.scatterThrow'), ani: 'scatterThrow' },
+  { name: t('sense.flipReveal'), ani: 'flipReveal' },
+  { name: t('sense.waveDrift'), ani: 'waveDrift' },
+  { name: t('sense.splitAndMerge'), ani: 'splitAndMerge' }
+])
 
 const preAnimation = computed(() => ({
   // 1.75s
