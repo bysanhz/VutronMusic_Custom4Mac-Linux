@@ -39,7 +39,7 @@
             {{ $t('common.play') }}
           </ButtonTwoTone>
           <ButtonTwoTone icon-class="floor-comment" @click="openComment">
-            {{ '评论' }}
+            {{ t('album.comment') }}
           </ButtonTwoTone>
           <ButtonTwoTone
             :icon-class="dynamicDetail.isSub ? 'heart-solid' : 'heart'"
@@ -255,7 +255,7 @@ const likeAlbum = (toast = false) => {
     if (data.code === 200) {
       dynamicDetail.value.isSub = !dynamicDetail.value.isSub
       if (toast) {
-        showToast(dynamicDetail.value.isSub ? '已保存到音乐库' : '已从音乐库删除')
+        showToast(dynamicDetail.value.isSub ? t('album.saved') : t('album.removed'))
       }
     }
   })
