@@ -835,7 +835,7 @@
               <input
                 v-model="unblockSource"
                 class="text-input margin-right-0"
-                placeholder="例 bodian, bilibili, kuwo"
+                :placeholder="t('settings.unblockSourcePlaceholder')"
                 @input="updateUnblockSource"
               />
             </div>
