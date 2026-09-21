@@ -3,11 +3,11 @@
     <div class="hero">
       <div>
         <div class="eyebrow">NETEASE INSIGHTS</div>
-        <h1>音乐洞察</h1>
-        <p>把听歌足迹、曲风探索和云盘能力集中在一个稳定的网易云工具页。</p>
+        <h1>{{ t('insights.title') }}</h1>
+        <p>{{ t('insights.description') }}</p>
       </div>
       <button class="refresh-button" :disabled="refreshing" @click="refreshCurrent">
-        {{ refreshing ? '刷新中…' : '刷新' }}
+        {{ refreshing ? t('common.refreshing') : t('common.refresh') }}
       </button>
     </div>
 
@@ -25,35 +25,35 @@
     <section v-show="activeTab === 'footprint'" class="panel">
       <div class="section-head">
         <div>
-          <h2>听歌足迹</h2>
-          <p>
-            今日显示不同歌曲数；本周按周一至今天统计，时长会即时叠加本机尚未同步的有效播放。
-          </p>
+          <h2>{{ t('insights.footprint.title') }}</h2>
+          <p>{{ t('insights.footprint.description') }}</p>
         </div>
         <div v-if="pendingNeteaseListenSeconds > 0" class="sync-status">
-          待同步 +{{ formatPendingListenDuration(pendingNeteaseListenSeconds) }}
+          {{ t('insights.footprint.pending', { duration: formatPendingListenDuration(pendingNeteaseListenSeconds) }) }}
         </div>
       </div>
 
       <div class="metric-grid">
         <div class="metric-card">
-          <span>今日</span>
+          <span>{{ t('insights.footprint.today') }}</span>
           <strong>{{
-            footprint.todayCount !== undefined ? footprint.todayCount + ' 首' : '—'
+            footprint.todayCount !== undefined
+              ? t('insights.footprint.todayCount', { count: footprint.todayCount })
+              : '—'
           }}</strong>
-          <small>今日收听 {{ formatListenDuration(displayTodaySeconds) }}</small>
+          <small>{{ t('insights.footprint.todayListen', { duration: formatDisplayListenDuration(displayTodaySeconds) }) }}</small>
         </div>
         <div class="metric-card">
-          <span>本周（周一至今）</span>
-          <strong>{{ formatListenDuration(displayWeekSeconds) }}</strong>
+          <span>{{ t('insights.footprint.week') }}</span>
+          <strong>{{ formatDisplayListenDuration(displayWeekSeconds) }}</strong>
         </div>
         <div class="metric-card">
-          <span>本月</span>
-          <strong>{{ formatListenDuration(displayMonthSeconds) }}</strong>
+          <span>{{ t('insights.footprint.month') }}</span>
+          <strong>{{ formatDisplayListenDuration(displayMonthSeconds) }}</strong>
         </div>
         <div class="metric-card">
-          <span>累计</span>
-          <strong>{{ formatListenDuration(displayTotalSeconds) }}</strong>
+          <span>{{ t('insights.footprint.total') }}</span>
+          <strong>{{ formatDisplayListenDuration(displayTotalSeconds) }}</strong>
         </div>
       </div>
 
@@ -62,10 +62,10 @@
           :class="{ active: footprintRankMode === 'week' }"
           @click="footprintRankMode = 'week'"
         >
-          本周常听
+          {{ t('insights.footprint.weekTop') }}
         </button>
         <button :class="{ active: footprintRankMode === 'all' }" @click="footprintRankMode = 'all'">
-          历史常听
+          {{ t('insights.footprint.historyTop') }}
         </button>
       </div>
 
@@ -73,12 +73,12 @@
         <InsightsTrackList
           v-show="footprintRankMode === 'week'"
           :items="footprint.weekTracks"
-          empty-text="当前账号暂时没有本周听歌排行。"
+          :empty-text="t('insights.footprint.noWeek')"
         />
         <InsightsTrackList
           v-show="footprintRankMode === 'all'"
           :items="footprint.allTracks"
-          empty-text="当前账号暂时没有历史播放排行，或网易云未开放该数据。"
+          :empty-text="t('insights.footprint.noHistory')"
         />
       </div>
     </section>
@@ -86,14 +86,14 @@
     <section v-show="activeTab === 'style'" class="panel">
       <div class="section-head">
         <div>
-          <h2>曲风漫游 2.0</h2>
+          <h2>{{ t('insights.style.title') }}</h2>
           <p>{{
-            styleDescription || '基于网易云曲风标签与账号偏好，继续探索歌曲、专辑、歌手和歌单。'
+            styleDescription || t('insights.style.description')
           }}</p>
         </div>
         <select v-model="styleSort" :disabled="styleLoading" @change="loadStyleResources(true)">
-          <option :value="0">综合 / 热门</option>
-          <option :value="1">最新</option>
+          <option :value="0">{{ t('insights.style.hot') }}</option>
+          <option :value="1">{{ t('insights.style.latest') }}</option>
         </select>
       </div>
 
@@ -121,32 +121,32 @@
       </div>
 
       <div class="results-header">
-        <span>{{ styleLoading ? '正在加载…' : `${currentStyleCount} 项` }}</span>
+        <span>{{ styleLoading ? t('common.loading') : t('common.items', { count: currentStyleCount }) }}</span>
       </div>
 
       <div class="stable-results" :class="{ loading: styleLoading }">
         <InsightsTrackList
           v-show="styleResourceType === 'song'"
           :items="styleTracks"
-          empty-text="这个曲风暂时没有歌曲。"
+          :empty-text="t('insights.style.noSong')"
         />
         <InsightsResourceGrid
           v-show="styleResourceType === 'album'"
           :items="styleAlbums"
           type="album"
-          empty-text="这个曲风暂时没有专辑。"
+          :empty-text="t('insights.style.noAlbum')"
         />
         <InsightsResourceGrid
           v-show="styleResourceType === 'artist'"
           :items="styleArtists"
           type="artist"
-          empty-text="这个曲风暂时没有歌手。"
+          :empty-text="t('insights.style.noArtist')"
         />
         <InsightsResourceGrid
           v-show="styleResourceType === 'playlist'"
           :items="stylePlaylists"
           type="playlist"
-          empty-text="这个曲风暂时没有歌单。"
+          :empty-text="t('insights.style.noPlaylist')"
         />
       </div>
 
@@ -156,23 +156,23 @@
         :disabled="styleLoading"
         @click="loadStyleResources(false)"
       >
-        {{ styleLoading ? '加载中…' : '加载更多' }}
+        {{ styleLoading ? t('common.loading') : t('common.loadMore') }}
       </button>
     </section>
 
     <section v-show="activeTab === 'cloud'" class="panel">
       <div class="section-head">
         <div>
-          <h2>云盘 Pro</h2>
-          <p>在原有查看/删除之外，支持重新匹配和云盘歌词读取。</p>
+          <h2>{{ t('insights.cloud.title') }}</h2>
+          <p>{{ t('insights.cloud.description') }}</p>
         </div>
       </div>
 
       <div class="tool-grid">
         <label>
-          <span>云盘歌曲</span>
+          <span>{{ t('insights.cloud.track') }}</span>
           <select v-model="selectedCloudSongId">
-            <option value="">请选择</option>
+            <option value="">{{ t('insights.cloud.select') }}</option>
             <option
               v-for="track in cloudTracks"
               :key="cloudSongId(track)"
@@ -183,17 +183,17 @@
           </select>
         </label>
         <label>
-          <span>目标网易云歌曲 ID</span>
-          <input v-model.trim="cloudTargetSongId" placeholder="例如 33894312" />
+          <span>{{ t('insights.cloud.targetId') }}</span>
+          <input v-model.trim="cloudTargetSongId" :placeholder="t('insights.cloud.targetPlaceholder')" />
         </label>
       </div>
       <div class="action-row">
-        <button @click="matchCloudSong">重新匹配</button>
-        <button @click="readCloudLyric">读取云盘歌词</button>
-        <button class="danger" @click="removeCloudSong">从云盘删除</button>
+        <button @click="matchCloudSong">{{ t('insights.cloud.rematch') }}</button>
+        <button @click="readCloudLyric">{{ t('insights.cloud.readLyric') }}</button>
+        <button class="danger" @click="removeCloudSong">{{ t('insights.cloud.delete') }}</button>
       </div>
       <pre v-show="cloudLyricPreview" class="preview">{{ cloudLyricPreview }}</pre>
-      <div v-show="!cloudTracks.length" class="empty">当前云盘为空，或账号尚未登录。</div>
+      <div v-show="!cloudTracks.length" class="empty">{{ t('insights.cloud.empty') }}</div>
     </section>
   </div>
 </template>
@@ -201,6 +201,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
 import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
 import { useDataStore } from '../store/data'
@@ -235,25 +236,26 @@ import {
   extractTodaySongCount,
   extractTotalListenSeconds,
   extractTracks,
-  formatListenDuration,
   isSuccessfulResponse,
   type StyleTag
 } from '../services/neteaseModern'
 
-const tabs = [
-  { id: 'footprint', label: '听歌足迹' },
-  { id: 'style', label: '曲风漫游' },
-  { id: 'cloud', label: '云盘 Pro' }
-] as const
+const { t } = useI18n()
 
-const styleResourceTabs: Array<{ id: StyleResourceType; label: string }> = [
-  { id: 'song', label: '歌曲' },
-  { id: 'album', label: '专辑' },
-  { id: 'artist', label: '歌手' },
-  { id: 'playlist', label: '歌单' }
-]
+const tabs = computed(() => [
+  { id: 'footprint' as const, label: t('insights.tabs.footprint') },
+  { id: 'style' as const, label: t('insights.tabs.style') },
+  { id: 'cloud' as const, label: t('insights.tabs.cloud') }
+])
 
-const activeTab = ref<(typeof tabs)[number]['id']>('footprint')
+const styleResourceTabs = computed<Array<{ id: StyleResourceType; label: string }>>(() => [
+  { id: 'song', label: t('insights.style.song') },
+  { id: 'album', label: t('insights.style.album') },
+  { id: 'artist', label: t('insights.style.artist') },
+  { id: 'playlist', label: t('insights.style.playlist') }
+])
+
+const activeTab = ref<'footprint' | 'style' | 'cloud'>('footprint')
 const dataStore = useDataStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
@@ -287,8 +289,24 @@ const formatPendingListenDuration = (seconds: number): string => {
   const value = Math.max(0, Math.floor(Number(seconds) || 0))
   const minutes = Math.floor(value / 60)
   const restSeconds = value % 60
-  if (minutes > 0) return `${minutes}分${restSeconds}秒`
-  return `${restSeconds}秒`
+  if (minutes > 0) {
+    return t('insights.footprint.durationMinutesSeconds', {
+      minutes,
+      seconds: restSeconds
+    })
+  }
+  return t('insights.footprint.durationSeconds', { seconds: restSeconds })
+}
+
+const formatDisplayListenDuration = (seconds?: number): string => {
+  if (!Number.isFinite(seconds) || Number(seconds) < 0) return '—'
+  const value = Number(seconds)
+  const days = Math.floor(value / 86400)
+  const hours = Math.floor((value % 86400) / 3600)
+  const minutes = Math.floor((value % 3600) / 60)
+  if (days > 0) return t('insights.footprint.durationDaysHours', { days, hours })
+  if (hours > 0) return t('insights.footprint.durationHoursMinutes', { hours, minutes })
+  return t('insights.footprint.durationMinutes', { minutes: Math.max(value === 0 ? 0 : 1, minutes) })
 }
 
 const styleTags = ref<StyleTag[]>([])
@@ -425,7 +443,7 @@ const loadStyleResources = async (reset = true): Promise<void> => {
     styleCursor.value = extractCursor(result)
   } catch (error) {
     console.warn('[MusicInsights] 曲风资源加载失败：', error)
-    if (revision === styleRequestRevision) showToast('曲风资源加载失败，请稍后重试')
+    if (revision === styleRequestRevision) showToast(t('insights.style.loadFailed'))
   } finally {
     if (revision === styleRequestRevision) styleLoading.value = false
   }
@@ -461,12 +479,12 @@ const switchStyleResource = async (type: StyleResourceType): Promise<void> => {
 const cloudSongId = (track: any): string =>
   String(track?.songId ?? track?.simpleSong?.id ?? track?.id ?? '')
 const cloudSongName = (track: any): string =>
-  track?.simpleSong?.name ?? track?.songName ?? track?.name ?? '未知歌曲'
+  track?.simpleSong?.name ?? track?.songName ?? track?.name ?? t('insights.cloud.unknownTrack')
 
 const matchCloudSong = async (): Promise<void> => {
   const uid = user.value.userId
   if (!uid || !selectedCloudSongId.value || !cloudTargetSongId.value) {
-    showToast('请选择云盘歌曲并填写目标歌曲 ID')
+    showToast(t('insights.cloud.selectAndTarget'))
     return
   }
 
@@ -475,17 +493,17 @@ const matchCloudSong = async (): Promise<void> => {
     '云盘重新匹配'
   )
   if (!isSuccessfulResponse(result)) {
-    showToast('云盘重新匹配失败')
+    showToast(t('insights.cloud.rematchFailed'))
     return
   }
   await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
-  showToast('云盘歌曲已重新匹配')
+  showToast(t('insights.cloud.rematched'))
 }
 
 const readCloudLyric = async (): Promise<void> => {
   const uid = user.value.userId
   if (!uid || !selectedCloudSongId.value) {
-    showToast('请先选择云盘歌曲')
+    showToast(t('insights.cloud.selectFirst'))
     return
   }
   const result = await safeRequest(
@@ -493,29 +511,29 @@ const readCloudLyric = async (): Promise<void> => {
     '读取云盘歌词'
   )
   cloudLyricPreview.value = String(
-    deepFindValue(result, ['lyric', 'lrc', 'yrc', 'content']) ?? '没有找到云盘歌词'
+    deepFindValue(result, ['lyric', 'lrc', 'yrc', 'content']) ?? t('insights.cloud.noLyric')
   ).slice(0, 3000)
 }
 
 const removeCloudSong = async (): Promise<void> => {
   if (!selectedCloudSongId.value) {
-    showToast('请先选择云盘歌曲')
+    showToast(t('insights.cloud.selectFirst'))
     return
   }
-  if (!confirm('确定从网易云云盘删除这首歌曲吗？')) return
+  if (!confirm(t('insights.cloud.deleteConfirm'))) return
 
   const result = await safeRequest(
     deleteCloudSong(Number(selectedCloudSongId.value)),
     '删除云盘歌曲'
   )
   if (!isSuccessfulResponse(result)) {
-    showToast('云盘删除失败')
+    showToast(t('insights.cloud.deleteFailed'))
     return
   }
   selectedCloudSongId.value = ''
   cloudLyricPreview.value = ''
   await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
-  showToast('已从云盘删除')
+  showToast(t('insights.cloud.deleted'))
 }
 
 const refreshCurrent = async (): Promise<void> => {
