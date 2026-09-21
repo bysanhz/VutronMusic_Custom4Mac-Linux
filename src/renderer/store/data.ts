@@ -349,41 +349,44 @@ export const useDataStore = defineStore(
         }
 
         /*
-         * /song/detail 可能省略下架或当前账号不可用的歌曲。一次只请求前 8 个 ID
-         * 会直接让 2×4 预览少格；单个大批次也可能被上游裁剪。这里把前 40 个候选
-         * 分成 8 首一批并行请求，再按喜欢歌单原始顺序回填，直到拿到 8 首可用详情。
+         * 顶部只展示 6 首。健康情况下只发 1 次 6 首详情请求；如果其中存在下架/不可用歌曲，
+         * 再按 6 首一批向后补，最多检查前 24 个候选。相比旧版一次并发 5 个批次请求 40 首，
+         * 可显著降低进入音乐库时的网络、JSON 解析和图片解码突发负载。
          */
+        const PREVIEW_SIZE = 6
         const candidateIDs = normalizeTrackIDs(
-          trackIDs.slice(0, 40).map((track: any) => track?.id ?? track)
-        )
-        const batches: number[][] = []
-        for (let index = 0; index < candidateIDs.length; index += 8) {
-          batches.push(candidateIDs.slice(index, index + 8))
-        }
-
-        const detailResults = await Promise.allSettled(
-          batches.map((ids) => getTrackDetail(ids.join(',')))
+          trackIDs.slice(0, 24).map((track: any) => track?.id ?? track)
         )
         const detailByID = new Map<number, any>()
 
-        for (const result of detailResults) {
-          if (result.status !== 'fulfilled' || !Array.isArray(result.value?.songs)) continue
-          for (const song of result.value.songs) {
-            const songID = Number(song?.id)
-            if (Number.isFinite(songID) && songID > 0 && !detailByID.has(songID)) {
-              detailByID.set(songID, song)
+        for (
+          let offset = 0;
+          offset < candidateIDs.length && detailByID.size < PREVIEW_SIZE;
+          offset += PREVIEW_SIZE
+        ) {
+          const ids = candidateIDs.slice(offset, offset + PREVIEW_SIZE)
+          try {
+            const detailResult = await getTrackDetail(ids.join(','))
+            if (!Array.isArray(detailResult?.songs)) continue
+            for (const song of detailResult.songs) {
+              const songID = Number(song?.id)
+              if (Number.isFinite(songID) && songID > 0 && !detailByID.has(songID)) {
+                detailByID.set(songID, song)
+              }
             }
+          } catch (error) {
+            console.warn('[Data] 喜欢歌曲预览详情批次请求失败，继续尝试下一批：', error)
           }
         }
 
         liked.value.songsWithDetails = candidateIDs
           .map((id) => detailByID.get(id))
           .filter(Boolean)
-          .slice(0, 8)
+          .slice(0, PREVIEW_SIZE)
 
-        if (liked.value.songsWithDetails.length < Math.min(8, candidateIDs.length)) {
+        if (liked.value.songsWithDetails.length < Math.min(PREVIEW_SIZE, candidateIDs.length)) {
           console.warn(
-            `[Data] 喜欢歌曲预览仅获取到 ${liked.value.songsWithDetails.length}/8 首可用详情`
+            `[Data] 喜欢歌曲预览仅获取到 ${liked.value.songsWithDetails.length}/${PREVIEW_SIZE} 首可用详情`
           )
         }
       } catch (error) {

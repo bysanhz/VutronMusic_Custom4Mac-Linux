@@ -38,5 +38,8 @@ test.describe('cover scrolling paint stability', () => {
     expect(coverBox).toContain(':loading="imageLoading"')
     expect(coverBox).toContain("type: String as PropType<'lazy' | 'eager'>")
     expect(coverBox).toContain("default: 'lazy'")
+    expect(coverBox).toContain('class="cover-loading-spinner"')
+    expect(coverBox).toContain('showImageLoading')
+    expect(coverBox).toContain('}, 180)')
   })
 })
