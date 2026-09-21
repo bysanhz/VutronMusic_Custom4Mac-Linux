@@ -8,7 +8,7 @@
           <div class="extra-info">
             <span v-if="user.vipType !== 0" class="vip"
               ><img class="cvip" :src="imageUrl" loading="lazy" />
-              <span class="text">黑胶VIP</span>
+              <span class="text">{{ t('settings.general.vipLabel') }}</span>
             </span>
             <span v-else class="text">{{ user.signature }}</span>
           </div>
@@ -1407,15 +1407,24 @@ const commitCustomCacheLimit = () => {
 }
 
 const musicQualityOptions = computed(() => [
-  { label: t('settings.general.musicQuality.low') + ' - 标准', value: 'standard' },
-  { label: t('settings.general.musicQuality.medium') + ' - 较高', value: 'higher' },
-  { label: t('settings.general.musicQuality.high') + ' - 极高', value: 'exhigh' },
-  { label: t('settings.general.musicQuality.lossless') + ' - 无损', value: 'lossless' },
+  {
+    label: `${t('settings.general.musicQuality.low')} - ${t('settings.general.musicQuality.standard')}`,
+    value: 'standard'
+  },
+  {
+    label: `${t('settings.general.musicQuality.medium')} - ${t('settings.general.musicQuality.higher')}`,
+    value: 'higher'
+  },
+  {
+    label: `${t('settings.general.musicQuality.high')} - ${t('settings.general.musicQuality.exhigh')}`,
+    value: 'exhigh'
+  },
+  { label: t('settings.general.musicQuality.lossless'), value: 'lossless' },
   { label: 'Hi-Res', value: 'hires' },
-  { label: '高清环绕声', value: 'jyeffect' },
-  { label: '沉浸环绕声', value: 'sky' },
-  { label: '臻音全景声', value: 'vivid' },
-  { label: '超清母带', value: 'jymaster' }
+  { label: t('settings.general.musicQuality.jyeffect'), value: 'jyeffect' },
+  { label: t('settings.general.musicQuality.sky'), value: 'sky' },
+  { label: t('settings.general.musicQuality.vivid'), value: 'vivid' },
+  { label: t('settings.general.musicQuality.jymaster'), value: 'jymaster' }
 ])
 
 const embedCoverArtOption = computed(() => [
