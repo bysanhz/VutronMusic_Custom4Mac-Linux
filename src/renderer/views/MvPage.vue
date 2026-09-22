@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
 }
 
 .video {
-  --plyr-color-main: #335eea;
+  --plyr-color-main: var(--color-primary);
   --plyr-control-radius: 8px;
   aspect-ratio: 16 / 9;
   border-radius: 12px;
