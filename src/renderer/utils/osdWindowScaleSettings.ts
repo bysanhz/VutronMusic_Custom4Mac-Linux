@@ -110,7 +110,12 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-step-buttons {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns:
+        minmax(0, 1.18fr)
+        minmax(0, 0.82fr)
+        minmax(0, 0.82fr)
+        minmax(0, 1.18fr);
+      align-items: center;
       gap: 6px;
       width: 100%;
     }
@@ -131,9 +136,10 @@ const injectStyle = () => {
       border-radius: 6px;
       outline: none;
       text-align: center;
-      color: var(--color-text);
+      color: var(--color-primary);
+      caret-color: var(--color-primary);
       background: color-mix(in srgb, var(--color-text), transparent 94%);
-      font-weight: 700;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
     }
 
@@ -146,7 +152,6 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-button {
       width: 100%;
       min-width: 0;
-      height: 28px;
       padding: 0 4px;
       border: none;
       border-radius: 6px;
@@ -154,6 +159,20 @@ const injectStyle = () => {
       background: color-mix(in srgb, var(--color-text), transparent 92%);
       cursor: pointer;
       font-weight: 700;
+    }
+
+    #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
+      height: 31px;
+      font-size: 15px;
+      font-weight: 820;
+      align-self: center;
+    }
+
+    #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
+      height: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      align-self: center;
     }
 
     #${CONTROL_ID} .osd-window-scale-button:hover {
