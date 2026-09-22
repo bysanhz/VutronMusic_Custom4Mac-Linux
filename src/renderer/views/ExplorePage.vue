@@ -237,7 +237,13 @@
         :mvs="followingMvs"
         :is-end="true"
       />
-      <div v-else-if="show" class="empty-state">{{ t('explore.noFollowingWorks') }}</div>
+      <div v-else-if="show" class="empty-state">
+        {{
+          isAccountLoggedIn
+            ? t('explore.noFollowingWorks')
+            : t('explore.followingLoginRequired')
+        }}
+      </div>
     </div>
 
     <div v-else class="playlists">
@@ -270,6 +276,7 @@ import { ref, onMounted, computed, onBeforeUnmount, reactive, watch, nextTick, i
 import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
 import { useSettingsStore } from '../store/settings'
+import { useDataStore } from '../store/data'
 import { playlistCategories, artistCategories } from '../utils/common'
 import SvgIcon from '../components/SvgIcon.vue'
 import CoverRow from '../components/VirtualCoverRow.vue'
@@ -307,6 +314,9 @@ const route = useRoute()
 const stateStore = useNormalStateStore()
 const { exploreTab } = storeToRefs(stateStore)
 const { showToast } = stateStore
+const dataStore = useDataStore()
+const { user } = storeToRefs(dataStore)
+const isAccountLoggedIn = computed(() => Number(user.value?.userId) > 0)
 const settingStore = useSettingsStore()
 const { general } = storeToRefs(settingStore)
 const { togglePlaylistCategory } = settingStore
