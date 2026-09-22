@@ -39,6 +39,10 @@
     "guessYouLike": "Made for You",
     "personalized": "Personalized"
   },
+  "personalizedTracks": {
+    "title": "Made for You",
+    "description": "Personalized songs from your NetEase Cloud Music home feed"
+  },
   "library": {
     "userProfileMenu": {
       "logout": "Logout",
