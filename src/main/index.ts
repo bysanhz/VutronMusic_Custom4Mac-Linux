@@ -877,6 +877,7 @@ class BackGround {
         let url = pathname.slice(1)
         const headers = request.headers
         url += search
+
         try {
           const response = await proxyFetch(url, { headers })
           if (!response.ok) {
@@ -888,9 +889,33 @@ class BackGround {
               }
             })
           }
+
+          // 某些“音频地址”实际会返回登录页/错误页。若把 HTML/JSON 原样交给
+          // <audio>，Renderer 只会得到难以诊断的 DOMException。这里尽早拒绝。
+          const contentType = String(response.headers.get('content-type') || '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase()
+
+          if (
+            contentType.startsWith('text/') ||
+            contentType === 'application/json' ||
+            contentType === 'application/xml'
+          ) {
+            await response.body?.cancel().catch(() => undefined)
+            log.warn('[AudioProxy] 上游返回非音频内容', { url, contentType })
+            return new Response(null, {
+              status: 502,
+              statusText: 'Upstream did not return audio',
+              headers: {
+                'Content-Type': 'text/plain'
+              }
+            })
+          }
+
           return response
         } catch (error) {
-          log.error('== get-online-music error ==', error)
+          log.error('[AudioProxy] get-online-music failed', error)
           return new Response(null, {
             status: 500,
             statusText: 'Internal Server Error'
