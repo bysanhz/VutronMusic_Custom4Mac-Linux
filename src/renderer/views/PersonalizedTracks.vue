@@ -158,16 +158,56 @@ onMounted(() => {
 }
 
 .hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: 34px 0 30px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  padding: 34px 32px 30px;
+  margin-bottom: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 8% 14%,
+      color-mix(in srgb, var(--color-primary) 15%, transparent) 0%,
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 86% 82%,
+      color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+      transparent 36%
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--color-primary) 7%, var(--color-secondary-bg)) 0%,
+      color-mix(in srgb, var(--color-primary) 3%, var(--color-secondary-bg)) 52%,
+      var(--color-secondary-bg) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 28%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -54px;
+  right: 8%;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  filter: blur(24px);
+  pointer-events: none;
 }
 
 .hero-copy {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
@@ -189,6 +229,8 @@ onMounted(() => {
 }
 
 .actions {
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -205,7 +247,7 @@ onMounted(() => {
     align-items: flex-start;
     flex-direction: column;
     gap: 18px;
-    padding-top: 24px;
+    padding: 24px 22px;
   }
 
   .actions {
