@@ -154,10 +154,10 @@ const injectStyle = () => {
       justify-self: center;
       align-self: center;
       padding: 0 4px;
-      border: 1px solid transparent;
+      border: 1px solid transparent !important;
       border-radius: 7px;
-      color: color-mix(in srgb, var(--color-primary) 54%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+      color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 5%, transparent) !important;
       cursor: pointer;
       font-weight: 650;
       transition:
@@ -172,8 +172,8 @@ const injectStyle = () => {
       height: 27px;
       font-size: 13px;
       font-weight: 760;
-      color: color-mix(in srgb, var(--color-primary) 62%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+      color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
@@ -181,14 +181,14 @@ const injectStyle = () => {
       height: 22px;
       font-size: 11px;
       font-weight: 650;
-      color: color-mix(in srgb, var(--color-primary) 46%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent);
+      color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-button:hover {
-      color: color-mix(in srgb, var(--color-primary) 78%, transparent);
-      background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
+      color: color-mix(in srgb, var(--color-primary) 78%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent) !important;
     }
   `
   document.head.appendChild(style)
