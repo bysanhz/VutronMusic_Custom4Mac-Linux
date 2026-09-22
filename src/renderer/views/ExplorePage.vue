@@ -749,12 +749,8 @@ const belongsToFollowedArtist = (
 ) => {
   if (!followedArtistIds.size) return false
 
-  if (
-    blockArtistId !== undefined &&
-    blockArtistId !== null &&
-    followedArtistIds.has(String(blockArtistId))
-  ) {
-    return true
+  if (blockArtistId !== undefined && blockArtistId !== null) {
+    return followedArtistIds.has(String(blockArtistId))
   }
 
   return getTrackArtistIds(track).some((id) => followedArtistIds.has(id))
@@ -869,15 +865,11 @@ const parseFollowingMvs = (source: any, followedArtistIds: Set<string>) => {
     const id = mv?.id == null ? '' : String(mv.id)
     const artistId = mv?.artistId == null ? '' : String(mv.artistId)
 
-    if (
-      !id ||
-      !mv.cover ||
-      seen.has(id) ||
-      !artistId ||
-      !followedArtistIds.has(artistId)
-    ) {
-      continue
-    }
+    if (!id || !mv.cover || seen.has(id)) continue
+
+    // 老 MV 接口有些条目只返回 artistName，没有 artistId。
+    // 有 artistId 时严格校验关注关系；缺失时信任专用“关注歌手新 MV”接口本身。
+    if (artistId && !followedArtistIds.has(artistId)) continue
 
     seen.add(id)
     result.push(mv)
