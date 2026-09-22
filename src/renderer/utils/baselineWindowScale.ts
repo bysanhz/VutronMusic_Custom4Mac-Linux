@@ -86,7 +86,7 @@ const injectStyle = () => {
       justify-self: center;
       align-self: center;
       padding: 0;
-      border: 1px solid transparent !important;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
       border-radius: 999px;
       color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5%, transparent) !important;
@@ -107,6 +107,7 @@ const injectStyle = () => {
       font-weight: 650;
       color: color-mix(in srgb, var(--color-primary) 60%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5.5%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button[data-step-mode='fine'] {
@@ -117,6 +118,7 @@ const injectStyle = () => {
       font-weight: 600;
       color: color-mix(in srgb, var(--color-primary) 44%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 16%, transparent) !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button:hover:not(:disabled) {
