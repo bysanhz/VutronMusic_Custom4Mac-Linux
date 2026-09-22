@@ -910,7 +910,13 @@
     "localMusicUpdated": "本地歌曲已更新",
     "localMusicScanError": "扫描本地歌曲失败，详情请查看开发者工具控制台",
     "downloadProgress": "下载更新：{percent}%",
-    "downloadError": "下载更新失败"
+    "downloadError": "下载更新失败",
+    "trackInfoFailed": "歌曲信息获取失败，未跳过当前歌曲，请稍后重试",
+    "trackMissingNext": "歌曲信息不存在，正在切换下一首…",
+    "audioSourceUnavailable": "歌曲 {name} 暂无可用音源",
+    "audioSourceRetrying": "歌曲 {name} 播放失败，正在重新获取音源…",
+    "audioPlaybackFailedNext": "歌曲 {name} 播放失败，正在切换下一首…",
+    "usingLocalFile": "使用本地文件播放"
   },
   "next": {
     "nowPlaying": "正在播放",
