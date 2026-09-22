@@ -107,24 +107,32 @@ const injectStyle = () => {
     }
 
     .window-scale-baseline-reset-v2 button {
-      min-width: 88px;
-      height: 30px;
-      padding: 0 12px;
+      min-width: 78px;
+      height: 28px;
+      padding: 0 10px;
       border: 1px solid
-        color-mix(in srgb, var(--color-text), transparent 88%);
+        color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
       border-radius: 8px;
-      color: var(--color-text);
-      background: transparent;
+      color: color-mix(in srgb, var(--color-primary) 68%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
       cursor: pointer;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 650;
       line-height: 1;
       pointer-events: auto;
       user-select: none;
       -webkit-app-region: no-drag;
+      transition:
+        color 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
     }
 
     .window-scale-baseline-reset-v2 button:hover {
-      background: color-mix(in srgb, var(--color-text), transparent 94%);
+      color: color-mix(in srgb, var(--color-primary) 82%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
     }
 
     .window-scale-baseline-reset-v2 button:active {
