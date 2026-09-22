@@ -89,7 +89,8 @@
     "monthNewAlbums": "本月新碟",
     "loadingMore": "正在加载更多...",
     "noStyleSongs": "当前曲风暂时没有可展示的歌曲",
-    "noFollowingWorks": "暂无关注歌手新作，或当前账号尚未登录",
+    "noFollowingWorks": "暂无关注歌手近期新作",
+    "followingLoginRequired": "登录后可查看关注歌手新作",
     "styleLoadFailed": "曲风歌曲加载失败，请稍后重试",
     "categories": {
       "全部": "全部",
