@@ -222,7 +222,12 @@
     </div>
 
     <div v-else-if="exploreTab === 'following'" class="playlists">
+      <div v-if="followingLoading" class="following-loading" aria-live="polite">
+        <span class="following-loading-spinner" aria-hidden="true"></span>
+        <span>{{ t('explore.loadingMore') }}</span>
+      </div>
       <TrackList
+        v-else
         v-if="show && followingMode === 'song' && tracks.length"
         id="following-new-songs"
         :items="tracks"
@@ -349,6 +354,7 @@ const styleTags = ref<StyleTag[]>([])
 const activeStyleId = ref<number | string>('')
 const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
+const followingLoading = ref(false)
 const loadingMore = ref(false)
 const PLAYLIST_PAGE_SIZE = 24
 
@@ -668,69 +674,94 @@ const normalizeMv = (item: any) => {
   return {
     ...mv,
     id: mv?.id ?? mv?.mvId ?? mv?.vid,
-    name: mv?.name ?? mv?.title ?? 'MV',
-    cover: mv?.cover ?? mv?.coverUrl ?? mv?.imgurl16v9 ?? mv?.picUrl ?? '',
+    name: mv?.name ?? mv?.mvName ?? mv?.title ?? 'MV',
+    cover:
+      mv?.cover ??
+      mv?.mvCoverUrl ??
+      mv?.coverUrl ??
+      mv?.imgurl16v9 ??
+      mv?.picUrl ??
+      '',
     artistName: mv?.artistName ?? mv?.artist?.name ?? mv?.artists?.[0]?.name ?? '',
-    artistId: mv?.artistId ?? mv?.artist?.id ?? mv?.artists?.[0]?.id ?? 0
+    artistId: mv?.artistId ?? mv?.artist?.id ?? mv?.artists?.[0]?.id ?? 0,
+    duration: mv?.duration ?? mv?.durationMs ?? 0,
+    playCount: mv?.playCount ?? 0,
+    publishTime: mv?.publishTime ?? 0
   }
 }
 
-const collectFollowingMvs = (source: any, limit = 100) => {
+const dedupeTracksById = (items: any[]) => {
+  const seen = new Set<string>()
   const result: any[] = []
-  const seenObjects = new Set<any>()
-  const seenIds = new Set<string>()
 
-  const visit = (value: any, depth = 0) => {
-    if (value == null || depth > 8 || result.length >= limit) return
-    if (typeof value !== 'object') return
-    if (seenObjects.has(value)) return
-    seenObjects.add(value)
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        visit(item, depth + 1)
-        if (result.length >= limit) break
-      }
-      return
-    }
-
-    const candidate = normalizeMv(value)
-    const id = candidate?.id == null ? '' : String(candidate.id)
-    const hasMvShape =
-      Boolean(id) &&
-      Boolean(candidate.cover) &&
-      (value?.mv !== undefined ||
-        value?.mvId !== undefined ||
-        value?.vid !== undefined ||
-        value?.resource?.mv !== undefined ||
-        value?.cover !== undefined ||
-        value?.coverUrl !== undefined ||
-        value?.imgurl16v9 !== undefined)
-
-    if (hasMvShape && !seenIds.has(id)) {
-      seenIds.add(id)
-      result.push(candidate)
-      if (result.length >= limit) return
-    }
-
-    for (const nested of Object.values(value)) {
-      visit(nested, depth + 1)
-      if (result.length >= limit) break
-    }
+  for (const item of items) {
+    const normalized = normalizeTrack(item)
+    const id = normalized?.id == null ? '' : String(normalized.id)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    result.push(normalized)
   }
 
-  visit(source)
+  return result
+}
+
+/**
+ * 精确解析新版关注歌手新发布接口。
+ *
+ * data.newWorks[].info.songLists 在 album 区块中会内联整张专辑的全部曲目，
+ * 不能递归扫描，否则会把合作者/专辑其它曲目误当成“关注歌手新歌”。
+ * 新歌页只取 blockType === 'song' 的单曲区块。
+ */
+const parseFollowingReleaseSongs = (source: any) => {
+  const works = Array.isArray(source?.data?.newWorks) ? source.data.newWorks : []
+  const songs: any[] = []
+
+  for (const work of works) {
+    const info = work?.info
+    if (info?.blockType !== 'song') continue
+
+    const firstTrack = Array.isArray(info?.songLists) ? info.songLists[0] : null
+    if (!firstTrack) continue
+
+    songs.push({
+      ...firstTrack,
+      publishTime: firstTrack?.publishTime ?? work?.publishTime
+    })
+  }
+
+  return dedupeTracksById(songs)
+}
+
+const parseFollowingMvs = (source: any) => {
+  const works = Array.isArray(source?.data?.newWorks) ? source.data.newWorks : []
+  const seen = new Set<string>()
+  const result: any[] = []
+
+  for (const work of works) {
+    const mv = normalizeMv(work)
+    const id = mv?.id == null ? '' : String(mv.id)
+    if (!id || !mv.cover || seen.has(id)) continue
+    seen.add(id)
+    result.push(mv)
+  }
+
   return result
 }
 
 const getFollowingSongs = async () => {
+  try {
+    const v2 = await followedArtistNewSongMvListV2({
+      sourceType: 1,
+      limit: 10,
+      firstRequest: true
+    })
+    const exact = parseFollowingReleaseSongs(v2)
+    if (exact.length) return exact
+  } catch (error) {
+    console.warn('[Explore] 新版关注歌手新歌接口失败，回退旧接口:', error)
+  }
+
   const attempts: Array<() => Promise<any>> = [
-    () =>
-      followedArtistNewSongMvListV2({
-        sourceType: 1,
-        limit: 100,
-        firstRequest: true
-      }),
     () => followedArtistNewSongs({ limit: 100 }),
     () => followedArtistNewSongsPlayAll()
   ]
@@ -738,7 +769,7 @@ const getFollowingSongs = async () => {
   for (const attempt of attempts) {
     try {
       const result = await attempt()
-      const parsed = extractTracks(result, 100)
+      const parsed = dedupeTracksById(extractTracks(result, 100))
       if (parsed.length) return parsed
     } catch (error) {
       console.warn('[Explore] 关注歌手新歌接口回退:', error)
@@ -748,8 +779,26 @@ const getFollowingSongs = async () => {
   return []
 }
 
+const getFollowingMvs = async () => {
+  const attempts: Array<() => Promise<any[]>> = [
+    async () => parseFollowingMvs(await followedArtistNewMvs({ limit: 100 }))
+  ]
+
+  for (const attempt of attempts) {
+    try {
+      const parsed = await attempt()
+      if (parsed.length) return parsed
+    } catch (error) {
+      console.warn('[Explore] 关注歌手新 MV 接口失败:', error)
+    }
+  }
+
+  return []
+}
+
 const getFollowingWorks = async () => {
   show.value = false
+  followingLoading.value = true
   tricklingProgress.start()
 
   try {
@@ -757,8 +806,7 @@ const getFollowingWorks = async () => {
       tracks.value = await getFollowingSongs()
       followingMvs.value = []
     } else {
-      const result = await followedArtistNewMvs({ limit: 100 })
-      followingMvs.value = collectFollowingMvs(result, 100)
+      followingMvs.value = await getFollowingMvs()
       tracks.value = []
     }
   } catch (error) {
@@ -766,6 +814,7 @@ const getFollowingWorks = async () => {
     tracks.value = []
     followingMvs.value = []
   } finally {
+    followingLoading.value = false
     tricklingProgress.done()
     show.value = true
   }
@@ -824,6 +873,7 @@ const resetViewData = () => {
   playlists.value = []
   tracks.value = []
   followingMvs.value = []
+  followingLoading.value = false
   showList.value = []
   show.value = false
   playlistInfo.more = true
@@ -1064,6 +1114,33 @@ onBeforeUnmount(() => {
   margin-top: 24px;
 }
 
+.following-loading {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-text);
+  font-size: 14px;
+  opacity: 0.62;
+}
+
+.following-loading-spinner {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: explore-following-spin 0.75s linear infinite;
+}
+
+@keyframes explore-following-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .empty-state {
   padding: 80px 0;
   text-align: center;
@@ -1099,7 +1176,8 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .load-more-spinner {
+  .load-more-spinner,
+  .following-loading-spinner {
     animation: none;
   }
 }
