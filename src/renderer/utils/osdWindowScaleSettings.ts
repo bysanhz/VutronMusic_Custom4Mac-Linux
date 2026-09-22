@@ -71,12 +71,29 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.72fr) minmax(580px, 1.7fr);
       align-items: start;
+      gap: 20px;
+    }
+
+    #${CONTROL_ID} > .left {
+      min-width: 0;
+      padding-right: 0;
+    }
+
+    #${CONTROL_ID} > .right {
+      width: 100% !important;
+      min-width: 0 !important;
+      display: block;
     }
 
     #${CONTROL_ID} .osd-window-scale-card {
-      width: min(100%, 440px);
+      width: 100%;
+      max-width: 760px;
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
       gap: 12px;
       padding: 12px;
       box-sizing: border-box;
@@ -85,38 +102,78 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-section {
+      min-width: 0;
       display: grid;
+      align-content: start;
       gap: 8px;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
 
     #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
-      padding-top: 12px;
-      border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+      padding-top: 0;
+      border-top: 0;
+      border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
     }
 
     #${CONTROL_ID} .osd-window-scale-section-title {
+      margin-bottom: 2px;
       font-weight: 700;
       opacity: 0.88;
+      white-space: nowrap;
     }
 
     #${CONTROL_ID} .osd-window-scale-row {
+      min-width: 0;
       display: grid;
-      grid-template-columns:
-        minmax(88px, 1fr)
-        24px
-        18px
-        minmax(56px, 68px)
-        18px
-        24px;
-      grid-template-rows: 30px;
+      grid-template-columns: minmax(112px, 1fr) auto;
       align-items: center;
-      gap: 4px;
+      gap: 8px;
+      min-height: 30px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
+      min-width: 0;
       opacity: 0.7;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.2;
       font-weight: 600;
+    }
+
+    #${CONTROL_ID} .osd-window-scale-controls {
+      display: grid;
+      grid-template-columns:
+        24px
+        18px
+        minmax(54px, 64px)
+        18px
+        24px;
+      align-items: center;
+      justify-content: end;
+      gap: 4px;
+      min-width: 154px;
+    }
+
+    @media (max-width: 900px) {
+      #${CONTROL_ID} {
+        grid-template-columns: 1fr;
+      }
+
+      #${CONTROL_ID} .osd-window-scale-card {
+        max-width: none;
+      }
+    }
+
+    @media (max-width: 700px) {
+      #${CONTROL_ID} .osd-window-scale-card {
+        grid-template-columns: 1fr;
+      }
+
+      #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
+        padding-top: 10px;
+        border-left: 0;
+        border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+      }
     }
 
     #${CONTROL_ID} .osd-window-scale-input {
@@ -238,18 +295,20 @@ const createFieldRow = (target: 'osd-small' | 'osd-normal', field: OsdBaselineFi
   return `
     <div class="osd-window-scale-row" data-target="${target}" data-field="${field}">
       <span class="osd-window-scale-label">${label}</span>
-      ${createStepButton(field, 'decrease', 'coarse')}
-      ${createStepButton(field, 'decrease', 'fine')}
-      <input
-        type="number"
-        class="osd-window-scale-input"
-        data-value="${field}"
-        step="${fineStep}"
-        inputmode="${field === 'minWidth' || field === 'minHeight' ? 'numeric' : 'decimal'}"
-        title="${inputHint}"
-      />
-      ${createStepButton(field, 'increase', 'fine')}
-      ${createStepButton(field, 'increase', 'coarse')}
+      <div class="osd-window-scale-controls">
+        ${createStepButton(field, 'decrease', 'coarse')}
+        ${createStepButton(field, 'decrease', 'fine')}
+        <input
+          type="number"
+          class="osd-window-scale-input"
+          data-value="${field}"
+          step="${fineStep}"
+          inputmode="${field === 'minWidth' || field === 'minHeight' ? 'numeric' : 'decimal'}"
+          title="${inputHint}"
+        />
+        ${createStepButton(field, 'increase', 'fine')}
+        ${createStepButton(field, 'increase', 'coarse')}
+      </div>
     </div>
   `
 }
