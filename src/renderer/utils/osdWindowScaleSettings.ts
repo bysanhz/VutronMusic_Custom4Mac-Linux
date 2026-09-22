@@ -185,7 +185,7 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-button:hover {
       color: color-mix(in srgb, var(--color-primary) 78%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
-      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 42%, transparent) !important;
     }
   `
   document.head.appendChild(style)
