@@ -1067,19 +1067,41 @@ class BackGround {
       this.win.webContents.send('isMaximized', false)
     })
 
-    this.win.on('resize', () => {
+    /*
+     * Linux 连续拖拽缩放时 resize 事件会以很高频率触发。
+     * electron-store 的 set() 最终会落盘；每个 resize 都同步持久化会阻塞主进程，
+     * Chromium 合成器就可能出现窗口尺寸已经变化、部分 renderer 还没完成绘制的现象。
+     *
+     * 窗口几何信息不需要逐帧保存，只在交互停止后持久化最终 bounds。
+     */
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null
+    const persistWindowBounds = () => {
+      if (!this.win || this.win.isDestroyed()) return
       store.set('window', this.win.getBounds())
+    }
+
+    this.win.on('resize', () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(() => {
+        resizeTimeout = null
+        persistWindowBounds()
+      }, Constants.IS_LINUX ? 280 : 180)
     })
 
-    let moveTimeout
+    let moveTimeout: ReturnType<typeof setTimeout> | null = null
     this.win.on('move', () => {
       if (moveTimeout) {
         clearTimeout(moveTimeout)
       }
       moveTimeout = setTimeout(() => {
-        if (!this.win) return
-        store.set('window', this.win.getBounds())
-      }, 500)
+        moveTimeout = null
+        persistWindowBounds()
+      }, Constants.IS_LINUX ? 320 : 500)
+    })
+
+    this.win.on('closed', () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+      if (moveTimeout) clearTimeout(moveTimeout)
     })
   }
 
