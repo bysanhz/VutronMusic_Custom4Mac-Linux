@@ -216,8 +216,8 @@ const isCurrentRoute = (path: string): boolean => {
     justify-content: center;
 
     .history-icon {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
     }
 
     &:hover {
