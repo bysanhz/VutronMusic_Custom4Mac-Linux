@@ -78,7 +78,12 @@ const injectStyle = () => {
     #app .window-scale-step-buttons {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns:
+        minmax(0, 1.18fr)
+        minmax(0, 0.82fr)
+        minmax(0, 0.82fr)
+        minmax(0, 1.18fr);
+      align-items: center;
       gap: 6px;
       width: 100%;
     }
@@ -86,10 +91,22 @@ const injectStyle = () => {
     #app .window-scale-step-buttons .window-scale-font-button {
       width: 100% !important;
       min-width: 0 !important;
-      height: 27px;
       padding: 0 4px;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+      align-self: center;
+    }
+
+    #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='coarse'] {
+      height: 31px;
+      font-size: 15px;
+      font-weight: 820;
+    }
+
+    #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='fine'] {
+      height: 24px;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     #app .window-scale-font-input {
@@ -102,9 +119,10 @@ const injectStyle = () => {
       border-radius: 6px;
       outline: none;
       text-align: center;
-      color: var(--color-text);
+      color: var(--color-primary);
+      caret-color: var(--color-primary);
       background: color-mix(in srgb, var(--color-text), transparent 94%);
-      font-weight: 700;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
     }
 
