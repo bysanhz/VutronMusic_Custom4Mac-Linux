@@ -278,7 +278,7 @@ import { useI18n } from 'vue-i18n'
 import { getRecommendPlayList } from '../utils/playlist'
 import { highQualityPlaylist, topPlaylist, toplists, toplistDetail } from '../api/playlist'
 import { getArtistList } from '../api/artist'
-import { topAlbum, topSong } from '../api/track'
+import { getTrackDetail, topAlbum, topSong } from '../api/track'
 import { newAlbums } from '../api/album'
 import {
   followedArtistNewMvs,
@@ -287,6 +287,7 @@ import {
   stylePreference,
   styleSongs
 } from '../api/discovery'
+import { normalizeTrack } from '../services/neteaseModern'
 
 interface StyleTag {
   id: number | string
@@ -540,24 +541,81 @@ const findFirstArray = (source: any, keys: string[]): any[] => {
   return []
 }
 
-const selectStyle = (tag: StyleTag) => {
+const enrichStyleTracks = async (rawItems: any[]) => {
+  const sourceTracks = rawItems.map(unwrapTrack).filter(Boolean)
+  const ids = Array.from(
+    new Set(
+      sourceTracks
+        .map((item) => Number(item?.id ?? item?.songId ?? item?.resourceId))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    )
+  )
+
+  /*
+   * /style/song 返回的歌曲元数据经常是精简版：有 id/name，但缺 al.picUrl、
+   * publishTime，甚至 artists。TrackList 需要的是完整歌曲结构，所以按 50 首一批
+   * 用 /song/detail 补齐真实网易云元数据。
+   */
+  const detailMap = new Map<string, any>()
+  for (let offset = 0; offset < ids.length; offset += 50) {
+    const chunk = ids.slice(offset, offset + 50)
+    if (!chunk.length) continue
+
+    try {
+      const detailResult = await getTrackDetail(chunk.join(','))
+      const detailSongs = Array.isArray(detailResult?.songs)
+        ? detailResult.songs
+        : Array.isArray(detailResult?.data?.songs)
+          ? detailResult.data.songs
+          : []
+
+      for (const detail of detailSongs) {
+        const normalized = normalizeTrack(detail)
+        if (normalized?.id) detailMap.set(String(normalized.id), normalized)
+      }
+    } catch (error) {
+      console.warn('[Explore] 补全曲风歌曲详情失败，保留精简元数据:', error)
+    }
+  }
+
+  return sourceTracks
+    .map((source) => {
+      const id = source?.id ?? source?.songId ?? source?.resourceId
+      const detail = id != null ? detailMap.get(String(id)) : null
+      if (detail) {
+        return normalizeTrack({
+          ...source,
+          ...detail,
+          ar: detail.ar?.length ? detail.ar : source?.ar ?? source?.artists,
+          artists: detail.artists?.length ? detail.artists : source?.artists ?? source?.ar,
+          al: detail.al?.picUrl ? detail.al : source?.al ?? source?.album,
+          album: detail.album?.picUrl ? detail.album : source?.album ?? source?.al,
+          publishTime: detail.publishTime ?? source?.publishTime,
+          dt: detail.dt ?? source?.dt ?? source?.duration
+        })
+      }
+      return normalizeTrack(source)
+    })
+    .filter(Boolean)
+}
+
+const selectStyle = async (tag: StyleTag) => {
   activeStyleId.value = tag.id
   tracks.value = []
   show.value = false
   tricklingProgress.start()
-  styleSongs({ tagId: tag.id, size: 100 })
-    .then((result) => {
-      const raw = findFirstArray(result, ['data.songs', 'data.list', 'songs', 'list', 'data'])
-      tracks.value = raw.map(unwrapTrack).filter((item) => item?.id)
-    })
-    .catch((error) => {
-      console.warn('[Explore] 加载曲风歌曲失败:', error)
-      showToast(t('explore.styleLoadFailed'))
-    })
-    .finally(() => {
-      tricklingProgress.done()
-      show.value = true
-    })
+
+  try {
+    const result = await styleSongs({ tagId: tag.id, size: 100 })
+    const raw = findFirstArray(result, ['data.songs', 'data.list', 'songs', 'list', 'data'])
+    tracks.value = await enrichStyleTracks(raw)
+  } catch (error) {
+    console.warn('[Explore] 加载曲风歌曲失败:', error)
+    showToast(t('explore.styleLoadFailed'))
+  } finally {
+    tricklingProgress.done()
+    show.value = true
+  }
 }
 
 const getStyles = async () => {
