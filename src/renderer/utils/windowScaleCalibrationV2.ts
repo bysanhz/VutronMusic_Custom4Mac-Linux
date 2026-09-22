@@ -116,7 +116,7 @@ const injectStyle = () => {
       color: color-mix(in srgb, var(--color-primary) 68%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 650;
       line-height: 1;
       pointer-events: auto;
