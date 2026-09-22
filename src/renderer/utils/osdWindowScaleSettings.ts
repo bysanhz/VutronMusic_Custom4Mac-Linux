@@ -101,23 +101,16 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-row {
       display: grid;
-      grid-template-columns: minmax(92px, 1fr) minmax(78px, 104px);
-      grid-template-rows: auto auto;
-      align-items: center;
-      gap: 7px;
-    }
-
-    #${CONTROL_ID} .osd-window-scale-step-buttons {
-      grid-column: 1 / -1;
-      display: grid;
       grid-template-columns:
-        minmax(0, 1.18fr)
-        minmax(0, 0.82fr)
-        minmax(0, 0.82fr)
-        minmax(0, 1.18fr);
+        minmax(88px, 1fr)
+        42px
+        34px
+        minmax(58px, 72px)
+        34px
+        42px;
+      grid-template-rows: 30px;
       align-items: center;
-      gap: 6px;
-      width: 100%;
+      gap: 5px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
@@ -150,10 +143,11 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button {
+      width: 100%;
       min-width: 0;
-      justify-self: center;
+      justify-self: stretch;
       align-self: center;
-      padding: 0 4px;
+      padding: 0 3px;
       border: 1px solid transparent !important;
       border-radius: 7px;
       color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
@@ -168,19 +162,17 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
-      width: 88%;
-      height: 27px;
-      font-size: 13px;
-      font-weight: 760;
+      height: 26px;
+      font-size: 12px;
+      font-weight: 740;
       color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
-      width: 78%;
-      height: 22px;
-      font-size: 11px;
-      font-weight: 650;
+      height: 21px;
+      font-size: 10px;
+      font-weight: 640;
       color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
     }
@@ -241,6 +233,8 @@ const createFieldRow = (target: 'osd-small' | 'osd-normal', field: OsdBaselineFi
   return `
     <div class="osd-window-scale-row" data-target="${target}" data-field="${field}">
       <span class="osd-window-scale-label">${label}</span>
+      ${createStepButton(field, 'decrease', 'coarse')}
+      ${createStepButton(field, 'decrease', 'fine')}
       <input
         type="number"
         class="osd-window-scale-input"
@@ -249,12 +243,8 @@ const createFieldRow = (target: 'osd-small' | 'osd-normal', field: OsdBaselineFi
         inputmode="${field === 'minWidth' || field === 'minHeight' ? 'numeric' : 'decimal'}"
         title="${inputHint}"
       />
-      <div class="osd-window-scale-step-buttons">
-        ${createStepButton(field, 'decrease', 'coarse')}
-        ${createStepButton(field, 'decrease', 'fine')}
-        ${createStepButton(field, 'increase', 'fine')}
-        ${createStepButton(field, 'increase', 'coarse')}
-      </div>
+      ${createStepButton(field, 'increase', 'fine')}
+      ${createStepButton(field, 'increase', 'coarse')}
     </div>
   `
 }
