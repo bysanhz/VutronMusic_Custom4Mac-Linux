@@ -132,14 +132,14 @@ const injectStyle = () => {
       height: 30px;
       padding: 0 6px;
       box-sizing: border-box;
-      border: none;
-      border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+      border-radius: 7px;
       outline: none;
       text-align: center;
       color: var(--color-primary);
       caret-color: var(--color-primary);
-      background: color-mix(in srgb, var(--color-text), transparent 94%);
-      font-weight: 800;
+      background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+      font-weight: 820;
       font-variant-numeric: tabular-nums;
     }
 
@@ -150,33 +150,45 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button {
-      width: 100%;
       min-width: 0;
+      justify-self: center;
+      align-self: center;
       padding: 0 4px;
-      border: none;
-      border-radius: 6px;
-      color: var(--color-text);
-      background: color-mix(in srgb, var(--color-text), transparent 92%);
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: color-mix(in srgb, var(--color-primary) 54%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 5%, transparent);
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 650;
+      transition:
+        color 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
-      height: 31px;
-      font-size: 15px;
-      font-weight: 820;
-      align-self: center;
+      width: 88%;
+      height: 27px;
+      font-size: 13px;
+      font-weight: 760;
+      color: color-mix(in srgb, var(--color-primary) 62%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 6%, transparent);
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
-      height: 24px;
-      font-size: 12px;
-      font-weight: 700;
-      align-self: center;
+      width: 78%;
+      height: 22px;
+      font-size: 11px;
+      font-weight: 650;
+      color: color-mix(in srgb, var(--color-primary) 46%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent);
     }
 
     #${CONTROL_ID} .osd-window-scale-button:hover {
-      background: color-mix(in srgb, var(--color-text), transparent 84%);
+      color: color-mix(in srgb, var(--color-primary) 78%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
     }
   `
   document.head.appendChild(style)
