@@ -117,7 +117,7 @@
               v-model="inputText"
               class="input"
               type="text"
-              placeholder="新预设.."
+              :placeholder="$t('player.frequad.newPreset')"
               @blur="giveUpInput"
               @keyup.enter="handleInput"
             />
