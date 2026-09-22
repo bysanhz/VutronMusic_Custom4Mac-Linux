@@ -150,14 +150,14 @@
   display: grid;
   grid-template-columns:
     minmax(82px, 1fr)
-    42px
-    34px
-    minmax(58px, 72px)
-    34px
-    42px;
+    36px
+    28px
+    minmax(56px, 68px)
+    28px
+    36px;
   grid-template-rows: 30px;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   width: 100%;
   min-height: 30px;
 }
@@ -182,7 +182,7 @@
   min-width: 0;
   justify-self: stretch;
   align-self: center;
-  min-      padding: 0 4px;
+  padding: 0 3px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: color-mix(in srgb, var(--color-primary) 5%, transparent);
@@ -197,17 +197,17 @@
 
 
 #app .system-settings .window-scale-font-button[data-step-mode='coarse'] {
-  height: 26px;
-  font-size: 12px;
-  font-weight: 740;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 720;
   color: color-mix(in srgb, var(--color-primary) 62%, transparent);
   background: color-mix(in srgb, var(--color-primary) 6%, transparent);
 }
 
 #app .system-settings .window-scale-font-button[data-step-mode='fine'] {
-  height: 21px;
-  font-size: 10px;
-  font-weight: 640;
+  height: 19px;
+  font-size: 9.5px;
+  font-weight: 620;
   color: color-mix(in srgb, var(--color-primary) 46%, transparent);
   background: color-mix(in srgb, var(--color-primary) 3.5%, transparent);
 }
