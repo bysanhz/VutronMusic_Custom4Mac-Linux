@@ -212,6 +212,31 @@ const collectNormalized = <T>(source: any, normalize: (value: any) => T | null, 
 export const extractTracks = (source: any, limit = 200) =>
   collectNormalized(source, normalizeTrack, limit)
 
+type PersonalizedTrackSnapshot = {
+  tracks: any[]
+  cursor?: string | number
+}
+
+let personalizedTrackSnapshot: PersonalizedTrackSnapshot | null = null
+
+export const setPersonalizedTrackSnapshot = (
+  tracks: any[],
+  cursor?: string | number
+) => {
+  personalizedTrackSnapshot = {
+    tracks: Array.isArray(tracks) ? tracks.slice() : [],
+    cursor
+  }
+}
+
+export const getPersonalizedTrackSnapshot = (): PersonalizedTrackSnapshot | null => {
+  if (!personalizedTrackSnapshot?.tracks?.length) return null
+  return {
+    tracks: personalizedTrackSnapshot.tracks.slice(),
+    cursor: personalizedTrackSnapshot.cursor
+  }
+}
+
 export const extractPlaylists = (source: any, limit = 100) =>
   collectNormalized(source, normalizePlaylist, limit)
 
