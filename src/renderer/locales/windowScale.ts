@@ -2,10 +2,10 @@ export const windowScaleMessages = {
   en: {
     mainTitle: 'Main Window Scale Baseline',
     mainDescription:
-      'At the minimum window size, the interface uses the baseline font size. Enlarging the window scales text, covers, icons, buttons, spacing, and corners together.',
+      'The baseline controls minimum window geometry and preferred scale. If that combination would crop the interface, the actual zoom is automatically reduced to keep the full layout visible.',
     desktopTitle: 'Desktop Lyrics Scale Baseline',
     desktopDescription:
-      'At the minimum window size, desktop lyrics use the baseline values. The mini layout lets the cover controls and lyrics use separate baselines, while corner radius is controlled uniformly.',
+      'Desktop lyrics use the selected baseline values, with automatic fit protection when needed. Mini mode keeps separate lyric and cover/control baselines, with one shared corner radius.',
     compactDesktop: 'Mini Desktop Lyrics',
     normalDesktop: 'Normal Desktop Lyrics',
     minWidth: 'Minimum Width',
@@ -16,6 +16,10 @@ export const windowScaleMessages = {
     cornerRadius: 'Corner Radius',
     decrease: 'Decrease {field}',
     increase: 'Increase {field}',
+    coarseDecrease: 'Coarse decrease {field} by {step}',
+    coarseIncrease: 'Coarse increase {field} by {step}',
+    fineDecrease: 'Fine decrease {field} by {step}',
+    fineIncrease: 'Fine increase {field} by {step}',
     enterToApply: 'Enter a value and press Enter to preview',
     dragToAdjust: 'Drag to adjust {field}',
     calibrationHint:
@@ -28,10 +32,10 @@ export const windowScaleMessages = {
   zh: {
     mainTitle: '主窗口缩放基准',
     mainDescription:
-      '窗口达到设定的最小尺寸时使用基准字号；继续放大时，字体、封面、图标、按钮、间距和圆角会按同一比例缩放。',
+      '最小宽高决定窗口下限，基准字号决定期望缩放；若两者组合会导致界面裁切，实际缩放会自动降低到可完整显示的范围。',
     desktopTitle: '桌面歌词缩放基准',
     desktopDescription:
-      '窗口达到设定的最小尺寸时使用对应基准；迷你桌面歌词的封面控件与右侧歌词可分别调整，圆角大小统一控制。',
+      '桌面歌词按设定基准缩放，并在需要时自动限制到完整显示范围；迷你模式可分别调整歌词与封面控件基准，圆角统一控制。',
     compactDesktop: '迷你桌面歌词',
     normalDesktop: '普通桌面歌词',
     minWidth: '最小宽度',
@@ -42,6 +46,10 @@ export const windowScaleMessages = {
     cornerRadius: '圆角大小',
     decrease: '减小{field}',
     increase: '增大{field}',
+    coarseDecrease: '粗调减小{field}（−{step}）',
+    coarseIncrease: '粗调增大{field}（+{step}）',
+    fineDecrease: '精调减小{field}（−{step}）',
+    fineIncrease: '精调增大{field}（+{step}）',
     enterToApply: '输入数值后按 Enter 预览',
     dragToAdjust: '拖动调节{field}',
     calibrationHint:
@@ -54,10 +62,10 @@ export const windowScaleMessages = {
   zht: {
     mainTitle: '主視窗縮放基準',
     mainDescription:
-      '視窗達到設定的最小尺寸時使用基準字號；繼續放大時，文字、封面、圖示、按鈕、間距與圓角會按相同比例縮放。',
+      '最小寬高決定視窗下限，基準字號決定期望縮放；若兩者組合會造成介面裁切，實際縮放會自動降低到可完整顯示的範圍。',
     desktopTitle: '桌面歌詞縮放基準',
     desktopDescription:
-      '視窗達到設定的最小尺寸時使用對應基準；迷你桌面歌詞的封面控制與右側歌詞可分別調整，圓角大小統一控制。',
+      '桌面歌詞依設定基準縮放，並在需要時自動限制到完整顯示範圍；迷你模式可分別調整歌詞與封面控制基準，圓角統一控制。',
     compactDesktop: '迷你桌面歌詞',
     normalDesktop: '普通桌面歌詞',
     minWidth: '最小寬度',
@@ -68,6 +76,10 @@ export const windowScaleMessages = {
     cornerRadius: '圓角大小',
     decrease: '減小{field}',
     increase: '增大{field}',
+    coarseDecrease: '粗調減小{field}（−{step}）',
+    coarseIncrease: '粗調增大{field}（+{step}）',
+    fineDecrease: '精調減小{field}（−{step}）',
+    fineIncrease: '精調增大{field}（+{step}）',
     enterToApply: '輸入數值後按 Enter 預覽',
     dragToAdjust: '拖曳調整{field}',
     calibrationHint:
