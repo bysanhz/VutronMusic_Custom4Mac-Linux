@@ -1880,13 +1880,15 @@ export const usePlayerStore = defineStore(
 
       window.mainApi?.on('resume', async () => {
         if (!currentTrack.value) return
-        const t = _progress.value
-        await replaceCurrentTrack(currentTrack.value.id, false)
-        audioNodes.audio!.removeAttribute('src')
-        audioNodes.audio!.load()
-        audioNodes.audio!.src = currentTrack.value!.url!
-        audioNodes.audio!.load()
-        seek.value = t
+        const trackId = currentTrack.value.id
+        const savedProgress = _progress.value
+
+        // replaceCurrentTrack(..., false) 会重新解析音源，并通过 getTrackSource()
+        // 恢复 atom:// 主进程代理。不要再把原始 HTTP(S) URL 写回 <audio>.src。
+        const replaced = await replaceCurrentTrack(trackId, false)
+        if (replaced && currentTrack.value?.id === trackId) {
+          seek.value = savedProgress
+        }
       })
 
       window.mainApi?.on('play-from-osd', () => {
