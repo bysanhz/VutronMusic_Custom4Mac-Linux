@@ -159,21 +159,24 @@ const track = computed(
 )
 
 const image = computed(() => {
-  let url: string
+  let url = ''
+
   if (track.value.type === 'online') {
-    url = track.value.al?.picUrl || track.value.album?.picUrl || track.value.picUrl
-    if (url && url.startsWith('http')) url = url.replace('http:', 'https:')
-    url += '?param=64y64'
-    return url
-  } else if (track.value.type === 'stream') {
-    url = track.value.al?.picUrl || track.value.album?.picUrl || track.value.picUrl
-    return stateStore.virtualScrolling ? 'atom://get-default-pic' : url
-  } else {
-    url = localMusic.value.scanning
-      ? `atom://get-pic-path/${track.value.filePath}`
-      : `atom://local-asset?type=pic&id=${track.value.id}&size=64`
+    url = track.value.al?.picUrl || track.value.album?.picUrl || track.value.picUrl || ''
+    if (!url) return 'atom://get-default-pic'
+    if (url.startsWith('http')) url = url.replace('http:', 'https:')
+    return `${url}${url.includes('?') ? '&' : '?'}param=64y64`
+  }
+
+  if (track.value.type === 'stream') {
+    url = track.value.al?.picUrl || track.value.album?.picUrl || track.value.picUrl || ''
+    if (!url || stateStore.virtualScrolling) return 'atom://get-default-pic'
     return url
   }
+
+  return localMusic.value.scanning
+    ? `atom://get-pic-path/${track.value.filePath}`
+    : `atom://local-asset?type=pic&id=${track.value.id}&size=64`
 })
 
 const hover = ref(false)
@@ -301,12 +304,28 @@ const focus = computed(() => {
   return (hover.value && rightClickedTrack.value.id === 0) || isMenuOpened.value
 })
 
-const getPublishTime = (date: any) => {
-  date = new Date(date)
-  const year = isNaN(date.getFullYear()) ? '1970' : date.getFullYear()
-  const month = isNaN(date.getMonth()) ? '01' : (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = isNaN(date.getDate()) ? '01' : date.getDate().toString().padStart(2, '0')
-  return date === 0 ? null : `${year}-${month}-${day}`
+const getPublishTime = (value: any) => {
+  if (value === undefined || value === null || value === '') return '—'
+
+  let normalized: string | number | Date = value
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value <= 0) return '—'
+
+    // 网易云大多数 publishTime 是毫秒；少数精简接口可能返回 Unix 秒。
+    normalized = value > 0 && value < 100_000_000_000 ? value * 1000 : value
+  } else if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric) || numeric <= 0) return '—'
+    normalized = numeric < 100_000_000_000 ? numeric * 1000 : numeric
+  }
+
+  const date = normalized instanceof Date ? normalized : new Date(normalized)
+  if (!Number.isFinite(date.getTime())) return '—'
+
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const goToAlbum = () => {
