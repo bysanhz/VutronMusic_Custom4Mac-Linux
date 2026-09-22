@@ -6,6 +6,8 @@
         v-if="!isAlbum && !isLyric"
         :src="image"
         loading="lazy"
+        decoding="async"
+        fetchpriority="low"
         :class="{ hover: focus }"
         @click="goToAlbum"
       />
