@@ -122,9 +122,9 @@ const isCurrentRoute = (path: string): boolean => {
     width: 60px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    margin: 3px 0 10px;
+    justify-content: center;
+    gap: 8px;
+    margin: 6px 0 12px;
     box-sizing: border-box;
     -webkit-app-region: no-drag;
   }
@@ -199,21 +199,24 @@ const isCurrentRoute = (path: string): boolean => {
     display: block;
   }
   .history-navigation .history-button {
-    flex: 0 0 27px;
-    width: 27px;
-    min-width: 27px;
-    max-width: 27px;
-    height: 30px;
+    flex: 0 0 24px;
+    width: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    height: 24px;
     margin: 0;
     padding: 0;
     border: 0;
-    border-radius: 7px;
+    border-radius: 6px;
     box-sizing: border-box;
     background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     .history-icon {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
 
     &:hover {
