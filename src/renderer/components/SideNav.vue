@@ -124,9 +124,10 @@ const isCurrentRoute = (path: string): boolean => {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin: 6px 0 12px;
+    margin: 6px 0 4px;
     box-sizing: border-box;
     -webkit-app-region: no-drag;
+    transform: translateX(-4px);
   }
 
   button {
