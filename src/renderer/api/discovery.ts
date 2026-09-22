@@ -109,6 +109,30 @@ export function followedArtistNewSongs(params: { limit?: number; before?: number
   })
 }
 
+export function followedArtistNewSongMvListV2(
+  params: {
+    startTimestamp?: number
+    before?: number
+    sourceType?: number
+    limit?: number
+    firstRequest?: boolean
+  } = {}
+) {
+  return request({
+    url: '/artist/new/song/mv/list/v2',
+    method: 'get',
+    params: { ...params, timestamp: Date.now() }
+  })
+}
+
+export function followedArtistNewSongsPlayAll() {
+  return request({
+    url: '/artist/new/song/playall',
+    method: 'get',
+    params: { timestamp: Date.now() }
+  })
+}
+
 export function followedArtistNewMvs(params: { limit?: number; before?: number } = {}) {
   return request({
     url: '/artist/new/mv',
