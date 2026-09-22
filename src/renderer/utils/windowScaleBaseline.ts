@@ -35,6 +35,8 @@ export type WindowScaleFieldRange = {
   step: number
 }
 
+export type WindowScaleStepMode = 'coarse' | 'fine'
+
 export const WINDOW_SCALE_REFERENCE_FONT_SIZE = 16
 export const WINDOW_SCALE_BASELINE_CHANGE_EVENT = 'window-scale-baseline-change'
 
@@ -154,6 +156,19 @@ export const sanitizeWindowScaleBaseline = (
   }
 }
 
+export const getWindowScaleAdjustmentStep = (
+  field: WindowScaleCalibrationField,
+  mode: WindowScaleStepMode
+) => {
+  if (field === 'minWidth' || field === 'minHeight') {
+    return mode === 'coarse' ? 10 : 1
+  }
+  if (field === 'cornerRadius') {
+    return mode === 'coarse' ? 2 : 0.5
+  }
+  return mode === 'coarse' ? 0.5 : 0.1
+}
+
 export const calculateWindowGeometryScale = (
   contentWidth: number,
   contentHeight: number,
@@ -164,14 +179,38 @@ export const calculateWindowGeometryScale = (
   return Math.sqrt(widthScale * heightScale)
 }
 
+const getSafeLayoutReferenceSize = (target: WindowScaleTarget) => {
+  const defaults = DEFAULT_WINDOW_SCALE_BASELINES[target]
+  const defaultZoom = defaults.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
+
+  return {
+    width: defaults.minWidth / defaultZoom,
+    height: defaults.minHeight / defaultZoom
+  }
+}
+
+/**
+ * 计算页面 zoom，同时保证缩放后的 CSS viewport 不会小于该窗口模式的内置安全布局尺寸。
+ *
+ * 用户可以把最小宽高调得比默认值更小；此时如果仍严格按基准字号放大页面，
+ * webFrame zoom 会反向压缩 CSS viewport，造成右侧卡片/顶部区域被裁切。
+ * fitZoomLimit 只在这种“基准组合与完整布局冲突”的情况下接管，否则保留原缩放结果。
+ */
 export const calculateWindowZoomFactor = (
   contentWidth: number,
   contentHeight: number,
-  baseline: WindowScaleBaseline
+  baseline: WindowScaleBaseline,
+  target: WindowScaleTarget = 'main'
 ) => {
   const geometryScale = calculateWindowGeometryScale(contentWidth, contentHeight, baseline)
   const baselineZoom = baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
+  const requestedZoom = baselineZoom * geometryScale
+  const safeLayout = getSafeLayoutReferenceSize(target)
+  const fitZoomLimit = Math.max(
+    0.05,
+    Math.min(contentWidth / safeLayout.width, contentHeight / safeLayout.height)
+  )
 
-  return baselineZoom * geometryScale
+  return Math.min(requestedZoom, fitZoomLimit)
 }
 /* =========== newADD end ======== */
