@@ -98,11 +98,11 @@ watch(
 
 <style scoped lang="scss">
 .fm {
-  padding: 1rem;
+  padding: 0.5rem 0.85rem;
   background: var(--color-secondary-bg);
   border-radius: 1rem;
   display: grid;
-  grid-template-columns: minmax(142px, 42%) minmax(0, 1fr);
+  grid-template-columns: 150px minmax(0, 1fr);
   align-items: stretch;
   column-gap: clamp(0.9rem, 3.2cqw, 1.35rem);
   width: 100%;
@@ -117,17 +117,18 @@ watch(
   min-width: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 34px;
+  grid-template-rows: minmax(0, 1fr) 28px;
   align-items: center;
   justify-items: stretch;
-  row-gap: 5px;
+  row-gap: 4px;
 }
 
 .cover {
   justify-self: start;
-  width: min(100%, 154px);
-  height: 100%;
-  max-height: 139px;
+  width: 150px;
+  height: 150px;
+  max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   clip-path: border-box;
@@ -137,7 +138,8 @@ watch(
 }
 
 .buttons {
-  width: min(100%, 154px);
+  width: 150px;
+  max-width: 100%;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -220,17 +222,20 @@ watch(
 
 @container (max-width: 420px) {
   .fm {
-    grid-template-columns: minmax(126px, 40%) minmax(0, 1fr);
-    column-gap: 0.8rem;
+    grid-template-columns: 138px minmax(0, 1fr);
+    column-gap: 0.75rem;
   }
 
   .cover {
-    width: min(100%, 136px);
-    max-height: 126px;
+    width: 138px;
+    height: 138px;
+    max-width: 100%;
+    max-height: 100%;
   }
 
   .buttons {
-    width: min(100%, 136px);
+    width: 138px;
+    max-width: 100%;
 
     .button-icon {
       padding: 4px;
@@ -271,23 +276,26 @@ watch(
 
 @container (max-width: 340px) {
   .fm {
-    padding: 0.8rem;
-    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    padding: 0.45rem 0.65rem;
+    grid-template-columns: 108px minmax(0, 1fr);
     column-gap: 0.65rem;
   }
 
   .media-column {
-    grid-template-rows: minmax(0, 1fr) 30px;
+    grid-template-rows: minmax(0, 1fr) 25px;
     row-gap: 3px;
   }
 
   .cover {
-    width: min(100%, 96px);
-    max-height: 94px;
+    width: 108px;
+    height: 108px;
+    max-width: 100%;
+    max-height: 100%;
   }
 
   .buttons {
-    width: min(100%, 96px);
+    width: 108px;
+    max-width: 100%;
 
     .button-icon {
       padding: 2px;
