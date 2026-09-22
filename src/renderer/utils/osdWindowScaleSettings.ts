@@ -72,9 +72,9 @@ const injectStyle = () => {
 
     #${CONTROL_ID} {
       display: grid;
-      grid-template-columns: minmax(220px, 0.72fr) minmax(580px, 1.7fr);
+      grid-template-columns: minmax(0, 1fr);
       align-items: start;
-      gap: 20px;
+      gap: 12px;
     }
 
     #${CONTROL_ID} > .left {
@@ -86,11 +86,12 @@ const injectStyle = () => {
       width: 100% !important;
       min-width: 0 !important;
       display: block;
+      justify-self: stretch;
     }
 
     #${CONTROL_ID} .osd-window-scale-card {
       width: 100%;
-      max-width: 760px;
+      max-width: none;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
@@ -154,17 +155,7 @@ const injectStyle = () => {
       min-width: 154px;
     }
 
-    @media (max-width: 900px) {
-      #${CONTROL_ID} {
-        grid-template-columns: 1fr;
-      }
-
-      #${CONTROL_ID} .osd-window-scale-card {
-        max-width: none;
-      }
-    }
-
-    @media (max-width: 700px) {
+    @media (max-width: 620px) {
       #${CONTROL_ID} .osd-window-scale-card {
         grid-template-columns: 1fr;
       }
