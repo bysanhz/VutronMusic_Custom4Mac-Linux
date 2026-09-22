@@ -286,12 +286,14 @@ import { getTrackDetail, topAlbum, topSong } from '../api/track'
 import { newAlbums } from '../api/album'
 import {
   followedArtistNewMvs,
+  followedArtistNewSongMvListV2,
   followedArtistNewSongs,
+  followedArtistNewSongsPlayAll,
   styleList,
   stylePreference,
   styleSongs
 } from '../api/discovery'
-import { normalizeTrack } from '../services/neteaseModern'
+import { extractTracks, normalizeTrack } from '../services/neteaseModern'
 
 interface StyleTag {
   id: number | string
@@ -663,35 +665,90 @@ const normalizeMv = (item: any) => {
   }
 }
 
+const collectFollowingMvs = (source: any, limit = 100) => {
+  const result: any[] = []
+  const seenObjects = new Set<any>()
+  const seenIds = new Set<string>()
+
+  const visit = (value: any, depth = 0) => {
+    if (value == null || depth > 8 || result.length >= limit) return
+    if (typeof value !== 'object') return
+    if (seenObjects.has(value)) return
+    seenObjects.add(value)
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        visit(item, depth + 1)
+        if (result.length >= limit) break
+      }
+      return
+    }
+
+    const candidate = normalizeMv(value)
+    const id = candidate?.id == null ? '' : String(candidate.id)
+    const hasMvShape =
+      Boolean(id) &&
+      Boolean(candidate.cover) &&
+      (value?.mv !== undefined ||
+        value?.mvId !== undefined ||
+        value?.vid !== undefined ||
+        value?.resource?.mv !== undefined ||
+        value?.cover !== undefined ||
+        value?.coverUrl !== undefined ||
+        value?.imgurl16v9 !== undefined)
+
+    if (hasMvShape && !seenIds.has(id)) {
+      seenIds.add(id)
+      result.push(candidate)
+      if (result.length >= limit) return
+    }
+
+    for (const nested of Object.values(value)) {
+      visit(nested, depth + 1)
+      if (result.length >= limit) break
+    }
+  }
+
+  visit(source)
+  return result
+}
+
+const getFollowingSongs = async () => {
+  const attempts: Array<() => Promise<any>> = [
+    () =>
+      followedArtistNewSongMvListV2({
+        sourceType: 1,
+        limit: 100,
+        firstRequest: true
+      }),
+    () => followedArtistNewSongs({ limit: 100 }),
+    () => followedArtistNewSongsPlayAll()
+  ]
+
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt()
+      const parsed = extractTracks(result, 100)
+      if (parsed.length) return parsed
+    } catch (error) {
+      console.warn('[Explore] 关注歌手新歌接口回退:', error)
+    }
+  }
+
+  return []
+}
+
 const getFollowingWorks = async () => {
   show.value = false
   tricklingProgress.start()
+
   try {
     if (followingMode.value === 'song') {
-      const result = await followedArtistNewSongs({ limit: 100 })
-      const raw = findFirstArray(result, [
-        'data.newWorks',
-        'data.list',
-        'data.songs',
-        'newWorks',
-        'list',
-        'songs',
-        'data'
-      ])
-      tracks.value = raw.map(unwrapTrack).filter((item) => item?.id)
+      tracks.value = await getFollowingSongs()
       followingMvs.value = []
     } else {
       const result = await followedArtistNewMvs({ limit: 100 })
-      const raw = findFirstArray(result, [
-        'data.newWorks',
-        'data.list',
-        'data.mvs',
-        'newWorks',
-        'list',
-        'mvs',
-        'data'
-      ])
-      followingMvs.value = raw.map(normalizeMv).filter((item) => item.id && item.cover)
+      followingMvs.value = collectFollowingMvs(result, 100)
       tracks.value = []
     }
   } catch (error) {
