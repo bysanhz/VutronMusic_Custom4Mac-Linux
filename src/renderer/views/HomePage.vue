@@ -46,10 +46,12 @@
         id="home-personalized-tracks"
         :items="personalizedTracks"
         :colunm-number="1"
-        :height="Math.min(360, Math.max(180, personalizedTracks.length * 60))"
         :item-height="60"
         type="playlist"
         :is-end="true"
+        :show-position="false"
+        :enable-virtual-scroll="false"
+        :padding-bottom="0"
       />
     </div>
 
@@ -194,7 +196,7 @@ const loadPersonalizedHome = async (revision: number) => {
   const result = await homepageBlockPage({ refresh: false })
   if (revision !== loadRevision.value || !result) return
 
-  personalizedTracks.value = extractTracks(result, 12)
+  personalizedTracks.value = extractTracks(result, 5)
   personalizedPlaylists.value = extractPlaylists(result, 10)
 
   const artists = extractArtists(result, 6)
