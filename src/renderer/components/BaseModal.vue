@@ -247,8 +247,9 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
   margin-bottom: -8px;
   button {
-    color: var(--color-text);
-    background: var(--color-secondary-bg-for-transparent);
+    color: color-mix(in srgb, var(--color-text) 72%, transparent);
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
     border-radius: 8px;
     padding: 6px 16px;
     font-size: 14px;
@@ -263,9 +264,10 @@ onBeforeUnmount(() => {
     }
   }
   button.primary {
-    color: var(--color-text);
+    color: #fff;
     background: var(--color-primary);
-    font-weight: 500;
+    border-color: var(--color-primary);
+    font-weight: 600;
   }
   button.block {
     width: 100%;
