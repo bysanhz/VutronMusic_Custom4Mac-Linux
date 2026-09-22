@@ -38,8 +38,9 @@
                       ? $t('player.noAllowCauseLocal')
                       : $t('player.like')
                   "
-                  class="button"
+                  class="button like-button"
                   :class="{
+                    liked: isLiked,
                     disabled: currentTrack?.type === 'local' && currentTrack?.matched === false
                   }"
                   @click="likeTrack"
