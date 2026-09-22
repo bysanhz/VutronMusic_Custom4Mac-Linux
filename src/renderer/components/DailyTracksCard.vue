@@ -3,8 +3,14 @@
     <img :src="coverUrl" :class="{ paused }" loading="lazy" :alt="t('dailyCard.coverAlt')" />
     <div class="container">
       <div class="title-box">
-        <div class="title" :aria-label="t('dailyCard.title')">
-          <span>{{ t('dailyCard.title') }}</span>
+        <div
+          class="title"
+          :class="{ 'title--cjk-grid': isCjkGridTitle }"
+          :aria-label="t('dailyCard.title')"
+        >
+          <span v-for="(line, index) in visualTitleLines" :key="index" class="title-line">
+            {{ line }}
+          </span>
         </div>
       </div>
     </div>
@@ -36,6 +42,31 @@ const stateStore = useNormalStateStore()
 const { dailyTracks, showLyrics } = storeToRefs(stateStore)
 const { showToast } = stateStore
 const { t } = useI18n()
+
+const visualTitleLines = computed(() => {
+  const label = t('dailyCard.title').trim()
+  const compact = label.replace(/\s+/g, '')
+  const chars = Array.from(compact)
+  const isFourHanChars = chars.length === 4 && chars.every((char) => /\p{Script=Han}/u.test(char))
+
+  if (isFourHanChars) {
+    return [`${chars[0]} ${chars[1]}`, `${chars[2]} ${chars[3]}`]
+  }
+
+  const words = label.split(/\s+/).filter(Boolean)
+  if (words.length > 1) {
+    const middle = Math.ceil(words.length / 2)
+    return [words.slice(0, middle).join(' '), words.slice(middle).join(' ')]
+  }
+
+  return [label]
+})
+
+const isCjkGridTitle = computed(() => {
+  const compact = t('dailyCard.title').replace(/\s+/g, '')
+  const chars = Array.from(compact)
+  return chars.length === 4 && chars.every((char) => /\p{Script=Han}/u.test(char))
+})
 
 const playerStore = usePlayerStore()
 const { _shuffle } = storeToRefs(playerStore)
@@ -160,20 +191,42 @@ img {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px) saturate(115%);
   user-select: none;
+  container-type: inline-size;
 
   .title {
     height: 100%;
     width: 100%;
+    min-width: 0;
     font-weight: 760;
-    font-size: 38px;
-    line-height: 1;
+    font-size: clamp(18px, 16cqw, 26px);
+    line-height: 1.05;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.72);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    gap: 0.12em;
+    padding: 4px;
     box-sizing: border-box;
     text-align: center;
+  }
+
+  .title-line {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
+  .title--cjk-grid {
+    font-size: clamp(36px, 36cqw, 44px);
+    line-height: 1.02;
+    gap: 0.12em;
+    font-weight: 800;
+
+    .title-line {
+      letter-spacing: 0.04em;
+      word-spacing: 0.14em;
+    }
   }
 }
 
