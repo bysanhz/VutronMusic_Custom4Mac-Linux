@@ -41,6 +41,35 @@ import { initAutoUpdater } from './checkUpdate'
 import log from './log'
 import { lyricLine } from '@/types/music'
 
+const CLOSE_DIALOG_TEXT = {
+  zh: {
+    title: '提示',
+    message: '确定要关闭吗？',
+    minimize: '最小化到托盘',
+    exit: '直接退出',
+    remember: '记住我的选择'
+  },
+  zht: {
+    title: '提示',
+    message: '確定要關閉嗎？',
+    minimize: '最小化到系統匣',
+    exit: '直接退出',
+    remember: '記住我的選擇'
+  },
+  en: {
+    title: 'Information',
+    message: 'Are you sure you want to close the app?',
+    minimize: 'Minimize to tray',
+    exit: 'Quit',
+    remember: 'Remember my choice'
+  }
+} as const
+
+const getMainLanguage = () => {
+  const language = store.get('settings.lang')
+  return language === 'en' || language === 'zht' ? language : 'zh'
+}
+
 const closeOnLinux = (e: any, win: BrowserWindow) => {
   const closeOpt = store.get('settings.closeAppOption') || 'ask'
   if (closeOpt !== 'exit') {
@@ -48,15 +77,16 @@ const closeOnLinux = (e: any, win: BrowserWindow) => {
   }
 
   if (closeOpt === 'ask') {
+    const text = CLOSE_DIALOG_TEXT[getMainLanguage()]
     dialog
       .showMessageBox({
         type: 'info',
-        title: 'Information',
+        title: text.title,
         cancelId: 2,
         defaultId: 0,
-        message: '确定要关闭吗？',
-        buttons: ['最小化到托盘', '直接退出'],
-        checkboxLabel: '记住我的选择'
+        message: text.message,
+        buttons: [text.minimize, text.exit],
+        checkboxLabel: text.remember
       })
       .then((result) => {
         if (result.checkboxChecked && result.response !== 2) {
