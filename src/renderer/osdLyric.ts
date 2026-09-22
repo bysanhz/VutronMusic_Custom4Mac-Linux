@@ -53,6 +53,30 @@ initializeOsdCoverControlsVisibility()
 initializeOsdLyricSyncGuard()
 // =========== newADD end ========
 
+const DEFAULT_PRIMARY_COLOR = 'rgba(51, 94, 234, 1)'
+
+const readOsdThemeColor = () => {
+  try {
+    const settings = JSON.parse(localStorage.getItem('settings') || '{}')
+    const colors = settings?.theme?.colors
+    if (!Array.isArray(colors)) return DEFAULT_PRIMARY_COLOR
+
+    const selected = colors.find((color: Record<string, unknown>) => color?.selected === true)
+    return typeof selected?.color === 'string' && selected.color
+      ? selected.color
+      : DEFAULT_PRIMARY_COLOR
+  } catch {
+    return DEFAULT_PRIMARY_COLOR
+  }
+}
+
+const syncOsdThemeColor = () => {
+  document.documentElement.style.setProperty('--color-primary', readOsdThemeColor())
+}
+
+// OSD 是独立 renderer，不能依赖主窗口已经写入 documentElement 的 CSS 变量。
+syncOsdThemeColor()
+
 const app = createApp(OSDLyric)
 
 const readOsdLanguage = (): 'zh' | 'zht' | 'en' => {
@@ -76,6 +100,7 @@ const osdI18n = createI18n({
 const handleOsdLanguageStorage = (event: StorageEvent) => {
   if (event.key !== 'settings') return
   osdI18n.global.locale.value = readOsdLanguage()
+  syncOsdThemeColor()
 }
 window.addEventListener('storage', handleOsdLanguageStorage)
 window.addEventListener(
