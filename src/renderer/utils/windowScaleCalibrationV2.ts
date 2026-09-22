@@ -222,14 +222,13 @@ const renderTargetValues = (
   }
 }
 
-const isScaleField = (field: WindowScaleCalibrationField | null) => {
-  return field === 'baseFontSize' || field === 'miniControlBaseSize'
-}
-
 const decorateInput = (input: HTMLInputElement) => {
   input.removeAttribute('min')
   input.removeAttribute('max')
-  input.step = isScaleField(getFieldFromElement(input)) ? '0.1' : '1'
+  const field = getFieldFromElement(input)
+  if (field) {
+    input.step = String(getWindowScaleAdjustmentStep(field, 'fine'))
+  }
 }
 
 const beginOsdModePreview = (target: 'osd-small' | 'osd-normal') => {
