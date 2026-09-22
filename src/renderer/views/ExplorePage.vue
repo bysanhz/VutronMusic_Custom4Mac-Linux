@@ -227,8 +227,7 @@
         <span>{{ t('explore.loadingMore') }}</span>
       </div>
       <TrackList
-        v-else
-        v-if="show && followingMode === 'song' && tracks.length"
+        v-else-if="show && followingMode === 'song' && tracks.length"
         id="following-new-songs"
         :items="tracks"
         :colunm-number="1"
