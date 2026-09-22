@@ -240,7 +240,7 @@ body,
 #app .window-scale-font-button:hover:not(:disabled) {
   color: color-mix(in srgb, var(--color-primary) 78%, transparent);
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
 }
 
 #app .window-scale-font-button:active:not(:disabled) {
