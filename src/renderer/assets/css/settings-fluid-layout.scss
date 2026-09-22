@@ -103,7 +103,7 @@
   gap: 10px 14px !important;
 }
 
-/* ==================== 主界面缩放字号范围 ==================== */
+/* ==================== 主界面缩放基准 ==================== */
 #app .system-settings .window-scale-font-range-item {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   align-items: center !important;
@@ -220,7 +220,7 @@
 #app .system-settings .window-scale-font-button:hover:not(:disabled) {
   color: color-mix(in srgb, var(--color-primary) 78%, transparent);
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
 }
 
 #app .system-settings .window-scale-font-button:active:not(:disabled) {
