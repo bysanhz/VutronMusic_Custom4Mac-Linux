@@ -62,37 +62,31 @@ const injectStyle = () => {
   style.id = STYLE_ID
   style.textContent = `
     #app .app-font-size-setting.window-scale-font-range {
-      width: min(100%, 340px) !important;
-      max-width: 340px !important;
+      width: min(100%, 420px) !important;
+      max-width: 420px !important;
       min-height: 0 !important;
     }
 
     #app .window-scale-font-row {
       display: grid !important;
-      grid-template-columns: minmax(108px, 1fr) minmax(78px, 96px) !important;
-      grid-template-rows: auto auto;
-      align-items: center;
-      gap: 6px !important;
-    }
-
-    #app .window-scale-step-buttons {
-      grid-column: 1 / -1;
-      display: grid;
       grid-template-columns:
-        minmax(0, 1.18fr)
-        minmax(0, 0.82fr)
-        minmax(0, 0.82fr)
-        minmax(0, 1.18fr);
+        minmax(82px, 1fr)
+        42px
+        34px
+        minmax(58px, 72px)
+        34px
+        42px !important;
+      grid-template-rows: 30px;
       align-items: center;
-      gap: 6px;
-      width: 100%;
+      gap: 5px !important;
     }
 
-    #app .window-scale-step-buttons .window-scale-font-button {
+    #app .window-scale-font-row .window-scale-font-button {
+      width: 100% !important;
       min-width: 0 !important;
-      justify-self: center;
+      justify-self: stretch;
       align-self: center;
-      padding: 0 4px;
+      padding: 0 3px;
       border: 1px solid transparent !important;
       border-radius: 7px;
       color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
@@ -106,25 +100,23 @@ const injectStyle = () => {
         transform 0.16s ease;
     }
 
-    #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='coarse'] {
-      width: 88% !important;
-      height: 27px;
-      font-size: 13px;
-      font-weight: 760;
-      color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
-      background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
+    #app .window-scale-font-row .window-scale-font-button[data-step-mode='coarse'] {
+      height: 26px;
+      font-size: 12px;
+      font-weight: 740;
+      color: color-mix(in srgb, var(--color-primary) 60%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 5.5%, transparent) !important;
     }
 
-    #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='fine'] {
-      width: 78% !important;
-      height: 22px;
-      font-size: 11px;
-      font-weight: 650;
-      color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
-      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
+    #app .window-scale-font-row .window-scale-font-button[data-step-mode='fine'] {
+      height: 21px;
+      font-size: 10px;
+      font-weight: 640;
+      color: color-mix(in srgb, var(--color-primary) 44%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 3%, transparent) !important;
     }
 
-    #app .window-scale-step-buttons .window-scale-font-button:hover:not(:disabled) {
+    #app .window-scale-font-row .window-scale-font-button:hover:not(:disabled) {
       color: color-mix(in srgb, var(--color-primary) 78%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
       border-color: color-mix(in srgb, var(--color-primary) 14%, transparent) !important;
@@ -219,6 +211,8 @@ const createFieldRow = (field: WindowScaleBaselineField) => {
   return `
     <div class="window-scale-font-row" data-baseline-field="${field}">
       <span class="window-scale-font-label">${label}</span>
+      ${createStepButton(field, 'decrease', 'coarse')}
+      ${createStepButton(field, 'decrease', 'fine')}
       <input
         class="window-scale-font-input"
         data-baseline-input="${field}"
@@ -227,12 +221,8 @@ const createFieldRow = (field: WindowScaleBaselineField) => {
         inputmode="${field === 'baseFontSize' ? 'decimal' : 'numeric'}"
         title="${inputHint}"
       />
-      <div class="window-scale-step-buttons">
-        ${createStepButton(field, 'decrease', 'coarse')}
-        ${createStepButton(field, 'decrease', 'fine')}
-        ${createStepButton(field, 'increase', 'fine')}
-        ${createStepButton(field, 'increase', 'coarse')}
-      </div>
+      ${createStepButton(field, 'increase', 'fine')}
+      ${createStepButton(field, 'increase', 'coarse')}
     </div>
   `
 }
