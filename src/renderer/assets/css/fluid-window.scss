@@ -167,11 +167,20 @@ body,
 
 #app .window-scale-font-row {
   display: grid;
-  grid-template-columns: minmax(52px, auto) 28px minmax(44px, 1fr) 28px;
+  grid-template-columns: minmax(92px, 1fr) minmax(72px, 96px);
+  grid-template-rows: auto auto;
   align-items: center;
   gap: 5px;
   width: 100%;
   min-height: 28px;
+}
+
+#app .window-scale-step-buttons {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
 }
 
 #app .window-scale-font-label {
@@ -190,10 +199,10 @@ body,
 }
 
 #app .window-scale-font-button {
-  width: 28px;
-  min-width: 28px;
+  width: 100%;
+  min-width: 0;
   height: 26px;
-  padding: 0;
+  padding: 0 4px;
   border: none;
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-text), transparent 92%);
