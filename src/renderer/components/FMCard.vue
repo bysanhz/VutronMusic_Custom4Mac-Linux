@@ -176,12 +176,12 @@ watch(
       height: 22px;
     }
     .card-name {
-      flex: 1 1 auto;
-      min-width: 0;
-      max-width: 42%;
-      overflow: hidden;
+      flex: 0 0 auto;
+      min-width: max-content;
+      max-width: none;
+      overflow: visible;
       white-space: nowrap;
-      text-overflow: ellipsis;
+      text-overflow: clip;
       font-size: 1rem;
       opacity: 0.18;
       display: flex;
@@ -216,31 +216,95 @@ watch(
         margin-right: 4px;
       }
 
+      .buttons {
+        gap: 0;
+      }
+
+      .button-icon {
+        padding: 5px;
+        margin-right: 2px;
+      }
+
+      .svg-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .svg-icon#thumbs-down {
+        width: 20px;
+        height: 20px;
+      }
+
       .card-name {
-        max-width: 32%;
-        font-size: 0.86rem;
+        flex: 0 0 auto;
+        min-width: max-content;
+        max-width: none;
+        font-size: 0.8rem;
+
+        .svg-icon {
+          width: 15px;
+          height: 15px;
+          margin-right: 4px;
+        }
       }
     }
   }
 }
 
 @container (max-width: 340px) {
+  .fm {
+    padding: 0.8rem;
+  }
+
   .cover {
-    flex-basis: 116px;
-    width: min(116px, 36%);
+    flex-basis: 96px;
+    width: min(96px, 32%);
+    margin-right: 0.55rem;
   }
 
   .right-part {
     .title {
-      font-size: 1.18rem;
+      font-size: 1.08rem;
+      margin-bottom: 0.35rem;
     }
 
     .artist {
-      font-size: 0.9rem;
+      font-size: 0.82rem;
     }
 
-    .controls .card-name {
-      display: none;
+    .controls {
+      gap: 0.2rem;
+      margin-left: -0.2rem;
+
+      .button-icon {
+        padding: 3px;
+        margin-right: 1px;
+      }
+
+      .svg-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      .svg-icon#thumbs-down {
+        width: 18px;
+        height: 18px;
+      }
+
+      .card-name {
+        display: flex;
+        flex: 0 0 auto;
+        min-width: max-content;
+        max-width: none;
+        font-size: 0.72rem;
+        white-space: nowrap;
+
+        .svg-icon {
+          width: 14px;
+          height: 14px;
+          margin-right: 3px;
+        }
+      }
     }
   }
 }
