@@ -583,7 +583,6 @@ export const extractTodaySongCount = (todaySource: any, weekSource?: any): numbe
 }
 
 export const extractMetric = (source: any, keys: string[]) => {
-  const data = source?.data
   const asksForSongCount = hasAnyKey(keys, ['songCount', 'count', 'listenSongCount', 'playCount'])
 
   if (asksForSongCount) {
