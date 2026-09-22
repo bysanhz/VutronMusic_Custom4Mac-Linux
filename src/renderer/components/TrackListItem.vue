@@ -67,7 +67,7 @@
         }}
       </div>
       <div v-if="showLikeButton" class="actions">
-        <button @click="likeThisSong">
+        <button class="like-button" :class="{ liked: isLiked }" @click="likeThisSong">
           <svg-icon
             icon-class="heart"
             :style="{
