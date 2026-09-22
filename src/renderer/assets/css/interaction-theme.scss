@@ -432,12 +432,12 @@
   box-shadow: 0 0 0 3px var(--theme-interaction-ring) !important;
 }
 
-#app .shade .modal button:not(.primary):not(:disabled) {
+#app .shade .modal button:not(.primary):not(.danger):not(:disabled) {
   color: var(--color-primary);
   background: var(--theme-interaction-weak);
 }
 
-#app .shade .modal button:not(.primary):not(:disabled):hover {
+#app .shade .modal button:not(.primary):not(.danger):not(:disabled):hover {
   color: var(--color-primary);
   background: var(--theme-interaction-medium);
 }
@@ -567,4 +567,83 @@
   color: var(--color-primary) !important;
   background: var(--theme-interaction-soft);
   border-radius: 6px;
+}
+
+
+/* 危险操作保留危险语义色，不被主题色覆盖。 */
+#app .shade .modal button.danger {
+  color: #d54 !important;
+  background: color-mix(in srgb, #d54 8%, transparent) !important;
+}
+
+#app .shade .modal button.danger:hover {
+  color: #d54 !important;
+  background: color-mix(in srgb, #d54 16%, transparent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #d54 22%, transparent);
+}
+
+/* 添加到歌单等“整行可点击”项目。 */
+#app .shade .modal :is(.new-playlist-button, .playlist):hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .shade .modal .playlist:hover :is(.title, .track-count) {
+  color: var(--color-primary) !important;
+}
+
+/* 播放速度 / 音调预设：hover < active，保持两级层次。 */
+#app .shade .modal .preset-button:hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+  border-color: var(--theme-interaction-border-strong) !important;
+}
+
+#app .shade .modal .preset-button.active {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-strong) !important;
+  border-color: var(--color-primary) !important;
+}
+
+#app .shade .modal .playback-footer .button {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-weak) !important;
+}
+
+#app .shade .modal .playback-footer .button:hover {
+  background: var(--theme-interaction-medium) !important;
+}
+
+/* 播放历史卡片与最近播放曲目。 */
+#app .shade .modal :is(.history-card, .recent-track) {
+  border-color: var(--theme-interaction-border) !important;
+}
+
+#app .shade .modal .recent-track:hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--theme-interaction-border-strong);
+}
+
+/* MV 与普通封面一致：不改图片颜色，只用主题轮廓反馈可点击性。 */
+#app .mv .cover:hover {
+  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
+  border-radius: 0.75em;
+}
+
+/* 顶部头像和底部播放器封面也属于导航交互。 */
+#app nav .avatar:hover,
+#app .player .controls .left img:hover {
+  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
+}
+
+/* 搜索/探索 Tab 的 hover 使用弱底色，active 文字仍保持实色主题色。 */
+#app nav .search-tabs .item:hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-weak);
+}
+
+#app nav .search-tabs .item.active {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft);
 }
