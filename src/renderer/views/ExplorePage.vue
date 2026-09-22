@@ -157,7 +157,15 @@
     </div>
 
     <div v-if="exploreTab === 'newTrack'" class="playlists">
-      <TrackList id="11" :items="tracks" :colunm-number="1" type="playlist" :is-end="true" />
+      <TrackList
+        id="11"
+        :items="tracks"
+        :colunm-number="1"
+        type="playlist"
+        :is-end="true"
+        :enable-virtual-scroll="false"
+        :padding-bottom="0"
+      />
     </div>
 
     <div v-else-if="exploreTab === 'newAlbum'" class="playlists">
