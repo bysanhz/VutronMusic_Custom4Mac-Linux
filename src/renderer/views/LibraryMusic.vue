@@ -130,13 +130,6 @@
           >
             {{ $t('library.cloudDisk') }}
           </div>
-          <div
-            class="tab"
-            :class="{ active: currentTab === 'playHistory' }"
-            @click="updateCurrentTab('playHistory')"
-          >
-            {{ $t('library.playHistory.title') }}
-          </div>
         </div>
         <button v-show="currentTab === 'playlist'" class="tab-button" @click="openAddPlaylistModal"
           ><svg-icon icon-class="plus" />{{ $t('library.playlist.newPlaylist') }}
@@ -175,7 +168,15 @@
         </div>
 
         <div v-if="currentTab === 'mvs'">
-          <Mvrow :mvs="libraryData.mvs" :is-end="true" />
+          <Mvrow
+            :mvs="libraryData.mvs"
+            :is-end="true"
+            :column-number="4"
+            :item-size="220"
+            :gap="20"
+            :padding-bottom="96"
+            :enable-virtual-scroll="false"
+          />
         </div>
 
         <div v-if="currentTab === 'artist'">
@@ -201,37 +202,11 @@
             :colunm-number="1"
             type="cloudDisk"
             :is-end="true"
+            :enable-virtual-scroll="false"
+            :padding-bottom="96"
           />
         </div>
 
-        <div v-if="currentTab === 'playHistory'">
-          <button
-            :class="{
-              'playHistory-button': true,
-              'playHistory-button--selected': playHistoryMode === 'week'
-            }"
-            @click="playHistoryMode = 'week'"
-          >
-            {{ $t('library.playHistory.week') }}
-          </button>
-          <button
-            :class="{
-              'playHistory-button': true,
-              'playHistory-button--selected': playHistoryMode === 'all'
-            }"
-            @click="playHistoryMode = 'all'"
-          >
-            {{ $t('library.playHistory.all') }}
-          </button>
-          <TrackList
-            :items="playHistoryList"
-            :colunm-number="1"
-            :height="historyHeight"
-            :item-height="60"
-            type="tracklist"
-            :is-end="true"
-          />
-        </div>
       </div>
     </div>
 
@@ -285,7 +260,6 @@ const { liked, libraryPlaylistFilter, user, likedSongPlaylistID } = storeToRefs(
 const { newPlaylistModal } = storeToRefs(useNormalStateStore())
 
 const show = ref(false)
-const playHistoryMode = ref('week')
 const router = useRouter()
 const playerStore = usePlayerStore()
 const { replacePlaylist } = playerStore
@@ -304,11 +278,7 @@ const libraryData = computed(() => {
     albums: Array.isArray(value?.albums) ? value.albums : [],
     artists: Array.isArray(value?.artists) ? value.artists : [],
     mvs: Array.isArray(value?.mvs) ? value.mvs : [],
-    cloudDisk: Array.isArray(value?.cloudDisk) ? value.cloudDisk : [],
-    playHistory: {
-      weekData: Array.isArray(value?.playHistory?.weekData) ? value.playHistory.weekData : [],
-      allData: Array.isArray(value?.playHistory?.allData) ? value.playHistory.allData : []
-    }
+    cloudDisk: Array.isArray(value?.cloudDisk) ? value.cloudDisk : []
   }
 })
 
@@ -384,13 +354,6 @@ const pickedLyricLines = computed(() => {
   return randomLines
 })
 
-const winHeight = ref(window.innerHeight)
-
-const historyHeight = computed(() => {
-  const height = winHeight.value - 42 - (hasCustomTitleBar.value ? 84 : 64)
-  return height
-})
-
 const playlistFilter = computed(() => {
   return libraryPlaylistFilter.value || 'all'
 })
@@ -406,15 +369,6 @@ const filterPlaylists = computed(() => {
   return playlists
 })
 
-const playHistoryList = computed(() => {
-  if (show.value && playHistoryMode.value === 'week') {
-    return libraryData.value.playHistory.weekData
-  } else if (show.value && playHistoryMode.value === 'all') {
-    return libraryData.value.playHistory.allData
-  }
-  return []
-})
-
 const {
   fetchLikedSongs,
   fetchLikedPlaylist,
@@ -422,8 +376,7 @@ const {
   fetchLikedAlbums,
   fetchLikedArtists,
   fetchLikedMVs,
-  fetchCloudDisk,
-  fetchPlayHistory
+  fetchCloudDisk
 } = dataStore
 
 const loadData = async () => {
@@ -448,7 +401,6 @@ const loadData = async () => {
     Promise.resolve().then(() => fetchLikedAlbums()),
     Promise.resolve().then(() => fetchLikedArtists()),
     Promise.resolve().then(() => fetchLikedMVs()),
-    Promise.resolve().then(() => fetchPlayHistory()),
     Promise.resolve().then(() => fetchCloudDisk())
   ])
 }
@@ -503,12 +455,7 @@ const changePlaylistFilter = (type: string) => {
   libraryPlaylistFilter.value = type
 }
 
-const handleResize = () => {
-  winHeight.value = window.innerHeight
-}
-
 onMounted(() => {
-  window.addEventListener('resize', handleResize)
   setTimeout(() => {
     if (!show.value) tricklingProgress.start()
   }, 1000)
@@ -523,7 +470,6 @@ onMounted(() => {
   }, 100)
 })
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
   updatePadding(96)
 })
 </script>
@@ -812,6 +758,10 @@ onUnmounted(() => {
         overflow: hidden;
         .text {
           padding: 8px 3px 8px 14px;
+          font-size: inherit;
+          font-weight: inherit;
+          line-height: inherit;
+          letter-spacing: inherit;
         }
         .icon {
           height: 100%;
@@ -825,34 +775,6 @@ onUnmounted(() => {
         }
       }
     }
-  }
-}
-
-button.playHistory-button {
-  color: var(--color-text);
-  border-radius: 8px;
-  padding: 6px 8px;
-  margin: 2px 4px 10px 0;
-  transition: 0.2s;
-  opacity: 0.68;
-  font-weight: 500;
-  cursor: pointer;
-  &:hover {
-    opacity: 1;
-    background: var(--color-secondary-bg);
-  }
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-button.playHistory-button--selected {
-  color: var(--color-text);
-  background: var(--color-secondary-bg);
-  opacity: 1;
-  font-weight: 700;
-  &:active {
-    transform: none;
   }
 }
 
