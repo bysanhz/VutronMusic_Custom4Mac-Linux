@@ -110,6 +110,7 @@ const routes = [
     name: 'personalizedTracks',
     component: () => import('../views/PersonalizedTracks.vue'),
     meta: {
+      titleKey: 'personalizedTracks.title',
       keepAlive: true,
       savePosition: true
     }
