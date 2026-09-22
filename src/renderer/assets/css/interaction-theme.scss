@@ -353,3 +353,170 @@
 #lyric .osd-drag-bar:hover::before {
   background: color-mix(in srgb, var(--color-primary) 68%, white) !important;
 }
+
+
+/* ==================== 复选框 / 数值 / 滑块 ==================== */
+
+#app .checkbox {
+  border-radius: 7px;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+#app .checkbox:hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-weak);
+}
+
+#app .checkbox .input:focus-visible + .content {
+  color: var(--color-primary);
+}
+
+#app :is(.slider-value, .font-size-value) {
+  color: var(--color-primary) !important;
+  font-weight: 750;
+}
+
+/* VueSlider 的有效区、滑块圆点与 tooltip 统一使用主题色。 */
+#app .vue-slider-rail {
+  background: var(--theme-interaction-medium) !important;
+  border-radius: 999px;
+}
+
+#app .vue-slider-process,
+#app .vue-slider-dot {
+  background: var(--color-primary) !important;
+}
+
+#app .vue-slider-dot {
+  box-shadow:
+    0 0 0 3px var(--theme-interaction-ring),
+    0 2px 7px rgb(0 0 0 / 16%) !important;
+}
+
+#app .vue-slider-tooltip {
+  background: var(--color-primary) !important;
+}
+
+/* ==================== 弹窗 / 上下文菜单 ==================== */
+
+#app .shade .modal :is(
+  input[type='text'],
+  input[type='number'],
+  input[type='search'],
+  input[type='password'],
+  input[type='url'],
+  input[type='email'],
+  textarea,
+  select,
+  .custom-select
+) {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-weak) !important;
+  border: 1px solid var(--theme-interaction-border) !important;
+}
+
+#app .shade .modal :is(
+  input[type='text'],
+  input[type='number'],
+  input[type='search'],
+  input[type='password'],
+  input[type='url'],
+  input[type='email'],
+  textarea,
+  select
+):focus,
+#app .shade .modal .custom-select:focus-within {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--theme-interaction-ring) !important;
+}
+
+#app .shade .modal button:not(.primary):not(:disabled) {
+  color: var(--color-primary);
+  background: var(--theme-interaction-weak);
+}
+
+#app .shade .modal button:not(.primary):not(:disabled):hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-medium);
+}
+
+#app .shade .modal button.primary {
+  color: #fff !important;
+  background: var(--color-primary) !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+#app .shade .modal .toggle input + label {
+  background: var(--theme-interaction-medium) !important;
+  box-shadow: inset 0 0 0 1px var(--theme-interaction-border);
+}
+
+#app .shade .modal .toggle input:checked + label::before {
+  background: var(--color-primary) !important;
+}
+
+#app .shade .modal :is(.bg-select, span.button):hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+  border-color: var(--theme-interaction-border-strong) !important;
+}
+
+#app .shade .modal .bg-select.active {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-medium) !important;
+  border-color: var(--color-primary) !important;
+}
+
+#app .context-menu .menu {
+  border-color: var(--theme-interaction-border) !important;
+}
+
+#app .context-menu .menu .item:hover,
+#app .context-menu .menu .item:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-medium) !important;
+}
+
+#app .context-menu .menu .item.active {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-strong) !important;
+}
+
+/* ==================== 选择面板 / 可点击预览 ==================== */
+
+#app .sense-title.multi span:hover {
+  color: var(--color-primary);
+}
+
+#app :is(
+  .sense-item .ani,
+  .ani-select .ani,
+  .preview
+):hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft);
+  border-color: var(--color-primary);
+}
+
+#app :is(
+  .sense-item.active .ani,
+  .ani-select .ani.active
+) {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* LoadingButton 与其它通用“处理中”按钮也保持主题语义。 */
+#app .loading {
+  color: var(--color-primary);
+  background-color: var(--theme-interaction-weak) !important;
+}
+
+/* 所有原生按钮在键盘焦点时都显式给出主题色，鼠标 hover 仍由组件层级决定。 */
+#app button:not(:disabled):focus-visible {
+  color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
+}
