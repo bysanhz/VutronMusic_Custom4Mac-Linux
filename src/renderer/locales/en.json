@@ -910,7 +910,13 @@
     "localMusicUpdated": "Local tracks updated",
     "localMusicScanError": "Failed to scan local tracks. See the Developer Tools console for details.",
     "downloadProgress": "Downloading update: {percent}%",
-    "downloadError": "Update download failed"
+    "downloadError": "Update download failed",
+    "trackInfoFailed": "Failed to get track information. The current track was not skipped; please try again later.",
+    "trackMissingNext": "Track information is unavailable. Skipping to the next track…",
+    "audioSourceUnavailable": "No playable source is available for {name}",
+    "audioSourceRetrying": "Playback failed for {name}. Refreshing the audio source…",
+    "audioPlaybackFailedNext": "Playback failed for {name}. Skipping to the next track…",
+    "usingLocalFile": "Playing the local file"
   },
   "next": {
     "nowPlaying": "Now Playing",
