@@ -92,9 +92,9 @@
         }}</span>
       </div>
       <hr />
-      <div class="item" @click="backgroundModal.show = true">背景设置</div>
-      <div class="item" @click="setFontModal = true">歌词设置</div>
-      <div class="item" @click="setSaveThemeModal = true">保存播放器主题</div>
+      <div class="item" @click="backgroundModal.show = true">{{ $t('playerMenu.background') }}</div>
+      <div class="item" @click="setFontModal = true">{{ $t('playerMenu.lyrics') }}</div>
+      <div class="item" @click="setSaveThemeModal = true">{{ $t('playerMenu.saveTheme') }}</div>
     </ContextMenu>
   </div>
 </template>
