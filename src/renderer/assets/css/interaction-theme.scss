@@ -520,3 +520,51 @@
   color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--theme-interaction-ring);
 }
+
+
+/* ==================== 列表、封面与评论区 ==================== */
+
+/* 本地专辑/艺人列表：hover 使用弱主题色，selected 使用更强一层。 */
+#app :is(.album-list, .artist-list) .item:hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app :is(.album-list, .artist-list) .item.selected {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-strong) !important;
+}
+
+/* 可点击封面不覆盖图片本身，只增加主题色轮廓；播放按钮用更强主题层。 */
+#app .cover.cover-hover:hover .cover-container {
+  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
+}
+
+#app .cover .play-button:hover {
+  color: #fff;
+  background: color-mix(in srgb, var(--color-primary) 58%, rgba(255, 255, 255, 0.12)) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 72%, transparent) !important;
+}
+
+/* 评论排序、昵称、头像、回复和操作按钮都给出主题色交互反馈。 */
+#app .comment-container .comment-head .btn:hover,
+#app .comment-container .comment-head .btn.active {
+  color: var(--color-primary) !important;
+  opacity: 1 !important;
+  background: var(--theme-interaction-soft);
+  border-radius: 6px;
+}
+
+#app .comment-container :is(.comment-nickname, .avatar):hover {
+  color: var(--color-primary);
+}
+
+#app .comment-container .avatar:hover img {
+  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
+}
+
+#app .comment-container .comment-btns button:hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft);
+  border-radius: 6px;
+}
