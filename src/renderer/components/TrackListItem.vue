@@ -26,7 +26,7 @@
             <span v-if="isAlbum" class="featured">
               <ArtistsInLine
                 :artists="track.ar || track.artists"
-:exclude="albumObject?.artist?.name ?? ''"
+                :exclude="albumObject?.artist?.name ?? ''"
                 prefix="-"
             /></span>
             <span v-if="isAlbum && track.mark === 1318912" class="explicit-symbol"
