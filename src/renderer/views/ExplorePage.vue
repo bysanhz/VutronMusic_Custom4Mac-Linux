@@ -240,6 +240,11 @@
         v-else-if="show && followingMode === 'mv' && followingMvs.length"
         :mvs="followingMvs"
         :is-end="true"
+        :column-number="2"
+        :item-size="310"
+        :gap="24"
+        :padding-bottom="0"
+        :enable-virtual-scroll="false"
       />
       <div v-else-if="show" class="empty-state">
         {{
@@ -293,6 +298,7 @@ import { useI18n } from 'vue-i18n'
 import { getRecommendPlayList } from '../utils/playlist'
 import { highQualityPlaylist, topPlaylist, toplists, toplistDetail } from '../api/playlist'
 import { getArtistList } from '../api/artist'
+import { likedArtists } from '../api/user'
 import { getTrackDetail, topAlbum, topSong } from '../api/track'
 import { newAlbums } from '../api/album'
 import {
@@ -704,16 +710,120 @@ const dedupeTracksById = (items: any[]) => {
   return result
 }
 
+const getFollowedArtistIds = async () => {
+  try {
+    const result = await likedArtists({ limit: 1000 })
+    const rows = Array.isArray(result?.data)
+      ? result.data
+      : Array.isArray(result?.artists)
+        ? result.artists
+        : Array.isArray(result?.data?.artists)
+          ? result.data.artists
+          : []
+
+    return new Set(
+      rows
+        .map((artist: any) => artist?.id ?? artist?.artistId)
+        .filter((id: any) => id !== undefined && id !== null)
+        .map((id: any) => String(id))
+    )
+  } catch (error) {
+    console.warn('[Explore] 获取已关注歌手列表失败:', error)
+    return new Set<string>()
+  }
+}
+
+const getTrackArtistIds = (track: any) => {
+  const artists = track?.ar ?? track?.artists ?? []
+  if (!Array.isArray(artists)) return []
+  return artists
+    .map((artist: any) => artist?.id ?? artist?.artistId)
+    .filter((id: any) => id !== undefined && id !== null)
+    .map((id: any) => String(id))
+}
+
+const belongsToFollowedArtist = (
+  track: any,
+  followedArtistIds: Set<string>,
+  blockArtistId?: number | string
+) => {
+  if (!followedArtistIds.size) return false
+
+  if (
+    blockArtistId !== undefined &&
+    blockArtistId !== null &&
+    followedArtistIds.has(String(blockArtistId))
+  ) {
+    return true
+  }
+
+  return getTrackArtistIds(track).some((id) => followedArtistIds.has(id))
+}
+
+const isAccompanimentTitle = (title: string) =>
+  /(伴奏|纯音乐|instrumental|off\s*vocal|karaoke|backing\s*track)/i.test(title)
+
+const getCanonicalReleaseTitle = (title: string) =>
+  title
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/(?:伴奏|纯音乐|instrumental|off\s*vocal|karaoke|backing\s*track)/gi, '')
+    .replace(/[\s\-—–_()[\]{}（）【】《》〈〉「」『』·.，,。!！?？:：;'"]/g, '')
+
+const dedupeFollowingReleaseSongs = (
+  items: Array<{
+    track: any
+    artistKey: string
+    publishTime: number
+  }>
+) => {
+  const byTrackId = new Set<string>()
+  const byRelease = new Map<string, { track: any; accompaniment: boolean }>()
+  const order: string[] = []
+
+  for (const item of items) {
+    const normalized = normalizeTrack(item.track)
+    const id = normalized?.id == null ? '' : String(normalized.id)
+    if (!id || byTrackId.has(id)) continue
+    byTrackId.add(id)
+
+    const title = String(normalized?.name ?? '')
+    const canonicalTitle = getCanonicalReleaseTitle(title)
+    const dayKey =
+      Number.isFinite(item.publishTime) && item.publishTime > 0
+        ? new Date(item.publishTime).toISOString().slice(0, 10)
+        : ''
+    const releaseKey = `${item.artistKey}|${canonicalTitle}|${dayKey}`
+    const accompaniment = isAccompanimentTitle(title)
+    const current = byRelease.get(releaseKey)
+
+    if (!current) {
+      byRelease.set(releaseKey, { track: normalized, accompaniment })
+      order.push(releaseKey)
+      continue
+    }
+
+    // 同名同日的新作同时含原版与伴奏时，优先保留原版。
+    if (current.accompaniment && !accompaniment) {
+      byRelease.set(releaseKey, { track: normalized, accompaniment: false })
+    }
+  }
+
+  return order.map((key) => byRelease.get(key)?.track).filter(Boolean)
+}
+
 /**
  * 精确解析新版关注歌手新发布接口。
  *
- * data.newWorks[].info.songLists 在 album 区块中会内联整张专辑的全部曲目，
- * 不能递归扫描，否则会把合作者/专辑其它曲目误当成“关注歌手新歌”。
- * 新歌页只取 blockType === 'song' 的单曲区块。
+ * 只接收真实关注歌手对应的 song 区块，并在“作品”层去重。
+ * album 区块内联的整张曲目表不会进入新歌列表。
  */
-const parseFollowingReleaseSongs = (source: any) => {
+const parseFollowingReleaseSongs = (
+  source: any,
+  followedArtistIds: Set<string>
+) => {
   const works = Array.isArray(source?.data?.newWorks) ? source.data.newWorks : []
-  const songs: any[] = []
+  const candidates: Array<{ track: any; artistKey: string; publishTime: number }> = []
 
   for (const work of works) {
     const info = work?.info
@@ -722,16 +832,34 @@ const parseFollowingReleaseSongs = (source: any) => {
     const firstTrack = Array.isArray(info?.songLists) ? info.songLists[0] : null
     if (!firstTrack) continue
 
-    songs.push({
-      ...firstTrack,
-      publishTime: firstTrack?.publishTime ?? work?.publishTime
+    const blockArtistId = info?.blockTitle?.artistId
+    if (!belongsToFollowedArtist(firstTrack, followedArtistIds, blockArtistId)) continue
+
+    const followedIdsInTrack = getTrackArtistIds(firstTrack).filter((id) =>
+      followedArtistIds.has(id)
+    )
+    const artistKey =
+      blockArtistId !== undefined &&
+      blockArtistId !== null &&
+      followedArtistIds.has(String(blockArtistId))
+        ? String(blockArtistId)
+        : followedIdsInTrack.sort().join(',')
+
+    const publishTime = Number(firstTrack?.publishTime ?? work?.publishTime ?? 0)
+    candidates.push({
+      track: {
+        ...firstTrack,
+        publishTime: publishTime || firstTrack?.publishTime
+      },
+      artistKey,
+      publishTime
     })
   }
 
-  return dedupeTracksById(songs)
+  return dedupeFollowingReleaseSongs(candidates)
 }
 
-const parseFollowingMvs = (source: any) => {
+const parseFollowingMvs = (source: any, followedArtistIds: Set<string>) => {
   const works = Array.isArray(source?.data?.newWorks) ? source.data.newWorks : []
   const seen = new Set<string>()
   const result: any[] = []
@@ -739,7 +867,18 @@ const parseFollowingMvs = (source: any) => {
   for (const work of works) {
     const mv = normalizeMv(work)
     const id = mv?.id == null ? '' : String(mv.id)
-    if (!id || !mv.cover || seen.has(id)) continue
+    const artistId = mv?.artistId == null ? '' : String(mv.artistId)
+
+    if (
+      !id ||
+      !mv.cover ||
+      seen.has(id) ||
+      !artistId ||
+      !followedArtistIds.has(artistId)
+    ) {
+      continue
+    }
+
     seen.add(id)
     result.push(mv)
   }
@@ -747,14 +886,24 @@ const parseFollowingMvs = (source: any) => {
   return result
 }
 
-const getFollowingSongs = async () => {
+const filterFallbackTracksToFollowedArtists = (
+  items: any[],
+  followedArtistIds: Set<string>
+) =>
+  dedupeTracksById(items).filter((track) =>
+    belongsToFollowedArtist(track, followedArtistIds)
+  )
+
+const getFollowingSongs = async (followedArtistIds: Set<string>) => {
+  if (!followedArtistIds.size) return []
+
   try {
     const v2 = await followedArtistNewSongMvListV2({
       sourceType: 1,
       limit: 10,
       firstRequest: true
     })
-    const exact = parseFollowingReleaseSongs(v2)
+    const exact = parseFollowingReleaseSongs(v2, followedArtistIds)
     if (exact.length) return exact
   } catch (error) {
     console.warn('[Explore] 新版关注歌手新歌接口失败，回退旧接口:', error)
@@ -768,7 +917,10 @@ const getFollowingSongs = async () => {
   for (const attempt of attempts) {
     try {
       const result = await attempt()
-      const parsed = dedupeTracksById(extractTracks(result, 100))
+      const parsed = filterFallbackTracksToFollowedArtists(
+        extractTracks(result, 100),
+        followedArtistIds
+      )
       if (parsed.length) return parsed
     } catch (error) {
       console.warn('[Explore] 关注歌手新歌接口回退:', error)
@@ -778,21 +930,16 @@ const getFollowingSongs = async () => {
   return []
 }
 
-const getFollowingMvs = async () => {
-  const attempts: Array<() => Promise<any[]>> = [
-    async () => parseFollowingMvs(await followedArtistNewMvs({ limit: 100 }))
-  ]
+const getFollowingMvs = async (followedArtistIds: Set<string>) => {
+  if (!followedArtistIds.size) return []
 
-  for (const attempt of attempts) {
-    try {
-      const parsed = await attempt()
-      if (parsed.length) return parsed
-    } catch (error) {
-      console.warn('[Explore] 关注歌手新 MV 接口失败:', error)
-    }
+  try {
+    const result = await followedArtistNewMvs({ limit: 100 })
+    return parseFollowingMvs(result, followedArtistIds)
+  } catch (error) {
+    console.warn('[Explore] 关注歌手新 MV 接口失败:', error)
+    return []
   }
-
-  return []
 }
 
 const getFollowingWorks = async () => {
@@ -801,11 +948,13 @@ const getFollowingWorks = async () => {
   tricklingProgress.start()
 
   try {
+    const followedArtistIds = await getFollowedArtistIds()
+
     if (followingMode.value === 'song') {
-      tracks.value = await getFollowingSongs()
+      tracks.value = await getFollowingSongs(followedArtistIds)
       followingMvs.value = []
     } else {
-      followingMvs.value = await getFollowingMvs()
+      followingMvs.value = await getFollowingMvs(followedArtistIds)
       tracks.value = []
     }
   } catch (error) {
