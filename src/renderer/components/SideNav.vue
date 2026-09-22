@@ -1,5 +1,13 @@
 <template>
   <div class="side-nav">
+    <div class="history-navigation">
+      <button-icon :data-tip="`${$t('nav.back')}`" @click.stop="router.go(-1)">
+        <svg-icon class="history-icon" icon-class="arrow-left" />
+      </button-icon>
+      <button-icon :data-tip="`${$t('nav.forward')}`" @click.stop="router.go(1)">
+        <svg-icon class="history-icon" icon-class="arrow-right" />
+      </button-icon>
+    </div>
     <button-icon
       :class="{ active: isCurrentRoute('/') }"
       :data-tip="`${$t('nav.home')}`"
@@ -98,6 +106,26 @@ const isCurrentRoute = (path: string): boolean => {
   background-color: var(--color-secondary-bg);
   border-radius: 12px;
   transform: translate(0, -50%);
+  .history-navigation {
+    width: 60px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin: 3px 0 10px;
+
+    button {
+      width: 27px;
+      height: 30px;
+      margin: 0;
+      border-radius: 7px;
+
+      .history-icon {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
   button {
     height: 40px;
     width: 60px;
