@@ -59,22 +59,14 @@ html.vutron-window-resizing #app .daily-recommend-card .play-button .svg-icon {
 }
 
 /*
- * 音乐库顶部右侧是固定高度的“我喜欢的音乐”预览区，不应形成第二个纵向滚动容器。
- *
- * VirtualScrollNoHeight 会通过内联 overflow-y: scroll 接管滚轮；仅改成 hidden 在 Chromium
- * 中仍然保留了一个独立 scroll container。这里让内部容器直接 overflow: visible，再由外层
- * .songs 在 240px 高度处裁切。这样鼠标位于预览歌曲上时，滚轮目标会继续向上交给 #main，
- * 同时预览中的歌曲仍然可以点击、双击和右键。
+ * 音乐库顶部右侧现在使用普通 CSS Grid 显示 6 首歌曲，不再是 VirtualScroll。
+ * 旧的 240px 固定高度会在较大字体/缩放下裁掉第三行，因此恢复自然内容高度。
+ * 滚动仍统一交给 #main，不创建任何内部纵向滚动容器。
  */
 #app .library > .section-one .songs {
-  height: 240px;
-  overflow: hidden;
-}
-
-#app .library > .section-one .songs .infinite-list-container {
-  height: 240px !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 /*
