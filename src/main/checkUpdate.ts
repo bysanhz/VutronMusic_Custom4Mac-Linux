@@ -3,6 +3,7 @@ import { parse } from 'node-html-parser'
 import { BrowserWindow, app, dialog, session, shell } from 'electron'
 import { compareVersions } from 'compare-versions'
 import Constants from './utils/Constants'
+import store from './store'
 
 // ======== newADD start======
 const RELEASE_OWNER = 'bysanhz'
@@ -11,6 +12,74 @@ const RELEASE_PAGE_URL = `https://github.com/${RELEASE_OWNER}/${RELEASE_REPOSITO
 const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPOSITORY}/releases?per_page=10`
 
 let nativeUpdaterConfigured = false
+
+const UPDATE_DIALOG_TEXT = {
+  zh: {
+    noReleaseNotes: '无更新说明',
+    noPublishedRelease: '当前仓库尚未发布新的正式版本',
+    checkTitle: '检查更新',
+    latest: '当前已经是最新版本。',
+    confirm: '确定',
+    foundTitle: '发现新版本',
+    found: '发现新版本 {version}',
+    manualInstall: '当前安装格式需要通过系统安装器完成升级。',
+    openDownload: '打开下载安装页',
+    later: '稍后',
+    downloadQuestion: '发现新版本 {version}，是否立即下载？',
+    downloadNow: '立即下载',
+    downloadLater: '稍后下载',
+    downloadedTitle: '下载完成',
+    installQuestion: '新版本 {version} 下载完成，是否立即安装？',
+    installNow: '立即安装',
+    installLater: '稍后安装'
+  },
+  zht: {
+    noReleaseNotes: '無更新說明',
+    noPublishedRelease: '目前倉庫尚未發佈新的正式版本',
+    checkTitle: '檢查更新',
+    latest: '目前已經是最新版本。',
+    confirm: '確定',
+    foundTitle: '發現新版本',
+    found: '發現新版本 {version}',
+    manualInstall: '目前安裝格式需要透過系統安裝程式完成升級。',
+    openDownload: '開啟下載安裝頁',
+    later: '稍後',
+    downloadQuestion: '發現新版本 {version}，是否立即下載？',
+    downloadNow: '立即下載',
+    downloadLater: '稍後下載',
+    downloadedTitle: '下載完成',
+    installQuestion: '新版本 {version} 下載完成，是否立即安裝？',
+    installNow: '立即安裝',
+    installLater: '稍後安裝'
+  },
+  en: {
+    noReleaseNotes: 'No release notes available.',
+    noPublishedRelease: 'No newer stable release has been published yet.',
+    checkTitle: 'Check for Updates',
+    latest: 'You are already using the latest version.',
+    confirm: 'OK',
+    foundTitle: 'Update Available',
+    found: 'Version {version} is available.',
+    manualInstall: 'This installation format must be upgraded with the system installer.',
+    openDownload: 'Open Download Page',
+    later: 'Later',
+    downloadQuestion: 'Version {version} is available. Download it now?',
+    downloadNow: 'Download Now',
+    downloadLater: 'Later',
+    downloadedTitle: 'Download Complete',
+    installQuestion: 'Version {version} has been downloaded. Install it now?',
+    installNow: 'Install Now',
+    installLater: 'Later'
+  }
+} as const
+
+const getUpdateLanguage = () => {
+  const language = store.get('settings.lang')
+  return language === 'en' || language === 'zht' ? language : 'zh'
+}
+
+const updateText = () => UPDATE_DIALOG_TEXT[getUpdateLanguage()]
+const formatUpdateText = (value: string, version: string) => value.replace('{version}', version)
 
 const isWindowsPortable = () =>
   Constants.IS_WINDOWS && Boolean(process.env.PORTABLE_EXECUTABLE_FILE)
@@ -52,10 +121,10 @@ const normalizeVersion = (value: unknown) => {
 
 const releaseNotesToText = (releaseNotes: unknown) => {
   if (typeof releaseNotes !== 'string' || !releaseNotes.trim()) {
-    return '无更新说明'
+    return updateText().noReleaseNotes
   }
 
-  return parse(releaseNotes).text.trim() || '无更新说明'
+  return parse(releaseNotes).text.trim() || updateText().noReleaseNotes
 }
 
 /**
@@ -88,7 +157,7 @@ const checkGitHubRelease = async () => {
     updateInfo: {
       version,
       releaseName: latestRelease?.name || `VutronMusic ${version}`,
-      releaseNotes: latestRelease?.body || '当前仓库尚未发布新的正式版本',
+      releaseNotes: latestRelease?.body || updateText().noPublishedRelease,
       releaseDate: latestRelease?.published_at || '',
       files: [],
       path: '',
@@ -122,12 +191,14 @@ export const showManualUpdateDialog = async (
     releaseUrl?: string
   }
 ) => {
+  const text = updateText()
+
   if (!result?.isUpdateAvailable) {
     await dialog.showMessageBox(win, {
       type: 'info',
-      title: '检查更新',
-      message: '当前已经是最新版本。',
-      buttons: ['确定']
+      title: text.checkTitle,
+      message: text.latest,
+      buttons: [text.confirm]
     })
     return
   }
@@ -136,10 +207,10 @@ export const showManualUpdateDialog = async (
   const detail = releaseNotesToText(result.updateInfo?.releaseNotes)
   const response = await dialog.showMessageBox(win, {
     type: 'info',
-    title: '发现新版本',
-    message: `发现新版本 ${version}`,
-    detail: `${detail}\n\n当前安装格式需要通过系统安装器完成升级。`,
-    buttons: ['打开下载安装页', '稍后'],
+    title: text.foundTitle,
+    message: formatUpdateText(text.found, version),
+    detail: `${detail}\n\n${text.manualInstall}`,
+    buttons: [text.openDownload, text.later],
     defaultId: 0,
     cancelId: 1
   })
@@ -161,14 +232,15 @@ export const downloadUpdate = async () => {
 
 const handleUpdateAvailable = (win: BrowserWindow, info: any) => {
   const plainNode = releaseNotesToText(info.releaseNotes)
+  const text = updateText()
 
   dialog
     .showMessageBox(win, {
       type: 'info',
-      title: '发现新版本',
-      message: `发现新版本 ${info.version} \n是否立即下载？`,
+      title: text.foundTitle,
+      message: formatUpdateText(text.downloadQuestion, String(info.version)),
       detail: plainNode,
-      buttons: ['立即下载', '稍后下载']
+      buttons: [text.downloadNow, text.downloadLater]
     })
     .then((result) => {
       if (result.response === 0) {
@@ -200,12 +272,13 @@ export const initAutoUpdater = (win: BrowserWindow) => {
   })
 
   autoUpdater.on('update-downloaded', (info) => {
+    const text = updateText()
     dialog
       .showMessageBox(win, {
         type: 'info',
-        title: '下载完成',
-        message: `新版本 ${info.version} 下载完成，是否立即安装？`,
-        buttons: ['立即安装', '稍后安装']
+        title: text.downloadedTitle,
+        message: formatUpdateText(text.installQuestion, String(info.version)),
+        buttons: [text.installNow, text.installLater]
       })
       .then((result) => {
         if (result.response === 0) {
