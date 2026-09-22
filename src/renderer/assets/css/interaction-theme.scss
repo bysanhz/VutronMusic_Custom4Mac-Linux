@@ -1,481 +1,73 @@
 /*
- * 全局主题交互层。
+ * 语义交互色。
  *
- * 所有可修改、可点击、可聚焦的控件都从 --color-primary 派生视觉反馈，
- * 但通过透明度区分普通、悬浮、按下、选中与焦点状态，避免整页被实色主题淹没。
- *
- * 注意：
- * - 主题色块本身保留其真实候选颜色，只对 hover/selected 外圈使用当前主题色；
- * - 危险/错误语义仍由组件自己的红色等语义色覆盖；
- * - 桌面歌词默认歌词颜色不强制改写，仅在交互反馈时使用主题色。
+ * 本文件不再统一覆盖普通组件的 background / hover / active 颜色。
+ * 普通按钮、Tab、搜索框、列表、下拉框等恢复各组件原有样式。
+ * 这里只保留跨组件必须一致的语义：
+ * - 焦点：主题色
+ * - 确认/保存：主题色
+ * - 取消/关闭：中性色
+ * - 危险操作：红色
+ * - 喜欢/爱心：固定红色
  */
 
 :root {
   --color-primary: rgba(51, 94, 234, 1);
-  --theme-interaction-weak: color-mix(in srgb, var(--color-primary) 8%, transparent);
-  --theme-interaction-soft: color-mix(in srgb, var(--color-primary) 13%, transparent);
-  --theme-interaction-medium: color-mix(in srgb, var(--color-primary) 20%, transparent);
-  --theme-interaction-strong: color-mix(in srgb, var(--color-primary) 30%, transparent);
-  --theme-interaction-border: color-mix(in srgb, var(--color-primary) 30%, transparent);
-  --theme-interaction-border-strong: color-mix(in srgb, var(--color-primary) 52%, transparent);
+
   --theme-interaction-ring: color-mix(in srgb, var(--color-primary) 24%, transparent);
 
-  /* 语义色：不跟随主题色切换。 */
   --color-like: #e54861;
-  --color-like-soft: color-mix(in srgb, var(--color-like) 12%, transparent);
-  --color-like-medium: color-mix(in srgb, var(--color-like) 24%, transparent);
+  --color-like-soft: color-mix(in srgb, var(--color-like) 10%, transparent);
+  --color-like-medium: color-mix(in srgb, var(--color-like) 18%, transparent);
+
   --color-danger: #d9534f;
+
   --color-secondary-action: color-mix(in srgb, var(--color-text) 72%, transparent);
   --color-secondary-action-bg: color-mix(in srgb, var(--color-text) 7%, transparent);
   --color-secondary-action-bg-hover: color-mix(in srgb, var(--color-text) 12%, transparent);
   --color-secondary-action-border: color-mix(in srgb, var(--color-text) 14%, transparent);
 }
 
-/* ==================== 通用焦点与链接 ==================== */
-
-#app :is(button, a, input, textarea, select, [role='button'], .custom-select, .keyboard-input):focus-visible {
+/* 键盘焦点统一用主题色，但不改变控件原始底色。 */
+#app :is(
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  [role='button'],
+  .custom-select,
+  .keyboard-input
+):focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-#app a:hover {
-  color: var(--color-primary);
-  text-decoration-color: var(--color-primary);
-}
-
-/* 原生可修改控件统一使用主题色。 */
-#app :is(
-  input[type='checkbox'],
-  input[type='radio'],
-  input[type='range']
-) {
+#app :is(input[type='checkbox'], input[type='radio'], input[type='range']) {
   accent-color: var(--color-primary);
 }
 
-/* ==================== 设置页：所有可修改控件 ==================== */
+/* ==================== 弹窗操作语义 ==================== */
 
-#app .system-settings :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select,
-  .custom-select,
-  .keyboard-input,
-  .cache-custom-limit
-) {
-  color: var(--color-primary) !important;
-  background-color: var(--theme-interaction-weak) !important;
-  border: 1px solid var(--theme-interaction-border) !important;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    color 0.18s ease;
-}
-
-#app .system-settings .cache-custom-limit input,
-#app .system-settings .cache-custom-limit span {
-  color: var(--color-primary) !important;
-}
-
-#app .system-settings :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select,
-  .custom-select,
-  .keyboard-input,
-  .cache-custom-limit
-):hover {
-  background-color: var(--theme-interaction-soft) !important;
-  border-color: var(--theme-interaction-border-strong) !important;
-}
-
-#app .system-settings :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select
-):focus,
-#app .system-settings :is(.custom-select, .cache-custom-limit):focus-within,
-#app .system-settings .keyboard-input.active {
-  color: var(--color-primary) !important;
-  background-color: var(--theme-interaction-soft) !important;
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring) !important;
-}
-
-/* 设置页普通按钮：弱主题底 -> hover 中等 -> active 更强。 */
-#app .system-settings button:not(:disabled):not(.disabled) {
-  color: var(--color-primary);
-  background-color: var(--theme-interaction-weak);
-  border-color: var(--theme-interaction-border);
-}
-
-#app .system-settings button:not(:disabled):not(.disabled):hover {
-  color: var(--color-primary);
-  background-color: var(--theme-interaction-medium);
-  border-color: var(--theme-interaction-border-strong);
-}
-
-#app .system-settings button:not(:disabled):not(.disabled):active {
-  background-color: var(--theme-interaction-strong);
-}
-
-/* 已选择/已激活项目比普通 hover 更强，但不一律铺满实色。 */
-#app .system-settings :is(
-  button.active,
-  button.selected,
-  button.lyric-button--selected,
-  .keyboard-input.active
-) {
-  color: var(--color-primary) !important;
-  background-color: var(--theme-interaction-strong) !important;
-  border-color: var(--theme-interaction-border-strong) !important;
-}
-
-/* 开关关闭时也保留主题语义，开启时使用实色主题色。 */
-#app .system-settings .toggle input + label {
-  background: var(--theme-interaction-medium) !important;
-  box-shadow: inset 0 0 0 1px var(--theme-interaction-border);
-}
-
-#app .system-settings .toggle input:checked + label::before {
-  background: var(--color-primary) !important;
-}
-
-#app .system-settings .toggle input:focus-visible + label {
-  box-shadow:
-    0 0 0 3px var(--theme-interaction-ring),
-    inset 0 0 0 1px var(--theme-interaction-border-strong);
-}
-
-/* 主题色候选必须保留自身颜色，只用当前主题色表现“可点/已选”。 */
-#app .system-settings .theme-color {
-  cursor: pointer;
-  border-radius: 10px;
-  transition:
-    background-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-#app .system-settings .theme-color:hover {
-  background: var(--theme-interaction-weak);
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .system-settings .theme-color:active {
-  transform: scale(0.96);
-}
-
-#app .system-settings .theme-color .selected-icon {
-  background: var(--color-primary) !important;
-  box-shadow:
-    0 0 0 3px var(--theme-interaction-ring),
-    0 3px 10px color-mix(in srgb, var(--color-primary) 28%, transparent);
-}
-
-/* 外观卡片、流媒体卡片和可拖动顺序项：用主题色边缘反馈，不覆盖内容本身。 */
-#app .system-settings :is(.appearance, .stream-item, .info-order) {
-  transition:
-    background-color 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
-}
-
-#app .system-settings :is(.appearance, .stream-item, .info-order):hover {
-  background-color: var(--theme-interaction-weak);
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .system-settings .appearance.selected,
-#app .system-settings .itemSelected {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-}
-
-/* ==================== 公共选择器 ==================== */
-
-#app .custom-select {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-weak) !important;
-  border: 1px solid var(--theme-interaction-border) !important;
-}
-
-#app .custom-select:hover {
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--theme-interaction-border-strong) !important;
-}
-
-#app .custom-select .custom-text,
-#app .custom-select .custom-icon {
-  color: var(--color-primary) !important;
-}
-
-#app .custom-dropdown {
-  border-color: var(--theme-interaction-border) !important;
-  box-shadow:
-    0 10px 30px rgb(0 0 0 / 14%),
-    0 0 0 1px var(--theme-interaction-weak) !important;
-}
-
-#app .custom-search-input {
-  color: var(--color-primary) !important;
-  border-color: var(--theme-interaction-border) !important;
-  background: var(--theme-interaction-weak) !important;
-}
-
-#app .custom-select-item:hover,
-#app .custom-select-item.highlighted {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-#app .custom-select-item.active {
-  color: #fff !important;
-  background: var(--color-primary) !important;
-}
-
-/* ==================== 公共按钮 / 搜索 / 列表 ==================== */
-
-#app .button-icon:hover {
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .button-icon:hover .svg-icon,
-#app .button-icon:focus-visible .svg-icon {
-  color: var(--color-primary) !important;
-}
-
-#app button.grey {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-weak) !important;
-}
-
-#app .search-container {
-  background: var(--theme-interaction-weak) !important;
-  border: 1px solid var(--theme-interaction-border);
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-#app .search-container:hover {
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--theme-interaction-border-strong);
-}
-
-#app .search-container:focus-within {
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-#app .search-icon:hover,
-#app .search-icon.active {
-  color: var(--color-primary);
-  background: var(--theme-interaction-medium);
-}
-
-#app .search-icon:hover .svg-icon,
-#app .search-icon.active .svg-icon {
-  color: var(--color-primary);
-  opacity: 1;
-}
-
-#app .suggestion-item:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .side-nav .history-button:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-#app .trackitem:hover {
-  background: var(--theme-interaction-weak);
-}
-
-/* 滚动条本身也是可交互控件，使用较弱主题层级。 */
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-primary) 34%, transparent);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--color-primary) 52%, transparent);
-}
-
-/* ==================== 桌面歌词交互 ==================== */
-
-/*
- * 桌面歌词允许用户自定义歌词本身的颜色，因此不覆盖静态文字；
- * 只在 hover / focus / active 这些“交互状态”使用主题色。
- */
-#lyric :is(button, [role='button']):focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-#lyric .header .btn:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-  border-radius: 8px;
-}
-
-#lyric .compact-control-button:hover {
-  color: var(--color-primary) !important;
-  background: color-mix(in srgb, var(--color-primary) 30%, rgba(0, 0, 0, 0.38)) !important;
-}
-
-#lyric .compact-control-button:active {
-  background: color-mix(in srgb, var(--color-primary) 44%, rgba(0, 0, 0, 0.34)) !important;
-}
-
-#lyric .osd-lock-button {
-  color: color-mix(in srgb, var(--color-primary) 72%, white) !important;
-  background: color-mix(in srgb, var(--color-primary) 18%, rgba(0, 0, 0, 0.2)) !important;
-}
-
-#lyric .osd-lock-button:hover {
-  color: var(--color-primary) !important;
-  background: color-mix(in srgb, var(--color-primary) 32%, rgba(255, 255, 255, 0.08)) !important;
-}
-
-#lyric .osd-drag-bar::before {
-  background: color-mix(in srgb, var(--color-primary) 36%, rgba(255, 255, 255, 0.18)) !important;
-}
-
-#lyric .osd-drag-bar:hover::before {
-  background: color-mix(in srgb, var(--color-primary) 68%, white) !important;
-}
-
-
-/* ==================== 复选框 / 数值 / 滑块 ==================== */
-
-#app .checkbox {
-  border-radius: 7px;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
-}
-
-#app .checkbox:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-weak);
-}
-
-#app .checkbox .input:focus-visible + .content {
-  color: var(--color-primary);
-}
-
-#app :is(.slider-value, .font-size-value) {
-  color: var(--color-primary) !important;
-  font-weight: 750;
-}
-
-/* VueSlider 的有效区、滑块圆点与 tooltip 统一使用主题色。 */
-#app .vue-slider-rail {
-  background: var(--theme-interaction-medium) !important;
-  border-radius: 999px;
-}
-
-#app .vue-slider-process,
-#app .vue-slider-dot {
-  background: var(--color-primary) !important;
-}
-
-#app .vue-slider-dot {
-  box-shadow:
-    0 0 0 3px var(--theme-interaction-ring),
-    0 2px 7px rgb(0 0 0 / 16%) !important;
-}
-
-#app .vue-slider-tooltip {
-  background: var(--color-primary) !important;
-}
-
-/* ==================== 弹窗 / 上下文菜单 ==================== */
-
-#app .shade .modal :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select,
-  .custom-select
-) {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-weak) !important;
-  border: 1px solid var(--theme-interaction-border) !important;
-}
-
-#app .shade .modal :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select
-):focus,
-#app .shade .modal .custom-select:focus-within {
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring) !important;
-}
-
-/*
- * 弹窗操作遵循明确语义：
- * - primary = 确认 / 保存 / 应用：主题色
- * - 普通按钮 / cancel / close = 取消 / 返回 / 关闭：中性灰
- * - danger = 删除 / 清空：危险红
- */
-#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled) {
-  color: var(--color-secondary-action) !important;
-  background: var(--color-secondary-action-bg) !important;
-  border-color: var(--color-secondary-action-border) !important;
-}
-
-#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled):hover {
-  color: var(--color-text) !important;
-  background: var(--color-secondary-action-bg-hover) !important;
-  border-color: color-mix(in srgb, var(--color-text) 22%, transparent) !important;
-}
-
+/* 取消 / 返回 / 关闭：中性，不与主操作争抢视觉重点。 */
+#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled),
 #app .shade .modal :is(button.cancel, button.cancel-button, button.secondary, button.close) {
   color: var(--color-secondary-action) !important;
   background: var(--color-secondary-action-bg) !important;
   border-color: var(--color-secondary-action-border) !important;
 }
 
+#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled):hover,
 #app .shade .modal :is(button.cancel, button.cancel-button, button.secondary, button.close):hover {
   color: var(--color-text) !important;
   background: var(--color-secondary-action-bg-hover) !important;
 }
 
+/* 确认 / 保存 / 应用：主题色。 */
 #app .shade .modal button.primary {
   color: #fff !important;
   background: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
 
 #app .shade .modal button.primary:hover:not(:disabled) {
@@ -488,129 +80,7 @@
   background: color-mix(in srgb, var(--color-primary) 80%, black) !important;
 }
 
-#app .shade .modal .toggle input + label {
-  background: var(--theme-interaction-medium) !important;
-  box-shadow: inset 0 0 0 1px var(--theme-interaction-border);
-}
-
-#app .shade .modal .toggle input:checked + label::before {
-  background: var(--color-primary) !important;
-}
-
-#app .shade .modal :is(.bg-select, span.button):hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--theme-interaction-border-strong) !important;
-}
-
-#app .shade .modal .bg-select.active {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-  border-color: var(--color-primary) !important;
-}
-
-#app .context-menu .menu {
-  border-color: var(--theme-interaction-border) !important;
-}
-
-#app .context-menu .menu .item:hover,
-#app .context-menu .menu .item:focus-visible {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-#app .context-menu .menu .item.active {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-strong) !important;
-}
-
-/* ==================== 选择面板 / 可点击预览 ==================== */
-
-#app .sense-title.multi span:hover {
-  color: var(--color-primary);
-}
-
-#app :is(
-  .sense-item .ani,
-  .ani-select .ani,
-  .preview
-):hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft);
-  border-color: var(--color-primary);
-}
-
-#app :is(
-  .sense-item.active .ani,
-  .ani-select .ani.active
-) {
-  color: #fff;
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-/* LoadingButton 与其它通用“处理中”按钮也保持主题语义。 */
-#app .loading {
-  color: var(--color-primary);
-  background-color: var(--theme-interaction-weak) !important;
-}
-
-/* 所有原生按钮在键盘焦点时都显式给出主题色，鼠标 hover 仍由组件层级决定。 */
-#app button:not(:disabled):focus-visible {
-  color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-
-/* ==================== 列表、封面与评论区 ==================== */
-
-/* 本地专辑/艺人列表：hover 使用弱主题色，selected 使用更强一层。 */
-#app :is(.album-list, .artist-list) .item:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app :is(.album-list, .artist-list) .item.selected {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-strong) !important;
-}
-
-/* 可点击封面不覆盖图片本身，只增加主题色轮廓；播放按钮用更强主题层。 */
-#app .cover.cover-hover:hover .cover-container {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-}
-
-#app .cover .play-button:hover {
-  color: #fff;
-  background: color-mix(in srgb, var(--color-primary) 58%, rgba(255, 255, 255, 0.12)) !important;
-  border-color: color-mix(in srgb, var(--color-primary) 72%, transparent) !important;
-}
-
-/* 评论排序、昵称、头像、回复和操作按钮都给出主题色交互反馈。 */
-#app .comment-container .comment-head .btn:hover,
-#app .comment-container .comment-head .btn.active {
-  color: var(--color-primary) !important;
-  opacity: 1 !important;
-  background: var(--theme-interaction-soft);
-  border-radius: 6px;
-}
-
-#app .comment-container :is(.comment-nickname, .avatar):hover {
-  color: var(--color-primary);
-}
-
-#app .comment-container .avatar:hover img {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-}
-
-#app .comment-container .comment-btns button:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft);
-  border-radius: 6px;
-}
-
-
-/* 危险操作保留危险语义色，不被主题色覆盖。 */
+/* 删除 / 清空等危险操作：固定红色。 */
 #app .shade .modal button.danger {
   color: var(--color-danger) !important;
   background: color-mix(in srgb, var(--color-danger) 8%, transparent) !important;
@@ -619,312 +89,22 @@
 
 #app .shade .modal button.danger:hover {
   color: var(--color-danger) !important;
-  background: color-mix(in srgb, var(--color-danger) 16%, transparent) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 22%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--color-danger) 28%, transparent) !important;
 }
 
-/* 添加到歌单等“整行可点击”项目。 */
-#app .shade .modal :is(.new-playlist-button, .playlist):hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .shade .modal .playlist:hover :is(.title, .track-count) {
-  color: var(--color-primary) !important;
-}
-
-/* 播放速度 / 音调预设：hover < active，保持两级层次。 */
-#app .shade .modal .preset-button:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--theme-interaction-border-strong) !important;
-}
-
-#app .shade .modal .preset-button.active {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-strong) !important;
-  border-color: var(--color-primary) !important;
-}
-
-#app .shade .modal .playback-footer .button {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-weak) !important;
-}
-
-#app .shade .modal .playback-footer .button:hover {
-  background: var(--theme-interaction-medium) !important;
-}
-
-/* 播放历史卡片与最近播放曲目。 */
-#app .shade .modal :is(.history-card, .recent-track) {
-  border-color: var(--theme-interaction-border) !important;
-}
-
-#app .shade .modal .recent-track:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft) !important;
-  box-shadow: inset 0 0 0 1px var(--theme-interaction-border-strong);
-}
-
-/* MV 与普通封面一致：不改图片颜色，只用主题轮廓反馈可点击性。 */
-#app .mv .cover:hover {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-  border-radius: 0.75em;
-}
-
-/* 顶部头像和底部播放器封面也属于导航交互。 */
-#app nav .avatar:hover,
-#app .player .controls .left img:hover {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-}
-
-/* 搜索/探索 Tab 的 hover 使用弱底色，active 文字仍保持实色主题色。 */
-#app nav .search-tabs .item:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-weak);
-}
-
-#app nav .search-tabs .item.active {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft);
-}
-
-
-/* ==================== 全局可编辑字段 ==================== */
+/* ==================== 喜欢 / 爱心 ==================== */
 
 /*
- * 设置页之外仍有登录、评论、搜索等输入控件。
- * 默认只做轻主题底与主题文字，focus 再升级到实色边框与焦点环。
+ * 爱心是独立语义色，不跟随主题色。
+ * 未点赞保持较轻红色，点赞后使用完整红色。
+ * 不再给爱心按钮强制铺主题色底。
  */
-#app :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select
-) {
-  color: var(--color-primary);
-  border-color: var(--theme-interaction-border);
-  accent-color: var(--color-primary);
-}
-
-#app :is(
-  input[type='text'],
-  input[type='number'],
-  input[type='search'],
-  input[type='password'],
-  input[type='url'],
-  input[type='email'],
-  textarea,
-  select
-):focus {
-  color: var(--color-primary);
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-/* 让未单独定义颜色的普通按钮天然带一点主题色；组件自己的 active/primary 色仍可覆盖。 */
-:where(#app button:not(:disabled):not(.disabled), #app [role='button']) {
-  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text));
-}
-
-:where(#app button:not(:disabled):not(.disabled), #app [role='button']):hover {
-  color: var(--color-primary);
-}
-
-/* 评论输入是主页面独立控件，不属于 modal/settings。 */
-#app .comment-input {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-weak) !important;
-  border: 1px solid var(--theme-interaction-border) !important;
-}
-
-#app .comment-input:focus {
-  background: var(--theme-interaction-soft) !important;
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-#app .comment-button {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .comment-button:hover {
-  background: var(--theme-interaction-medium) !important;
-}
-
-/* ==================== 页面 Tab / 筛选 / 下拉入口 ==================== */
-
-#app :is(
-  .tab,
-  .tab-button,
-  .button,
-  .cat,
-  .right-top,
-  .liked-songs-link
-) {
-  transition:
-    color 0.18s ease,
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-#app :is(
-  .tab,
-  .tab-button,
-  .button,
-  .cat,
-  .right-top,
-  .liked-songs-link
-):hover {
-  color: var(--color-primary) !important;
-  background-color: var(--theme-interaction-soft) !important;
-}
-
-#app :is(
-  .tab.active,
-  .tab-button.active,
-  .button.active,
-  .cat.active
-) {
-  color: var(--color-primary) !important;
-  background-color: var(--theme-interaction-medium) !important;
-}
-
-/* 展开式筛选菜单中的 item 也统一，ContextMenu 自己的更强规则仍优先。 */
-#app :is(.dropdown, .select, .filter) .item:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app :is(.dropdown, .select, .filter) .item.active {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-/* 首页“查看更多”等文字链接使用主题色，不增加大面积背景。 */
-#app :is(.home-page, .homepage, .home) a:hover {
-  color: var(--color-primary) !important;
-}
-
-/* ==================== 页面级卡片 ==================== */
-
-#app :is(.stream-item, .insights-card):hover {
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .banner-item.center:hover {
-  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
-}
-
-/* 音乐洞察的普通筛选/切换按钮。危险删除按钮仍由 danger 语义接管。 */
-#app .music-insights :is(button:not(.danger), [role='button']):hover,
-#app .insights-page :is(button:not(.danger), [role='button']):hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft);
-}
-
-#app .music-insights button.active,
-#app .insights-page button.active {
-  color: #fff;
-  background: var(--color-primary);
-}
-
-
-/* ==================== 登录 / 视频 / 队列等独立交互 ==================== */
-
-#app :is(.login, .stream-container) .input-box .container {
-  border: 1px solid var(--theme-interaction-border);
-  background: var(--theme-interaction-weak) !important;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-#app :is(.login, .stream-container) .input-box .container:focus-within,
-#app :is(.login, .stream-container) .input-box .container.active {
-  border-color: var(--color-primary);
-  background: var(--theme-interaction-soft) !important;
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-#app :is(.login, .stream-container) .input-box :is(input, textarea, .svg-icon) {
-  color: var(--color-primary) !important;
-}
-
-#app .stream-container .icon-wrapper:hover {
-  border-radius: 10px;
-  background: var(--theme-interaction-weak);
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .next h1 button:hover,
-#app .mv-page .video-info .btns button:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .mv-page .video-info .btns button:active {
-  background: var(--theme-interaction-medium) !important;
-}
-
-
-/* ==================== 播放器 / 歌曲操作 ==================== */
-
-#app .play-page .player-button:hover,
-#app .play-page .controls .button-icon:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .play-page .player-button:hover .svg-icon,
-#app .play-page .controls .button-icon:hover .svg-icon {
-  color: var(--color-primary) !important;
-}
-
-#app .play-page .transPro label:hover,
-#app .play-page .transPro .active {
-  color: var(--color-primary) !important;
-  opacity: 1 !important;
-}
-
-#app .trackitem:hover {
-  background: var(--theme-interaction-weak) !important;
-}
-
-#app .trackitem.focus {
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .trackitem:hover .track img {
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .trackitem .actions button:hover {
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .trackitem .artist a:hover,
-#app .trackitem .mv-icon:hover {
-  color: var(--color-primary) !important;
-}
-
-/* 爱心 / 喜欢使用固定红色语义，不跟随主题色。 */
 #app .like-button:not(.disabled),
-#lyric .control-like {
-  color: color-mix(in srgb, var(--color-like) 66%, transparent) !important;
-}
-
 #app .like-button:not(.disabled) .svg-icon,
+#lyric .control-like,
 #lyric .control-like .svg-icon {
-  color: color-mix(in srgb, var(--color-like) 66%, transparent) !important;
+  color: color-mix(in srgb, var(--color-like) 68%, transparent) !important;
 }
 
 #app .like-button:not(.disabled):hover,
@@ -932,7 +112,6 @@
 #lyric .control-like:hover,
 #lyric .control-like:hover .svg-icon {
   color: var(--color-like) !important;
-  background: var(--color-like-soft) !important;
 }
 
 #app .like-button.liked:not(.disabled),
@@ -942,102 +121,9 @@
   color: var(--color-like) !important;
 }
 
-#app .like-button.liked:not(.disabled),
-#lyric .control-like.liked {
-  background: var(--color-like-soft) !important;
-}
+/* ==================== 桌面歌词焦点 ==================== */
 
-#app .like-button.liked:not(.disabled):hover,
-#lyric .control-like.liked:hover {
-  color: var(--color-like) !important;
-  background: var(--color-like-medium) !important;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-like) 28%, transparent));
-}
-
-
-/* ==================== 媒体库 / 历史切换 ==================== */
-
-#app .library .lyric-preview-action:hover,
-#app .library .lyric-preview-action:focus-visible {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft) !important;
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app button.playHistory-button:hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app button.playHistory-button--selected {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-#app .insights-page :is(
-  .refresh-button,
-  .action-row button:not(.danger),
-  .load-more,
-  .tabs button,
-  .sub-tabs button,
-  .tag-list button
-):hover {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .insights-page :is(
-  .tabs button.active,
-  .sub-tabs button.active,
-  .tag-list button.active
-) {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-
-/* ==================== 主题预览 / 目录 / 歌词行 ==================== */
-
-#app .shade .modal .theme-item {
-  cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-#app .shade .modal .theme-item:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft);
-  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
-}
-
-#app .shade .modal .theme-item.selected {
-  color: #fff;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
-}
-
-#app .dir-name:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-soft);
-}
-
-#app .dir-name.active {
-  color: var(--color-primary) !important;
-  background: var(--theme-interaction-medium) !important;
-}
-
-#app .main-lyric-container .lyric:hover {
-  background: var(--theme-interaction-weak) !important;
-}
-
-#app .main-lyric-container .lyric.active:hover {
-  background: var(--theme-interaction-soft) !important;
-}
-
-#app .playlist-info .description:hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-weak);
-  border-radius: 6px;
+#lyric :is(button, [role='button']):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
