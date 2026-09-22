@@ -50,7 +50,8 @@
         <div class="blank"></div>
         <div class="container">
           <button-icon
-            :class="{ active: isLiked, disabled: heartDisabled }"
+            class="like-button"
+            :class="{ active: isLiked, liked: isLiked, disabled: heartDisabled }"
             :title="heartDisabled ? $t('player.noAllowCauseLocal') : $t('player.like')"
             @click.stop="likeTrack"
           >
