@@ -202,7 +202,12 @@ class BackGround {
       ),
       useContentSize: true,
       titleBarStyle: 'hiddenInset' as const,
-      webPreferences: Constants.DEFAULT_WEB_PREFERENCES
+      webPreferences: {
+        ...Constants.DEFAULT_WEB_PREFERENCES,
+        // Linux 在窗口连续拖拽/被其他窗口部分遮挡时仍保持 renderer 正常刷新。
+        // 配合硬件合成与 resize debounce，避免 Chromium 降低重绘频率后出现局部空白。
+        backgroundThrottling: !Constants.IS_LINUX
+      }
     }
 
     if (store.get('window.x') && store.get('window.y')) {
