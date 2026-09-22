@@ -620,7 +620,7 @@
       "auto": "Auto",
       "light": "Light",
       "dark": "Dark",
-      "accent": "Theme Color",
+      "themeColor": "Theme Color",
       "blue": "Blue",
       "purple": "Purple",
       "orange": "Orange",
