@@ -39,6 +39,10 @@
     "guessYouLike": "猜你喜歡",
     "personalized": "為你訂製"
   },
+  "personalizedTracks": {
+    "title": "猜你喜歡",
+    "description": "來自網易雲首頁的個人化歌曲推薦"
+  },
   "library": {
     "userProfileMenu": {
       "logout": "登出",
