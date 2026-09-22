@@ -5,9 +5,10 @@ import i18n from '../plugins/i18n'
 import type {
   WindowScaleBaseline,
   WindowScaleBaselineField,
+  WindowScaleStepMode,
   WindowScaleTarget
 } from './windowScaleBaseline'
-import { getWindowScaleFieldRange } from './windowScaleBaseline'
+import { getWindowScaleAdjustmentStep } from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
   saveWindowScaleBaseline
@@ -100,10 +101,18 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-row {
       display: grid;
-      grid-template-columns: minmax(92px, 1fr) 30px minmax(72px, 94px) 30px;
+      grid-template-columns: minmax(92px, 1fr) minmax(78px, 104px);
       grid-template-rows: auto auto;
       align-items: center;
       gap: 7px;
+    }
+
+    #${CONTROL_ID} .osd-window-scale-step-buttons {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
@@ -134,18 +143,11 @@ const injectStyle = () => {
       margin: 0;
     }
 
-    #${CONTROL_ID} .osd-window-scale-slider {
-      grid-column: 1 / -1;
+    #${CONTROL_ID} .osd-window-scale-button {
       width: 100%;
       min-width: 0;
-      margin: 1px 0 3px;
-      cursor: pointer;
-    }
-
-    #${CONTROL_ID} .osd-window-scale-button {
-      width: 30px;
       height: 28px;
-      padding: 0;
+      padding: 0 4px;
       border: none;
       border-radius: 6px;
       color: var(--color-text);
@@ -165,56 +167,63 @@ const getFieldLabel = (field: OsdBaselineField) => {
   return translate(FIELD_CONFIG[field].labelKey)
 }
 
+const formatStepValue = (value: number) => {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
+}
+
+const createStepButton = (
+  field: OsdBaselineField,
+  direction: 'decrease' | 'increase',
+  mode: WindowScaleStepMode
+) => {
+  const label = getFieldLabel(field)
+  const step = getWindowScaleAdjustmentStep(field, mode)
+  const stepText = formatStepValue(step)
+  const sign = direction === 'decrease' ? '−' : '+'
+  const titleKey =
+    mode === 'coarse'
+      ? direction === 'decrease'
+        ? 'settings.windowScale.coarseDecrease'
+        : 'settings.windowScale.coarseIncrease'
+      : direction === 'decrease'
+        ? 'settings.windowScale.fineDecrease'
+        : 'settings.windowScale.fineIncrease'
+  const title = translate(titleKey, { field: label, step: stepText })
+
+  return `
+    <button
+      type="button"
+      class="osd-window-scale-button"
+      data-action="${direction}"
+      data-step-mode="${mode}"
+      aria-label="${title}"
+      title="${title}"
+    >${sign}${stepText}</button>
+  `
+}
+
 const createFieldRow = (target: 'osd-small' | 'osd-normal', field: OsdBaselineField) => {
   const label = getFieldLabel(field)
-  const range = getWindowScaleFieldRange(target, field)
-  const decreaseLabel = translate('settings.windowScale.decrease', {
-    field: label
-  })
-  const increaseLabel = translate('settings.windowScale.increase', {
-    field: label
-  })
+  const fineStep = getWindowScaleAdjustmentStep(field, 'fine')
   const inputHint = translate('settings.windowScale.enterToApply')
-  const sliderHint = translate('settings.windowScale.dragToAdjust', {
-    field: label
-  })
 
   return `
     <div class="osd-window-scale-row" data-target="${target}" data-field="${field}">
       <span class="osd-window-scale-label">${label}</span>
-      <button
-        type="button"
-        class="osd-window-scale-button"
-        data-action="decrease"
-        aria-label="${decreaseLabel}"
-        title="${decreaseLabel}"
-      >−</button>
       <input
         type="number"
         class="osd-window-scale-input"
         data-value="${field}"
-        min="${range.min}"
-        max="${range.max}"
-        step="${range.step}"
-        inputmode="numeric"
+        step="${fineStep}"
+        inputmode="${field === 'minWidth' || field === 'minHeight' ? 'numeric' : 'decimal'}"
         title="${inputHint}"
       />
-      <button
-        type="button"
-        class="osd-window-scale-button"
-        data-action="increase"
-        aria-label="${increaseLabel}"
-        title="${increaseLabel}"
-      >+</button>
-      <input
-        type="range"
-        class="osd-window-scale-slider"
-        data-slider="${field}"
-        min="${range.min}"
-        max="${range.max}"
-        step="${range.step}"
-        title="${sliderHint}"
-      />
+      <div class="osd-window-scale-step-buttons">
+        ${createStepButton(field, 'decrease', 'coarse')}
+        ${createStepButton(field, 'decrease', 'fine')}
+        ${createStepButton(field, 'increase', 'fine')}
+        ${createStepButton(field, 'increase', 'coarse')}
+      </div>
     </div>
   `
 }
@@ -239,13 +248,9 @@ const renderTarget = (item: HTMLElement, target: 'osd-small' | 'osd-normal') => 
     const input = section.querySelector<HTMLInputElement>(
       `[data-field="${field}"] [data-value="${field}"]`
     )
-    const slider = section.querySelector<HTMLInputElement>(
-      `[data-field="${field}"] [data-slider="${field}"]`
-    )
     const value = String(baseline[field])
 
     if (input) input.value = value
-    if (slider) slider.value = value
   }
 }
 
@@ -281,18 +286,11 @@ const installControlListeners = (item: HTMLElement) => {
     if (!button || !target || !field) return
 
     const baseline = readWindowScaleBaseline(target)
-    const range = getWindowScaleFieldRange(target, field)
     const direction = button.dataset.action === 'decrease' ? -1 : 1
+    const mode = button.dataset.stepMode === 'fine' ? 'fine' : 'coarse'
+    const step = getWindowScaleAdjustmentStep(field, mode)
 
-    applyFieldValue(item, target, field, baseline[field] + range.step * direction)
-  })
-
-  item.addEventListener('input', (event) => {
-    const slider = (event.target as HTMLElement).closest<HTMLInputElement>('[data-slider]')
-    const { target, field } = resolveTargetAndField(slider)
-    if (!slider || !target || !field) return
-
-    applyFieldValue(item, target, field, Number(slider.value))
+    applyFieldValue(item, target, field, baseline[field] + step * direction)
   })
 
   item.addEventListener('change', (event) => {
