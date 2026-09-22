@@ -5,8 +5,9 @@ import i18n from '../plugins/i18n'
 import {
   WINDOW_SCALE_BASELINE_CHANGE_EVENT,
   WindowScaleBaselineField,
+  WindowScaleStepMode,
   calculateWindowZoomFactor,
-  getWindowScaleFieldRange
+  getWindowScaleAdjustmentStep
 } from './windowScaleBaseline'
 import {
   readWindowScaleBaseline,
@@ -68,10 +69,27 @@ const injectStyle = () => {
 
     #app .window-scale-font-row {
       display: grid !important;
-      grid-template-columns: minmax(108px, 1fr) 28px minmax(72px, 92px) 28px !important;
+      grid-template-columns: minmax(108px, 1fr) minmax(78px, 96px) !important;
       grid-template-rows: auto auto;
       align-items: center;
       gap: 6px !important;
+    }
+
+    #app .window-scale-step-buttons {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+
+    #app .window-scale-step-buttons .window-scale-font-button {
+      width: 100% !important;
+      min-width: 0 !important;
+      height: 27px;
+      padding: 0 4px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     #app .window-scale-font-input {
@@ -96,13 +114,6 @@ const injectStyle = () => {
       margin: 0;
     }
 
-    #app .window-scale-font-slider {
-      grid-column: 1 / -1;
-      width: 100%;
-      min-width: 0;
-      margin: 1px 0 3px;
-      cursor: pointer;
-    }
   `
   document.head.appendChild(style)
 }
@@ -126,56 +137,63 @@ const updateSettingText = (setting: HTMLElement) => {
   }
 }
 
+const formatStepValue = (value: number) => {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
+}
+
+const createStepButton = (
+  field: WindowScaleBaselineField,
+  direction: 'decrease' | 'increase',
+  mode: WindowScaleStepMode
+) => {
+  const label = getFieldLabel(field)
+  const step = getWindowScaleAdjustmentStep(field, mode)
+  const stepText = formatStepValue(step)
+  const sign = direction === 'decrease' ? '−' : '+'
+  const titleKey =
+    mode === 'coarse'
+      ? direction === 'decrease'
+        ? 'settings.windowScale.coarseDecrease'
+        : 'settings.windowScale.coarseIncrease'
+      : direction === 'decrease'
+        ? 'settings.windowScale.fineDecrease'
+        : 'settings.windowScale.fineIncrease'
+  const title = translate(titleKey, { field: label, step: stepText })
+
+  return `
+    <button
+      class="window-scale-font-button"
+      data-baseline-action="${direction}"
+      data-step-mode="${mode}"
+      type="button"
+      aria-label="${title}"
+      title="${title}"
+    >${sign}${stepText}</button>
+  `
+}
+
 const createFieldRow = (field: WindowScaleBaselineField) => {
   const label = getFieldLabel(field)
-  const range = getWindowScaleFieldRange(TARGET, field)
-  const decreaseLabel = translate('settings.windowScale.decrease', {
-    field: label
-  })
-  const increaseLabel = translate('settings.windowScale.increase', {
-    field: label
-  })
+  const fineStep = getWindowScaleAdjustmentStep(field, 'fine')
   const inputHint = translate('settings.windowScale.enterToApply')
-  const sliderHint = translate('settings.windowScale.dragToAdjust', {
-    field: label
-  })
 
   return `
     <div class="window-scale-font-row" data-baseline-field="${field}">
       <span class="window-scale-font-label">${label}</span>
-      <button
-        class="window-scale-font-button"
-        data-baseline-action="decrease"
-        type="button"
-        aria-label="${decreaseLabel}"
-        title="${decreaseLabel}"
-      >−</button>
       <input
         class="window-scale-font-input"
         data-baseline-input="${field}"
         type="number"
-        min="${range.min}"
-        max="${range.max}"
-        step="${range.step}"
-        inputmode="numeric"
+        step="${fineStep}"
+        inputmode="${field === 'baseFontSize' ? 'decimal' : 'numeric'}"
         title="${inputHint}"
       />
-      <button
-        class="window-scale-font-button"
-        data-baseline-action="increase"
-        type="button"
-        aria-label="${increaseLabel}"
-        title="${increaseLabel}"
-      >+</button>
-      <input
-        class="window-scale-font-slider"
-        data-baseline-slider="${field}"
-        type="range"
-        min="${range.min}"
-        max="${range.max}"
-        step="${range.step}"
-        title="${sliderHint}"
-      />
+      <div class="window-scale-step-buttons">
+        ${createStepButton(field, 'decrease', 'coarse')}
+        ${createStepButton(field, 'decrease', 'fine')}
+        ${createStepButton(field, 'increase', 'fine')}
+        ${createStepButton(field, 'increase', 'coarse')}
+      </div>
     </div>
   `
 }
@@ -185,11 +203,9 @@ const renderSettingValues = (setting: HTMLElement) => {
 
   for (const field of BASELINE_FIELDS) {
     const input = setting.querySelector<HTMLInputElement>(`[data-baseline-input="${field}"]`)
-    const slider = setting.querySelector<HTMLInputElement>(`[data-baseline-slider="${field}"]`)
     const value = String(baseline[field])
 
     if (input) input.value = value
-    if (slider) slider.value = value
   }
 }
 
@@ -219,18 +235,11 @@ const installSettingListeners = (setting: HTMLElement) => {
     if (!button || !field) return
 
     const baseline = readWindowScaleBaseline(TARGET)
-    const range = getWindowScaleFieldRange(TARGET, field)
     const direction = button.dataset.baselineAction === 'decrease' ? -1 : 1
+    const mode = button.dataset.stepMode === 'fine' ? 'fine' : 'coarse'
+    const step = getWindowScaleAdjustmentStep(field, mode)
 
-    applyFieldValue(setting, field, baseline[field] + range.step * direction)
-  })
-
-  setting.addEventListener('input', (event) => {
-    const slider = (event.target as HTMLElement).closest<HTMLInputElement>('[data-baseline-slider]')
-    const field = resolveField(slider)
-    if (!slider || !field) return
-
-    applyFieldValue(setting, field, Number(slider.value))
+    applyFieldValue(setting, field, baseline[field] + step * direction)
   })
 
   setting.addEventListener('change', (event) => {
