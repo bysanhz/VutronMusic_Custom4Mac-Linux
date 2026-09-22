@@ -4,14 +4,6 @@
       <LinuxTitleBar v-if="useCustomBar" />
       <Win32TitleBar v-if="isWin" />
 
-      <div class="navigation-buttons">
-        <button-icon @click.stop="router.go(-1)">
-          <svg-icon icon-class="arrow-left" />
-        </button-icon>
-        <button-icon @click.stop="router.go(1)">
-          <svg-icon icon-class="arrow-right" />
-        </button-icon>
-      </div>
       <div v-if="route.name === 'search'" class="search-tabs">
         <div :class="{ active: searchTab === 'track' }" class="item" @click="searchTab = 'track'">{{
           $t('nav.track')
@@ -109,7 +101,6 @@
 
 <script setup lang="ts">
 import { computed, ref, toRefs, onMounted } from 'vue'
-import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import SearchBox from './SearchBox.vue'
 import ContextMenu from './ContextMenu.vue'
@@ -226,19 +217,6 @@ nav {
 nav.has-custom-titlebar {
   padding-top: 20px;
   -webkit-app-region: no-drag;
-}
-
-.navigation-buttons {
-  flex: 0.8;
-  display: flex;
-  align-items: center;
-  .svg-icon {
-    height: 24px;
-    width: 24px;
-  }
-  button {
-    -webkit-app-region: no-drag;
-  }
 }
 
 .search-tabs {
