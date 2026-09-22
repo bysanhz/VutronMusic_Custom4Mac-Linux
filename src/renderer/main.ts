@@ -13,6 +13,7 @@ import './assets/css/global.scss'
 // resize-performance 在拖动期间暂停高成本视觉效果。
 import './assets/css/fluid-window.scss'
 import './assets/css/settings-fluid-layout.scss'
+import './assets/css/interaction-theme.scss'
 import './assets/css/resize-performance.scss'
 // =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
