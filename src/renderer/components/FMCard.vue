@@ -101,23 +101,36 @@ watch(
   background: var(--color-secondary-bg);
   border-radius: 1rem;
   display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
   height: 198px;
   box-sizing: border-box;
+  overflow: hidden;
+  container-type: inline-size;
 }
+
 .cover {
+  flex: 0 1 166px;
+  width: min(166px, 42%);
+  min-width: 0;
   height: 100%;
+  object-fit: cover;
   clip-path: border-box;
   border-radius: 0.75rem;
-  margin-right: 1.2rem;
+  margin-right: clamp(0.65rem, 3cqw, 1.2rem);
   cursor: pointer;
   user-select: none;
 }
+
 .right-part {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   color: var(--color-text);
-  width: 100%;
   .title {
     font-size: 1.6rem;
     font-weight: 600;
@@ -140,11 +153,16 @@ watch(
   }
   .controls {
     display: flex;
+    min-width: 0;
     justify-content: space-between;
     align-items: baseline;
+    gap: 0.35rem;
     margin-left: -0.4rem;
+
     .buttons {
       display: flex;
+      flex: 0 0 auto;
+      min-width: 0;
     }
     .button-icon {
       margin: 0 8px 0 0;
@@ -158,17 +176,71 @@ watch(
       height: 22px;
     }
     .card-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 42%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       font-size: 1rem;
       opacity: 0.18;
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       font-weight: 600;
       user-select: none;
+
       .svg-icon {
+        flex: 0 0 auto;
         width: 18px;
         height: 18px;
         margin-right: 6px;
       }
+    }
+  }
+}
+
+@container (max-width: 420px) {
+  .cover {
+    flex-basis: 138px;
+    width: min(138px, 38%);
+  }
+
+  .right-part {
+    .title {
+      font-size: 1.35rem;
+    }
+
+    .controls {
+      .button-icon {
+        margin-right: 4px;
+      }
+
+      .card-name {
+        max-width: 32%;
+        font-size: 0.86rem;
+      }
+    }
+  }
+}
+
+@container (max-width: 340px) {
+  .cover {
+    flex-basis: 116px;
+    width: min(116px, 36%);
+  }
+
+  .right-part {
+    .title {
+      font-size: 1.18rem;
+    }
+
+    .artist {
+      font-size: 0.9rem;
+    }
+
+    .controls .card-name {
+      display: none;
     }
   }
 }
