@@ -45,7 +45,7 @@ const createStepButton = (direction: 'decrease' | 'increase', mode: 'coarse' | '
       data-step-mode="${mode}"
       aria-label="${title}"
       title="${title}"
-    >${sign}${stepText}</button>
+    >${sign}</button>
   `
 }
 
