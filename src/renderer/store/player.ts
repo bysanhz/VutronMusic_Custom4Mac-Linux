@@ -109,6 +109,12 @@ export const usePlayerStore = defineStore(
     let trackLookupFailureRevision = -1
     let neteaseScrobbledForCurrentSession = false
 
+    // 同一首歌曲的远程音源只自动刷新一次。
+    // 第二次仍无法播放时直接切歌，避免 CORS/坏音源导致 replaceCurrentTrack 无限递归。
+    const MAX_PLAYBACK_SOURCE_RETRIES = 1
+    let playbackSourceRetryTrackId: string | null = null
+    let playbackSourceRetryCount = 0
+
     const isTrackLoadCurrent = (revision: number, track?: Track | null) => {
       if (revision !== trackLoadRevision) return false
       if (!track || !currentTrack.value) return true
@@ -918,6 +924,13 @@ export const usePlayerStore = defineStore(
     const replaceCurrentTrack = async (trackID: number | string, autoPlay = true) => {
       const revision = ++trackLoadRevision
       trackLookupFailureRevision = -1
+
+      const retryTrackId = String(trackID)
+      if (playbackSourceRetryTrackId !== retryTrackId) {
+        playbackSourceRetryTrackId = retryTrackId
+        playbackSourceRetryCount = 0
+      }
+
       cancelSleepTimerForTrackChange(trackID)
       if (autoPlay && currentTrack.value?.name) {
         scrobbleFM(currentTrack.value, seek.value)
@@ -931,13 +944,13 @@ export const usePlayerStore = defineStore(
         if (revision !== trackLoadRevision) return false
         trackLookupFailureRevision = revision
         console.error(`[Player] 获取歌曲信息失败: ${trackID}`, error)
-        showToast('歌曲信息获取失败，未跳过当前歌曲，请稍后重试')
+        showToast(t('toast.trackInfoFailed'))
         return false
       }
       if (revision !== trackLoadRevision) return false
 
       if (!track) {
-        showToast('歌曲信息不存在，正在切换下一首...')
+        showToast(t('toast.trackMissingNext'))
         void _playNextTrack(isPersonalFM.value)
         return false
       }
@@ -965,7 +978,7 @@ export const usePlayerStore = defineStore(
       if (revision !== trackLoadRevision) return false
 
       if (!source) {
-        showToast(track.reason)
+        showToast(track.reason || t('toast.audioSourceUnavailable', { name: track.name }))
         markPlaybackEndReason('playback-error')
         void _playNextTrack(isPersonalFM.value)
         return false
@@ -1095,7 +1108,7 @@ export const usePlayerStore = defineStore(
       let matchTrack = getALocalTrack({ id })
       if (matchTrack) {
         if (!isLocalList.value) {
-          showToast(`使用本地文件播放`)
+          showToast(t('toast.usingLocalFile'))
         }
         matchTrack.source = 'localTrack'
         return matchTrack
@@ -1137,16 +1150,24 @@ export const usePlayerStore = defineStore(
         if (track.type === 'online' && !track.url) {
           return resolve('')
         }
+
         if (track.type === 'local' || track.cache) {
-          resolve(
+          return resolve(
             `atom://local-asset?type=stream&path=${encodeURIComponent(track.cache ? track.url : track.filePath)}`
           )
-        } else {
-          // 设置了代理的歌曲链接好像是 https，直通
-          resolve(
-            track.url.startsWith('https') ? track.url : `atom://get-online-music/${track.url}`
-          )
         }
+
+        const remoteUrl = String(track.url || '')
+        if (!remoteUrl) return resolve('')
+
+        // Renderer 直接加载网易云/UNM 的 HTTP(S) 地址会受目标站 CORS 约束，
+        // 尤其 createMediaElementSource() 会把该失败表现为 DOMException。
+        // 所有公网音频统一交给主进程 atom:// 代理，Range 请求和用户代理配置也由主进程处理。
+        if (/^https?:\/\//i.test(remoteUrl)) {
+          return resolve(`atom://get-online-music/${remoteUrl}`)
+        }
+
+        resolve(remoteUrl)
       })
     }
 
@@ -1268,24 +1289,44 @@ export const usePlayerStore = defineStore(
       window.mainApi?.send('pauseDiscordPresence', cloneDeep(track))
     }
 
+    const handlePlaybackSourceFailure = (error: unknown) => {
+      const track = currentTrack.value
+      if (!track) return
+
+      const trackId = String(track.id)
+      if (playbackSourceRetryTrackId !== trackId) {
+        playbackSourceRetryTrackId = trackId
+        playbackSourceRetryCount = 0
+      }
+
+      console.warn('[Player] 音频播放失败', {
+        trackId: track.id,
+        source: track.source,
+        retryCount: playbackSourceRetryCount,
+        error
+      })
+
+      if (playbackSourceRetryCount < MAX_PLAYBACK_SOURCE_RETRIES) {
+        playbackSourceRetryCount += 1
+        showToast(t('toast.audioSourceRetrying', { name: track.name }))
+        void replaceCurrentTrack(track.id, true)
+        return
+      }
+
+      // 已经刷新过一次仍失败：停止对同一首递归刷新，直接进入下一首。
+      playbackSourceRetryCount = 0
+      showToast(t('toast.audioPlaybackFailedNext', { name: track.name }))
+      markPlaybackEndReason('playback-error')
+      void _playNextTrack(isPersonalFM.value)
+    }
+
     const play = async (): Promise<boolean> => {
       if (!audioNodes.audio) return false
 
       try {
         if (!isValidUrl(currentTrack.value?.url || '')) {
-          const savedProgress = _progress.value
-          await replaceCurrentTrack(currentTrack.value!.id, false)
-          audioNodes.audio!.removeAttribute('src')
-          audioNodes.audio!.load()
-          audioNodes.audio!.src = currentTrack.value!.url!
-          audioNodes.audio!.load()
-          seek.value = savedProgress
-
-          setTimeout(() => {
-            if (!isValidUrl(currentTrack.value?.url || '')) {
-              throw new Error('刷新后 URL 仍然无效')
-            }
-          }, 20)
+          handlePlaybackSourceFailure(new Error('当前音频 URL 已过期或有效期不足'))
+          return false
         }
 
         const arts = currentTrack.value?.artists ?? currentTrack.value?.ar
@@ -1310,24 +1351,28 @@ export const usePlayerStore = defineStore(
 
         playDiscordPresence(currentTrack.value!, audioNodes.audio.currentTime)
         updateNowPlaying()
+
+        playbackSourceRetryTrackId = String(currentTrack.value?.id ?? '')
+        playbackSourceRetryCount = 0
         return !audioNodes.audio.paused
       } catch (error) {
         if (currentTrack.value?.cache) {
+          const cachedTrack = currentTrack.value
           const isOk = (await window.mainApi?.invoke(
             'deleteACacheTrack',
-            currentTrack.value.id
+            cachedTrack.id
           )) as boolean
+
           if (isOk) {
-            replaceCurrentTrack(currentTrack.value!.id, true)
+            showToast(t('toast.audioSourceRetrying', { name: cachedTrack.name }))
+            void replaceCurrentTrack(cachedTrack.id, true)
           } else {
-            showToast(`歌曲 ${currentTrack.value?.name} 播放错误，正在切换下一首...`)
+            showToast(t('toast.audioPlaybackFailedNext', { name: cachedTrack.name }))
             markPlaybackEndReason('playback-error')
-            _playNextTrack(isPersonalFM.value)
+            void _playNextTrack(isPersonalFM.value)
           }
         } else {
-          console.log('==2=2=11=1=1====', error)
-          showToast(`歌曲 ${currentTrack.value?.name} 的音乐链接已过期，正在重新获取...`)
-          replaceCurrentTrack(currentTrack.value!.id, true)
+          handlePlaybackSourceFailure(error)
         }
         return false
       }
