@@ -8,6 +8,7 @@ import 'virtual:svg-icons-register'
 import { createPinia, storeToRefs } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './assets/css/osdlyric.scss'
+import './assets/css/interaction-theme.scss'
 // ======== newADD start======
 import { initializeSmoothOsdWindowScale } from './utils/smoothOsdWindowScale'
 import { initializeOsdFontRendering } from './utils/osdFontRendering'
