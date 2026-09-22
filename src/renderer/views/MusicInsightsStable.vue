@@ -390,8 +390,8 @@ const loadFootprint = async (): Promise<void> => {
     reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
     footprint.totalSeconds = extractTotalListenSeconds(total)
 
-    footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week', 20)
-    footprint.allTracks = extractUserPlayRecord(allRecord, 'all', 20)
+    footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week')
+    footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
   } finally {
     footprintRequestInFlight = false
   }
@@ -627,7 +627,7 @@ onBeforeUnmount(() => {
 .insights-page {
   max-width: 1380px;
   margin: 0 auto;
-  padding: 4px 0 92px;
+  padding: 4px 0 136px;
 }
 
 .hero,
