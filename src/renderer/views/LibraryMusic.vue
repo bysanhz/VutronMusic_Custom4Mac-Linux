@@ -91,7 +91,7 @@
             :class="{ active: currentTab === 'playlist' }"
             @click="updateCurrentTab('playlist')"
           >
-            <span class="text">{{
+            <span class="tab-label">{{
               {
                 all: $t('contextMenu.allPlaylists'),
                 mine: $t('contextMenu.minePlaylists'),
@@ -711,6 +711,12 @@ onUnmounted(() => {
   font-size: var(--app-global-font-size) !important;
 }
 
+:global(#app) .library .section-two .tabs .tab,
+:global(#app) .library .section-two .tabs .tab .tab-label {
+  font-size: 18px !important;
+  line-height: 20px !important;
+}
+
 .section-two {
   position: relative;
   margin-top: 20px;
@@ -730,10 +736,20 @@ onUnmounted(() => {
     .tabs {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       font-size: 18px;
+      line-height: 20px;
       color: var(--color-text);
       -webkit-app-region: no-drag;
+
       .tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        box-sizing: border-box;
+        font-size: inherit;
+        line-height: inherit;
         font-weight: 600;
         padding: 8px 14px;
         margin-right: 14px;
@@ -752,19 +768,24 @@ onUnmounted(() => {
         background-color: var(--color-secondary-bg);
       }
       .tab.dropdown {
-        display: flex;
-        align-items: center;
         padding: 0;
         overflow: hidden;
-        .text {
+
+        .tab-label {
+          display: flex;
+          align-items: center;
+          min-height: 40px;
+          box-sizing: border-box;
           padding: 8px 3px 8px 14px;
-          font-size: inherit;
+          font-size: inherit !important;
           font-weight: inherit;
           line-height: inherit;
           letter-spacing: inherit;
+          white-space: nowrap;
         }
+
         .icon {
-          height: 100%;
+          align-self: stretch;
           display: flex;
           align-items: center;
           padding: 0 8px 0 3px;
