@@ -103,11 +103,11 @@ const injectStyle = () => {
       display: grid;
       grid-template-columns:
         minmax(88px, 1fr)
-        36px
-        28px
+        24px
+        18px
         minmax(56px, 68px)
-        28px
-        36px;
+        18px
+        24px;
       grid-template-rows: 30px;
       align-items: center;
       gap: 4px;
@@ -143,13 +143,12 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button {
-      width: 100%;
       min-width: 0;
-      justify-self: stretch;
+      justify-self: center;
       align-self: center;
-      padding: 0 3px;
+      padding: 0;
       border: 1px solid transparent !important;
-      border-radius: 7px;
+      border-radius: 999px;
       color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5%, transparent) !important;
       cursor: pointer;
@@ -162,17 +161,21 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
+      width: 24px;
       height: 24px;
-      font-size: 10px;
-      font-weight: 720;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 650;
       color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
-      height: 19px;
-      font-size: 8.5px;
-      font-weight: 620;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 600;
       color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
     }
@@ -221,7 +224,7 @@ const createStepButton = (
       data-step-mode="${mode}"
       aria-label="${title}"
       title="${title}"
-    >${sign}${stepText}</button>
+    >${sign}</button>
   `
 }
 
