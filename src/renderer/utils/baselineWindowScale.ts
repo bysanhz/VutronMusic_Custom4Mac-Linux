@@ -71,14 +71,14 @@ const injectStyle = () => {
       display: grid !important;
       grid-template-columns:
         minmax(82px, 1fr)
-        42px
-        34px
-        minmax(58px, 72px)
-        34px
-        42px !important;
+        36px
+        28px
+        minmax(56px, 68px)
+        28px
+        36px !important;
       grid-template-rows: 30px;
       align-items: center;
-      gap: 5px !important;
+      gap: 4px !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button {
@@ -101,17 +101,17 @@ const injectStyle = () => {
     }
 
     #app .window-scale-font-row .window-scale-font-button[data-step-mode='coarse'] {
-      height: 26px;
-      font-size: 12px;
-      font-weight: 740;
+      height: 24px;
+      font-size: 11px;
+      font-weight: 720;
       color: color-mix(in srgb, var(--color-primary) 60%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5.5%, transparent) !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button[data-step-mode='fine'] {
-      height: 21px;
-      font-size: 10px;
-      font-weight: 640;
+      height: 19px;
+      font-size: 9.5px;
+      font-weight: 620;
       color: color-mix(in srgb, var(--color-primary) 44%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3%, transparent) !important;
     }
@@ -125,7 +125,7 @@ const injectStyle = () => {
     #app .window-scale-font-input {
       width: 100%;
       min-width: 0;
-      height: 28px;
+      height: 27px;
       padding: 0 6px;
       box-sizing: border-box;
       border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
