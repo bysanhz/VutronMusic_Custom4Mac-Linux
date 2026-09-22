@@ -366,7 +366,7 @@ export const initializeBaselineWindowScale = () => {
     const contentWidth = Math.max(1, window.innerWidth * currentZoomFactor)
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
     const baseline = readWindowScaleBaseline(TARGET)
-    const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline)
+    const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline, TARGET)
 
     document.documentElement.style.setProperty(
       '--main-window-zoom-factor',
