@@ -15,7 +15,7 @@
       </div>
     </template>
     <template #footer>
-      <button class="primary block" @click="updateDir">更新</button>
+      <button class="primary block" @click="updateDir">{{ $t('common.update') }}</button>
     </template>
   </BaseModal>
 </template>
