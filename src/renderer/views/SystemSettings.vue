@@ -156,7 +156,7 @@
             >
           </div>
           <div class="item">
-            <div>{{ $t('settings.theme.accent') }}：</div>
+            <div>{{ $t('settings.theme.themeColor') }}：</div>
             <div class="colors">
               <div
                 v-for="color of colors.slice(0, 4)"
