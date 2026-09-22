@@ -24,13 +24,13 @@
                   :title="$t('player.switchTranslation')"
                   @click="switchTransitionMode"
                 >
-                  <label v-show="hasTLyric" :class="{ active: nTranslationMode === 'tlyric' }"
-                    >译</label
-                  >
+                  <label v-show="hasTLyric" :class="{ active: nTranslationMode === 'tlyric' }">{{
+                    $t('player.translationShort')
+                  }}</label>
                   <label v-if="hasTLyric && hasRLyric" class="m-label">|</label>
-                  <label v-show="hasRLyric" :class="{ active: nTranslationMode === 'rlyric' }"
-                    >音</label
-                  >
+                  <label v-show="hasRLyric" :class="{ active: nTranslationMode === 'rlyric' }">{{
+                    $t('player.romanizationShort')
+                  }}</label>
                 </div>
                 <button-icon
                   :title="
