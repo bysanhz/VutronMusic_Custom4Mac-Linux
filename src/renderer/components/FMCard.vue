@@ -1,29 +1,30 @@
 <template>
   <div class="fm" :style="{ background }" data-theme="dark">
-    <img class="cover" :src="image" loading="lazy" @click="goToAlbum" />
+    <div class="media-column">
+      <img class="cover" :src="image" loading="lazy" @click="goToAlbum" />
+      <div class="buttons">
+        <button-icon :title="$t('fm.dislike')" @click="moveToFMTrash">
+          <svg-icon id="thumbs-down" icon-class="thumbs-down" />
+        </button-icon>
+        <button-icon
+          :title="$t(isPlaying ? 'player.pause' : 'player.play')"
+          class="play"
+          @click="playPersonalFM"
+        >
+          <svg-icon :icon-class="isPlaying ? 'pause' : 'play'" />
+        </button-icon>
+        <button-icon :title="$t('player.next')" @click="playNextFMTrack">
+          <svg-icon icon-class="next" />
+        </button-icon>
+      </div>
+    </div>
+
     <div class="right-part">
       <div class="info">
         <div class="title">{{ track.name }}</div>
         <div class="artist"><ArtistsInLine :artists="artists" /></div>
       </div>
-      <div class="controls">
-        <div class="buttons">
-          <button-icon :title="$t('fm.dislike')" @click="moveToFMTrash">
-            <svg-icon id="thumbs-down" icon-class="thumbs-down" />
-          </button-icon>
-          <button-icon
-            :title="$t(isPlaying ? 'player.pause' : 'player.play')"
-            class="play"
-            @click="playPersonalFM"
-          >
-            <svg-icon :icon-class="isPlaying ? 'pause' : 'play'" />
-          </button-icon>
-          <button-icon :title="$t('player.next')" @click="playNextFMTrack">
-            <svg-icon icon-class="next" />
-          </button-icon>
-        </div>
-        <div class="card-name"><svg-icon icon-class="fm" />{{ $t('fm.title') }}</div>
-      </div>
+      <div class="card-name"><svg-icon icon-class="fm" />{{ $t('fm.title') }}</div>
     </div>
   </div>
 </template>
@@ -100,8 +101,10 @@ watch(
   padding: 1rem;
   background: var(--color-secondary-bg);
   border-radius: 1rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(118px, 38%) minmax(0, 1fr);
   align-items: stretch;
+  column-gap: clamp(0.9rem, 3.2cqw, 1.35rem);
   width: 100%;
   min-width: 0;
   height: 198px;
@@ -110,38 +113,77 @@ watch(
   container-type: inline-size;
 }
 
-.cover {
-  flex: 0 1 166px;
-  width: min(166px, 42%);
+.media-column {
   min-width: 0;
   height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 34px;
+  align-items: center;
+  justify-items: stretch;
+  row-gap: 5px;
+}
+
+.cover {
+  justify-self: start;
+  width: min(100%, 138px);
+  height: 100%;
+  max-height: 127px;
+  aspect-ratio: 1;
   object-fit: cover;
   clip-path: border-box;
   border-radius: 0.75rem;
-  margin-right: clamp(0.65rem, 3cqw, 1.2rem);
   cursor: pointer;
   user-select: none;
 }
 
-.right-part {
-  flex: 1 1 0;
+.buttons {
+  width: min(100%, 138px);
   min-width: 0;
-  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .button-icon {
+    margin: 0;
+    padding: 5px;
+  }
+
+  .svg-icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  .svg-icon#thumbs-down {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+.right-part {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  padding: 0.15rem 0 0.05rem;
   color: var(--color-text);
+
+  .info {
+    min-width: 0;
+    padding-left: 0.15rem;
+  }
+
   .title {
-    font-size: 1.6rem;
+    font-size: 1.55rem;
     font-weight: 600;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.55rem;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    word-break: break-all;
+    word-break: break-word;
   }
+
   .artist {
     opacity: 0.68;
     display: -webkit-box;
@@ -149,103 +191,79 @@ watch(
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    word-break: break-all;
+    word-break: break-word;
   }
-  .controls {
-    display: flex;
+
+  .card-name {
+    align-self: flex-end;
     min-width: 0;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.35rem;
-    margin-left: -0.4rem;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+    opacity: 0.22;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-weight: 600;
+    user-select: none;
 
-    .buttons {
-      display: flex;
-      flex: 0 0 auto;
-      min-width: 0;
-    }
-    .button-icon {
-      margin: 0 8px 0 0;
-    }
     .svg-icon {
-      width: 24px;
-      height: 24px;
-    }
-    .svg-icon#thumbs-down {
-      width: 22px;
-      height: 22px;
-    }
-    .card-name {
       flex: 0 0 auto;
-      min-width: max-content;
-      max-width: none;
-      overflow: visible;
-      white-space: nowrap;
-      text-overflow: clip;
-      font-size: 1rem;
-      opacity: 0.18;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      font-weight: 600;
-      user-select: none;
-
-      .svg-icon {
-        flex: 0 0 auto;
-        width: 18px;
-        height: 18px;
-        margin-right: 6px;
-      }
+      width: 17px;
+      height: 17px;
+      margin-right: 5px;
     }
   }
 }
 
 @container (max-width: 420px) {
+  .fm {
+    grid-template-columns: minmax(108px, 36%) minmax(0, 1fr);
+    column-gap: 0.85rem;
+  }
+
   .cover {
-    flex-basis: 138px;
-    width: min(138px, 38%);
+    width: min(100%, 122px);
+    max-height: 116px;
+  }
+
+  .buttons {
+    width: min(100%, 122px);
+
+    .button-icon {
+      padding: 4px;
+    }
+
+    .svg-icon {
+      width: 21px;
+      height: 21px;
+    }
+
+    .svg-icon#thumbs-down {
+      width: 19px;
+      height: 19px;
+    }
   }
 
   .right-part {
     .title {
-      font-size: 1.35rem;
+      font-size: 1.3rem;
+      margin-bottom: 0.38rem;
     }
 
-    .controls {
-      .button-icon {
-        margin-right: 4px;
-      }
+    .artist {
+      font-size: 0.92rem;
+    }
 
-      .buttons {
-        gap: 0;
-      }
-
-      .button-icon {
-        padding: 5px;
-        margin-right: 2px;
-      }
+    .card-name {
+      font-size: 0.78rem;
 
       .svg-icon {
-        width: 22px;
-        height: 22px;
-      }
-
-      .svg-icon#thumbs-down {
-        width: 20px;
-        height: 20px;
-      }
-
-      .card-name {
-        flex: 0 0 auto;
-        min-width: max-content;
-        max-width: none;
-        font-size: 0.8rem;
-
-        .svg-icon {
-          width: 15px;
-          height: 15px;
-          margin-right: 4px;
-        }
+        width: 14px;
+        height: 14px;
+        margin-right: 4px;
       }
     }
   }
@@ -254,56 +272,55 @@ watch(
 @container (max-width: 340px) {
   .fm {
     padding: 0.8rem;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    column-gap: 0.65rem;
+  }
+
+  .media-column {
+    grid-template-rows: minmax(0, 1fr) 30px;
+    row-gap: 3px;
   }
 
   .cover {
-    flex-basis: 96px;
-    width: min(96px, 32%);
-    margin-right: 0.55rem;
+    width: min(100%, 96px);
+    max-height: 94px;
+  }
+
+  .buttons {
+    width: min(100%, 96px);
+
+    .button-icon {
+      padding: 2px;
+    }
+
+    .svg-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .svg-icon#thumbs-down {
+      width: 17px;
+      height: 17px;
+    }
   }
 
   .right-part {
     .title {
-      font-size: 1.08rem;
-      margin-bottom: 0.35rem;
+      font-size: 1.05rem;
+      margin-bottom: 0.28rem;
     }
 
     .artist {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
     }
 
-    .controls {
-      gap: 0.2rem;
-      margin-left: -0.2rem;
-
-      .button-icon {
-        padding: 3px;
-        margin-right: 1px;
-      }
+    .card-name {
+      font-size: 0.68rem;
 
       .svg-icon {
-        width: 20px;
-        height: 20px;
-      }
-
-      .svg-icon#thumbs-down {
-        width: 18px;
-        height: 18px;
-      }
-
-      .card-name {
-        display: flex;
-        flex: 0 0 auto;
-        min-width: max-content;
-        max-width: none;
-        font-size: 0.72rem;
-        white-space: nowrap;
-
-        .svg-icon {
-          width: 14px;
-          height: 14px;
-          margin-right: 3px;
-        }
+        width: 12px;
+        height: 12px;
+        margin-right: 3px;
       }
     }
   }
