@@ -1,8 +1,10 @@
 <template>
   <div v-show="show" class="personalized-tracks-page">
     <div class="hero">
-      <div class="title gradient">{{ t('personalizedTracks.title') }}</div>
-      <div class="subtitle">{{ t('personalizedTracks.description') }}</div>
+      <div class="hero-copy">
+        <div class="title">{{ t('personalizedTracks.title') }}</div>
+        <div class="subtitle">{{ t('personalizedTracks.description') }}</div>
+      </div>
       <div class="actions">
         <ButtonTwoTone
           class="play-button"
@@ -24,6 +26,8 @@
       :colunm-number="1"
       type="url"
       :is-end="true"
+      :enable-virtual-scroll="false"
+      :padding-bottom="0"
     />
   </div>
 </template>
@@ -128,48 +132,63 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .personalized-tracks-page {
-  padding-bottom: 24px;
+  padding: 28px 0 120px;
 }
 
 .hero {
-  padding: 118px 0 64px;
-  text-align: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 34px 0 30px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.hero-copy {
+  min-width: 0;
 }
 
 .title {
-  font-size: clamp(56px, 8vw, 84px);
-  line-height: 1.05;
-  font-weight: 760;
-  letter-spacing: 2px;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-text);
+  font-size: clamp(38px, 5vw, 58px);
+  line-height: 1;
+  font-weight: 780;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin-top: 22px;
-  font-size: 16px;
+  margin-top: 12px;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--color-text);
-  opacity: 0.6;
+  opacity: 0.56;
 }
 
 .actions {
-  margin-top: 28px;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
-.gradient {
-  background: linear-gradient(to left, var(--color-primary), #ff6b81);
-}
+@media (max-width: 760px) {
+  .personalized-tracks-page {
+    padding-top: 18px;
+  }
 
-@media (max-width: 720px) {
   .hero {
-    padding-top: 88px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 24px;
   }
 
   .actions {
+    width: 100%;
+    justify-content: flex-start;
     flex-wrap: wrap;
   }
 }
