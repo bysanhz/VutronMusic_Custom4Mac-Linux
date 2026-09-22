@@ -4,6 +4,7 @@
       <LinuxTitleBar v-if="useCustomBar" />
       <Win32TitleBar v-if="isWin" />
 
+      <div class="nav-left-spacer" aria-hidden="true"></div>
       <div v-if="route.name === 'search'" class="search-tabs">
         <div :class="{ active: searchTab === 'track' }" class="item" @click="searchTab = 'track'">{{
           $t('nav.track')
@@ -217,6 +218,12 @@ nav {
 nav.has-custom-titlebar {
   padding-top: 20px;
   -webkit-app-region: no-drag;
+}
+
+.nav-left-spacer {
+  flex: 0.8;
+  min-width: 0;
+  pointer-events: none;
 }
 
 .search-tabs {
