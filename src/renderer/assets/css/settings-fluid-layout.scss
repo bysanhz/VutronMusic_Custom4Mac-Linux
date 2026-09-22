@@ -159,7 +159,12 @@
 #app .system-settings .window-scale-step-buttons {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns:
+    minmax(0, 1.18fr)
+    minmax(0, 0.82fr)
+    minmax(0, 0.82fr)
+    minmax(0, 1.18fr);
+  align-items: center;
   gap: 6px;
   width: 100%;
 }
@@ -181,7 +186,6 @@
 #app .system-settings .window-scale-font-button {
   width: 100%;
   min-width: 0;
-  height: 28px;
   padding: 0 4px;
   border: 0;
   border-radius: 7px;
@@ -193,6 +197,21 @@
     background 0.15s ease,
     opacity 0.15s ease,
     transform 0.15s ease;
+}
+
+
+#app .system-settings .window-scale-font-button[data-step-mode='coarse'] {
+  height: 31px;
+  font-size: 15px;
+  font-weight: 820;
+  align-self: center;
+}
+
+#app .system-settings .window-scale-font-button[data-step-mode='fine'] {
+  height: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  align-self: center;
 }
 
 #app .system-settings .window-scale-font-button:hover:not(:disabled) {
