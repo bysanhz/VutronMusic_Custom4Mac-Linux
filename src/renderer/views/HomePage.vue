@@ -97,7 +97,13 @@ import { toplistOfArtists } from '../api/artist'
 import { newAlbums } from '../api/album'
 import { toplists } from '../api/playlist'
 import { homepageBlockPage } from '../api/modern'
-import { extractArtists, extractPlaylists, extractTracks } from '../services/neteaseModern'
+import {
+  extractArtists,
+  extractCursor,
+  extractPlaylists,
+  extractTracks,
+  setPersonalizedTrackSnapshot
+} from '../services/neteaseModern'
 import { getRecommendPlayList } from '../utils/playlist'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import CoverRow from '../components/CoverRow.vue'
@@ -196,7 +202,9 @@ const loadPersonalizedHome = async (revision: number) => {
   const result = await homepageBlockPage({ refresh: false })
   if (revision !== loadRevision.value || !result) return
 
-  personalizedTracks.value = extractTracks(result, 5)
+  const trackSnapshot = extractTracks(result, 200)
+  setPersonalizedTrackSnapshot(trackSnapshot, extractCursor(result))
+  personalizedTracks.value = trackSnapshot.slice(0, 5)
   personalizedPlaylists.value = extractPlaylists(result, 10)
 
   const artists = extractArtists(result, 6)
