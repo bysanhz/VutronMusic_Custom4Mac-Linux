@@ -833,3 +833,59 @@
 #app .mv-page .video-info .btns button:active {
   background: var(--theme-interaction-medium) !important;
 }
+
+
+/* ==================== 播放器 / 歌曲操作 ==================== */
+
+#app .play-page .player-button:hover,
+#app .play-page .controls .button-icon:hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .play-page .player-button:hover .svg-icon,
+#app .play-page .controls .button-icon:hover .svg-icon {
+  color: var(--color-primary) !important;
+}
+
+#app .play-page .transPro label:hover,
+#app .play-page .transPro .active {
+  color: var(--color-primary) !important;
+  opacity: 1 !important;
+}
+
+#app .trackitem:hover {
+  background: var(--theme-interaction-weak) !important;
+}
+
+#app .trackitem.focus {
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .trackitem:hover .track img {
+  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
+}
+
+#app .trackitem .actions button:hover {
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .trackitem .artist a:hover,
+#app .trackitem .mv-icon:hover {
+  color: var(--color-primary) !important;
+}
+
+/* 点赞属于“选中”而非危险语义，统一改成主题色。 */
+#app :is(.liked, .like.active, .control-like.liked) .svg-icon,
+#app :is(.liked, .like.active) {
+  color: var(--color-primary) !important;
+}
+
+#lyric .control-like.liked {
+  color: var(--color-primary) !important;
+}
+
+#lyric .control-like.liked:hover {
+  color: var(--color-primary) !important;
+  filter: drop-shadow(0 0 5px var(--theme-interaction-ring));
+}
