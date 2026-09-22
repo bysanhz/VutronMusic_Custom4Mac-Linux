@@ -665,6 +665,16 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
+/*
+ * 非虚拟模式用于首页短预览、完整推荐列表等普通页面流内容。
+ * 容器高度已经由完整 listHeight 计算，因此自身不应再成为滚动容器；
+ * 滚动统一交给外层 #main，避免“列表里再套一层滚动”。
+ */
+.infinite-list-container--outer-flow {
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
+}
+
 .load-more-sentinel {
   position: absolute;
   left: 0;
