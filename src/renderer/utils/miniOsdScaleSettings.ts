@@ -2,6 +2,7 @@
 import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
+import { getWindowScaleAdjustmentStep } from './windowScaleBaseline'
 import { readWindowScaleBaseline } from './windowScaleBaselineStorage'
 
 const TARGET = 'osd-small' as const
@@ -17,19 +18,42 @@ const translate = (key: string, params?: Record<string, string>) => {
   return params ? String(i18n.global.t(key, params)) : String(i18n.global.t(key))
 }
 
+const formatStepValue = (value: number) => {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
+}
+
+const createStepButton = (direction: 'decrease' | 'increase', mode: 'coarse' | 'fine') => {
+  const label = translate('settings.windowScale.miniControlBaseSize')
+  const step = getWindowScaleAdjustmentStep(FIELD, mode)
+  const stepText = formatStepValue(step)
+  const sign = direction === 'decrease' ? '−' : '+'
+  const titleKey =
+    mode === 'coarse'
+      ? direction === 'decrease'
+        ? 'settings.windowScale.coarseDecrease'
+        : 'settings.windowScale.coarseIncrease'
+      : direction === 'decrease'
+        ? 'settings.windowScale.fineDecrease'
+        : 'settings.windowScale.fineIncrease'
+  const title = translate(titleKey, { field: label, step: stepText })
+
+  return `
+    <button
+      type="button"
+      class="osd-window-scale-button"
+      data-action="${direction}"
+      data-step-mode="${mode}"
+      aria-label="${title}"
+      title="${title}"
+    >${sign}${stepText}</button>
+  `
+}
+
 const createRow = () => {
   const label = translate('settings.windowScale.miniControlBaseSize')
-  const decreaseLabel = translate('settings.windowScale.decrease', {
-    field: label
-  })
-  const increaseLabel = translate('settings.windowScale.increase', {
-    field: label
-  })
   const inputHint = translate('settings.windowScale.enterToApply')
-  const sliderHint = translate('settings.windowScale.dragToAdjust', {
-    field: label
-  })
   const baseline = readWindowScaleBaseline(TARGET)
+  const fineStep = getWindowScaleAdjustmentStep(FIELD, 'fine')
 
   const row = document.createElement('div')
   row.id = ROW_ID
@@ -38,36 +62,21 @@ const createRow = () => {
   row.dataset.field = FIELD
   row.innerHTML = `
     <span class="osd-window-scale-label">${label}</span>
-    <button
-      type="button"
-      class="osd-window-scale-button"
-      data-action="decrease"
-      aria-label="${decreaseLabel}"
-      title="${decreaseLabel}"
-    >−</button>
     <input
       type="number"
       class="osd-window-scale-input"
       data-value="${FIELD}"
-      step="0.1"
+      step="${fineStep}"
       inputmode="decimal"
       value="${baseline.miniControlBaseSize}"
       title="${inputHint}"
     />
-    <button
-      type="button"
-      class="osd-window-scale-button"
-      data-action="increase"
-      aria-label="${increaseLabel}"
-      title="${increaseLabel}"
-    >+</button>
-    <input
-      type="range"
-      class="osd-window-scale-slider"
-      data-slider="${FIELD}"
-      value="0"
-      title="${sliderHint}"
-    />
+    <div class="osd-window-scale-step-buttons">
+      ${createStepButton('decrease', 'coarse')}
+      ${createStepButton('decrease', 'fine')}
+      ${createStepButton('increase', 'fine')}
+      ${createStepButton('increase', 'coarse')}
+    </div>
   `
   return row
 }
