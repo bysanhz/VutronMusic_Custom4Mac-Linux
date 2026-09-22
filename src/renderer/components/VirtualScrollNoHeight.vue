@@ -671,8 +671,24 @@ onBeforeUnmount(() => {
  * 滚动统一交给外层 #main，避免“列表里再套一层滚动”。
  */
 .infinite-list-container--outer-flow {
-  overflow-y: hidden !important;
+  height: auto !important;
+  overflow: visible !important;
   overscroll-behavior: none;
+}
+
+.infinite-list-container--outer-flow .infinite-list-phantom,
+.infinite-list-container--outer-flow .load-more-sentinel {
+  display: none;
+}
+
+.infinite-list-container--outer-flow .infinite-list {
+  position: static;
+  transform: none !important;
+  width: 100%;
+}
+
+.infinite-list-container--outer-flow .infinite-list-item-container {
+  min-height: 0;
 }
 
 .load-more-sentinel {
