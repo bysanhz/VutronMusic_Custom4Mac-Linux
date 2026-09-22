@@ -40,7 +40,7 @@
     <div v-if="personalizedTracks.length" class="index-row">
       <div class="title">
         {{ t('home.guessYouLike') }}
-        <a @click="router.push('/insights')">{{ $t('home.seeMore') }}</a>
+        <a @click="router.push({ name: 'personalizedTracks' })">{{ $t('home.seeMore') }}</a>
       </div>
       <TrackList
         id="home-personalized-tracks"
