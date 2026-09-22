@@ -3,13 +3,14 @@
     ref="listRef"
     :list="mvs"
     :gap="gap"
-    :column-number="5"
+    :column-number="columnNumber"
     :is-end="isEnd"
-    :item-size="162.5"
+    :item-size="itemSize"
     :show-position="showPosition"
     :show-footer="false"
     :padding-bottom="paddingBottom"
     :load-more="loadMore"
+    :enable-virtual-scroll="enableVirtualScroll"
   >
     <template #default="{ item }">
       <div class="mv">
@@ -19,7 +20,7 @@
           @mouseleave="hoverVideoID = 0"
           @click="goToMv(getID(item))"
         >
-          <img :src="getUrl(item)" loading="lazy" />
+          <img :src="getUrl(item)" loading="lazy" decoding="async" fetchpriority="low" />
           <transition name="fade">
             <div
               v-show="hoverVideoID === getID(item)"
@@ -60,6 +61,18 @@ const props = defineProps({
   gap: {
     type: Number,
     default: 20
+  },
+  columnNumber: {
+    type: Number,
+    default: 5
+  },
+  itemSize: {
+    type: Number,
+    default: 162.5
+  },
+  enableVirtualScroll: {
+    type: Boolean,
+    default: true
   },
   showPosition: {
     type: Boolean,
@@ -118,8 +131,9 @@ const getSubTitle = (item: { [key: string]: any }) => {
 }
 
 const getUrl = (item: { [key: string]: any }) => {
-  const url = item.imgurl16v9 ?? item.cover ?? item.coverUrl
-  return url.replace(/^http:/, 'https:') + '?param=464y260'
+  const url = item.imgurl16v9 ?? item.cover ?? item.coverUrl ?? ''
+  if (!url) return 'atom://get-default-pic'
+  return url.replace(/^http:/, 'https:') + '?param=960y540'
 }
 
 // const updatePadding = inject('updatePadding') as (padding: number) => void
