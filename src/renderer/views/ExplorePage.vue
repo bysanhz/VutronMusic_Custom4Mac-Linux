@@ -215,6 +215,8 @@
         :colunm-number="1"
         type="playlist"
         :is-end="true"
+        :enable-virtual-scroll="false"
+        :padding-bottom="0"
       />
       <div v-else-if="show" class="empty-state">{{ t('explore.noStyleSongs') }}</div>
     </div>
@@ -227,6 +229,8 @@
         :colunm-number="1"
         type="playlist"
         :is-end="true"
+        :enable-virtual-scroll="false"
+        :padding-bottom="0"
       />
       <MvRow
         v-else-if="show && followingMode === 'mv' && followingMvs.length"
