@@ -366,6 +366,8 @@
     "resetPlayer": "Reset Player State",
     "like": "Like",
     "switchTranslation": "Switch translation/romanization",
+    "translationShort": "Tr",
+    "romanizationShort": "Ro",
     "moreActions": "More actions",
     "playerTheme": "Player theme",
     "collapsePlayer": "Collapse player",
@@ -400,6 +402,7 @@
     "frequad": {
       "title": "Equalizer Settings",
       "reset": "Reset",
+      "newPreset": "New preset…",
       "classical": "Classical",
       "dance": "Dance",
       "electronic": "Electronic",
@@ -901,7 +904,11 @@
     "removedFromPlaylist": "Removed from playlist",
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Deletion failed",
-    "copySuccess": "Copied successfully"
+    "copySuccess": "Copied successfully",
+    "localMusicUpdated": "Local tracks updated",
+    "localMusicScanError": "Failed to scan local tracks. See the Developer Tools console for details.",
+    "downloadProgress": "Downloading update: {percent}%",
+    "downloadError": "Update download failed"
   },
   "next": {
     "nowPlaying": "Now Playing",
