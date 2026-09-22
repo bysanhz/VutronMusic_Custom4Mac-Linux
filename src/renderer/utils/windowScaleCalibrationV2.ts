@@ -2,7 +2,12 @@
 import { watch } from 'vue'
 import type { Router } from 'vue-router'
 import i18n from '../plugins/i18n'
-import type { WindowScaleCalibrationField, WindowScaleTarget } from './windowScaleBaseline'
+import type {
+  WindowScaleCalibrationField,
+  WindowScaleStepMode,
+  WindowScaleTarget
+} from './windowScaleBaseline'
+import { getWindowScaleAdjustmentStep } from './windowScaleBaseline'
 import {
   cancelWindowScaleCalibration,
   clearWindowScaleCalibrationPreviews,
@@ -18,10 +23,8 @@ const RESET_CLASS = 'window-scale-baseline-reset-v2'
 const SETTINGS_SELECTOR = '#app .system-settings'
 const MAIN_SETTING_SELECTOR = '#app .system-settings .app-font-size-setting.window-scale-font-range'
 const OSD_CONTROL_SELECTOR = '#osd-window-scale-baseline-setting'
-const RELATIVE_SLIDER_RANGE = 100
 
 const activeTargets = new Set<WindowScaleTarget>()
-const sliderStartValues = new WeakMap<HTMLInputElement, number>()
 let originalOsdLyricRaw: string | null | undefined
 let observer: MutationObserver | null = null
 let decorateFrame: number | null = null
@@ -128,9 +131,6 @@ const injectStyle = () => {
       transform: scale(0.97);
     }
 
-    input[data-relative-window-scale-slider='true'] {
-      accent-color: var(--color-primary, #335eea);
-    }
   `
   document.head.appendChild(style)
 }
@@ -209,22 +209,6 @@ const getNumberInputs = (target: WindowScaleTarget, field?: WindowScaleCalibrati
   return Array.from(container.querySelectorAll<HTMLInputElement>(selector))
 }
 
-const getSliders = (target: WindowScaleTarget, field?: WindowScaleCalibrationField) => {
-  const container = getTargetContainer(target)
-  if (!container) return []
-
-  const selector =
-    target === 'main'
-      ? field
-        ? `[data-baseline-slider="${field}"]`
-        : '[data-baseline-slider]'
-      : field
-        ? `[data-slider="${field}"]`
-        : '[data-slider]'
-
-  return Array.from(container.querySelectorAll<HTMLInputElement>(selector))
-}
-
 const renderTargetValues = (
   target: WindowScaleTarget,
   baseline = readWindowScaleBaseline(target),
@@ -246,20 +230,6 @@ const decorateInput = (input: HTMLInputElement) => {
   input.removeAttribute('min')
   input.removeAttribute('max')
   input.step = isScaleField(getFieldFromElement(input)) ? '0.1' : '1'
-}
-
-const decorateSlider = (slider: HTMLInputElement) => {
-  slider.dataset.relativeWindowScaleSlider = 'true'
-  slider.min = String(-RELATIVE_SLIDER_RANGE)
-  slider.max = String(RELATIVE_SLIDER_RANGE)
-  slider.step = '1'
-
-  if (!sliderStartValues.has(slider)) slider.value = '0'
-}
-
-const resetRelativeSlider = (slider: HTMLInputElement) => {
-  slider.value = '0'
-  sliderStartValues.delete(slider)
 }
 
 const beginOsdModePreview = (target: 'osd-small' | 'osd-normal') => {
@@ -430,32 +400,18 @@ const previewFieldValue = (
   ensureActions(target)
 }
 
-const getButtonStep = (field: WindowScaleCalibrationField) => {
-  if (field === 'cornerRadius') return 1
-  return isScaleField(field) ? 0.5 : 10
-}
-
-const getRelativeSliderStep = (field: WindowScaleCalibrationField, startValue: number) => {
-  if (isScaleField(field)) {
-    return Math.max(0.05, startValue / 200)
-  }
-  return Math.max(1, Math.round(startValue / 200))
-}
-
 const resetTargetToDefault = (target: WindowScaleTarget) => {
   if (activeTargets.has(target)) {
     finishTargetCalibration(target, 'cancel')
   }
 
   const baseline = resetWindowScaleBaseline(target)
-  getSliders(target).forEach(resetRelativeSlider)
   renderTargetValues(target, baseline)
   ensureActions(target)
 }
 
 const decorateTarget = (target: WindowScaleTarget) => {
   getNumberInputs(target).forEach(decorateInput)
-  getSliders(target).forEach(decorateSlider)
   ensureResetControl(target)
   ensureActions(target)
   renderTargetValues(target, readWindowScaleBaseline(target), true)
@@ -498,45 +454,8 @@ const confirmAllCalibrations = () => {
   }
 }
 
-const handlePointerDown = (event: Event) => {
-  const slider = (event.target as HTMLElement).closest<HTMLInputElement>(
-    '[data-relative-window-scale-slider="true"]'
-  )
-  const target = getTargetFromElement(slider)
-  const field = getFieldFromElement(slider)
-  if (!slider || !target || !field) return
-
-  sliderStartValues.set(slider, readWindowScaleBaseline(target)[field])
-}
-
-const handleInput = (event: Event) => {
-  const slider = (event.target as HTMLElement).closest<HTMLInputElement>(
-    '[data-relative-window-scale-slider="true"]'
-  )
-  const target = getTargetFromElement(slider)
-  const field = getFieldFromElement(slider)
-  if (!slider || !target || !field) return
-
-  event.stopImmediatePropagation()
-  event.stopPropagation()
-
-  const startValue = sliderStartValues.get(slider) ?? readWindowScaleBaseline(target)[field]
-  const delta = Number(slider.value)
-  const step = getRelativeSliderStep(field, startValue)
-  previewFieldValue(target, field, startValue + delta * step)
-}
-
 const handleChange = (event: Event) => {
   const element = event.target as HTMLElement
-  const slider = element.closest<HTMLInputElement>('[data-relative-window-scale-slider="true"]')
-
-  if (slider) {
-    event.stopImmediatePropagation()
-    event.stopPropagation()
-    resetRelativeSlider(slider)
-    return
-  }
-
   const input = element.closest<HTMLInputElement>('[data-baseline-input], [data-value]')
   const target = getTargetFromElement(input)
   const field = getFieldFromElement(input)
@@ -605,16 +524,16 @@ const handleClick = (event: MouseEvent) => {
 
   const action = stepButton.dataset.baselineAction || stepButton.dataset.action
   const direction = action === 'decrease' ? -1 : 1
+  const mode: WindowScaleStepMode = stepButton.dataset.stepMode === 'fine' ? 'fine' : 'coarse'
   const current = readWindowScaleBaseline(target)[field]
-  previewFieldValue(target, field, current + getButtonStep(field) * direction)
+  const step = getWindowScaleAdjustmentStep(field, mode)
+  previewFieldValue(target, field, current + step * direction)
 }
 
 export const initializeWindowScaleCalibrationV2 = (router: Router) => {
   clearWindowScaleCalibrationPreviews()
   injectStyle()
 
-  document.addEventListener('pointerdown', handlePointerDown, true)
-  document.addEventListener('input', handleInput, true)
   document.addEventListener('change', handleChange, true)
   document.addEventListener('keydown', handleKeyDown, true)
   document.addEventListener('click', handleClick, true)
@@ -640,8 +559,6 @@ export const initializeWindowScaleCalibrationV2 = (router: Router) => {
     removeAfterEach()
     stopLocaleWatch()
     window.removeEventListener('beforeunload', cancelAllCalibrations)
-    document.removeEventListener('pointerdown', handlePointerDown, true)
-    document.removeEventListener('input', handleInput, true)
     document.removeEventListener('change', handleChange, true)
     document.removeEventListener('keydown', handleKeyDown, true)
     document.removeEventListener('click', handleClick, true)
