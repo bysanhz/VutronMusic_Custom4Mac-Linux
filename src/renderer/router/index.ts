@@ -106,6 +106,15 @@ const routes = [
     }
   },
   {
+    path: '/recommend/tracks',
+    name: 'personalizedTracks',
+    component: () => import('../views/PersonalizedTracks.vue'),
+    meta: {
+      keepAlive: true,
+      savePosition: true
+    }
+  },
+  {
     path: '/login/account',
     name: 'loginAccount',
     component: () => import('../views/LoginAccount.vue'),
