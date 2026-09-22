@@ -2,6 +2,7 @@ import { parentPort as cachePort } from 'node:worker_threads'
 import fs from 'node:fs'
 import { extname, join } from 'node:path'
 import sharp from 'sharp'
+import { fileTypeFromBuffer } from 'file-type'
 import { downloadPublicBuffer } from '../security/workerHttp'
 
 const MAX_AUDIO_CACHE_BYTES = 1536 * 1024 * 1024
@@ -19,6 +20,60 @@ const SAFE_AUDIO_EXTENSIONS = new Set([
   'aif',
   'alac'
 ])
+
+const normalizeContentType = (value: string) =>
+  String(value || 'application/octet-stream').split(';')[0].trim().toLowerCase()
+
+const looksLikeTextPayload = (buffer: Buffer) => {
+  const prefix = buffer.subarray(0, Math.min(buffer.length, 512)).toString('utf8').trimStart()
+  const lower = prefix.toLowerCase()
+  return (
+    lower.startsWith('<!doctype html') ||
+    lower.startsWith('<html') ||
+    lower.startsWith('<?xml') ||
+    lower.startsWith('{') ||
+    lower.startsWith('[')
+  )
+}
+
+const validateAudioPayload = async (buffer: Buffer, contentType: string) => {
+  if (!buffer.length) {
+    throw new Error('音频缓存响应为空')
+  }
+
+  const normalizedType = normalizeContentType(contentType)
+  if (
+    normalizedType.startsWith('text/') ||
+    normalizedType === 'application/json' ||
+    normalizedType === 'application/xml' ||
+    looksLikeTextPayload(buffer)
+  ) {
+    throw new Error(
+      `音频缓存收到非音频响应: content-type=${normalizedType}, size=${buffer.length}`
+    )
+  }
+
+  const detected = await fileTypeFromBuffer(buffer)
+  if (detected && !SAFE_AUDIO_EXTENSIONS.has(detected.ext.toLowerCase())) {
+    throw new Error(
+      `音频缓存文件类型不受支持: ${detected.mime} (.${detected.ext}), size=${buffer.length}`
+    )
+  }
+
+  const declaredAudio =
+    normalizedType.startsWith('audio/') ||
+    normalizedType === 'video/mp4' ||
+    normalizedType === 'application/ogg' ||
+    normalizedType === 'application/octet-stream'
+
+  if (!detected && !declaredAudio) {
+    throw new Error(
+      `无法确认缓存响应为音频: content-type=${normalizedType}, size=${buffer.length}`
+    )
+  }
+
+  return detected?.mime || normalizedType
+}
 
 const getFilePath = (
   track: Record<string, any>,
@@ -93,8 +148,12 @@ const runCacheTask = async (track: Record<string, any>, url: string, audioCacheP
     maxBytes: MAX_AUDIO_CACHE_BYTES,
     timeoutMs: 60_000
   })
+
+  // HTTP 200 并不等于拿到了音频。错误页/登录页送进 TagLib 会产生 INVALID_FORMAT。
+  // 先结合 Content-Type、文件头与 file-type 做快速校验，再进入元数据写入。
+  const validatedContentType = await validateAudioPayload(audio.buffer, audio.contentType)
   const resolvedUrl = new URL(audio.url)
-  const filePath = getFilePath(track, resolvedUrl, audio.contentType, audioCachePath)
+  const filePath = getFilePath(track, resolvedUrl, validatedContentType, audioCachePath)
   const modifiedBuffer = await updateMetadata(audio.buffer, track)
   await fs.promises.writeFile(filePath, Buffer.from(modifiedBuffer))
   const finalSize = (await fs.promises.stat(filePath)).size
@@ -116,8 +175,11 @@ type CacheTask = {
 }
 
 const taskQueue: CacheTask[] = []
+const queuedTaskKeys = new Set<string>()
 let running = false
 let quitRequested = false
+
+const getTaskKey = (task: CacheTask) => `${String(task.track?.id || 'track')}::${task.url}`
 
 const notifyFinishedWhenIdle = () => {
   if (quitRequested && !running && taskQueue.length === 0) {
@@ -138,8 +200,16 @@ async function processQueue() {
     const result = await runCacheTask(task.track, task.url, task.audioCachePath)
     cachePort?.postMessage({ type: 'task-done', data: result })
   } catch (error) {
-    console.error('[Worker cacheTrack] task failed:', error)
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(
+      `[Worker cacheTrack] skipped track ${String(task.track?.id || 'unknown')}: ${message}`
+    )
+    cachePort?.postMessage({
+      type: 'task-error',
+      data: { trackId: task.track?.id, message }
+    })
   } finally {
+    queuedTaskKeys.delete(getTaskKey(task))
     running = false
     void processQueue()
   }
@@ -149,6 +219,9 @@ cachePort?.on('message', (data: CacheTask | { type: 'quit' }) => {
   try {
     if (data.type === 'task') {
       if (quitRequested) return
+      const taskKey = getTaskKey(data)
+      if (queuedTaskKeys.has(taskKey)) return
+      queuedTaskKeys.add(taskKey)
       taskQueue.push(data)
       void processQueue()
     } else {
