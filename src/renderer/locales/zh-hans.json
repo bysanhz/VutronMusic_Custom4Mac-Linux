@@ -23,6 +23,8 @@
     "insights": "音乐洞察",
     "style": "曲风",
     "followingWorks": "关注新作",
+    "back": "后退",
+    "forward": "前进",
     "logoutConfirm": "确定要退出登录吗？"
   },
   "home": {
