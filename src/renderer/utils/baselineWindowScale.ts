@@ -71,24 +71,23 @@ const injectStyle = () => {
       display: grid !important;
       grid-template-columns:
         minmax(82px, 1fr)
-        36px
-        28px
+        24px
+        18px
         minmax(56px, 68px)
-        28px
-        36px !important;
+        18px
+        24px !important;
       grid-template-rows: 30px;
       align-items: center;
       gap: 4px !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button {
-      width: 100% !important;
       min-width: 0 !important;
-      justify-self: stretch;
+      justify-self: center;
       align-self: center;
-      padding: 0 3px;
+      padding: 0;
       border: 1px solid transparent !important;
-      border-radius: 7px;
+      border-radius: 999px;
       color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5%, transparent) !important;
       font-variant-numeric: tabular-nums;
@@ -101,17 +100,21 @@ const injectStyle = () => {
     }
 
     #app .window-scale-font-row .window-scale-font-button[data-step-mode='coarse'] {
+      width: 24px !important;
       height: 24px;
-      font-size: 10px;
-      font-weight: 720;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 650;
       color: color-mix(in srgb, var(--color-primary) 60%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 5.5%, transparent) !important;
     }
 
     #app .window-scale-font-row .window-scale-font-button[data-step-mode='fine'] {
-      height: 19px;
-      font-size: 8.5px;
-      font-weight: 620;
+      width: 18px !important;
+      height: 18px;
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 600;
       color: color-mix(in srgb, var(--color-primary) 44%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3%, transparent) !important;
     }
@@ -199,7 +202,7 @@ const createStepButton = (
       type="button"
       aria-label="${title}"
       title="${title}"
-    >${sign}${stepText}</button>
+    >${sign}</button>
   `
 }
 
