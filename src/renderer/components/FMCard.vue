@@ -102,7 +102,7 @@ watch(
   background: var(--color-secondary-bg);
   border-radius: 1rem;
   display: grid;
-  grid-template-columns: minmax(118px, 38%) minmax(0, 1fr);
+  grid-template-columns: minmax(142px, 42%) minmax(0, 1fr);
   align-items: stretch;
   column-gap: clamp(0.9rem, 3.2cqw, 1.35rem);
   width: 100%;
@@ -125,9 +125,9 @@ watch(
 
 .cover {
   justify-self: start;
-  width: min(100%, 138px);
+  width: min(100%, 154px);
   height: 100%;
-  max-height: 127px;
+  max-height: 139px;
   aspect-ratio: 1;
   object-fit: cover;
   clip-path: border-box;
@@ -137,7 +137,7 @@ watch(
 }
 
 .buttons {
-  width: min(100%, 138px);
+  width: min(100%, 154px);
   min-width: 0;
   display: flex;
   align-items: center;
@@ -220,17 +220,17 @@ watch(
 
 @container (max-width: 420px) {
   .fm {
-    grid-template-columns: minmax(108px, 36%) minmax(0, 1fr);
-    column-gap: 0.85rem;
+    grid-template-columns: minmax(126px, 40%) minmax(0, 1fr);
+    column-gap: 0.8rem;
   }
 
   .cover {
-    width: min(100%, 122px);
-    max-height: 116px;
+    width: min(100%, 136px);
+    max-height: 126px;
   }
 
   .buttons {
-    width: min(100%, 122px);
+    width: min(100%, 136px);
 
     .button-icon {
       padding: 4px;
