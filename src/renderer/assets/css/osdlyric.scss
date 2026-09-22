@@ -186,19 +186,19 @@ html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel {
  * 继续放大图标本体，但不改变 3x2 网格和按钮点击区域。
  */
 #main.compact-mode .compact-control-button .svg-icon {
-  width: calc(14px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(14px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(16px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(16px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-play .svg-icon,
 #main.compact-mode .compact-control-button.control-heart-mode .svg-icon {
-  width: calc(18px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(18px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(20px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(20px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 #main.compact-mode .compact-control-button.control-main-window .svg-icon {
-  width: calc(15px * var(--mini-osd-control-relative-scale, 1)) !important;
-  height: calc(15px * var(--mini-osd-control-relative-scale, 1)) !important;
+  width: calc(17px * var(--mini-osd-control-relative-scale, 1)) !important;
+  height: calc(17px * var(--mini-osd-control-relative-scale, 1)) !important;
 }
 
 html:not(.osd-cover-controls-hidden) #main.compact-mode .compact-lyric-panel .container.mini,
