@@ -1,12 +1,24 @@
 <template>
   <div class="side-nav">
     <div class="history-navigation">
-      <button-icon :data-tip="`${$t('nav.back')}`" @click.stop="router.go(-1)">
+      <button
+        type="button"
+        class="history-button"
+        :title="$t('nav.back')"
+        :aria-label="$t('nav.back')"
+        @click.stop="router.go(-1)"
+      >
         <svg-icon class="history-icon" icon-class="arrow-left" />
-      </button-icon>
-      <button-icon :data-tip="`${$t('nav.forward')}`" @click.stop="router.go(1)">
+      </button>
+      <button
+        type="button"
+        class="history-button"
+        :title="$t('nav.forward')"
+        :aria-label="$t('nav.forward')"
+        @click.stop="router.go(1)"
+      >
         <svg-icon class="history-icon" icon-class="arrow-right" />
-      </button-icon>
+      </button>
     </div>
     <button-icon
       :class="{ active: isCurrentRoute('/') }"
@@ -63,7 +75,6 @@
 </template>
 
 <script setup lang="ts">
-import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from '../store/settings'
@@ -108,22 +119,13 @@ const isCurrentRoute = (path: string): boolean => {
   transform: translate(0, -50%);
   .history-navigation {
     width: 60px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 6px;
     margin: 3px 0 10px;
-
-    button {
-      width: 27px;
-      height: 30px;
-      margin: 0;
-      border-radius: 7px;
-
-      .history-icon {
-        width: 18px;
-        height: 18px;
-      }
-    }
+    box-sizing: border-box;
+    -webkit-app-region: no-drag;
   }
 
   button {
@@ -195,6 +197,34 @@ const isCurrentRoute = (path: string): boolean => {
   button:hover::before {
     display: block;
   }
+  .history-navigation .history-button {
+    flex: 0 0 27px;
+    width: 27px;
+    min-width: 27px;
+    max-width: 27px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    box-sizing: border-box;
+    background: transparent;
+
+    .history-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: var(--color-secondary-bg-for-transparent);
+    }
+
+    &::before,
+    &::after {
+      display: none !important;
+    }
+  }
+
   button.active {
     background: var(--color-primary);
     color: white;
