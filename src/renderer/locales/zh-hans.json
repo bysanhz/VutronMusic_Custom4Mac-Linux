@@ -39,6 +39,10 @@
     "guessYouLike": "猜你喜欢",
     "personalized": "为你定制"
   },
+  "personalizedTracks": {
+    "title": "猜你喜欢",
+    "description": "来自网易云首页的个性化歌曲推荐"
+  },
   "library": {
     "userProfileMenu": {
       "logout": "登出",
