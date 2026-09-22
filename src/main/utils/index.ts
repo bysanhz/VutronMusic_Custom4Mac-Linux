@@ -653,8 +653,11 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
     }
   }
 
-  const url = `https://music.163.com/song/media/outer/url?id=${track.id}`
-  return { url, br: 128000, gain: 0, peak: 1, level: 'standard' }
+  // 不再把 /song/media/outer/url 当作“成功音源”兜底。
+  // 该地址在桌面端经常返回 HTML/错误页，且 Renderer 直接访问时还会触发 CORS。
+  // 返回空 URL，让上层继续尝试 UNM；所有候选都失败时由播放器做有限重试/切歌。
+  log.warn(`[NetEase] 未获取到官方可播放音源: ${track.id}`)
+  return { url: '', br: 128000, gain: 0, peak: 1, level: 'standard' }
 }
 
 export const getAudioSource = async (track: any) => {
@@ -662,15 +665,22 @@ export const getAudioSource = async (track: any) => {
     (store.get('settings.unblockNeteaseMusic.enable') as boolean | undefined) ?? true
   let source = 'netease'
 
-  // 缓存里没有，从网易云里获取
+  // 优先使用网易云官方 /song/url/v1，并逐级降低音质。
   const trackInfo = await getAudioSourceFromNetease(track)
 
-  // 网易云里没有，从unblock里获取
+  // 官方音源不可用时才进入 UNM。UNM 失败会返回 null，不能再直接访问 res.url。
   if (!trackInfo.url && enableUNM) {
     const res = await getAudioSourceFromUnblock(track)
-    trackInfo.url = res.url
-    source = res.source
+    if (res?.url) {
+      trackInfo.url = String(res.url).replace(/^http:/, 'https:')
+      source = res.source || 'unblock'
+    }
   }
+
+  if (!trackInfo.url) {
+    log.warn(`[AudioSource] 所有音源均不可用: ${track.id}`)
+  }
+
   trackInfo.source = source
   return trackInfo
 }
