@@ -40,7 +40,12 @@ import ButtonTwoTone from '../components/ButtonTwoTone.vue'
 import SearchBox from '../components/SearchBox.vue'
 import TrackList from '../components/VirtualTrackList.vue'
 import { homepageBlockPage } from '../api/modern'
-import { extractCursor, extractTracks } from '../services/neteaseModern'
+import {
+  extractCursor,
+  extractTracks,
+  getPersonalizedTrackSnapshot,
+  setPersonalizedTrackSnapshot
+} from '../services/neteaseModern'
 import { usePlayerStore } from '../store/player'
 
 const { t } = useI18n()
@@ -86,17 +91,34 @@ const loadTracks = async () => {
   show.value = false
 
   try {
-    const collected: any[] = []
-    let cursor: string | number | undefined
+    const snapshot = getPersonalizedTrackSnapshot()
+    const collected: any[] = snapshot?.tracks ? snapshot.tracks.slice() : []
+    let cursor: string | number | undefined = snapshot?.cursor
     const seenCursors = new Set<string>()
 
-    // /homepage/block/page 支持 cursor。这里最多读取 5 页，避免异常响应造成无限请求。
-    for (let page = 0; page < 5; page += 1) {
-      const result = await homepageBlockPage({
-        refresh: page === 0,
-        ...(cursor !== undefined ? { cursor } : {})
-      })
+    /*
+     * 从首页进入时先复用同一份推荐快照，再从该快照的 cursor 往后追加。
+     * 这样首页预览的前 5 首和“查看全部”的前 5 首严格一致。
+     *
+     * 若用户直接打开本页、没有首页快照，则只请求一次首屏（refresh=false）
+     * 作为当前会话快照，之后再继续分页；不再用 refresh=true 主动刷新推荐池。
+     */
+    if (!snapshot?.tracks?.length) {
+      const firstResult = await homepageBlockPage({ refresh: false })
+      const firstTracks = extractTracks(firstResult, 200)
+      mergeTracks(collected, firstTracks)
+      cursor = extractCursor(firstResult)
+      setPersonalizedTrackSnapshot(firstTracks, cursor)
+    }
 
+    if (cursor !== undefined && cursor !== null && cursor !== '') {
+      seenCursors.add(String(cursor))
+    }
+
+    for (let page = 0; page < 4; page += 1) {
+      if (cursor === undefined || cursor === null || cursor === '') break
+
+      const result = await homepageBlockPage({ refresh: false, cursor })
       mergeTracks(collected, extractTracks(result, 200))
 
       const nextCursor = extractCursor(result)
