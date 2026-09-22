@@ -647,3 +647,150 @@
   color: var(--color-primary);
   background: var(--theme-interaction-soft);
 }
+
+
+/* ==================== 全局可编辑字段 ==================== */
+
+/*
+ * 设置页之外仍有登录、评论、搜索等输入控件。
+ * 默认只做轻主题底与主题文字，focus 再升级到实色边框与焦点环。
+ */
+#app :is(
+  input[type='text'],
+  input[type='number'],
+  input[type='search'],
+  input[type='password'],
+  input[type='url'],
+  input[type='email'],
+  textarea,
+  select
+) {
+  color: var(--color-primary);
+  border-color: var(--theme-interaction-border);
+  accent-color: var(--color-primary);
+}
+
+#app :is(
+  input[type='text'],
+  input[type='number'],
+  input[type='search'],
+  input[type='password'],
+  input[type='url'],
+  input[type='email'],
+  textarea,
+  select
+):focus {
+  color: var(--color-primary);
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
+}
+
+/* 让未单独定义颜色的普通按钮天然带一点主题色；组件自己的 active/primary 色仍可覆盖。 */
+:where(#app button:not(:disabled):not(.disabled), #app [role='button']) {
+  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text));
+}
+
+:where(#app button:not(:disabled):not(.disabled), #app [role='button']):hover {
+  color: var(--color-primary);
+}
+
+/* 评论输入是主页面独立控件，不属于 modal/settings。 */
+#app .comment-input {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-weak) !important;
+  border: 1px solid var(--theme-interaction-border) !important;
+}
+
+#app .comment-input:focus {
+  background: var(--theme-interaction-soft) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--theme-interaction-ring);
+}
+
+#app .comment-button {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .comment-button:hover {
+  background: var(--theme-interaction-medium) !important;
+}
+
+/* ==================== 页面 Tab / 筛选 / 下拉入口 ==================== */
+
+#app :is(
+  .tab,
+  .tab-button,
+  .button,
+  .cat,
+  .right-top,
+  .liked-songs-link
+) {
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+#app :is(
+  .tab,
+  .tab-button,
+  .button,
+  .cat,
+  .right-top,
+  .liked-songs-link
+):hover {
+  color: var(--color-primary) !important;
+  background-color: var(--theme-interaction-soft) !important;
+}
+
+#app :is(
+  .tab.active,
+  .tab-button.active,
+  .button.active,
+  .cat.active
+) {
+  color: var(--color-primary) !important;
+  background-color: var(--theme-interaction-medium) !important;
+}
+
+/* 展开式筛选菜单中的 item 也统一，ContextMenu 自己的更强规则仍优先。 */
+#app :is(.dropdown, .select, .filter) .item:hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app :is(.dropdown, .select, .filter) .item.active {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-medium) !important;
+}
+
+/* 首页“查看更多”等文字链接使用主题色，不增加大面积背景。 */
+#app :is(.home-page, .homepage, .home) a:hover {
+  color: var(--color-primary) !important;
+}
+
+/* ==================== 页面级卡片 ==================== */
+
+#app :is(.stream-item, .insights-card):hover {
+  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
+}
+
+#app .banner-item.center:hover {
+  box-shadow: 0 0 0 2px var(--theme-interaction-border-strong);
+}
+
+/* 音乐洞察的普通筛选/切换按钮。危险删除按钮仍由 danger 语义接管。 */
+#app .music-insights :is(button:not(.danger), [role='button']):hover,
+#app .insights-page :is(button:not(.danger), [role='button']):hover {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft);
+}
+
+#app .music-insights button.active,
+#app .insights-page button.active {
+  color: #fff;
+  background: var(--color-primary);
+}
