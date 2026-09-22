@@ -55,7 +55,7 @@ export const initializeBaselineOsdWindowScale = () => {
     const contentHeight = Math.max(1, window.innerHeight * currentZoomFactor)
     const target = readOsdTarget()
     const baseline = readWindowScaleBaseline(target)
-    const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline)
+    const nextZoomFactor = calculateWindowZoomFactor(contentWidth, contentHeight, baseline, target)
     const resizeEdgeCssPx = RESIZE_EDGE_HIT_DIP / Math.max(nextZoomFactor, 0.01)
     const resizeCornerCssPx = RESIZE_CORNER_HIT_DIP / Math.max(nextZoomFactor, 0.01)
 
