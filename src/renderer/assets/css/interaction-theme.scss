@@ -19,6 +19,16 @@
   --theme-interaction-border: color-mix(in srgb, var(--color-primary) 30%, transparent);
   --theme-interaction-border-strong: color-mix(in srgb, var(--color-primary) 52%, transparent);
   --theme-interaction-ring: color-mix(in srgb, var(--color-primary) 24%, transparent);
+
+  /* 语义色：不跟随主题色切换。 */
+  --color-like: #e54861;
+  --color-like-soft: color-mix(in srgb, var(--color-like) 12%, transparent);
+  --color-like-medium: color-mix(in srgb, var(--color-like) 24%, transparent);
+  --color-danger: #d9534f;
+  --color-secondary-action: color-mix(in srgb, var(--color-text) 72%, transparent);
+  --color-secondary-action-bg: color-mix(in srgb, var(--color-text) 7%, transparent);
+  --color-secondary-action-bg-hover: color-mix(in srgb, var(--color-text) 12%, transparent);
+  --color-secondary-action-border: color-mix(in srgb, var(--color-text) 14%, transparent);
 }
 
 /* ==================== 通用焦点与链接 ==================== */
@@ -432,20 +442,50 @@
   box-shadow: 0 0 0 3px var(--theme-interaction-ring) !important;
 }
 
-#app .shade .modal button:not(.primary):not(.danger):not(:disabled) {
-  color: var(--color-primary);
-  background: var(--theme-interaction-weak);
+/*
+ * 弹窗操作遵循明确语义：
+ * - primary = 确认 / 保存 / 应用：主题色
+ * - 普通按钮 / cancel / close = 取消 / 返回 / 关闭：中性灰
+ * - danger = 删除 / 清空：危险红
+ */
+#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled) {
+  color: var(--color-secondary-action) !important;
+  background: var(--color-secondary-action-bg) !important;
+  border-color: var(--color-secondary-action-border) !important;
 }
 
-#app .shade .modal button:not(.primary):not(.danger):not(:disabled):hover {
-  color: var(--color-primary);
-  background: var(--theme-interaction-medium);
+#app .shade .modal button:not(.primary):not(.danger):not(.active):not(:disabled):hover {
+  color: var(--color-text) !important;
+  background: var(--color-secondary-action-bg-hover) !important;
+  border-color: color-mix(in srgb, var(--color-text) 22%, transparent) !important;
+}
+
+#app .shade .modal :is(button.cancel, button.cancel-button, button.secondary, button.close) {
+  color: var(--color-secondary-action) !important;
+  background: var(--color-secondary-action-bg) !important;
+  border-color: var(--color-secondary-action-border) !important;
+}
+
+#app .shade .modal :is(button.cancel, button.cancel-button, button.secondary, button.close):hover {
+  color: var(--color-text) !important;
+  background: var(--color-secondary-action-bg-hover) !important;
 }
 
 #app .shade .modal button.primary {
   color: #fff !important;
   background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
   box-shadow: 0 5px 14px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+#app .shade .modal button.primary:hover:not(:disabled) {
+  color: #fff !important;
+  background: color-mix(in srgb, var(--color-primary) 88%, black) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 88%, black) !important;
+}
+
+#app .shade .modal button.primary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 80%, black) !important;
 }
 
 #app .shade .modal .toggle input + label {
@@ -572,14 +612,15 @@
 
 /* 危险操作保留危险语义色，不被主题色覆盖。 */
 #app .shade .modal button.danger {
-  color: #d54 !important;
-  background: color-mix(in srgb, #d54 8%, transparent) !important;
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent) !important;
+  border-color: color-mix(in srgb, var(--color-danger) 20%, transparent) !important;
 }
 
 #app .shade .modal button.danger:hover {
-  color: #d54 !important;
-  background: color-mix(in srgb, #d54 16%, transparent) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #d54 22%, transparent);
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 22%, transparent);
 }
 
 /* 添加到歌单等“整行可点击”项目。 */
@@ -875,19 +916,42 @@
   color: var(--color-primary) !important;
 }
 
-/* 点赞属于“选中”而非危险语义，统一改成主题色。 */
-#app :is(.liked, .like.active, .control-like.liked) .svg-icon,
-#app :is(.liked, .like.active) {
-  color: var(--color-primary) !important;
+/* 爱心 / 喜欢使用固定红色语义，不跟随主题色。 */
+#app .like-button:not(.disabled),
+#lyric .control-like {
+  color: color-mix(in srgb, var(--color-like) 66%, transparent) !important;
 }
 
+#app .like-button:not(.disabled) .svg-icon,
+#lyric .control-like .svg-icon {
+  color: color-mix(in srgb, var(--color-like) 66%, transparent) !important;
+}
+
+#app .like-button:not(.disabled):hover,
+#app .like-button:not(.disabled):hover .svg-icon,
+#lyric .control-like:hover,
+#lyric .control-like:hover .svg-icon {
+  color: var(--color-like) !important;
+  background: var(--color-like-soft) !important;
+}
+
+#app .like-button.liked:not(.disabled),
+#app .like-button.liked:not(.disabled) .svg-icon,
+#lyric .control-like.liked,
+#lyric .control-like.liked .svg-icon {
+  color: var(--color-like) !important;
+}
+
+#app .like-button.liked:not(.disabled),
 #lyric .control-like.liked {
-  color: var(--color-primary) !important;
+  background: var(--color-like-soft) !important;
 }
 
+#app .like-button.liked:not(.disabled):hover,
 #lyric .control-like.liked:hover {
-  color: var(--color-primary) !important;
-  filter: drop-shadow(0 0 5px var(--theme-interaction-ring));
+  color: var(--color-like) !important;
+  background: var(--color-like-medium) !important;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-like) 28%, transparent));
 }
 
 
