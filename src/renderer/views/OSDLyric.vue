@@ -663,8 +663,8 @@ onBeforeUnmount(() => {
 }
 
 .osd-lock-button :deep(.svg-icon) {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
 }
 
 /* 实际可见的底部移动细条。 */
