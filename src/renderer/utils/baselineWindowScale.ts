@@ -89,24 +89,45 @@ const injectStyle = () => {
     }
 
     #app .window-scale-step-buttons .window-scale-font-button {
-      width: 100% !important;
       min-width: 0 !important;
+      justify-self: center;
+      align-self: center;
       padding: 0 4px;
+      border: 1px solid transparent !important;
+      border-radius: 7px;
+      color: color-mix(in srgb, var(--color-primary) 54%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 5%, transparent) !important;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
-      align-self: center;
+      transition:
+        color 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
     }
 
     #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='coarse'] {
-      height: 31px;
-      font-size: 15px;
-      font-weight: 820;
+      width: 88% !important;
+      height: 27px;
+      font-size: 13px;
+      font-weight: 760;
+      color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
     }
 
     #app .window-scale-step-buttons .window-scale-font-button[data-step-mode='fine'] {
-      height: 24px;
-      font-size: 12px;
-      font-weight: 700;
+      width: 78% !important;
+      height: 22px;
+      font-size: 11px;
+      font-weight: 650;
+      color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
+    }
+
+    #app .window-scale-step-buttons .window-scale-font-button:hover:not(:disabled) {
+      color: color-mix(in srgb, var(--color-primary) 78%, transparent) !important;
+      background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent) !important;
     }
 
     #app .window-scale-font-input {
@@ -115,14 +136,14 @@ const injectStyle = () => {
       height: 28px;
       padding: 0 6px;
       box-sizing: border-box;
-      border: none;
-      border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
+      border-radius: 7px;
       outline: none;
       text-align: center;
-      color: var(--color-primary);
+      color: var(--color-primary) !important;
       caret-color: var(--color-primary);
-      background: color-mix(in srgb, var(--color-text), transparent 94%);
-      font-weight: 800;
+      background: color-mix(in srgb, var(--color-primary) 7%, transparent) !important;
+      font-weight: 820;
       font-variant-numeric: tabular-nums;
     }
 
