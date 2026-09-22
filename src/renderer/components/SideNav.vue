@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from '../store/settings'
