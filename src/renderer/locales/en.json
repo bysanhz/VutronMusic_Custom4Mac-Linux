@@ -89,7 +89,8 @@
     "monthNewAlbums": "New Albums This Month",
     "loadingMore": "Loading more...",
     "noStyleSongs": "No tracks are available for this style yet.",
-    "noFollowingWorks": "No new releases from followed artists, or you are not signed in.",
+    "noFollowingWorks": "No recent releases from followed artists.",
+    "followingLoginRequired": "Sign in to see new releases from artists you follow.",
     "styleLoadFailed": "Failed to load style tracks. Please try again later.",
     "categories": {
       "全部": "All",
