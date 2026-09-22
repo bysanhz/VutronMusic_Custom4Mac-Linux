@@ -23,6 +23,8 @@
     "insights": "Music Insights",
     "style": "Styles",
     "followingWorks": "Following",
+    "back": "Back",
+    "forward": "Forward",
     "logoutConfirm": "Log out now?"
   },
   "home": {
