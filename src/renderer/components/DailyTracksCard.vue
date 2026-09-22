@@ -183,7 +183,7 @@ img {
   justify-content: center;
   align-items: center;
   margin-left: 24px;
-  padding: 10px;
+  padding: 6px;
   box-sizing: border-box;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -205,8 +205,8 @@ img {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.12em;
-    padding: 4px;
+    gap: 0.06em;
+    padding: 2px;
     box-sizing: border-box;
     text-align: center;
   }
@@ -218,14 +218,14 @@ img {
   }
 
   .title--cjk-grid {
-    font-size: clamp(36px, 36cqw, 44px);
-    line-height: 1.02;
-    gap: 0.12em;
-    font-weight: 800;
+    font-size: clamp(46px, 43cqw, 54px);
+    line-height: 0.94;
+    gap: 0.04em;
+    font-weight: 820;
 
     .title-line {
-      letter-spacing: 0.04em;
-      word-spacing: 0.14em;
+      letter-spacing: 0.015em;
+      word-spacing: 0.055em;
     }
   }
 }
