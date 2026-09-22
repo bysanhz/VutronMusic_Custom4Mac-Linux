@@ -26,7 +26,7 @@
             <span v-if="isAlbum" class="featured">
               <ArtistsInLine
                 :artists="track.ar || track.artists"
-                :exclude="albumObject.artist.name"
+:exclude="albumObject?.artist?.name ?? ''"
                 prefix="-"
             /></span>
             <span v-if="isAlbum && track.mark === 1318912" class="explicit-symbol"
@@ -52,7 +52,9 @@
           :title="album.name || t('common.unknownAlbum')"
           ><router-link :to="`/album/${album.id}`">{{ album.name }}</router-link></div
         >
-        <div v-else :title="album.name || t('common.unknownAlbum')"> {{ album.name || t('common.unknownAlbum') }}</div>
+        <div v-else :title="album?.name || t('common.unknownAlbum')">
+          {{ album?.name || t('common.unknownAlbum') }}
+        </div>
       </div>
 
       <div v-if="showService" class="service">{{
@@ -191,17 +193,19 @@ const trackClass = computed(() => {
 })
 
 const artists = computed(() => {
-  const useAr = track.value.ar ?? track.value.artists
-  useAr.forEach((artist: any) => {
-    if (artist && !artist.name) {
-      artist.name = t('common.unknownArtist')
-    }
-  })
+  const useAr = track.value.ar ?? track.value.artists ?? []
+  if (!Array.isArray(useAr)) return []
+
   return useAr
+    .filter(Boolean)
+    .map((artist: any) => ({
+      ...artist,
+      name: artist?.name || t('common.unknownArtist')
+    }))
 })
 
 const album = computed(() => {
-  return track.value.album || track.value.al || track.value.simpleSong?.al
+  return track.value.album || track.value.al || track.value.simpleSong?.al || null
 })
 
 const showAlbumName = computed(() => {
@@ -258,7 +262,7 @@ const subTitle = computed(() => {
         : tn
   } else {
     return tn === undefined
-      ? track.value.alias[0]
+      ? track.value.alias?.[0] ?? track.value.alia?.[0]
       : track.value.alia?.length > 0
         ? track.value.alia[0]
         : tn
@@ -306,7 +310,7 @@ const getPublishTime = (date: any) => {
 }
 
 const goToAlbum = () => {
-  if (album.value.id === 0) return
+  if (!album.value?.id || album.value.id === 0) return
   if (album.value.matched === false) return
   router.push(`/album/${album.value.id}`)
 }
