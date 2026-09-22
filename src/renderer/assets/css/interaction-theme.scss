@@ -889,3 +889,44 @@
   color: var(--color-primary) !important;
   filter: drop-shadow(0 0 5px var(--theme-interaction-ring));
 }
+
+
+/* ==================== 媒体库 / 历史切换 ==================== */
+
+#app .library .lyric-preview-action:hover,
+#app .library .lyric-preview-action:focus-visible {
+  color: var(--color-primary);
+  background: var(--theme-interaction-soft) !important;
+  box-shadow: 0 0 0 2px var(--theme-interaction-ring);
+}
+
+#app button.playHistory-button:hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app button.playHistory-button--selected {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-medium) !important;
+}
+
+#app .insights-page :is(
+  .refresh-button,
+  .action-row button:not(.danger),
+  .load-more,
+  .tabs button,
+  .sub-tabs button,
+  .tag-list button
+):hover {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-soft) !important;
+}
+
+#app .insights-page :is(
+  .tabs button.active,
+  .sub-tabs button.active,
+  .tag-list button.active
+) {
+  color: var(--color-primary) !important;
+  background: var(--theme-interaction-medium) !important;
+}
