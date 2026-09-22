@@ -163,7 +163,7 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
       height: 24px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 720;
       color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
@@ -171,7 +171,7 @@ const injectStyle = () => {
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
       height: 19px;
-      font-size: 9.5px;
+      font-size: 8.5px;
       font-weight: 620;
       color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
