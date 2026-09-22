@@ -4,10 +4,15 @@
     <div class="container">
       <div class="title-box">
         <div
-          class="title"
-          :class="{ 'title--cjk-grid': isCjkGridTitle }"
+          v-if="isCjkGridTitle"
+          class="title title--cjk-grid"
           :aria-label="t('dailyCard.title')"
         >
+          <span v-for="(char, index) in cjkTitleCharacters" :key="index" class="cjk-char">
+            {{ char }}
+          </span>
+        </div>
+        <div v-else class="title" :aria-label="t('dailyCard.title')">
           <span v-for="(line, index) in visualTitleLines" :key="index" class="title-line">
             {{ line }}
           </span>
@@ -42,6 +47,8 @@ const stateStore = useNormalStateStore()
 const { dailyTracks, showLyrics } = storeToRefs(stateStore)
 const { showToast } = stateStore
 const { t } = useI18n()
+
+const cjkTitleCharacters = computed(() => Array.from(t('dailyCard.title').replace(/\s+/g, '')))
 
 const visualTitleLines = computed(() => {
   const label = t('dailyCard.title').trim()
@@ -183,7 +190,7 @@ img {
   justify-content: center;
   align-items: center;
   margin-left: 24px;
-  padding: 6px;
+  padding: 2px;
   box-sizing: border-box;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -218,14 +225,22 @@ img {
   }
 
   .title--cjk-grid {
-    font-size: clamp(46px, 43cqw, 54px);
-    line-height: 0.94;
-    gap: 0.04em;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    place-items: center;
+    gap: 0;
+    padding: 1px;
+    font-size: 50px !important;
+    line-height: 1;
     font-weight: 820;
 
-    .title-line {
-      letter-spacing: 0.015em;
-      word-spacing: 0.055em;
+    .cjk-char {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      line-height: 1;
     }
   }
 }
