@@ -124,7 +124,7 @@ const injectStyle = () => {
     #app .window-scale-font-row .window-scale-font-button:hover:not(:disabled) {
       color: color-mix(in srgb, var(--color-primary) 78%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
-      border-color: color-mix(in srgb, var(--color-primary) 14%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-primary) 42%, transparent) !important;
     }
 
     #app .window-scale-font-input {
