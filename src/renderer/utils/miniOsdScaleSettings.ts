@@ -62,6 +62,8 @@ const createRow = () => {
   row.dataset.field = FIELD
   row.innerHTML = `
     <span class="osd-window-scale-label">${label}</span>
+    ${createStepButton('decrease', 'coarse')}
+    ${createStepButton('decrease', 'fine')}
     <input
       type="number"
       class="osd-window-scale-input"
@@ -71,12 +73,8 @@ const createRow = () => {
       value="${baseline.miniControlBaseSize}"
       title="${inputHint}"
     />
-    <div class="osd-window-scale-step-buttons">
-      ${createStepButton('decrease', 'coarse')}
-      ${createStepButton('decrease', 'fine')}
-      ${createStepButton('increase', 'fine')}
-      ${createStepButton('increase', 'coarse')}
-    </div>
+    ${createStepButton('increase', 'fine')}
+    ${createStepButton('increase', 'coarse')}
   `
   return row
 }
