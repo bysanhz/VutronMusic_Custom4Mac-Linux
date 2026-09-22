@@ -18,8 +18,11 @@ const TARGET = 'main' as const
 const LEGACY_FONT_SIZE_KEY = 'appGlobalFontSize'
 const REFERENCE_FONT_SIZE = 16
 const ZOOM_EPSILON = 0.004
-const ZOOM_UPDATE_INTERVAL_MS = 32
-const RESIZE_IDLE_DELAY_MS = 140
+// Linux/Chromium 在原生窗口连续缩放时，同时高频改 webFrame zoom 会触发整页重复栅格化。
+// 保留实时跟随，但把 Linux 更新节奏放宽到约 16 FPS；拖拽结束后仍会立即做最终校准。
+const IS_LINUX_RUNTIME = Boolean(window.env?.isLinux)
+const ZOOM_UPDATE_INTERVAL_MS = IS_LINUX_RUNTIME ? 64 : 32
+const RESIZE_IDLE_DELAY_MS = IS_LINUX_RUNTIME ? 110 : 140
 const SETTINGS_RETRY_MS = 80
 const SETTINGS_MAX_RETRIES = 24
 const WINDOW_RESIZING_CLASS = 'vutron-window-resizing'
@@ -430,8 +433,12 @@ export const initializeBaselineWindowScale = () => {
       pendingUpdate = true
       scheduleUpdate()
 
+      // 最终 zoom 更新会引起一次完整重排。Linux 上等两个 paint frame 再恢复
+      // backdrop-filter/transition，避免同一帧同时做最终栅格化和昂贵特效重建。
       window.requestAnimationFrame(() => {
-        document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
+        window.requestAnimationFrame(() => {
+          document.documentElement.classList.remove(WINDOW_RESIZING_CLASS)
+        })
       })
     }, RESIZE_IDLE_DELAY_MS)
   }
