@@ -169,50 +169,77 @@
     </div>
 
     <div v-else-if="exploreTab === 'newAlbum'" class="playlists">
-      <div v-if="albumType === '热门' && newAlbumInfo.topAlbum.weekData.length !== 0">
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
-          t('explore.weekNewAlbums')
-        }}</div>
-        <CoverRow
-          v-if="show"
-          :items="newAlbumInfo.topAlbum.weekData"
-          type="album"
-          sub-text="artist"
-          :show-play-button="false"
-          :show-play-count="false"
-          :show-position="true"
-          :padding-bottom="0"
-          :colunm-number="4"
-          :fixed-column-number="true"
-          :is-end="true"
-        />
+      <div v-if="albumLoading" class="following-loading" aria-live="polite">
+        <span class="following-loading-spinner" aria-hidden="true"></span>
+        <span>{{ t('explore.loadingMore') }}</span>
       </div>
-      <div>
-        <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
-          t('explore.monthNewAlbums')
-        }}</div>
-        <CoverRow
-          v-if="show"
-          :items="
-            albumType === '热门' ? newAlbumInfo.topAlbum.monthData : newAlbumInfo.newAlbums.albums
-          "
-          type="album"
-          sub-text="artist"
-          :show-play-button="false"
-          :show-play-count="false"
-          :show-position="true"
-          :padding-bottom="0"
-          :is-end="!canLoadMore()"
-          :colunm-number="4"
-          :fixed-column-number="true"
-          :enable-virtual-scroll="false"
-          :load-more="loadMore"
-        />
-        <div v-if="loadingMore" class="load-more-state" aria-live="polite">
-          <span class="load-more-spinner" aria-hidden="true"></span>
-          <span>{{ t('explore.loadingMore') }}</span>
+
+      <template v-else>
+        <div v-if="albumType === '热门' && newAlbumInfo.topAlbum.weekData.length">
+          <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+            t('explore.weekNewAlbums')
+          }}</div>
+          <CoverRow
+            :items="newAlbumInfo.topAlbum.weekData"
+            type="album"
+            sub-text="artist"
+            :show-play-button="false"
+            :show-play-count="false"
+            :show-position="true"
+            :padding-bottom="0"
+            :colunm-number="4"
+            :fixed-column-number="true"
+            :is-end="true"
+            :enable-virtual-scroll="false"
+          />
         </div>
-      </div>
+
+        <div
+          v-if="
+            albumType === '热门'
+              ? newAlbumInfo.topAlbum.monthData.length
+              : newAlbumInfo.newAlbums.albums.length
+          "
+        >
+          <div :style="{ margin: '20px 0', fontSize: '20px', fontWeight: '600' }">{{
+            t('explore.monthNewAlbums')
+          }}</div>
+          <CoverRow
+            :items="
+              albumType === '热门'
+                ? newAlbumInfo.topAlbum.monthData
+                : newAlbumInfo.newAlbums.albums
+            "
+            type="album"
+            sub-text="artist"
+            :show-play-button="false"
+            :show-play-count="false"
+            :show-position="true"
+            :padding-bottom="0"
+            :is-end="!canLoadMore()"
+            :colunm-number="4"
+            :fixed-column-number="true"
+            :enable-virtual-scroll="false"
+            :load-more="loadMore"
+          />
+          <div v-if="loadingMore" class="load-more-state" aria-live="polite">
+            <span class="load-more-spinner" aria-hidden="true"></span>
+            <span>{{ t('explore.loadingMore') }}</span>
+          </div>
+        </div>
+
+        <div
+          v-if="
+            show &&
+            !(albumType === '热门'
+              ? newAlbumInfo.topAlbum.weekData.length || newAlbumInfo.topAlbum.monthData.length
+              : newAlbumInfo.newAlbums.albums.length)
+          "
+          class="empty-state"
+        >
+          {{ t('explore.noAlbums') }}
+        </div>
+      </template>
     </div>
 
     <div v-else-if="exploreTab === 'style'" class="playlists">
@@ -368,6 +395,7 @@ const activeStyleId = ref<number | string>('')
 const followingMode = ref<'song' | 'mv'>('song')
 const followingMvs = ref<any[]>([])
 const followingLoading = ref(false)
+const albumLoading = ref(false)
 const loadingMore = ref(false)
 const PLAYLIST_PAGE_SIZE = 24
 
@@ -489,7 +517,67 @@ const getNewTrack = () => {
   })
 }
 
-const getNewAlbum = () => {
+const extractAlbumList = (source: any, keys: string[] = []) => {
+  for (const key of keys) {
+    const value = key.split('.').reduce((current: any, segment) => current?.[segment], source)
+    if (Array.isArray(value)) return value.filter(Boolean)
+  }
+
+  const fallbackCandidates = [
+    source?.albums,
+    source?.data?.albums,
+    source?.result?.albums,
+    source?.data?.list,
+    source?.list
+  ]
+
+  for (const candidate of fallbackCandidates) {
+    if (Array.isArray(candidate)) return candidate.filter(Boolean)
+  }
+
+  return []
+}
+
+const splitCurrentAlbumFeed = (albums: any[]) => {
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setHours(0, 0, 0, 0)
+  weekStart.setDate(weekStart.getDate() - 7)
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  const weekStartMs = weekStart.getTime()
+
+  const weekData: any[] = []
+  const monthData: any[] = []
+
+  for (const album of albums) {
+    const publishTime = Number(
+      album?.publishTime ?? album?.pubTime ?? album?.releaseTime ?? album?.publishDate ?? 0
+    )
+
+    if (Number.isFinite(publishTime) && publishTime >= weekStartMs) {
+      weekData.push(album)
+      continue
+    }
+
+    if (Number.isFinite(publishTime) && publishTime >= monthStart) {
+      monthData.push(album)
+      continue
+    }
+
+    // 当前 /top/album 本身就是“当前新碟”接口；若没有时间字段，也不要把数据丢掉。
+    monthData.push(album)
+  }
+
+  return {
+    weekData,
+    monthData: monthData.length ? monthData : albums.filter(
+      (album) => !weekData.includes(album)
+    )
+  }
+}
+
+const getNewAlbum = async () => {
   const albumMap: Record<string, string> = {
     全部: 'ALL',
     华语: 'ZH',
@@ -497,32 +585,73 @@ const getNewAlbum = () => {
     日本: 'JP',
     韩国: 'KR'
   }
-  if (albumType.value === '热门') {
-    if (!newAlbumInfo.topAlbum.hasMore) return
-    return topAlbum({ area: albumMap[activeCategory.value] ?? 'ALL' }).then((data) => {
-      newAlbumInfo.topAlbum.hasMore = data.hasMore
-      newAlbumInfo.topAlbum.weekData = data.weekData ?? []
-      newAlbumInfo.topAlbum.monthData = data.monthData ?? []
-      tricklingProgress.done()
-      show.value = true
+  const area = albumMap[activeCategory.value] ?? 'ALL'
+
+  albumLoading.value = true
+  show.value = false
+  tricklingProgress.start()
+
+  try {
+    if (albumType.value === '热门') {
+      const data = await topAlbum({
+        area,
+        limit: 80,
+        offset: 0,
+        type: 'new'
+      })
+
+      const explicitWeek = extractAlbumList(data, ['weekData', 'data.weekData'])
+      const explicitMonth = extractAlbumList(data, ['monthData', 'data.monthData'])
+
+      if (explicitWeek.length || explicitMonth.length) {
+        newAlbumInfo.topAlbum.weekData = explicitWeek
+        newAlbumInfo.topAlbum.monthData = explicitMonth
+      } else {
+        const albums = extractAlbumList(data, ['albums', 'data.albums', 'result.albums'])
+        const split = splitCurrentAlbumFeed(albums)
+        newAlbumInfo.topAlbum.weekData = split.weekData
+        newAlbumInfo.topAlbum.monthData = split.monthData
+      }
+
+      newAlbumInfo.topAlbum.hasMore = Boolean(
+        data?.hasMore ?? data?.more ?? data?.data?.hasMore ?? data?.data?.more
+      )
+      return
+    }
+
+    const data = await newAlbums({
+      area,
+      limit: PLAYLIST_PAGE_SIZE,
+      offset: newAlbumInfo.newAlbums.albums.length
     })
-  }
-  if (
-    newAlbumInfo.newAlbums.albums.length > 0 &&
-    newAlbumInfo.newAlbums.albums.length === newAlbumInfo.newAlbums.total
-  ) {
-    return
-  }
-  return newAlbums({
-    area: albumMap[activeCategory.value] ?? 'ALL',
-    limit: PLAYLIST_PAGE_SIZE,
-    offset: newAlbumInfo.newAlbums.albums.length
-  }).then((data) => {
-    newAlbumInfo.newAlbums.albums.push(...(data.albums ?? []))
-    newAlbumInfo.newAlbums.total = data.total ?? newAlbumInfo.newAlbums.total
+
+    const page = extractAlbumList(data, ['albums', 'data.albums', 'result.albums'])
+    const existingIds = new Set(
+      newAlbumInfo.newAlbums.albums
+        .map((album: any) => (album?.id == null ? '' : String(album.id)))
+        .filter(Boolean)
+    )
+
+    for (const album of page) {
+      const id = album?.id == null ? '' : String(album.id)
+      if (id && existingIds.has(id)) continue
+      newAlbumInfo.newAlbums.albums.push(album)
+      if (id) existingIds.add(id)
+    }
+
+    const total = Number(data?.total ?? data?.data?.total ?? data?.result?.total)
+    if (Number.isFinite(total) && total >= 0) {
+      newAlbumInfo.newAlbums.total = total
+    } else if (page.length < PLAYLIST_PAGE_SIZE) {
+      newAlbumInfo.newAlbums.total = newAlbumInfo.newAlbums.albums.length
+    }
+  } catch (error) {
+    console.warn('[Explore] 加载新专速递失败:', error)
+  } finally {
+    albumLoading.value = false
     tricklingProgress.done()
     show.value = true
-  })
+  }
 }
 
 const getArtists = () => {
@@ -1022,6 +1151,12 @@ const resetViewData = () => {
   tracks.value = []
   followingMvs.value = []
   followingLoading.value = false
+  albumLoading.value = false
+  newAlbumInfo.newAlbums.albums = []
+  newAlbumInfo.newAlbums.total = 0
+  newAlbumInfo.topAlbum.hasMore = true
+  newAlbumInfo.topAlbum.weekData = []
+  newAlbumInfo.topAlbum.monthData = []
   showList.value = []
   show.value = false
   playlistInfo.more = true
