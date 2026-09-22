@@ -366,6 +366,8 @@
     "resetPlayer": "重置播放器状态",
     "like": "喜欢",
     "switchTranslation": "切换翻译/音译",
+    "translationShort": "译",
+    "romanizationShort": "音",
     "moreActions": "更多操作",
     "playerTheme": "播放器主题",
     "collapsePlayer": "收起播放器",
@@ -400,6 +402,7 @@
     "frequad": {
       "title": "均衡器设置",
       "reset": "重置",
+      "newPreset": "新预设…",
       "classical": "古典",
       "dance": "舞曲",
       "electronic": "电子乐",
@@ -901,7 +904,11 @@
     "removedFromPlaylist": "已从歌单中删除",
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
-    "copySuccess": "复制成功"
+    "copySuccess": "复制成功",
+    "localMusicUpdated": "本地歌曲已更新",
+    "localMusicScanError": "扫描本地歌曲失败，详情请查看开发者工具控制台",
+    "downloadProgress": "下载更新：{percent}%",
+    "downloadError": "下载更新失败"
   },
   "next": {
     "nowPlaying": "正在播放",
