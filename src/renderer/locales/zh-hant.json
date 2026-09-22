@@ -366,6 +366,8 @@
     "resetPlayer": "重設播放器狀態",
     "like": "喜歡",
     "switchTranslation": "切換翻譯/音譯",
+    "translationShort": "譯",
+    "romanizationShort": "音",
     "moreActions": "更多操作",
     "playerTheme": "播放器主題",
     "collapsePlayer": "收起播放器",
@@ -400,6 +402,7 @@
     "frequad": {
       "title": "等化器設定",
       "reset": "重設",
+      "newPreset": "新預設…",
       "classical": "古典",
       "dance": "舞曲",
       "electronic": "電子樂",
@@ -901,7 +904,11 @@
     "removedFromPlaylist": "已從歌單中刪除",
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗",
-    "copySuccess": "複製成功"
+    "copySuccess": "複製成功",
+    "localMusicUpdated": "本地歌曲已更新",
+    "localMusicScanError": "掃描本地歌曲失敗，詳情請查看開發者工具主控台",
+    "downloadProgress": "下載更新：{percent}%",
+    "downloadError": "下載更新失敗"
   },
   "next": {
     "nowPlaying": "正在播放",
