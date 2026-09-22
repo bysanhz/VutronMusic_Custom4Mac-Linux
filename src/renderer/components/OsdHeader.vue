@@ -90,5 +90,15 @@ onBeforeUnmount(() => {
   color: #fff;
   transition: opacity 0.3s ease;
   -webkit-app-region: no-drag;
+
+  .svg-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:nth-child(3) .svg-icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 </style>
