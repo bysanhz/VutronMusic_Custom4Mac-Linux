@@ -101,6 +101,9 @@ const normalizeDimension = (value: unknown, fallback: number) => {
 
 const normalizeScaleValue = (value: unknown, fallback: number) => {
   const parsed = Number(value)
+
+  // 字号不设固定最小值/最大值。仅拒绝非有限值与 <= 0，
+  // 因为 Electron zoomFactor 必须保持为正数，否则 renderer 会进入无效缩放状态。
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
   return Math.round(parsed * 100) / 100
 }
@@ -179,22 +182,13 @@ export const calculateWindowGeometryScale = (
   return Math.sqrt(widthScale * heightScale)
 }
 
-const getSafeLayoutReferenceSize = (target: WindowScaleTarget) => {
-  const defaults = DEFAULT_WINDOW_SCALE_BASELINES[target]
-  const defaultZoom = defaults.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
-
-  return {
-    width: defaults.minWidth / defaultZoom,
-    height: defaults.minHeight / defaultZoom
-  }
-}
-
 /**
- * 计算页面 zoom，同时保证缩放后的 CSS viewport 不会小于该窗口模式的内置安全布局尺寸。
+ * 计算页面 zoom。
  *
- * 用户可以把最小宽高调得比默认值更小；此时如果仍严格按基准字号放大页面，
- * webFrame zoom 会反向压缩 CSS viewport，造成右侧卡片/顶部区域被裁切。
- * fitZoomLimit 只在这种“基准组合与完整布局冲突”的情况下接管，否则保留原缩放结果。
+ * 不再使用 fit-safe 上限夹住用户设置的字号。只要 baseFontSize 是有效正数，
+ * 用户输入/步进得到的字号会直接参与 zoomFactor 计算，不存在固定上限或下限。
+ *
+ * target 参数保留在函数签名中，避免调用侧兼容性变化；当前不再用于限制字号。
  */
 export const calculateWindowZoomFactor = (
   contentWidth: number,
@@ -202,15 +196,11 @@ export const calculateWindowZoomFactor = (
   baseline: WindowScaleBaseline,
   target: WindowScaleTarget = 'main'
 ) => {
+  void target
+
   const geometryScale = calculateWindowGeometryScale(contentWidth, contentHeight, baseline)
   const baselineZoom = baseline.baseFontSize / WINDOW_SCALE_REFERENCE_FONT_SIZE
-  const requestedZoom = baselineZoom * geometryScale
-  const safeLayout = getSafeLayoutReferenceSize(target)
-  const fitZoomLimit = Math.max(
-    0.05,
-    Math.min(contentWidth / safeLayout.width, contentHeight / safeLayout.height)
-  )
 
-  return Math.min(requestedZoom, fitZoomLimit)
+  return baselineZoom * geometryScale
 }
 /* =========== newADD end ======== */
