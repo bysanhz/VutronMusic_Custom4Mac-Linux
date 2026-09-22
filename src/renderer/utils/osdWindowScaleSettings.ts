@@ -96,25 +96,27 @@ const injectStyle = () => {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
       gap: 12px;
-      padding: 12px;
+      padding: 0;
       box-sizing: border-box;
       border-radius: 10px;
-      background: var(--color-secondary-bg);
+      background: transparent;
     }
 
     #${CONTROL_ID} .osd-window-scale-section {
       min-width: 0;
       display: grid;
       align-content: start;
-      gap: 8px;
-      padding: 0 10px;
+      gap: 6px;
+      padding: 10px 12px;
       box-sizing: border-box;
+      border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+      border-radius: 9px;
+      background: color-mix(in srgb, var(--color-secondary-bg), transparent 14%);
     }
 
     #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
-      padding-top: 0;
-      border-top: 0;
-      border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+      padding-top: 10px;
+      border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
     }
 
     #${CONTROL_ID} .osd-window-scale-section-title {
@@ -127,17 +129,20 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-row {
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(112px, 1fr) auto;
-      align-items: center;
-      gap: 8px;
-      min-height: 30px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      align-items: start;
+      gap: 4px;
+      padding: 2px 0 4px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
       min-width: 0;
-      opacity: 0.7;
-      white-space: normal;
-      line-height: 1.2;
+      opacity: 0.72;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.25;
       font-weight: 600;
     }
 
@@ -150,9 +155,11 @@ const injectStyle = () => {
         18px
         24px;
       align-items: center;
-      justify-content: end;
+      justify-content: start;
       gap: 4px;
-      min-width: 154px;
+      min-width: 0;
+      width: max-content;
+      max-width: 100%;
     }
 
     @media (max-width: 620px) {
@@ -162,8 +169,8 @@ const injectStyle = () => {
 
       #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
         padding-top: 10px;
-        border-left: 0;
-        border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
+        border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+        border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
       }
     }
 
