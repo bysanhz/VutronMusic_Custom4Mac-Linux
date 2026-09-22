@@ -672,7 +672,9 @@ export const getAudioSource = async (track: any) => {
   if (!trackInfo.url && enableUNM) {
     const res = await getAudioSourceFromUnblock(track)
     if (res?.url) {
-      trackInfo.url = String(res.url).replace(/^http:/, 'https:')
+      // UNM 可能返回仅支持 HTTP 的第三方源；Renderer 不再直连，
+      // 因此保留原始协议并交由主进程代理处理。
+      trackInfo.url = String(res.url)
       source = res.source || 'unblock'
     }
   }
