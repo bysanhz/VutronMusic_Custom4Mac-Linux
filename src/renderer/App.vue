@@ -23,6 +23,7 @@
 
 <script setup lang="tsx">
 import { onMounted, ref, provide, toRefs, watch, computed, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ScrollBar from './components/ScrollBar.vue'
 import PlayerBar from './components/PlayerBar.vue'
 import HeartModeAssistant from './components/HeartModeAssistant.vue'
@@ -52,6 +53,8 @@ import {
   resolveHeartModeSourceSeedId
 } from './utils/heartModeSession'
 import { Track } from '@/types/music'
+
+const { t } = useI18n()
 
 const localMusicStore = useLocalMusicStore()
 const { localTracks } = storeToRefs(localMusicStore)
@@ -285,7 +288,7 @@ const handleChanelEvent = () => {
   })
 
   window.mainApi?.on('updateLocalMusic', (event, data: { tracks: Track[] }) => {
-    showToast('更新本地歌曲成功')
+    showToast(t('toast.localMusicUpdated'))
     localTracks.value = data.tracks
   })
 
@@ -293,7 +296,7 @@ const handleChanelEvent = () => {
     'msgHandleScanLocalMusicError',
     (_: any, data: { err: any; filePath: string }) => {
       console.log(`扫描本地歌曲 ${data.filePath} 出错： ${data.err}`)
-      showToast(`扫描本地歌曲出错, 详情见：开发者工具-控制台`)
+      showToast(t('toast.localMusicScanError'))
     }
   )
   window.mainApi?.on('scanLocalMusicDone', (_: any) => {
@@ -319,12 +322,14 @@ const handleChanelEvent = () => {
 
   window.mainApi?.on('download-progress', (_: any, data: ProgressInfo) => {
     if (!isDownloading.value) isDownloading.value = true
-    showToast(`下载更新：${parseFloat(data.percent.toFixed(2))}%`)
+    showToast(
+      t('toast.downloadProgress', { percent: parseFloat(data.percent.toFixed(2)) })
+    )
     if (data.percent === 100) isDownloading.value = false
   })
   window.mainApi?.on('update-error', (_: any) => {
     isDownloading.value = false
-    showToast('下载错误')
+    showToast(t('toast.downloadError'))
   })
   window.mainApi?.on('changeRouteTo', (_: any, route: string) => {
     showLyrics.value = false
