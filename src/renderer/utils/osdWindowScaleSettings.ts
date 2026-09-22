@@ -103,14 +103,14 @@ const injectStyle = () => {
       display: grid;
       grid-template-columns:
         minmax(88px, 1fr)
-        42px
-        34px
-        minmax(58px, 72px)
-        34px
-        42px;
+        36px
+        28px
+        minmax(56px, 68px)
+        28px
+        36px;
       grid-template-rows: 30px;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
@@ -122,7 +122,7 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-input {
       width: 100%;
       min-width: 0;
-      height: 30px;
+      height: 27px;
       padding: 0 6px;
       box-sizing: border-box;
       border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
@@ -162,17 +162,17 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='coarse'] {
-      height: 26px;
-      font-size: 12px;
-      font-weight: 740;
+      height: 24px;
+      font-size: 11px;
+      font-weight: 720;
       color: color-mix(in srgb, var(--color-primary) 62%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 6%, transparent) !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-button[data-step-mode='fine'] {
-      height: 21px;
-      font-size: 10px;
-      font-weight: 640;
+      height: 19px;
+      font-size: 9.5px;
+      font-weight: 620;
       color: color-mix(in srgb, var(--color-primary) 46%, transparent) !important;
       background: color-mix(in srgb, var(--color-primary) 3.5%, transparent) !important;
     }
