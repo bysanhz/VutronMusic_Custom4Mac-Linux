@@ -91,11 +91,27 @@ export const normalizeTrack = (value: any) => {
   const artists = normalizeArtists(
     source?.ar ?? source?.artists ?? (source?.artist ? [source.artist] : [])
   )
-  const album = source?.al ?? source?.album
+  const rawAlbum = source?.al ?? source?.album
+  const album =
+    rawAlbum && typeof rawAlbum === 'object'
+      ? {
+          ...rawAlbum,
+          id: rawAlbum?.id ?? rawAlbum?.albumId ?? 0,
+          name: rawAlbum?.name ?? rawAlbum?.title ?? '',
+          picUrl: rawAlbum?.picUrl ?? rawAlbum?.coverImgUrl ?? rawAlbum?.coverUrl ?? ''
+        }
+      : {
+          id: 0,
+          name: '',
+          picUrl: ''
+        }
   const looksLikeTrack =
     id &&
     name &&
-    (artists.length > 0 || source?.dt !== undefined || source?.duration !== undefined || album)
+    (artists.length > 0 ||
+      source?.dt !== undefined ||
+      source?.duration !== undefined ||
+      Boolean(rawAlbum))
 
   if (!looksLikeTrack) return null
 
@@ -103,10 +119,10 @@ export const normalizeTrack = (value: any) => {
     ...source,
     id,
     name,
-    ar: source?.ar ?? artists,
-    artists: source?.artists ?? artists,
-    al: source?.al ?? album,
-    album: source?.album ?? album,
+    ar: artists,
+    artists,
+    al: album,
+    album,
     type: source?.type ?? 'online',
     matched: source?.matched ?? true
   }
