@@ -1414,6 +1414,17 @@ test.describe('desktop feature integration', () => {
     expect(settingsFluidLayout).not.toContain('justify-self: stretch')
     expect(settingsFluidLayout).toContain('grid-template-columns: minmax(0, 1fr) auto;')
     expect(settingsFluidLayout).toContain('width: auto !important;')
+    expect(settingsFluidLayout).toContain(':not(.vutronmusic-v327-settings-item)')
+    expect(settingsFluidLayout).toContain(':not(#osd-window-scale-baseline-setting)')
+    expect(settingsFluidLayout).toContain(
+      '.item.vutronmusic-v327-settings-item {'
+    )
+    expect(settingsFluidLayout).toContain(
+      'grid-template-columns: minmax(0, 1fr) !important;'
+    )
+    expect(settingsFluidLayout).toContain(
+      '> .vutronmusic-v327-controls {'
+    )
     expect(settingsFluidLayout).not.toContain(
       'repeat(auto-fit, minmax(min(100%, 240px), 1fr))'
     )
