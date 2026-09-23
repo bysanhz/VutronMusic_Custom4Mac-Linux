@@ -112,6 +112,8 @@ export type ScrobbleParams = {
   level?: string
   source?: string
   vip?: boolean
+  allowShort?: boolean
+  allowRepeat?: boolean
 }
 
 const SCROBBLE_DEDUP_WINDOW_MS = 10_000
@@ -243,7 +245,10 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
   const listenedSeconds = Number(params.time)
   const minimumSeconds = getMinimumScrobbleSeconds(params.total)
 
-  if (!Number.isFinite(listenedSeconds) || listenedSeconds < minimumSeconds) {
+  if (
+    !Number.isFinite(listenedSeconds) ||
+    (!params.allowShort && listenedSeconds < minimumSeconds)
+  ) {
     debugScrobble('[Track API] 跳过过短的网易云 scrobble：', {
       trackId,
       listenedSeconds: Number.isFinite(listenedSeconds) ? listenedSeconds : null,
@@ -270,7 +275,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
   }
 
   const lastSuccessAt = lastSuccessfulScrobbleAt.get(trackId) || 0
-  if (Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS) {
+  if (!params.allowRepeat && Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS) {
     debugScrobble('[Track API] 跳过短时间内的重复 scrobble：', {
       trackId,
       time: params.time
