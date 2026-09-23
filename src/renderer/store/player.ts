@@ -107,9 +107,12 @@ export const usePlayerStore = defineStore(
     let lastUpdateTime = 0
     let trackLoadRevision = 0
     let trackLookupFailureRevision = -1
-    let neteaseScrobbledForCurrentSession = false
+    let neteaseSessionListenedSeconds = 0
+    let neteaseSessionSubmittedSeconds = 0
+    let neteaseSessionRevision = 0
     let neteaseScrobbleQueue: Promise<void> = Promise.resolve()
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
+    const MIN_NETEASE_CHECKPOINT_SECONDS = 30
 
     // 同一首歌曲的远程音源只自动刷新一次。
     // 第二次仍无法播放时直接切歌，避免 CORS/坏音源导致 replaceCurrentTrack 无限递归。
@@ -965,7 +968,9 @@ export const usePlayerStore = defineStore(
           : 0
 
       currentTrack.value = track
-      neteaseScrobbledForCurrentSession = false
+      neteaseSessionListenedSeconds = 0
+      neteaseSessionSubmittedSeconds = 0
+      neteaseSessionRevision += 1
       lyrics.value = []
       currentIndex.value = -1
       chorusStartTime.value = 0
@@ -1006,29 +1011,50 @@ export const usePlayerStore = defineStore(
       return track.al?.id || track.album?.id || 0
     }
 
-    const scrobbleNetease = async (track: Track, time: number, completed = false) => {
-      if (neteaseScrobbledForCurrentSession) return
-      if (track.type === 'stream' || (track.type === 'local' && !track.matched)) return
+    const scrobbleNetease = async (
+      track: Track,
+      _time: number,
+      completed = false,
+      checkpoint = false
+    ): Promise<boolean> => {
+      if (track.type === 'stream' || (track.type === 'local' && !track.matched)) return false
 
       const id = Number(track.id)
       const trackDuration = ~~((track.dt || track.duration || 0) / 1000)
-      const listenedSeconds = completed ? trackDuration : Math.max(0, ~~time)
-      if (!Number.isFinite(id) || id <= 0 || trackDuration <= 0 || listenedSeconds <= 0) return
+      const sessionListenedSeconds = Math.max(0, Math.floor(neteaseSessionListenedSeconds))
+      const listenedSeconds = Math.max(
+        0,
+        sessionListenedSeconds - neteaseSessionSubmittedSeconds
+      )
+
+      if (!Number.isFinite(id) || id <= 0 || trackDuration <= 0 || listenedSeconds <= 0) {
+        return false
+      }
 
       /*
-       * 在真正发请求前即锁定当前播放 session，避免 natural-end 随后进入
-       * replaceCurrentTrack 时把同一首歌重复入队。
+       * 手动刷新现在可以把“当前已经真实听过但尚未提交”的增量立即 checkpoint。
        *
-       * 每次切歌的上报串行执行。网易云 NCBL 的 PLV/PLD 是两段写入，连续切歌时若
-       * 多首并发上传，服务端可能只及时落下一部分 duration。这里保留一个很短的队列
-       * 间隔，让上一首的 PLD 完成后再提交下一首，同时不阻塞 UI 切歌。
+       * 第一次 checkpoint 仍要求至少 30 秒，避免快速试听污染网易云足迹；一旦本次
+       * session 已经提交过，后续刷新/切歌只提交新增的 delta，因此哪怕剩余不足
+       * 30 秒也需要允许提交，否则会永久留下尾差。
        */
-      neteaseScrobbledForCurrentSession = true
+      const hasPreviousSubmission = neteaseSessionSubmittedSeconds > 0
+      if (checkpoint && !hasPreviousSubmission && listenedSeconds < MIN_NETEASE_CHECKPOINT_SECONDS) {
+        return false
+      }
+
+      const sessionRevision = neteaseSessionRevision
+      const submittedBefore = neteaseSessionSubmittedSeconds
+      const submittedAfter = submittedBefore + listenedSeconds
+
+      // 入队时先预留本段，避免 natural-end 紧接 replaceCurrentTrack 时重复提交同一 delta。
+      neteaseSessionSubmittedSeconds = submittedAfter
+
       const artists = track.artists ?? track.ar ?? []
       const sourceid = resolveNeteaseScrobbleSourceID(track)
       const source = playlistSource.value.type
 
-      const operation = async (): Promise<void> => {
+      const operation = async (): Promise<boolean> => {
         try {
           const result = await scrobble({
             id,
@@ -1037,38 +1063,74 @@ export const usePlayerStore = defineStore(
             total: trackDuration,
             name: track.name,
             artist: artists.map((artist) => artist.name).filter(Boolean).join('/'),
-            source
+            source,
+            allowShort: hasPreviousSubmission || completed,
+            allowRepeat: hasPreviousSubmission
           })
           const skipped = Boolean(result?.skipped || result?.deduplicated)
           const success =
             !skipped && Boolean(result) && (result.code === undefined || Number(result.code) === 200)
 
           if (!success) {
+            if (sessionRevision === neteaseSessionRevision) {
+              neteaseSessionSubmittedSeconds = Math.min(
+                neteaseSessionSubmittedSeconds,
+                submittedBefore
+              )
+            }
             if (!skipped) {
               console.warn('[Player] 网易云听歌记录上报失败：', {
                 trackId: id,
                 time: listenedSeconds,
+                checkpoint,
                 result
               })
             }
-            return
+            return false
           }
 
           window.dispatchEvent(
             new CustomEvent('vutronmusic-netease-scrobble', {
-              detail: { trackId: id, time: listenedSeconds, completed }
+              detail: {
+                trackId: id,
+                time: listenedSeconds,
+                completed,
+                checkpoint,
+                submittedSeconds: submittedAfter
+              }
             })
           )
+          return true
         } catch (error) {
+          if (sessionRevision === neteaseSessionRevision) {
+            neteaseSessionSubmittedSeconds = Math.min(
+              neteaseSessionSubmittedSeconds,
+              submittedBefore
+            )
+          }
           console.warn('[Player] 网易云听歌记录上报异常：', error)
+          return false
         } finally {
           await delay(NETEASE_SCROBBLE_QUEUE_GAP_MS)
         }
       }
 
       const queued = neteaseScrobbleQueue.then(operation, operation)
-      neteaseScrobbleQueue = queued.catch(() => {})
-      await queued
+      neteaseScrobbleQueue = queued.then(
+        () => undefined,
+        () => undefined
+      )
+      return queued
+    }
+
+    const syncCurrentNeteaseListenCheckpoint = async (): Promise<boolean> => {
+      if (!currentTrack.value) return false
+      return scrobbleNetease(
+        currentTrack.value,
+        audioNodes.audio?.currentTime || seek.value,
+        false,
+        true
+      )
     }
 
     const scrobbleFM = (track: Track, time: number, completed = false) => {
@@ -1517,6 +1579,7 @@ export const usePlayerStore = defineStore(
           shouldTrackNeteaseListenTime(currentTrack.value)
         ) {
           addPendingNeteaseListenSeconds(delta)
+          neteaseSessionListenedSeconds += delta
         }
 
         _progress.value = currentTime
@@ -2260,6 +2323,7 @@ export const usePlayerStore = defineStore(
       personalFMNextTrack,
       playlistSource,
       fadeDuration,
+      syncCurrentNeteaseListenCheckpoint,
       setConvolver,
       setGlobalLyricOffset,
       replacePlaylist,
