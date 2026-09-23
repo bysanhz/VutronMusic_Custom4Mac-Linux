@@ -50,6 +50,14 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  /*
+   * SystemSettings.vue 的原生 item 右侧本来就保留 24px 内容边界；
+   * 动态注入的设置项没有 scoped 属性，之前不会继承这段 padding，
+   * 因而预设/窗口基准会比上方开关多伸出一截。这里统一两端基准：
+   * 左侧贴齐同一内容起点，右侧统一保留 24px。
+   */
+  padding-left: 0 !important;
+  padding-right: 24px !important;
 }
 
 #app
@@ -105,6 +113,8 @@
   gap: 10px !important;
   padding-top: 8px;
   padding-bottom: 14px;
+  padding-left: 0 !important;
+  padding-right: 24px !important;
 }
 
 #app .system-settings .item.vutronmusic-v327-settings-item > .left {
