@@ -1718,6 +1718,33 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(interactionFix).toContain('.library .infinite-list-container')
   })
 
+  test('keeps variable-height comments anchored while virtual scrolling', () => {
+    const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
+    const comments = readSource('src/renderer/components/CommentList.vue')
+    const floorComments = readSource('src/renderer/components/CommentFloor.vue')
+
+    expect(virtualScroll).toContain('dynamicItemSize?: boolean')
+    expect(virtualScroll).toContain("itemKey?: string")
+    expect(virtualScroll).toContain("const useDynamicItemSize = computed(")
+    expect(virtualScroll).toContain("new ResizeObserver(() => queueDynamicMeasurement())")
+    expect(virtualScroll).toContain('const anchorDelta = anchorTopAfter - anchorTopBefore')
+    expect(virtualScroll).toContain('element.scrollTop += anchorDelta')
+    expect(virtualScroll).toContain(':key="row._renderKey"')
+    expect(virtualScroll).toContain('overflow-anchor: none;')
+
+    expect(comments).toContain(':dynamic-item-size="true"')
+    expect(comments).toContain('item-key="commentId"')
+    expect(comments).toContain('const loadComment = async (): Promise<void> =>')
+    expect(comments).toContain('appendUniqueComments(res.data.comments || [])')
+    expect(comments).toContain('flex: 0 0 36px;')
+
+    expect(floorComments).toContain(':dynamic-item-size="true"')
+    expect(floorComments).toContain('item-key="commentId"')
+    expect(floorComments).toContain('const loadFloorComment = async (pid: number): Promise<void> =>')
+    expect(floorComments).toContain('appendUniqueFloorComments')
+    expect(floorComments).toContain('flex: 0 0 36px;')
+  })
+
   test('keeps live desktop lyric settings selected when reopening settings', () => {
     const presets = readSource('src/renderer/utils/osdLyricPresetSettings.ts')
 
