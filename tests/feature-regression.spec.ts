@@ -990,6 +990,19 @@ test.describe('desktop feature integration', () => {
     }
   })
 
+  test('uses the accent color for current settings values', () => {
+    const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
+
+    expect(settings).toContain(':deep(.custom-select .custom-text) {')
+    expect(settings).toContain('color: var(--color-primary);')
+    expect(settings).toContain('input.text-input {')
+    expect(settings).toContain('.font-size-value {')
+    expect(settings).toContain('.slider-value {')
+    expect(settings).toContain('.keyboard-input {')
+    expect(sharedFeatures).toContain("color: var(--color-primary);")
+  })
+
   test('keeps injected settings controls theme-aware and activates custom accent colors', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
     const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
