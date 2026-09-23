@@ -190,12 +190,14 @@ img {
   justify-content: center;
   align-items: center;
   margin-left: 24px;
-  padding: 2px;
+  padding: 4px;
   box-sizing: border-box;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 4px solid rgba(255, 255, 255, 0.94);
   background: rgba(10, 12, 18, 0.36);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(10px) saturate(115%);
   user-select: none;
   container-type: inline-size;
@@ -258,10 +260,12 @@ img {
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 4px solid rgba(255, 255, 255, 0.94);
   color: white;
   background: rgba(8, 10, 16, 0.58);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px) saturate(120%);
   transition:
     transform 0.18s ease,
