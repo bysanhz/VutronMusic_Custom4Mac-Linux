@@ -180,7 +180,10 @@ const performScrobble = async (params: ScrobbleParams) => {
       time: params.time,
       result: modernResult
     })
-    return modernResult
+    return {
+      ...modernResult,
+      durationAware: true
+    }
   }
 
   debugScrobble('[Track API] /scrobble-v1 未成功，回退 legacy /scrobble：', {
@@ -210,7 +213,10 @@ const performScrobble = async (params: ScrobbleParams) => {
       time: params.time,
       play: legacyResult?.details?.play
     })
-    return legacyResult
+    return {
+      ...legacyResult,
+      durationAware: false
+    }
   }
 
   console.warn('[Track API] 网易云听歌上报失败：', {
