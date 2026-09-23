@@ -288,7 +288,9 @@ const installTransferAndPreview = (): boolean => {
   const status = controls.querySelector<HTMLElement>('.vutronmusic-v327-status')
   if (!select || !nameInput) return false
 
-  const wrapper = document.createElement('div')
+  const layout = document.createElement('div')
+  const wrapper = document.createElement('section')
+  const controlPane = document.createElement('section')
   const preview = document.createElement('div')
   const previewCover = document.createElement('span')
   const previewLyrics = document.createElement('span')
@@ -298,8 +300,12 @@ const installTransferAndPreview = (): boolean => {
   const exportButton = document.createElement('button')
   const importButton = document.createElement('button')
   const fileInput = document.createElement('input')
+  const editor = controls.querySelector<HTMLElement>('.vutronmusic-osd-preset-editor')
+  const draftRow = controls.querySelector<HTMLElement>('.vutronmusic-osd-preset-draft-row')
 
-  wrapper.className = FEATURE_CLASS
+  layout.className = 'vutronmusic-osd-preset-layout'
+  wrapper.className = `${FEATURE_CLASS} vutronmusic-osd-preset-preview-pane`
+  controlPane.className = 'vutronmusic-osd-preset-control-pane'
   preview.className = 'vutronmusic-osd-preset-preview'
   previewCover.className = 'vutronmusic-osd-preset-preview-cover'
   previewLyrics.className = 'vutronmusic-osd-preset-preview-lyrics'
@@ -317,12 +323,20 @@ const installTransferAndPreview = (): boolean => {
   fileInput.accept = 'application/json,.json'
   fileInput.hidden = true
   actionRow.append(exportButton, importButton, fileInput)
-  wrapper.append(preview, actionRow)
 
-  const presetActionButtons = [...controls.children].filter(
-    (element): element is HTMLButtonElement => element instanceof HTMLButtonElement
-  )
-  controls.prepend(wrapper)
+  const presetActionButtons = [
+    ...controls.querySelectorAll<HTMLButtonElement>('.vutronmusic-osd-preset-action')
+  ]
+
+  wrapper.append(preview)
+  if (status) wrapper.append(status)
+  if (draftRow) wrapper.append(draftRow)
+
+  controlPane.append(actionRow)
+  if (editor) controlPane.append(editor)
+
+  layout.append(wrapper, controlPane)
+  controls.replaceChildren(layout)
 
   let selectedPreviewSettings: PresetSettings | null = null
   let lastPreviewState = ''
