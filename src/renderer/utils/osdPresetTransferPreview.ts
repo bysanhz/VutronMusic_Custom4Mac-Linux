@@ -68,8 +68,6 @@ const TEXTS = {
     conflictDescription: '已存在同名模版“{name}”，请选择如何处理。',
     replaceOne: '替换',
     skipOne: '跳过',
-    replaceAll: '全部替换',
-    skipAll: '全部跳过',
     importSummary: '新增 {added} 个，替换 {replaced} 个，跳过 {skipped} 个'
   },
   zht: {
@@ -86,8 +84,6 @@ const TEXTS = {
     conflictDescription: '已存在同名模版「{name}」，請選擇如何處理。',
     replaceOne: '取代',
     skipOne: '略過',
-    replaceAll: '全部取代',
-    skipAll: '全部略過',
     importSummary: '新增 {added} 個，取代 {replaced} 個，略過 {skipped} 個'
   },
   en: {
@@ -104,8 +100,6 @@ const TEXTS = {
     conflictDescription: 'A template named “{name}” already exists. Choose how to handle it.',
     replaceOne: 'Replace',
     skipOne: 'Skip',
-    replaceAll: 'Replace All',
-    skipAll: 'Skip All',
     importSummary: 'Added {added}, replaced {replaced}, skipped {skipped}'
   }
 } as const
@@ -482,7 +476,7 @@ const installTransferAndPreview = (): boolean => {
   }
   window.addEventListener(PRESET_COMMITTED_EVENT, handlePresetCommitted)
 
-  type ConflictResolution = 'replace' | 'skip' | 'replace-all' | 'skip-all'
+  type ConflictResolution = 'replace' | 'skip'
 
   const askConflictResolution = (name: string): Promise<ConflictResolution> =>
     new Promise((resolve) => {
@@ -528,9 +522,7 @@ const installTransferAndPreview = (): boolean => {
 
       buttons.append(
         createChoiceButton(text.skipOne, 'skip'),
-        createChoiceButton(text.replaceOne, 'replace', true),
-        createChoiceButton(text.skipAll, 'skip-all'),
-        createChoiceButton(text.replaceAll, 'replace-all', true)
+        createChoiceButton(text.replaceOne, 'replace', true)
       )
       dialog.append(title, description, buttons)
       overlay.append(dialog)
@@ -622,23 +614,9 @@ const installTransferAndPreview = (): boolean => {
       let added = 0
       let replaced = 0
       let skipped = 0
-      let conflictPolicy: 'ask' | 'replace-all' | 'skip-all' = 'ask'
 
-      const shouldReplaceConflict = async (name: string): Promise<boolean> => {
-        if (conflictPolicy === 'replace-all') return true
-        if (conflictPolicy === 'skip-all') return false
-
-        const resolution = await askConflictResolution(name)
-        if (resolution === 'replace-all') {
-          conflictPolicy = 'replace-all'
-          return true
-        }
-        if (resolution === 'skip-all') {
-          conflictPolicy = 'skip-all'
-          return false
-        }
-        return resolution === 'replace'
-      }
+      const shouldReplaceConflict = async (name: string): Promise<boolean> =>
+        (await askConflictResolution(name)) === 'replace'
 
       for (const template of imported) {
         const normalizedName = template.name.toLocaleLowerCase()
