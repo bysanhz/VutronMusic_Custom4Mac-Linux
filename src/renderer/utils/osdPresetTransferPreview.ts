@@ -23,6 +23,9 @@ const OSD_STORAGE_KEY = 'osdLyric'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const FEATURE_CLASS = 'vutronmusic-osd-preset-transfer-preview'
 const PRESET_COMMITTED_EVENT = 'vutronmusic-osd-preset-committed'
+const CURRENT_SETTINGS_OPTION_ID = '__current-osd-settings__'
+const TEMPLATE_BUNDLE_SCHEMA = 'vutronmusic-osd-template-bundle'
+const LEGACY_PRESET_SCHEMA = 'vutronmusic-osd-preset'
 const MAX_USER_PRESETS = 50
 const MAX_IMPORT_BYTES = 256 * 1024
 
@@ -48,39 +51,54 @@ type StoredPreset = {
   settings: PresetSettings
 }
 
+type ImportedTemplate = {
+  id?: string
+  name: string
+  settings: PresetSettings
+}
+
 const TEXTS = {
   zh: {
     previewPlayed: '正在播放的歌词',
     previewWaiting: '下一行歌词预览',
-    export: '导出当前',
-    import: '导入预设',
-    exported: '当前样式与窗口基准已导出',
-    imported: '预设已导入、应用并可继续修改',
-    importFailed: '预设文件无效或超过 256 KB',
+    export: '导出模版',
+    import: '导入模版',
+    exported: '全部已有模版已导出',
+    imported: '模版导入完成',
+    importFailed: '模版文件无效或超过 256 KB',
     limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
-    importedSuffix: '导入'
+    importedSuffix: '导入',
+    conflict:
+      '已存在同名模版“{name}”。\n\n确定：替换现有模版\n取消：跳过此模版',
+    importSummary: '新增 {added} 个，替换 {replaced} 个，跳过 {skipped} 个'
   },
   zht: {
     previewPlayed: '正在播放的歌詞',
     previewWaiting: '下一行歌詞預覽',
-    export: '匯出目前',
-    import: '匯入預設',
-    exported: '目前樣式與視窗基準已匯出',
-    imported: '預設已匯入、套用並可繼續修改',
-    importFailed: '預設檔案無效或超過 256 KB',
+    export: '匯出模版',
+    import: '匯入模版',
+    exported: '全部現有模版已匯出',
+    imported: '模版匯入完成',
+    importFailed: '模版檔案無效或超過 256 KB',
     limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
-    importedSuffix: '匯入'
+    importedSuffix: '匯入',
+    conflict:
+      '已存在同名模版「{name}」。\n\n確定：取代現有模版\n取消：略過此模版',
+    importSummary: '新增 {added} 個，取代 {replaced} 個，略過 {skipped} 個'
   },
   en: {
     previewPlayed: 'Current lyric preview',
     previewWaiting: 'Next lyric preview',
-    export: 'Export current',
-    import: 'Import preset',
-    exported: 'Current styling and window baseline exported',
-    imported: 'Preset imported, applied and ready to edit',
-    importFailed: 'The preset file is invalid or larger than 256 KB.',
+    export: 'Export Templates',
+    import: 'Import Templates',
+    exported: 'All existing templates exported',
+    imported: 'Template import complete',
+    importFailed: 'The template file is invalid or larger than 256 KB.',
     limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
-    importedSuffix: 'Imported'
+    importedSuffix: 'Imported',
+    conflict:
+      'A template named “{name}” already exists.\n\nOK: replace it\nCancel: skip it',
+    importSummary: 'Added {added}, replaced {replaced}, skipped {skipped}'
   }
 } as const
 
@@ -251,6 +269,19 @@ const saveUserPresets = (presets: StoredPreset[]): boolean => {
   }
 }
 
+const saveBuiltInOverrides = (presets: StoredPreset[]): boolean => {
+  try {
+    const normalized = presets.filter((preset) =>
+      Object.prototype.hasOwnProperty.call(DEFAULT_BUILTIN_SETTINGS, preset.id)
+    )
+    const serialized = JSON.stringify(normalized)
+    writeStorageValue(BUILTIN_OVERRIDES_STORAGE_KEY, serialized)
+    return localStorage.getItem(BUILTIN_OVERRIDES_STORAGE_KEY) === serialized
+  } catch {
+    return false
+  }
+}
+
 const applySettings = (settings: PresetSettings): void => {
   const current = readJsonRecord(OSD_STORAGE_KEY)
   const { coverControlsVisible, windowBaseline, ...osdSettings } = settings
@@ -263,18 +294,78 @@ const applySettings = (settings: PresetSettings): void => {
   }
 }
 
-const createUniqueName = (requested: string, existing: StoredPreset[]): string => {
-  const text = TEXTS[resolveFeatureLanguage()]
-  const used = new Set(existing.map((preset) => preset.name.toLocaleLowerCase()))
-  const base = requested.trim().slice(0, 80) || text.importedSuffix
-  if (!used.has(base.toLocaleLowerCase())) return base
+const createImportedPresetId = (): string =>
+  typeof crypto.randomUUID === 'function'
+    ? `user-${crypto.randomUUID()}`
+    : `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-  for (let index = 2; index <= 999; index += 1) {
-    const candidate = `${base} ${index}`.slice(0, 80)
-    if (!used.has(candidate.toLocaleLowerCase())) return candidate
+const normalizeImportedTemplate = (value: unknown): ImportedTemplate | null => {
+  if (!value || typeof value !== 'object') return null
+  const record = value as {
+    id?: unknown
+    name?: unknown
+    settings?: unknown
   }
-  return `${base} ${Date.now()}`.slice(0, 80)
+  const settings = normalizeSettings(record.settings)
+  const name = String(record.name || '')
+    .trim()
+    .slice(0, 80)
+  if (!name || !settings) return null
+
+  const id = String(record.id || '')
+    .trim()
+    .slice(0, 120)
+  return {
+    ...(id ? { id } : {}),
+    name,
+    settings
+  }
 }
+
+const parseImportedTemplates = (value: unknown): ImportedTemplate[] => {
+  if (!value || typeof value !== 'object') return []
+  const record = value as {
+    schema?: unknown
+    version?: unknown
+    templates?: unknown
+    preset?: unknown
+  }
+
+  if (
+    record.schema === TEMPLATE_BUNDLE_SCHEMA &&
+    Number(record.version) === 1 &&
+    Array.isArray(record.templates)
+  ) {
+    return record.templates
+      .map(normalizeImportedTemplate)
+      .filter((item): item is ImportedTemplate => item !== null)
+  }
+
+  const legacyVersion = Number(record.version)
+  if (
+    record.schema === LEGACY_PRESET_SCHEMA &&
+    (legacyVersion === 1 || legacyVersion === 2)
+  ) {
+    const preset = normalizeImportedTemplate(record.preset)
+    return preset ? [preset] : []
+  }
+
+  return []
+}
+
+const sameSettings = (left: PresetSettings, right: PresetSettings): boolean =>
+  JSON.stringify(left) === JSON.stringify(right)
+
+const formatImportSummary = (
+  template: string,
+  added: number,
+  replaced: number,
+  skipped: number
+): string =>
+  template
+    .replace('{added}', String(added))
+    .replace('{replaced}', String(replaced))
+    .replace('{skipped}', String(skipped))
 
 const installTransferAndPreview = (): boolean => {
   const control = document.getElementById(PRESET_CONTROL_ID)
