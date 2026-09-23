@@ -133,11 +133,12 @@ watch(
   object-fit: cover;
   clip-path: border-box;
   border-radius: 0.75rem;
-  border: 4px solid rgba(255, 255, 255, 0.94);
+  border: 5px solid rgba(255, 255, 255, 0.96);
   box-sizing: border-box;
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
   cursor: pointer;
   user-select: none;
 }
