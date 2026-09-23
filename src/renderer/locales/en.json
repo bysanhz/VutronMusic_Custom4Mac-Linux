@@ -34,7 +34,7 @@
     "charts": "Charts",
     "seeMore": "See All",
     "insightsTitle": "Music Insights",
-    "insightsDesc": "Listening Footprint · Style Explorer · Cloud Pro",
+    "insightsDesc": "Listening Footprint · Cloud Pro",
     "openInsights": "Open →",
     "guessYouLike": "Made for You",
     "personalized": "Personalized"
@@ -933,7 +933,7 @@
   },
   "insights": {
     "title": "Music Insights",
-    "description": "A stable NetEase toolkit for listening history, style discovery, and cloud music.",
+    "description": "A stable NetEase toolkit for listening history and cloud music.",
     "tabs": {
       "footprint": "Listening Footprint",
       "style": "Style Explorer",
@@ -943,6 +943,8 @@
       "title": "Listening Footprint",
       "description": "Today counts unique tracks; This Week runs from Monday through today, with unsynced local listening time added immediately.",
       "pending": "Pending +{duration}",
+      "pendingHint": "Local listening time is counted immediately. The current track is reported to NetEase when it ends or you switch tracks; the app then confirms the remote stats automatically.",
+      "refreshHint": "Reload NetEase statistics and briefly recheck any reported listening time that has not appeared remotely yet.",
       "today": "Today",
       "todayCount": "{count} tracks",
       "todayListen": "Today’s listening · {duration}",
