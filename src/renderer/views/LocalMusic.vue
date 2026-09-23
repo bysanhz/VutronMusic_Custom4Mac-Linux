@@ -88,21 +88,40 @@
             $t('localMusic.dirName')
           }}</div>
         </div>
-        <div v-if="idx !== 1" class="search-box">
-          <SearchBox
-            ref="localSearchBoxRef"
-            :placeholder="
-              t('localMusic.search', {
-                target: placeHolderMap(
-                  idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string)
-                )
-              })
+        <div class="tabs-actions">
+          <button
+            class="tab-button scan-button"
+            type="button"
+            :disabled="scanning || !scanDir.length"
+            :aria-busy="scanning"
+            :title="
+              !scanDir.length
+                ? t('localMusic.scanNoFolder')
+                : scanning
+                  ? t('localMusic.scanning')
+                  : t('localMusic.scan')
             "
-          />
+            @click="handleScanLocalMusic"
+          >
+            <svg-icon icon-class="local-music" :class="{ scanning: scanning }" />
+            {{ scanning ? t('localMusic.scanning') : t('localMusic.scan') }}
+          </button>
+          <div v-if="idx !== 1" class="search-box">
+            <SearchBox
+              ref="localSearchBoxRef"
+              :placeholder="
+                t('localMusic.search', {
+                  target: placeHolderMap(
+                    idx === 3 ? (tabs[idx][artistBy] as string) : (tabs[idx] as string)
+                  )
+                })
+              "
+            />
+          </div>
+          <button v-show="idx === 1" class="tab-button" @click="openAddPlaylistModal"
+            ><svg-icon icon-class="plus" />{{ $t('library.playlist.newPlaylist') }}
+          </button>
         </div>
-        <button v-show="idx === 1" class="tab-button" @click="openAddPlaylistModal"
-          ><svg-icon icon-class="plus" />{{ $t('library.playlist.newPlaylist') }}
-        </button>
       </div>
       <div class="section-two-content" :style="tabStyle">
         <div v-show="idx === 0">
@@ -212,7 +231,7 @@ const { scanLocalMusic, getLocalLyric } = localMusicStore
 const { newPlaylistModal, modalOpen } = storeToRefs(useNormalStateStore())
 const { addTrackToPlayNext } = usePlayerStore()
 
-const { scanDir } = toRefs(useSettingsStore().localMusic)
+const { scanDir, scanning } = toRefs(useSettingsStore().localMusic)
 
 // ref
 const idx = ref(0)
@@ -392,6 +411,11 @@ const openAddPlaylistModal = () => {
     afterCreateAddTrackID: [],
     show: true
   }
+}
+
+const handleScanLocalMusic = (): void => {
+  if (scanning.value || !scanDir.value.length) return
+  void scanLocalMusic(false)
 }
 
 // provide
@@ -611,6 +635,19 @@ onUnmounted(() => {
     box-sizing: border-box;
     z-index: 10;
 
+
+    .tabs-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 0;
+
+      .search-box {
+        min-width: 0;
+      }
+    }
+
     .tabs {
       display: flex;
       flex-wrap: wrap;
@@ -654,6 +691,31 @@ onUnmounted(() => {
         }
       }
     }
+  }
+}
+
+.scan-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.42;
+  }
+
+  .svg-icon.scanning {
+    animation: local-music-scan-pulse 0.9s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes local-music-scan-pulse {
+  from {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.08);
   }
 }
 
