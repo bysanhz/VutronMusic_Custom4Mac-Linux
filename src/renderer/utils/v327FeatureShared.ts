@@ -317,6 +317,60 @@ export const injectV327FeatureStyle = (): void => {
       min-width: 0;
     }
 
+    .vutronmusic-template-conflict-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(4px);
+    }
+
+    .vutronmusic-template-conflict-dialog {
+      width: min(460px, 100%);
+      display: grid;
+      gap: 12px;
+      padding: 20px;
+      box-sizing: border-box;
+      border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+      border-radius: 14px;
+      color: var(--color-text);
+      background: var(--color-body-bg);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+    }
+
+    .vutronmusic-template-conflict-title {
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .vutronmusic-template-conflict-description {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .vutronmusic-template-conflict-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .vutronmusic-template-conflict-actions button {
+      min-width: 0;
+      min-height: 38px;
+      border-radius: 9px;
+    }
+
+    .vutronmusic-template-conflict-actions button.is-primary {
+      color: var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary), transparent 88%);
+    }
+
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
       color: var(--color-primary);
       background: color-mix(in srgb, var(--color-primary), transparent 88%);
