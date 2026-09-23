@@ -11,6 +11,8 @@
  */
 
 #app .system-settings {
+  --settings-content-right-gutter: 24px;
+
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -57,7 +59,7 @@
    * 左侧贴齐同一内容起点，右侧统一保留 24px。
    */
   padding-left: 0 !important;
-  padding-right: 24px !important;
+  padding-right: var(--settings-content-right-gutter) !important;
 }
 
 #app
@@ -114,7 +116,7 @@
   padding-top: 8px;
   padding-bottom: 14px;
   padding-left: 0 !important;
-  padding-right: 24px !important;
+  padding-right: var(--settings-content-right-gutter) !important;
 }
 
 #app .system-settings .item.vutronmusic-v327-settings-item > .left {
@@ -208,6 +210,7 @@
 
 /* ==================== 主界面缩放基准 ==================== */
 #app .system-settings .window-scale-font-range-item {
+  width: calc(100% - var(--settings-content-right-gutter)) !important;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   align-items: center !important;
   gap: clamp(12px, 2.5vw, 24px) !important;
@@ -333,6 +336,24 @@
 #app .system-settings .window-scale-font-button:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+/* ==================== 满宽分组统一边界 ==================== */
+/*
+ * 普通设置行的右侧控件会停在 24px gutter 处；整块卡片/预览过去却仍然铺到容器最右边，
+ * 因而在不同设置页里形成两条右边界。下面这些“满宽分组”统一缩到同一视觉终点。
+ * 左侧起点保持不变，所以标题、卡片和普通设置项形成真正的两端对齐。
+ */
+#app .system-settings .item:has(> .appearance),
+#app .system-settings .item:has(> .colors),
+#app .system-settings .item:has(> .color),
+#app .system-settings .item:has(> .stream-item) {
+  width: calc(100% - var(--settings-content-right-gutter)) !important;
+  padding-right: 0 !important;
+}
+
+#app .system-settings :is(.update-release, .diagnostic-panel) {
+  width: calc(100% - var(--settings-content-right-gutter)) !important;
 }
 
 /* ==================== 外观预览 ==================== */
