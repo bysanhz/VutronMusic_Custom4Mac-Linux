@@ -127,7 +127,7 @@ const useDynamicItemSize = computed(
 const _listData = computed(() => {
   return list.value.reduce<{ _key: number; _renderKey: string | number; value: T }[]>(
     (init, cur, index) => {
-      const record = cur as Record<string, unknown>
+      const record = cur as unknown as Record<string, unknown>
       const candidate = props.itemKey ? record?.[props.itemKey] : undefined
       init.push({
         _key: index,
