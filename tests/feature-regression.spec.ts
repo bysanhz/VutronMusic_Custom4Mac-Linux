@@ -1733,6 +1733,7 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(presets).toContain("editor.className = 'vutronmusic-osd-preset-editor'")
     expect(presets).toContain("fieldRow.className = 'vutronmusic-osd-preset-field-row'")
     expect(presets).toContain("actionRow.className = 'vutronmusic-osd-preset-action-row'")
+    expect(presets).toContain('nameInput.hidden = builtIn')
     expect(transferPreview).toContain("layout.className = 'vutronmusic-osd-preset-layout'")
     expect(transferPreview).toContain(
       "wrapper.className = `${FEATURE_CLASS} vutronmusic-osd-preset-preview-pane`"
@@ -1746,6 +1747,7 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(shared).toContain('.vutronmusic-osd-preset-preview-pane,')
     expect(shared).toContain('.vutronmusic-osd-preset-control-pane {')
     expect(shared).toContain('align-items: start;')
+    expect(shared).toContain('font-size: 15px;')
     expect(shared).toContain('min-height: 112px;')
     expect(shared).toContain('.vutronmusic-osd-preset-action-row {')
     expect(shared).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));')
