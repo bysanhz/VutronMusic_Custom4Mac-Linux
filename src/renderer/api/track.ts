@@ -150,6 +150,45 @@ const getMinimumScrobbleSeconds = (total?: number): number => {
  */
 const performScrobble = async (params: ScrobbleParams) => {
   const sourceid = normalizeScrobbleSourceId(params.sourceid, params.id)
+
+  /*
+   * 时长同步必须优先走 NCBL 的 PLV/PLD 上报。
+   *
+   * 旧逻辑先调用 legacy /scrobble，只要 play feedback 返回成功就直接结束。
+   * 该接口可以让“听过这首歌”的记录先出现，但并不稳定更新 realtime report 的
+   * playDuration，因此会出现“首数已经同步、只有部分歌曲时长同步”的现象。
+   *
+   * /scrobble-v1 明确发送 _plv + _pld，其中 _pld 携带实际 played seconds；
+   * 只有稳定路由失败时才回退 legacy /scrobble，保证至少保留听歌记录。
+   */
+  const modernResult = await request({
+    url: '/scrobble-v1',
+    method: 'post',
+    params: {
+      ...params,
+      sourceid,
+      timestamp: Date.now()
+    }
+  })
+
+  if (isSuccessfulResponse(modernResult)) {
+    debugScrobble('[Track API] /scrobble-v1 时长上报成功：', {
+      trackId: params.id,
+      sourceid,
+      time: params.time,
+      result: modernResult
+    })
+    return modernResult
+  }
+
+  debugScrobble('[Track API] /scrobble-v1 未成功，回退 legacy /scrobble：', {
+    trackId: params.id,
+    sourceid,
+    originalSourceid: params.sourceid,
+    time: params.time,
+    modernResult
+  })
+
   const legacyResult = await request({
     url: '/scrobble',
     method: 'get',
@@ -162,7 +201,7 @@ const performScrobble = async (params: ScrobbleParams) => {
   })
 
   if (isLegacyScrobbleSuccessful(legacyResult)) {
-    debugScrobble('[Track API] /scrobble 上报成功：', {
+    debugScrobble('[Track API] legacy /scrobble 回退成功：', {
       trackId: params.id,
       sourceid,
       originalSourceid: params.sourceid,
@@ -172,37 +211,7 @@ const performScrobble = async (params: ScrobbleParams) => {
     return legacyResult
   }
 
-  // 当前 Enhanced API 的 legacy feedback 经常没有返回有效 play 确认，
-  // 回退 NCBL 是正常路径，不应在生产环境制造 warning。
-  debugScrobble('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：', {
-    trackId: params.id,
-    sourceid,
-    originalSourceid: params.sourceid,
-    time: params.time,
-    legacyResult
-  })
-
-  const modernResult = await request({
-    url: '/scrobble-v1',
-    method: 'post',
-    params: {
-      ...params,
-      sourceid,
-      timestamp: Date.now()
-    }
-  })
-
-  if (isSuccessfulResponse(modernResult)) {
-    debugScrobble('[Track API] /scrobble-v1 上报成功：', {
-      trackId: params.id,
-      sourceid,
-      time: params.time,
-      result: modernResult
-    })
-    return modernResult
-  }
-
-  console.warn('[Track API] /scrobble-v1 上报失败：', {
+  console.warn('[Track API] 网易云听歌上报失败：', {
     trackId: params.id,
     sourceid,
     time: params.time,
@@ -215,13 +224,12 @@ const performScrobble = async (params: ScrobbleParams) => {
 /**
  * 听歌打卡。
  *
- * 优先使用传统 `/scrobble`。Enhanced API 会先发送 `startplay`，再发送真正
- * 增加听歌排行计数的 `play` feedback。这里必须检查 `details.play` 的真实响应，
- * 不能只看外层固定的 `code=200`。
+ * 优先使用 VutronMusic 自己注册的 `/scrobble-v1` 稳定路由。该路由发送
+ * NCBL 的 PLV/PLD 记录，其中 PLD 明确携带本次实际播放秒数，因此用于保证
+ * realtime report 的听歌时长可以逐首累加。
  *
- * 若传统 feedback 没有拿到明确成功确认，则回退到 VutronMusic 自己注册的
- * `/scrobble-v1` 稳定别名。该别名由主进程直接加载 vendor 的 `scrobble_v1`
- * 模块，不再依赖第三方导出名经过 `pathCase()` 后得到什么 HTTP 路径。
+ * 只有稳定路由失败时才回退传统 `/scrobble`。legacy feedback 仍可作为
+ * “听过这首歌”的降级记录，但不能再作为时长已经同步的首选确认。
  *
  * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
  * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
