@@ -108,8 +108,15 @@
         </div>
       </div>
 
-      <div class="tool-grid">
-        <label>
+      <div class="cloud-single-tools">
+        <div class="cloud-tools-heading">
+          <div>
+            <h3>{{ t('insights.cloud.singleToolsTitle') }}</h3>
+            <p>{{ t('insights.cloud.singleToolsDescription') }}</p>
+          </div>
+        </div>
+
+        <label class="cloud-track-select">
           <span>{{ t('insights.cloud.track') }}</span>
           <select v-model="selectedCloudSongId">
             <option value="">{{ t('insights.cloud.select') }}</option>
@@ -122,17 +129,48 @@
             </option>
           </select>
         </label>
-        <label>
-          <span>{{ t('insights.cloud.targetId') }}</span>
-          <input
-            v-model.trim="cloudTargetSongId"
-            :placeholder="t('insights.cloud.targetPlaceholder')"
-          />
-        </label>
+
+        <div class="cloud-tool-actions">
+          <div class="cloud-tool-card">
+            <div class="cloud-tool-card-copy">
+              <strong>{{ t('insights.cloud.lyricToolTitle') }}</strong>
+              <span>{{ t('insights.cloud.lyricToolDescription') }}</span>
+            </div>
+            <button :disabled="!selectedCloudSongId" @click="readCloudLyric">
+              {{ t('insights.cloud.readLyric') }}
+            </button>
+          </div>
+
+          <div class="cloud-tool-card cloud-rematch-card">
+            <div class="cloud-tool-card-copy">
+              <strong>{{ t('insights.cloud.rematch') }}</strong>
+              <span>{{ t('insights.cloud.rematchDescription') }}</span>
+            </div>
+            <div class="cloud-rematch-controls">
+              <label>
+                <span>{{ t('insights.cloud.targetId') }}</span>
+                <input
+                  v-model.trim="cloudTargetSongId"
+                  :placeholder="t('insights.cloud.targetPlaceholder')"
+                />
+                <small>{{ t('insights.cloud.targetIdHint') }}</small>
+              </label>
+              <button
+                :disabled="!selectedCloudSongId || !cloudTargetSongId"
+                @click="matchCloudSong"
+              >
+                {{ t('insights.cloud.rematch') }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="action-row">
-        <button @click="matchCloudSong">{{ t('insights.cloud.rematch') }}</button>
-        <button @click="readCloudLyric">{{ t('insights.cloud.readLyric') }}</button>
+
+      <div class="cloud-delete-entry">
+        <div>
+          <strong>{{ t('insights.cloud.deleteToolTitle') }}</strong>
+          <span>{{ t('insights.cloud.deleteToolDescription') }}</span>
+        </div>
         <button
           class="danger secondary-danger"
           :class="{ active: cloudBatchMode }"
@@ -881,15 +919,134 @@ button:disabled {
   }
 }
 
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.cloud-single-tools {
   margin-top: 22px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--color-body-bg);
+  border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
-.tool-grid.one-line {
-  grid-template-columns: minmax(0, 560px);
+.cloud-tools-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.52;
+  }
+}
+
+.cloud-track-select {
+  margin-bottom: 12px;
+}
+
+.cloud-tool-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.cloud-tool-card {
+  min-width: 0;
+  padding: 13px;
+  border-radius: 11px;
+  background: var(--color-secondary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cloud-tool-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+
+  strong {
+    font-size: 13px;
+  }
+
+  span {
+    font-size: 11px;
+    line-height: 1.45;
+    opacity: 0.52;
+  }
+}
+
+.cloud-tool-card button,
+.cloud-delete-entry button {
+  flex: 0 0 auto;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--color-text);
+  background: var(--color-body-bg);
+  font-weight: 650;
+}
+
+.cloud-rematch-card {
+  align-items: flex-end;
+}
+
+.cloud-rematch-controls {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+
+  label {
+    min-width: 0;
+  }
+
+  small {
+    margin-top: -1px;
+    font-size: 10px;
+    line-height: 1.4;
+    opacity: 0.45;
+  }
+}
+
+.cloud-delete-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #d94a4a 5%, var(--color-body-bg));
+
+  > div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  strong {
+    font-size: 13px;
+  }
+
+  span {
+    font-size: 11px;
+    opacity: 0.5;
+  }
+
+  .danger {
+    color: #d94a4a;
+  }
 }
 
 label {
@@ -1108,9 +1265,12 @@ input {
 
 @media (max-width: 900px) {
   .metric-grid,
-  .metric-grid.compact,
-  .tool-grid {
+  .metric-grid.compact {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .cloud-tool-actions {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1122,8 +1282,15 @@ input {
 
   .metric-grid,
   .metric-grid.compact,
-  .tool-grid {
+  .cloud-tool-actions,
+  .cloud-rematch-controls {
     grid-template-columns: 1fr;
+  }
+
+  .cloud-delete-entry,
+  .cloud-tool-card {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>
