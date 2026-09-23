@@ -1014,7 +1014,15 @@
       "batchRangeSelect": "補全區間",
       "batchRangeHint": "先勾選區間首尾兩首，再點擊「補全區間」，會自動選中中間所有歌曲。",
       "batchRangeInvalid": "請輸入 1 到 {count} 之間的有效區間",
-      "batchRangeNeedEndpoints": "請先勾選區間的首尾兩首歌曲"
+      "batchRangeNeedEndpoints": "請先勾選區間的首尾兩首歌曲",
+      "singleToolsTitle": "單曲工具",
+      "singleToolsDescription": "先選擇一首雲端硬碟歌曲，再執行歌詞讀取或重新匹配。",
+      "lyricToolTitle": "雲端硬碟歌詞",
+      "lyricToolDescription": "讀取目前選中雲端硬碟歌曲的歌詞內容。",
+      "rematchDescription": "將目前雲端硬碟歌曲重新關聯到指定的網易雲線上歌曲。",
+      "targetIdHint": "取得方式：在搜尋頁找到目標歌曲，右鍵該歌曲並選擇「複製ID」。",
+      "deleteToolTitle": "雲端硬碟刪除",
+      "deleteToolDescription": "進入多選模式後，可批次、全選或按首尾區間刪除雲端硬碟歌曲。"
     }
   },
   "streamLogin": {
