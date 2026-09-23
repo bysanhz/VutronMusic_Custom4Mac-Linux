@@ -190,14 +190,15 @@ img {
   justify-content: center;
   align-items: center;
   margin-left: 24px;
-  padding: 4px;
+  padding: 5px;
   box-sizing: border-box;
   border-radius: 22px;
-  border: 4px solid rgba(255, 255, 255, 0.94);
+  border: 6px solid rgba(255, 255, 255, 0.96);
   background: rgba(10, 12, 18, 0.36);
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.24),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(10px) saturate(115%);
   user-select: none;
   container-type: inline-size;
@@ -252,20 +253,21 @@ img {
   z-index: 3;
   right: 1.45rem;
   bottom: 1.3rem;
-  height: 48px;
-  width: 48px;
+  height: 52px;
+  width: 52px;
   margin: 0;
   padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.94);
+  border: 5px solid rgba(255, 255, 255, 0.96);
   color: white;
   background: rgba(8, 10, 16, 0.58);
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.3),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(12px) saturate(120%);
   transition:
     transform 0.18s ease,
