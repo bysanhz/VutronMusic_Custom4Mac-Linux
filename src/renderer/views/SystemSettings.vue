@@ -159,7 +159,7 @@
             <div>{{ $t('settings.theme.themeColor') }}：</div>
             <div class="colors">
               <div
-                v-for="color of colors.slice(0, 4)"
+                v-for="color of standardThemeColors"
                 :key="color.name"
                 class="color theme-color"
                 @click="changeColor(color)"
@@ -168,12 +168,13 @@
                 <div class="theme-color-item" :style="{ backgroundColor: color.color }"></div>
                 {{ $t(`settings.theme.${color.name}`) }}
               </div>
-              <div class="color theme-color" @click="changeColor(customizeColor)">
+              <div class="color theme-color custom-theme-color" @click.capture="applyCustomizeColor">
                 <div v-show="customizeColor.selected" class="selected-icon"></div>
                 <pick-colors
                   v-model:value="customizeColor.color"
-                  :width="60"
-                  :height="60"
+                  class="theme-color-picker"
+                  :width="54"
+                  :height="54"
                   :theme="currentTheme ?? 'light'"
                   format="rgb"
                   @update:value="selectCustomizeColor"
@@ -1175,7 +1176,10 @@ const {
   forceFactor
 } = toRefs(general.value)
 const { appearance, colors } = toRefs(theme.value)
-const customizeColor = computed(() => colors.value[4])
+const standardThemeColors = computed(() =>
+  colors.value.filter((color) => color.name !== 'Customize')
+)
+const customizeColor = computed(() => colors.value.find((color) => color.name === 'Customize')!)
 const { showLyric, showControl, lyricWidth, enableExtension } = toRefs(tray.value)
 const { proxy, realIp } = toRefs(misc.value)
 
@@ -1773,6 +1777,10 @@ const changeColor = (color: { name: string }) => {
   colorObj.selected = true
 }
 
+const applyCustomizeColor = () => {
+  changeColor(customizeColor.value)
+}
+
 const selectCustomizeColor = (value: string) => {
   customizeColor.value.color = value
   changeColor(customizeColor.value)
@@ -2105,12 +2113,21 @@ onBeforeUnmount(() => {
     margin-left: 20px;
     position: relative;
 
-    .theme-color-item {
-      height: 60px;
-      width: 60px;
+    .theme-color-item,
+    :deep(.theme-color-picker) {
+      height: 54px !important;
+      width: 54px !important;
       border-radius: 5px;
       margin: 5px;
+      box-sizing: border-box;
     }
+
+    :deep(.theme-color-picker > *) {
+      max-width: 100% !important;
+      max-height: 100% !important;
+      box-sizing: border-box;
+    }
+
     .selected-icon {
       position: absolute;
       top: 25px;
