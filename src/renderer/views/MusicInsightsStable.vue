@@ -38,11 +38,7 @@
           class="sync-status"
           :title="t('insights.footprint.pendingHint')"
         >
-          {{
-            t('insights.footprint.pending', {
-              duration: formatPendingListenDuration(pendingNeteaseListenSeconds)
-            })
-          }}
+          {{ pendingStatusText }}
         </div>
       </div>
 
@@ -281,7 +277,8 @@ import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
   pendingNeteaseListenSeconds,
-  reconcileNeteaseRemoteWeekDuration
+  reconcileNeteaseRemoteWeekDuration,
+  submittedNeteaseListenSeconds
 } from '../utils/neteaseListenPending'
 import { deleteCloudSong } from '../api/discovery'
 import {
@@ -342,6 +339,9 @@ const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.tod
 const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
 const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
 const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
+const pendingUnsubmittedSeconds = computed(() =>
+  Math.max(0, pendingNeteaseListenSeconds.value - submittedNeteaseListenSeconds.value)
+)
 
 const formatPendingListenDuration = (seconds: number): string => {
   const value = Math.max(0, Math.floor(Number(seconds) || 0))
@@ -355,6 +355,26 @@ const formatPendingListenDuration = (seconds: number): string => {
   }
   return t('insights.footprint.durationSeconds', { seconds: restSeconds })
 }
+
+const pendingStatusText = computed(() => {
+  const submitted = Math.max(0, submittedNeteaseListenSeconds.value)
+  const unsubmitted = pendingUnsubmittedSeconds.value
+
+  if (submitted > 0 && unsubmitted > 0) {
+    return t('insights.footprint.pendingMixed', {
+      pending: formatPendingListenDuration(unsubmitted),
+      submitted: formatPendingListenDuration(submitted)
+    })
+  }
+  if (submitted > 0) {
+    return t('insights.footprint.pendingSubmitted', {
+      duration: formatPendingListenDuration(submitted)
+    })
+  }
+  return t('insights.footprint.pendingUnsubmitted', {
+    duration: formatPendingListenDuration(unsubmitted)
+  })
+})
 
 const formatDisplayListenDuration = (seconds?: number): string => {
   if (!Number.isFinite(seconds) || Number(seconds) < 0) return '—'
