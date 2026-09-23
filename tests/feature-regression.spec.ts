@@ -1570,6 +1570,7 @@ test.describe('modern NetEase API integration', () => {
     const dailyTracks = readSource('src/renderer/views/DailyTracks.vue')
     const trackList = readSource('src/renderer/components/VirtualTrackList.vue')
     const explore = readSource('src/renderer/views/ExplorePage.vue')
+    const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
     const dataStore = readSource('src/renderer/store/data.ts')
 
     expect(dailyTracks).toContain('historyRecommendSongsDetail')
@@ -1585,6 +1586,10 @@ test.describe('modern NetEase API integration', () => {
     expect(explore).toContain('getRecommendPlayList(100, true)')
     expect(explore.match(/:is-end="!canLoadMore\(\)"/g)?.length).toBeGreaterThanOrEqual(2)
     expect(explore).toContain('class="load-more-state"')
+    expect(insights).toContain('const cloudBatchSongIds = ref<string[]>([])')
+    expect(insights).toContain('const DELETE_CONCURRENCY = 3')
+    expect(insights).toContain('@click="removeCloudSongs"')
+    expect(insights).toContain("t('insights.cloud.batchDeleteConfirm', { count: ids.length })")
     expect(dataStore).toContain('recentSongs(100)')
   })
 })
