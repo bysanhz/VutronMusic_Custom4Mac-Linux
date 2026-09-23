@@ -81,7 +81,8 @@ const installDraftState = (): boolean => {
   undoButton.textContent = text.undo
   undoButton.hidden = true
   row.append(indicator, undoButton)
-  controls.append(row)
+  const previewPane = control.querySelector<HTMLElement>('.vutronmusic-osd-preset-preview-pane')
+  ;(previewPane || controls).append(row)
 
   let baseline = captureSnapshot()
   let lastSerialized = stableSerialize(baseline)
