@@ -188,31 +188,15 @@
           <span class="cloud-batch-range-label">
             {{ t('insights.cloud.batchRange') }}
           </span>
-          <input
-            v-model.trim="cloudBatchRangeStart"
-            type="number"
-            min="1"
-            :max="cloudTracks.length"
-            :placeholder="t('insights.cloud.batchRangeStart')"
-            :disabled="cloudBatchDeleting"
-            @keyup.enter="selectCloudBatchRange"
-          />
-          <span class="cloud-batch-range-separator">—</span>
-          <input
-            v-model.trim="cloudBatchRangeEnd"
-            type="number"
-            min="1"
-            :max="cloudTracks.length"
-            :placeholder="t('insights.cloud.batchRangeEnd')"
-            :disabled="cloudBatchDeleting"
-            @keyup.enter="selectCloudBatchRange"
-          />
-          <button :disabled="cloudBatchDeleting" @click="selectCloudBatchRange">
+          <span class="cloud-batch-range-hint">
+            {{ t('insights.cloud.batchRangeHint') }}
+          </span>
+          <button
+            :disabled="cloudBatchDeleting || cloudBatchSongIds.length < 2"
+            @click="selectCloudBatchRange"
+          >
             {{ t('insights.cloud.batchRangeSelect') }}
           </button>
-          <span class="cloud-batch-range-hint">
-            {{ t('insights.cloud.batchRangeHint', { count: cloudTracks.length }) }}
-          </span>
         </div>
 
         <div class="cloud-batch-list">
@@ -344,8 +328,6 @@ const cloudLyricPreview = ref('')
 const cloudBatchMode = ref(false)
 const cloudBatchSongIds = ref<string[]>([])
 const cloudBatchDeleting = ref(false)
-const cloudBatchRangeStart = ref('')
-const cloudBatchRangeEnd = ref('')
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
 const cloudBatchAllSelected = computed(() => {
   const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
@@ -480,33 +462,28 @@ const clearCloudBatchSelection = (): void => {
 const selectCloudBatchRange = (): void => {
   if (cloudBatchDeleting.value) return
 
-  const total = cloudTracks.value.length
-  const start = Number(cloudBatchRangeStart.value)
-  const end = Number(cloudBatchRangeEnd.value)
+  const selectedIds = new Set(cloudBatchSongIds.value)
+  const selectedIndexes = cloudTracks.value
+    .map((track, index) => (selectedIds.has(cloudSongId(track)) ? index : -1))
+    .filter((index) => index >= 0)
 
-  if (
-    !Number.isInteger(start) ||
-    !Number.isInteger(end) ||
-    start < 1 ||
-    end < 1 ||
-    start > total ||
-    end > total
-  ) {
-    showToast(t('insights.cloud.batchRangeInvalid', { count: total }))
+  if (selectedIndexes.length < 2) {
+    showToast(t('insights.cloud.batchRangeNeedEndpoints'))
     return
   }
 
-  const from = Math.min(start, end)
-  const to = Math.max(start, end)
-  cloudBatchRangeStart.value = String(from)
-  cloudBatchRangeEnd.value = String(to)
+  // Treat the first and last checked songs in the current list as the two
+  // endpoints, then add every song between them to the existing selection.
+  const from = Math.min(...selectedIndexes)
+  const to = Math.max(...selectedIndexes)
+  const nextSelected = new Set(cloudBatchSongIds.value)
 
-  const selected = new Set(cloudBatchSongIds.value)
-  for (const track of cloudTracks.value.slice(from - 1, to)) {
+  for (const track of cloudTracks.value.slice(from, to + 1)) {
     const id = cloudSongId(track)
-    if (id) selected.add(id)
+    if (id) nextSelected.add(id)
   }
-  cloudBatchSongIds.value = Array.from(selected)
+
+  cloudBatchSongIds.value = Array.from(nextSelected)
 }
 
 const matchCloudSong = async (): Promise<void> => {
@@ -1055,19 +1032,10 @@ input {
   opacity: 0.72;
 }
 
-.cloud-batch-range input {
-  width: 92px;
-  min-height: 34px;
-  padding: 6px 9px;
-}
-
-.cloud-batch-range-separator {
-  opacity: 0.42;
-}
-
 .cloud-batch-range-hint {
-  font-size: 11px;
-  opacity: 0.46;
+  flex: 1 1 280px;
+  font-size: 12px;
+  opacity: 0.52;
 }
 
 .cloud-batch-list {
