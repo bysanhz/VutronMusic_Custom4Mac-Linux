@@ -10,6 +10,18 @@ type BackgroundEffect = 'none' | 'true' | 'blur' | 'dynamic' | 'customize'
 type StandardBackgroundEffect = Exclude<BackgroundEffect, 'customize'>
 export type bgType = 'image' | 'video' | 'folder' | 'api'
 
+const DEFAULT_THEME_COLORS = [
+  { name: 'blue', color: 'rgba(51, 94, 234, 1)', selected: true },
+  { name: 'purple', color: 'rgba(136, 84, 208, 1)', selected: false },
+  { name: 'orange', color: 'rgba(234, 136, 51, 1)', selected: false },
+  { name: 'cyan', color: 'rgba(29, 185, 181, 1)', selected: false },
+  { name: 'green', color: 'rgba(46, 160, 67, 1)', selected: false },
+  { name: 'red', color: 'rgba(221, 76, 70, 1)', selected: false },
+  { name: 'pink', color: 'rgba(219, 76, 151, 1)', selected: false },
+  { name: 'gold', color: 'rgba(214, 164, 38, 1)', selected: false },
+  { name: 'Customize', color: 'rgba(51, 94, 234, 1)', selected: false }
+]
+
 export const useSettingsStore = defineStore(
   'settings',
   () => {
@@ -19,13 +31,7 @@ export const useSettingsStore = defineStore(
     const enabledPlaylistCategories = playlistCategories.filter((c) => c.enable).map((c) => c.name)
     const theme = reactive({
       appearance: 'auto' as Appearance,
-      colors: [
-        { name: 'blue', color: 'rgba(51, 94, 234, 1)', selected: true },
-        { name: 'purple', color: 'rgba(136, 84, 208, 1)', selected: false },
-        { name: 'orange', color: 'rgba(234, 136, 51, 1)', selected: false },
-        { name: 'cyan', color: 'rgba(29, 185, 181, 1)', selected: false },
-        { name: 'Customize', color: 'rgba(0, 0, 0, 0)', selected: false }
-      ]
+      colors: DEFAULT_THEME_COLORS.map((item) => ({ ...item }))
     })
     const localMusic = reactive({
       enble: true,
@@ -308,7 +314,28 @@ export const useSettingsStore = defineStore(
       }, 5000)
     })
 
+    const ensureThemeColors = () => {
+      const existingByName = new Map(theme.colors.map((item) => [item.name, item]))
+      const selectedName = theme.colors.find((item) => item.selected)?.name || 'blue'
+
+      theme.colors = DEFAULT_THEME_COLORS.map((fallback) => {
+        const existing = existingByName.get(fallback.name)
+        return {
+          ...fallback,
+          ...(existing ? { color: existing.color } : {}),
+          selected: fallback.name === selectedName
+        }
+      })
+
+      if (!theme.colors.some((item) => item.selected)) {
+        const blue = theme.colors.find((item) => item.name === 'blue')
+        if (blue) blue.selected = true
+      }
+    }
+
     onMounted(() => {
+      ensureThemeColors()
+
       const legacyMusicQualityMap = new Map<string | number, string>([
         [128000, 'standard'],
         [192000, 'higher'],
