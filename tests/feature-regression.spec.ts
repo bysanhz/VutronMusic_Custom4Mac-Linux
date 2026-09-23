@@ -1724,6 +1724,30 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(presets).toContain("select.value !== CURRENT_SETTINGS_OPTION_ID")
   })
 
+  test('lays out desktop lyric presets as preview and control panes', () => {
+    const presets = readSource('src/renderer/utils/osdLyricPresetSettings.ts')
+    const transferPreview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
+    const draftState = readSource('src/renderer/utils/osdPresetDraftState.ts')
+    const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
+
+    expect(presets).toContain("editor.className = 'vutronmusic-osd-preset-editor'")
+    expect(presets).toContain("fieldRow.className = 'vutronmusic-osd-preset-field-row'")
+    expect(presets).toContain("actionRow.className = 'vutronmusic-osd-preset-action-row'")
+    expect(transferPreview).toContain("layout.className = 'vutronmusic-osd-preset-layout'")
+    expect(transferPreview).toContain(
+      "wrapper.className = `${FEATURE_CLASS} vutronmusic-osd-preset-preview-pane`"
+    )
+    expect(transferPreview).toContain(
+      "controlPane.className = 'vutronmusic-osd-preset-control-pane'"
+    )
+    expect(transferPreview).toContain('controls.replaceChildren(layout)')
+    expect(draftState).toContain("'.vutronmusic-osd-preset-preview-pane'")
+    expect(shared).toContain('grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);')
+    expect(shared).toContain('.vutronmusic-osd-preset-preview-pane,')
+    expect(shared).toContain('.vutronmusic-osd-preset-control-pane {')
+    expect(shared).toContain('min-height: 112px;')
+  })
+
   test('previews the selected preset and keeps the canonical teal/pink palette', () => {
     const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
     const transferPreview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
