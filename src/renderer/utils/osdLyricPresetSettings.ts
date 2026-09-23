@@ -471,7 +471,14 @@ const ensureControl = (): boolean => {
   applyButton.textContent = text.apply
   updateButton.textContent = text.updateSelected
   copyButton.textContent = text.saveCopy
-  status.className = 'vutronmusic-v327-status'
+
+  select.className = 'vutronmusic-osd-preset-select'
+  nameInput.className = 'vutronmusic-osd-preset-name'
+  applyButton.className = 'vutronmusic-osd-preset-action'
+  updateButton.className = 'vutronmusic-osd-preset-action'
+  copyButton.className = 'vutronmusic-osd-preset-action'
+  removeButton.className = 'vutronmusic-osd-preset-action'
+  status.className = 'vutronmusic-v327-status vutronmusic-osd-preset-status'
   status.setAttribute('aria-live', 'polite')
 
   const persistedPresetId = readSelectedPresetId()
@@ -674,7 +681,19 @@ const ensureControl = (): boolean => {
     status.textContent = text.deleted
   })
 
-  controls.append(select, nameInput, applyButton, updateButton, copyButton, removeButton, status)
+  const editor = document.createElement('div')
+  const fieldRow = document.createElement('div')
+  const actionRow = document.createElement('div')
+
+  editor.className = 'vutronmusic-osd-preset-editor'
+  fieldRow.className = 'vutronmusic-osd-preset-field-row'
+  actionRow.className = 'vutronmusic-osd-preset-action-row'
+
+  fieldRow.append(select, nameInput)
+  actionRow.append(applyButton, updateButton, copyButton, removeButton)
+  editor.append(fieldRow, actionRow)
+  controls.append(editor, status)
+
   if (select.value !== CURRENT_SETTINGS_OPTION_ID) {
     persistSelectedPresetId(select.value)
   } else if (persistedPresetId) {
