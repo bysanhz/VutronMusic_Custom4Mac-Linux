@@ -1742,7 +1742,7 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     )
     expect(transferPreview).toContain('controls.replaceChildren(layout)')
     expect(draftState).toContain("'.vutronmusic-osd-preset-preview-pane'")
-    expect(shared).toContain('grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.45fr);')
+    expect(shared).toContain('grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);')
     expect(shared).toContain('.vutronmusic-osd-preset-preview-pane,')
     expect(shared).toContain('.vutronmusic-osd-preset-control-pane {')
     expect(shared).toContain('min-height: 112px;')
