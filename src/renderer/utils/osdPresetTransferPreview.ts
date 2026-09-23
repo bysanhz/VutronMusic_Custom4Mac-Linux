@@ -2,7 +2,6 @@ import {
   observeV327SettingsControl,
   readJsonRecord,
   resolveFeatureLanguage,
-  writeJsonRecord,
   writeStorageValue
 } from './v327FeatureShared'
 import {
@@ -11,10 +10,7 @@ import {
   getDefaultWindowScaleBaseline,
   sanitizeWindowScaleBaseline
 } from './windowScaleBaseline'
-import {
-  commitWindowScaleBaseline,
-  readWindowScaleBaseline
-} from './windowScaleBaselineStorage'
+import { readWindowScaleBaseline } from './windowScaleBaselineStorage'
 
 const PRESET_CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
@@ -279,18 +275,6 @@ const saveBuiltInOverrides = (presets: StoredPreset[]): boolean => {
     return localStorage.getItem(BUILTIN_OVERRIDES_STORAGE_KEY) === serialized
   } catch {
     return false
-  }
-}
-
-const applySettings = (settings: PresetSettings): void => {
-  const current = readJsonRecord(OSD_STORAGE_KEY)
-  const { coverControlsVisible, windowBaseline, ...osdSettings } = settings
-  writeJsonRecord(OSD_STORAGE_KEY, { ...current, ...osdSettings })
-  writeStorageValue(COVER_CONTROLS_STORAGE_KEY, String(coverControlsVisible))
-
-  // v1/旧版预设没有 windowBaseline 时，不改变用户当前窗口基准。
-  if (windowBaseline) {
-    commitWindowScaleBaseline(getBaselineTarget(osdSettings.type), windowBaseline)
   }
 }
 
