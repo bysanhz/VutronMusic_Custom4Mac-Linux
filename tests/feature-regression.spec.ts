@@ -1477,6 +1477,17 @@ test.describe('desktop feature integration', () => {
     expect(mainUtils).toContain('const limitInBytes = (sizeLimit as number) * 1024 * 1024')
   })
 
+  test('spreads desktop lyric scale baseline cards across the settings width', () => {
+    const osdScale = readSource('src/renderer/utils/osdWindowScaleSettings.ts')
+
+    expect(osdScale).toContain('max-width: none !important;')
+    expect(osdScale).toContain('grid-template-columns: repeat(2, minmax(280px, 1fr));')
+    expect(osdScale).toContain('gap: clamp(18px, 2.2vw, 28px);')
+    expect(osdScale).toContain('padding: 16px 18px;')
+    expect(osdScale).toContain('grid-template-columns: minmax(120px, 1fr) auto;')
+    expect(osdScale).toContain('@media (max-width: 860px)')
+  })
+
   test('checks for updates only after an explicit user action', () => {
     const app = readSource('src/renderer/App.vue')
     const mainIndex = readSource('src/main/index.ts')
