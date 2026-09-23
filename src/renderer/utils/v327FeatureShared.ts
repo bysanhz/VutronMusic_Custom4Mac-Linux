@@ -266,10 +266,11 @@ export const injectV327FeatureStyle = (): void => {
 
     #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-status,
     #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-draft-row {
-      min-height: 20px;
+      min-height: 22px;
       justify-content: flex-start;
       text-align: left;
-      line-height: 1.5;
+      font-size: 15px;
+      line-height: 1.55;
     }
 
     .vutronmusic-osd-preset-transfer-actions {
