@@ -295,7 +295,9 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
 
   const operation = performScrobble(params)
     .then((result) => {
-      if (isSuccessfulResponse(result)) {
+      // legacy /scrobble 只能作为“听过”的降级写入，不能阻止后续 duration-aware
+      // checkpoint 在 10 秒内重试；只有 PLV/PLD 真正成功才进入时长去重窗口。
+      if (isSuccessfulResponse(result) && result?.durationAware === true) {
         lastSuccessfulScrobbleAt.set(trackId, Date.now())
       }
       return result
