@@ -96,15 +96,15 @@
             :aria-busy="scanning"
             :title="
               !scanDir.length
-                ? t('localMusic.scanNoFolder')
+                ? t('localMusic.localMusicFolder.text')
                 : scanning
-                  ? t('localMusic.scanning')
-                  : t('localMusic.scan')
+                  ? t('toast.scanning')
+                  : t('contextMenu.reScan')
             "
             @click="handleScanLocalMusic"
           >
             <svg-icon icon-class="local-music" :class="{ scanning: scanning }" />
-            {{ scanning ? t('localMusic.scanning') : t('localMusic.scan') }}
+            {{ scanning ? t('toast.scanning') : t('contextMenu.reScan') }}
           </button>
           <div v-if="idx !== 1" class="search-box">
             <SearchBox
