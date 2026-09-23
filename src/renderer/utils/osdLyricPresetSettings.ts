@@ -502,6 +502,7 @@ const ensureControl = (): boolean => {
     const selected = getSelectedPreset()
 
     if (!selected) {
+      nameInput.hidden = false
       nameInput.value = ''
       nameInput.placeholder = text.namePlaceholder
       applyButton.disabled = true
@@ -512,13 +513,18 @@ const ensureControl = (): boolean => {
       return
     }
 
+    const builtIn = isBuiltInPreset(selected)
     applyButton.disabled = false
     updateButton.disabled = false
     nameInput.value = selected.name
-    removeButton.textContent = isBuiltInPreset(selected) ? text.restoreDefault : text.delete
+    // Built-in presets already have a fixed, visible name in the selector.
+    // Hiding the duplicate text field keeps the control pane compact; custom
+    // presets still expose the field so users can rename them.
+    nameInput.hidden = builtIn
+    removeButton.textContent = builtIn ? text.restoreDefault : text.delete
     removeButton.disabled = false
     if (showHint) {
-      status.textContent = isBuiltInPreset(selected) ? text.builtinHint : text.customHint
+      status.textContent = builtIn ? text.builtinHint : text.customHint
     }
   }
 
