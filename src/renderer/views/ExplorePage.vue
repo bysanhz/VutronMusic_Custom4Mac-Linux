@@ -101,7 +101,6 @@
           :key="index"
           class="button"
           :class="{ active: itemType === albumType }"
-          :style="{ backgroundColor: 'unset', margin: '10px 0 6px 0' }"
           @click="updateType(itemType)"
           >{{ categoryLabel(itemType) }}</div
         >
