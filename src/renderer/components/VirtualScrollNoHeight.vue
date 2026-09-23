@@ -4,6 +4,7 @@
     class="infinite-list-container"
     :class="{
       'infinite-list-container--virtualized': enableVirtualScroll,
+      'infinite-list-container--dynamic': useDynamicItemSize,
       'infinite-list-container--outer-flow': !enableVirtualScroll
     }"
     :style="{ height: containerHeight + 'px' }"
@@ -24,7 +25,7 @@
         v-for="row in visibleData"
         :id="row._key.toString()"
         ref="itemsRef"
-        :key="row._key"
+        :key="row._renderKey"
         class="infinite-list-item-container"
       >
         <slot name="default" :index="row._key" :item="row.value"></slot>
@@ -70,6 +71,8 @@ const props = withDefaults(
     gap?: number
     height?: number
     enableVirtualScroll?: boolean
+    dynamicItemSize?: boolean
+    itemKey?: string
     loadMore?: () => void | Promise<unknown>
   }>(),
   {
@@ -83,6 +86,8 @@ const props = withDefaults(
     gap: 4,
     height: 0,
     enableVirtualScroll: true,
+    dynamicItemSize: false,
+    itemKey: '',
     loadMore: () => {}
   }
 )
@@ -115,14 +120,25 @@ const normalState = useNormalStateStore()
 const { enableScrolling, virtualScrolling } = storeToRefs(normalState)
 const { registerInstance, unregisterInstance, updateScroll } = normalState
 
+const useDynamicItemSize = computed(
+  () => props.enableVirtualScroll && props.dynamicItemSize && props.columnNumber === 1
+)
+
 const _listData = computed(() => {
-  return list.value.reduce<{ _key: number; value: T }[]>((init, cur, index) => {
-    init.push({
-      _key: index,
-      value: cur
-    })
-    return init
-  }, [])
+  return list.value.reduce<{ _key: number; _renderKey: string | number; value: T }[]>(
+    (init, cur, index) => {
+      const record = cur as Record<string, unknown>
+      const candidate = props.itemKey ? record?.[props.itemKey] : undefined
+      init.push({
+        _key: index,
+        _renderKey:
+          typeof candidate === 'string' || typeof candidate === 'number' ? candidate : index,
+        value: cur
+      })
+      return init
+    },
+    []
+  )
 })
 
 const totalRowCount = computed(() => Math.ceil(_listData.value.length / props.columnNumber))
@@ -216,12 +232,81 @@ const initPosition = () => {
   }))
 }
 
+const rebuildDynamicPositions = () => {
+  if (!useDynamicItemSize.value || !position.value.length) return
+  let top = 0
+  position.value.forEach((item) => {
+    item.top = top
+    item.bottom = top + item.height
+    top = item.bottom
+  })
+}
+
+let measureRaf = 0
+let itemResizeObserver: ResizeObserver | null = null
+
+const measureDynamicItems = () => {
+  if (!useDynamicItemSize.value || !position.value.length) return
+
+  const elements = Array.isArray(itemsRef.value) ? itemsRef.value : []
+  const anchorIndex = Math.min(
+    Math.max(0, startRow.value * props.columnNumber),
+    position.value.length - 1
+  )
+  const anchorTopBefore = position.value[anchorIndex]?.top || 0
+  let changed = false
+  let earliestChanged = Number.POSITIVE_INFINITY
+
+  elements.forEach((element: HTMLElement) => {
+    const index = Number(element.id)
+    const measured = Math.max(1, Math.ceil(element.getBoundingClientRect().height))
+    const item = position.value[index]
+    if (!item || Math.abs(item.height - measured) < 1) return
+    item.height = measured
+    earliestChanged = Math.min(earliestChanged, index)
+    changed = true
+  })
+
+  if (!changed) return
+
+  rebuildDynamicPositions()
+  const anchorTopAfter = position.value[anchorIndex]?.top || 0
+  const element = getListElement()
+  if (element && earliestChanged < anchorIndex) {
+    const anchorDelta = anchorTopAfter - anchorTopBefore
+    if (Math.abs(anchorDelta) >= 1) element.scrollTop += anchorDelta
+  }
+  setStartOffset()
+}
+
+const queueDynamicMeasurement = () => {
+  if (!useDynamicItemSize.value) return
+  window.cancelAnimationFrame(measureRaf)
+  measureRaf = window.requestAnimationFrame(measureDynamicItems)
+}
+
+const observeDynamicItems = () => {
+  if (!useDynamicItemSize.value) {
+    itemResizeObserver?.disconnect()
+    return
+  }
+
+  if (!itemResizeObserver) {
+    itemResizeObserver = new ResizeObserver(() => queueDynamicMeasurement())
+  }
+  itemResizeObserver.disconnect()
+
+  const elements = Array.isArray(itemsRef.value) ? itemsRef.value : []
+  elements.forEach((element: HTMLElement) => itemResizeObserver?.observe(element))
+  queueDynamicMeasurement()
+}
+
 /**
- * 当前虚拟列表全部调用点都提供固定 itemSize。
+ * 固定高度列表继续完全以 itemSize 为准，避免滚动期间强制同步布局。
  *
- * 旧实现会在每次虚拟滚动导致 Vue 更新后重新 getBoundingClientRect()，这会强制同步布局，
- * 使长歌单/封面列表在滚轮过程中出现周期性卡顿。位置表现在完全以 itemSize 为准，滚动期间
- * 不再执行 DOM 测量；只有数据长度或列数变化时才更新位置表。
+ * 评论等内容高度天然可变的列表可显式开启 dynamicItemSize。开启后仅测量当前可见项，
+ * 使用 ResizeObserver 缓存真实高度，并在缓冲区内的上方项目高度变化时补偿 scrollTop，
+ * 从而避免切换虚拟窗口时因固定高度估算误差造成整屏跳位。
  */
 const setStartOffset = () => {
   if (!position.value.length) return
@@ -240,6 +325,14 @@ watch(visibleMiddle, (value) => {
     virtualScrolling.value = false
   }
 })
+
+watch(
+  visibleData,
+  () => {
+    nextTick(observeDynamicItems)
+  },
+  { flush: 'post' }
+)
 
 let lastScrollTop = listRef.value?.scrollTop
 
@@ -530,6 +623,11 @@ const observeLoadMoreSentinel = () => {
 
 const updateWindowHeight = () => {
   windowHeight.value = window.innerHeight
+  if (useDynamicItemSize.value) {
+    initPosition()
+    setStartOffset()
+    nextTick(observeDynamicItems)
+  }
 }
 
 watch(enableScrolling, (value) => {
@@ -555,7 +653,9 @@ watch(_listData, (newList, oldList) => {
     newItems.forEach(({ _key }) => {
       const idx = _key
       const row = Math.floor(idx / props.columnNumber)
-      const top = row * itemSize.value
+      const top = useDynamicItemSize.value
+        ? position.value[idx - 1]?.bottom || 0
+        : row * itemSize.value
       position.value.push({
         index: idx,
         height: itemSize.value,
@@ -573,7 +673,10 @@ watch(_listData, (newList, oldList) => {
     setStartOffset()
   }
 
-  nextTick(observeLoadMoreSentinel)
+  nextTick(() => {
+    observeDynamicItems()
+    observeLoadMoreSentinel()
+  })
 })
 
 watch(
@@ -582,7 +685,10 @@ watch(
     initPosition()
     startRow.value = Math.min(startRow.value, Math.max(0, totalRowCount.value - 1))
     setStartOffset()
-    nextTick(observeLoadMoreSentinel)
+    nextTick(() => {
+      observeDynamicItems()
+      observeLoadMoreSentinel()
+    })
   }
 )
 
@@ -612,6 +718,8 @@ onActivated(() => {
   nextTick(() => {
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
+    observeDynamicItems()
+    observeDynamicItems()
     observeLoadMoreSentinel()
     bindParentScrollListener()
   })
@@ -620,6 +728,7 @@ onActivated(() => {
 onDeactivated(() => {
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
+  itemResizeObserver?.disconnect()
   unbindParentScrollListener()
   const element = getListElement()
   if (element && props.enableVirtualScroll) observer.unobserve(element)
@@ -641,6 +750,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
   loadMoreObserver?.disconnect()
+  itemResizeObserver?.disconnect()
+  window.cancelAnimationFrame(measureRaf)
   unbindParentScrollListener()
   window.removeEventListener('resize', updateWindowHeight)
   const element = getListElement()
@@ -663,6 +774,10 @@ onBeforeUnmount(() => {
   width: 100%;
   overflow-y: auto;
   position: relative;
+}
+
+.infinite-list-container--dynamic {
+  overflow-anchor: none;
 }
 
 /*
