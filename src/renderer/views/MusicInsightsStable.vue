@@ -6,7 +6,12 @@
         <h1>{{ t('insights.title') }}</h1>
         <p>{{ t('insights.description') }}</p>
       </div>
-      <button class="refresh-button" :disabled="refreshing" @click="refreshCurrent">
+      <button
+        class="refresh-button"
+        :disabled="refreshing"
+        :title="activeTab === 'footprint' ? t('insights.footprint.refreshHint') : ''"
+        @click="refreshCurrent"
+      >
         {{ refreshing ? t('common.refreshing') : t('common.refresh') }}
       </button>
     </div>
@@ -28,7 +33,11 @@
           <h2>{{ t('insights.footprint.title') }}</h2>
           <p>{{ t('insights.footprint.description') }}</p>
         </div>
-        <div v-if="pendingNeteaseListenSeconds > 0" class="sync-status">
+        <div
+          v-if="pendingNeteaseListenSeconds > 0"
+          class="sync-status"
+          :title="t('insights.footprint.pendingHint')"
+        >
           {{
             t('insights.footprint.pending', {
               duration: formatPendingListenDuration(pendingNeteaseListenSeconds)
@@ -91,83 +100,6 @@
       </div>
     </section>
 
-    <section v-show="activeTab === 'style'" class="panel">
-      <div class="section-head">
-        <div>
-          <h2>{{ t('insights.style.title') }}</h2>
-          <p>{{ styleDescription || t('insights.style.description') }}</p>
-        </div>
-        <select v-model="styleSort" :disabled="styleLoading" @change="loadStyleResources(true)">
-          <option :value="0">{{ t('insights.style.hot') }}</option>
-          <option :value="1">{{ t('insights.style.latest') }}</option>
-        </select>
-      </div>
-
-      <div class="tag-list">
-        <button
-          v-for="tag in styleTags"
-          :key="String(tag.id)"
-          :class="{ active: String(activeStyleId) === String(tag.id) }"
-          :disabled="styleLoading && String(activeStyleId) === String(tag.id)"
-          @click="selectStyle(tag.id)"
-        >
-          <span v-if="tag.preferred">●</span>{{ tag.name }}
-        </button>
-      </div>
-
-      <div class="sub-tabs">
-        <button
-          v-for="resource in styleResourceTabs"
-          :key="resource.id"
-          :class="{ active: styleResourceType === resource.id }"
-          @click="switchStyleResource(resource.id)"
-        >
-          {{ resource.label }}
-        </button>
-      </div>
-
-      <div class="results-header">
-        <span>{{
-          styleLoading ? t('common.loading') : t('common.items', { count: currentStyleCount })
-        }}</span>
-      </div>
-
-      <div class="stable-results" :class="{ loading: styleLoading }">
-        <InsightsTrackList
-          v-show="styleResourceType === 'song'"
-          :items="styleTracks"
-          :empty-text="t('insights.style.noSong')"
-        />
-        <InsightsResourceGrid
-          v-show="styleResourceType === 'album'"
-          :items="styleAlbums"
-          type="album"
-          :empty-text="t('insights.style.noAlbum')"
-        />
-        <InsightsResourceGrid
-          v-show="styleResourceType === 'artist'"
-          :items="styleArtists"
-          type="artist"
-          :empty-text="t('insights.style.noArtist')"
-        />
-        <InsightsResourceGrid
-          v-show="styleResourceType === 'playlist'"
-          :items="stylePlaylists"
-          type="playlist"
-          :empty-text="t('insights.style.noPlaylist')"
-        />
-      </div>
-
-      <button
-        v-if="styleCursor !== undefined && styleCursor !== null && styleCursor !== ''"
-        class="load-more"
-        :disabled="styleLoading"
-        @click="loadStyleResources(false)"
-      >
-        {{ styleLoading ? t('common.loading') : t('common.loadMore') }}
-      </button>
-    </section>
-
     <section v-show="activeTab === 'cloud'" class="panel">
       <div class="section-head">
         <div>
@@ -214,59 +146,40 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
-import InsightsResourceGrid from '../components/InsightsResourceGrid.vue'
 import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
 import {
   pendingNeteaseListenSeconds,
   reconcileNeteaseRemoteWeekDuration
 } from '../utils/neteaseListenPending'
-import { styleList, stylePreference, deleteCloudSong } from '../api/discovery'
+import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
   cloudMatch,
   listenRealtimeReport,
   userPlayRecord,
   listenTodaySongs,
-  listenTotal,
-  styleDetail,
-  styleResource,
-  type StyleResourceType
+  listenTotal
 } from '../api/modern'
 import {
-  collectStyleTags,
   deepFindValue,
-  extractAlbums,
-  extractArtists,
   extractCalendarWeekListenSeconds,
-  extractCursor,
   extractUserPlayRecord,
-  extractPlaylists,
   extractRealtimeListenSeconds,
   extractTodayListenSeconds,
   extractTodaySongCount,
   extractTotalListenSeconds,
-  extractTracks,
-  isSuccessfulResponse,
-  type StyleTag
+  isSuccessfulResponse
 } from '../services/neteaseModern'
 
 const { t } = useI18n()
 
 const tabs = computed(() => [
   { id: 'footprint' as const, label: t('insights.tabs.footprint') },
-  { id: 'style' as const, label: t('insights.tabs.style') },
   { id: 'cloud' as const, label: t('insights.tabs.cloud') }
 ])
 
-const styleResourceTabs = computed<Array<{ id: StyleResourceType; label: string }>>(() => [
-  { id: 'song', label: t('insights.style.song') },
-  { id: 'album', label: t('insights.style.album') },
-  { id: 'artist', label: t('insights.style.artist') },
-  { id: 'playlist', label: t('insights.style.playlist') }
-])
-
-const activeTab = ref<'footprint' | 'style' | 'cloud'>('footprint')
+const activeTab = ref<'footprint' | 'cloud'>('footprint')
 const dataStore = useDataStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
@@ -322,21 +235,7 @@ const formatDisplayListenDuration = (seconds?: number): string => {
   })
 }
 
-const styleTags = ref<StyleTag[]>([])
-const activeStyleId = ref<number | string>('')
-const styleDescription = ref('')
-const styleResourceType = ref<StyleResourceType>('song')
-const styleSort = ref(0)
-const styleCursor = ref<number | string | undefined>(undefined)
-const styleTracks = ref<any[]>([])
-const styleAlbums = ref<any[]>([])
-const styleArtists = ref<any[]>([])
-const stylePlaylists = ref<any[]>([])
-const styleLoading = ref(false)
-let styleRequestRevision = 0
-let styleDetailRevision = 0
-const PENDING_SYNC_INTERVAL_MS = 30_000
-let footprintRefreshTimer: number | null = null
+const PENDING_SYNC_INTERVAL_MS = 10_000
 let footprintSyncInterval: number | null = null
 let footprintRequestInFlight = false
 
@@ -344,13 +243,6 @@ const selectedCloudSongId = ref('')
 const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
-
-const currentStyleCount = computed(() => {
-  if (styleResourceType.value === 'song') return styleTracks.value.length
-  if (styleResourceType.value === 'album') return styleAlbums.value.length
-  if (styleResourceType.value === 'artist') return styleArtists.value.length
-  return stylePlaylists.value.length
-})
 
 const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<T | undefined> => {
   try {
@@ -397,95 +289,48 @@ const loadFootprint = async (): Promise<void> => {
   }
 }
 
-const loadStyleCatalog = async (): Promise<void> => {
-  const [listResult, preferenceResult] = await Promise.all([
-    safeRequest(styleList(), '曲风列表'),
-    safeRequest(stylePreference(), '曲风偏好')
-  ])
-  const tags = collectStyleTags(listResult, preferenceResult).slice(0, 100)
-  styleTags.value = tags
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => window.setTimeout(resolve, ms))
 
-  if (!activeStyleId.value && tags.length) {
-    const preferred = tags.find((tag) => tag.preferred) ?? tags[0]
-    await selectStyle(preferred.id)
+/**
+ * 只刷新网易云用于“待同步”确认的远端时长。
+ *
+ * 与完整 loadFootprint() 不同，这里优先只请求 month realtime report：
+ * 它同时包含今日、本月以及按自然周汇总所需的逐日数据，因此适合高频确认，
+ * 不需要每 10 秒把今日/周/月/累计/两份播放排行全部请求一遍。
+ */
+const refreshPendingRemoteDuration = async (): Promise<void> => {
+  const month = await safeRequest(listenRealtimeReport('month'), '确认听歌时长同步')
+  if (!month) return
+
+  const nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
+  const nextMonthSeconds = extractRealtimeListenSeconds(month)
+  const nextTodaySeconds = extractTodayListenSeconds(month)
+
+  if (nextRemoteWeekSeconds !== undefined) {
+    footprint.weekSeconds = nextRemoteWeekSeconds
+    reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
   }
+  if (nextMonthSeconds !== undefined) footprint.monthSeconds = nextMonthSeconds
+  if (nextTodaySeconds !== undefined) footprint.todaySeconds = nextTodaySeconds
 }
 
-const applyStyleResult = (result: any, reset: boolean): void => {
-  if (styleResourceType.value === 'song') {
-    const items = extractTracks(result, 80)
-    styleTracks.value = reset ? items : [...styleTracks.value, ...items]
-  } else if (styleResourceType.value === 'album') {
-    const items = extractAlbums(result, 80)
-    styleAlbums.value = reset ? items : [...styleAlbums.value, ...items]
-  } else if (styleResourceType.value === 'artist') {
-    const items = extractArtists(result, 80)
-    styleArtists.value = reset ? items : [...styleArtists.value, ...items]
-  } else {
-    const items = extractPlaylists(result, 80)
-    stylePlaylists.value = reset ? items : [...stylePlaylists.value, ...items]
-  }
-}
+/**
+ * 手动刷新时，在完整刷新之后进行一小段“远端确认突发轮询”。
+ * 网易云写入存在最终一致性，单次立即读取经常仍是旧值；短时复查比原先
+ * 固定等 30 秒更符合“刷新”按钮的用户预期，同时不会重复 scrobble 当前歌曲。
+ */
+const refreshFootprintWithConfirmation = async (): Promise<void> => {
+  await loadFootprint()
+  if (pendingNeteaseListenSeconds.value <= 0) return
 
-const loadStyleResources = async (reset = true): Promise<void> => {
-  if (!activeStyleId.value) return
-
-  const revision = ++styleRequestRevision
-  const requestedType = styleResourceType.value
-  const requestedTag = activeStyleId.value
-  styleLoading.value = true
-
-  try {
-    const result = await styleResource(requestedType, {
-      tagId: requestedTag,
-      cursor: reset ? 0 : styleCursor.value,
-      size: 40,
-      sort: styleSort.value
-    })
-
-    if (
-      revision !== styleRequestRevision ||
-      requestedType !== styleResourceType.value ||
-      String(requestedTag) !== String(activeStyleId.value)
-    ) {
-      return
-    }
-
-    applyStyleResult(result, reset)
-    styleCursor.value = extractCursor(result)
-  } catch (error) {
-    console.warn('[MusicInsights] 曲风资源加载失败：', error)
-    if (revision === styleRequestRevision) showToast(t('insights.style.loadFailed'))
-  } finally {
-    if (revision === styleRequestRevision) styleLoading.value = false
-  }
-}
-
-const selectStyle = async (id: number | string): Promise<void> => {
-  if (String(activeStyleId.value) === String(id) && currentStyleCount.value > 0) return
-
-  activeStyleId.value = id
-  styleCursor.value = undefined
-  const detailRevision = ++styleDetailRevision
-
-  const detailPromise = safeRequest(styleDetail(id), '曲风详情')
-  const resourcesPromise = loadStyleResources(true)
-  const detail = await detailPromise
-
-  if (detailRevision === styleDetailRevision && String(activeStyleId.value) === String(id)) {
-    styleDescription.value = String(
-      deepFindValue(detail, ['desc', 'description', 'tagDesc', 'intro']) ?? ''
-    )
+  for (const delay of [900, 1800, 3200]) {
+    await wait(delay)
+    await refreshPendingRemoteDuration()
+    if (pendingNeteaseListenSeconds.value <= 0) return
   }
 
-  await resourcesPromise
-}
-
-const switchStyleResource = async (type: StyleResourceType): Promise<void> => {
-  if (styleResourceType.value === type) return
-  styleResourceType.value = type
-  styleCursor.value = undefined
-  await loadStyleResources(true)
+  showToast(t('insights.footprint.pendingHint'))
 }
 
 const cloudSongId = (track: any): string =>
@@ -552,8 +397,7 @@ const refreshCurrent = async (): Promise<void> => {
   if (refreshing.value) return
   refreshing.value = true
   try {
-    if (activeTab.value === 'footprint') await loadFootprint()
-    else if (activeTab.value === 'style') await loadStyleCatalog()
+    if (activeTab.value === 'footprint') await refreshFootprintWithConfirmation()
     else await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
   } finally {
     refreshing.value = false
@@ -580,18 +424,17 @@ const startPendingSyncPolling = (): void => {
       stopPendingSyncPolling()
       return
     }
-    void loadFootprint()
+    void refreshPendingRemoteDuration()
   }, PENDING_SYNC_INTERVAL_MS)
 }
 
 const handleNeteaseScrobble = (): void => {
   if (activeTab.value !== 'footprint') return
-  if (footprintRefreshTimer !== null) window.clearTimeout(footprintRefreshTimer)
-  // 网易云统计写入不是严格事务同步；稍等片刻再读，减少刚上报就读到旧值的概率。
-  footprintRefreshTimer = window.setTimeout(() => {
-    footprintRefreshTimer = null
-    if (!refreshing.value) void loadFootprint()
-  }, 1800)
+
+  // scrobble 已经提交后，先快速确认一次；若仍未落库，10 秒轻量轮询会继续确认。
+  window.setTimeout(() => {
+    if (!refreshing.value) void refreshPendingRemoteDuration()
+  }, 1200)
 }
 
 watch(
@@ -600,7 +443,6 @@ watch(
     if (tab === 'footprint' && pendingSeconds > 0) startPendingSyncPolling()
     else stopPendingSyncPolling()
 
-    if (tab === 'style' && !styleTags.value.length) void loadStyleCatalog()
     if (tab === 'cloud' && !cloudTracks.value.length) {
       void safeRequest(dataStore.fetchCloudDisk(), '加载云盘')
     }
@@ -615,10 +457,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
-  if (footprintRefreshTimer !== null) {
-    window.clearTimeout(footprintRefreshTimer)
-    footprintRefreshTimer = null
-  }
   stopPendingSyncPolling()
 })
 </script>
