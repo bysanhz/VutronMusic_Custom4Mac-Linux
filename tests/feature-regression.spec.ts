@@ -1711,6 +1711,19 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(interactionFix).toContain('.library .infinite-list-container')
   })
 
+  test('keeps live desktop lyric settings selected when reopening settings', () => {
+    const presets = readSource('src/renderer/utils/osdLyricPresetSettings.ts')
+
+    expect(presets).toContain("const CURRENT_SETTINGS_OPTION_ID = '__current-osd-settings__'")
+    expect(presets).toContain('const currentMatchingPresetId = findPresetMatchingCurrentSettings()?.id')
+    expect(presets).toContain('const hasUnsavedCurrentSettings = !currentMatchingPresetId')
+    expect(presets).toContain('currentMatchingPresetId || CURRENT_SETTINGS_OPTION_ID')
+    expect(presets).toContain('if (includeCurrentSettings)')
+    expect(presets).toContain('applyButton.disabled = true')
+    expect(presets).toContain('updateButton.disabled = true')
+    expect(presets).toContain("select.value !== CURRENT_SETTINGS_OPTION_ID")
+  })
+
   test('previews the selected preset and keeps the canonical teal/pink palette', () => {
     const interactionFix = readSource('src/renderer/utils/osdPreviewExploreInteractionFix.ts')
     const transferPreview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
