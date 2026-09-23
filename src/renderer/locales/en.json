@@ -979,7 +979,7 @@
     },
     "cloud": {
       "title": "Cloud Pro",
-      "description": "Adds rematching and cloud-lyric reading to existing browse/delete controls.",
+      "description": "Supports single/batch deletion, rematching, and cloud-lyric reading.",
       "track": "Cloud Track",
       "select": "Select",
       "targetId": "Target NetEase Track ID",
@@ -996,7 +996,17 @@
       "noLyric": "No cloud lyrics found.",
       "deleteConfirm": "Delete this track from NetEase Cloud?",
       "deleteFailed": "Cloud deletion failed.",
-      "deleted": "Deleted from cloud."
+      "deleted": "Deleted from cloud.",
+      "batchDelete": "Batch Delete",
+      "batchClose": "Exit Batch",
+      "batchSelectAll": "Select all",
+      "batchSelected": "{count} selected",
+      "batchDeleteSelected": "Delete {count} selected",
+      "batchSelectFirst": "Select at least one cloud track to delete.",
+      "batchDeleteConfirm": "Delete the selected {count} tracks from NetEase Cloud? This cannot be undone.",
+      "batchDeleting": "Deleting {count} tracks…",
+      "batchDeleted": "Deleted {count} tracks from cloud.",
+      "batchPartial": "Deleted {success} tracks; {failed} failed."
     }
   },
   "streamLogin": {
