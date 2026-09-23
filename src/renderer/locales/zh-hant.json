@@ -34,7 +34,7 @@
     "charts": "排行榜",
     "seeMore": "查看全部",
     "insightsTitle": "音樂洞察",
-    "insightsDesc": "聽歌足跡 · 曲風漫遊 · 雲端硬碟 Pro",
+    "insightsDesc": "聽歌足跡 · 雲端硬碟 Pro",
     "openInsights": "開啟 →",
     "guessYouLike": "猜你喜歡",
     "personalized": "為你訂製"
@@ -933,7 +933,7 @@
   },
   "insights": {
     "title": "音樂洞察",
-    "description": "把聽歌足跡、曲風探索和雲端硬碟能力集中在一個穩定的網易雲工具頁。",
+    "description": "把聽歌足跡和雲端硬碟能力集中在一個穩定的網易雲工具頁。",
     "tabs": {
       "footprint": "聽歌足跡",
       "style": "曲風漫遊",
@@ -943,6 +943,8 @@
       "title": "聽歌足跡",
       "description": "今日顯示不同歌曲數；本週按週一至今天統計，時長會即時疊加本機尚未同步的有效播放。",
       "pending": "待同步 +{duration}",
+      "pendingHint": "播放中的本機時長會即時累計；目前歌曲會在切歌或播放結束後上報網易雲。上報後應用會自動快速確認遠端統計。",
+      "refreshHint": "重新讀取網易雲統計；若存在已上報但尚未落庫的時長，會進行短時間快速確認。",
       "today": "今日",
       "todayCount": "{count} 首",
       "todayListen": "累計收聽 {duration}",
