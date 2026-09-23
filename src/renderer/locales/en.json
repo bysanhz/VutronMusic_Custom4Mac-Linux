@@ -203,6 +203,9 @@
     "trackCount": "{count} tracks",
     "playlistCount": "{count} playlists",
     "search": "Search {target}",
+    "scan": "Scan Tracks",
+    "scanning": "Scanning…",
+    "scanNoFolder": "Add a local music folder in Settings first.",
     "serviceOffline": "The current service is offline. Please try again later.",
     "aggregateActionDisabled": "This action is unavailable in the aggregated view. Select a specific streaming service first."
   },
