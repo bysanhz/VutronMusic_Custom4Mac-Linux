@@ -93,10 +93,11 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-card {
       width: 100%;
       max-width: none;
+      min-width: 0;
       display: grid;
-      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
-      gap: clamp(18px, 2.2vw, 28px);
+      gap: clamp(18px, 2vw, 24px);
       padding: 0;
       box-sizing: border-box;
       border-radius: 10px;
@@ -104,12 +105,15 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-section {
+      width: 100%;
       min-width: 0;
+      max-width: 100%;
       display: grid;
       align-content: start;
       gap: 8px;
       padding: 16px 18px;
       box-sizing: border-box;
+      overflow: hidden;
       border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
       border-radius: 9px;
       background: color-mix(in srgb, var(--color-secondary-bg), transparent 14%);
@@ -128,42 +132,44 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-row {
+      width: 100%;
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(120px, 1fr) auto;
-      grid-template-rows: auto;
-      align-items: center;
-      gap: 12px;
-      padding: 4px 0 6px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      align-items: start;
+      gap: 6px;
+      padding: 4px 0 7px;
+      box-sizing: border-box;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
       min-width: 0;
       opacity: 0.72;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow: visible;
       line-height: 1.25;
       font-weight: 600;
     }
 
     #${CONTROL_ID} .osd-window-scale-controls {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
       display: grid;
       grid-template-columns:
         24px
         18px
-        minmax(54px, 64px)
+        minmax(56px, 1fr)
         18px
         24px;
       align-items: center;
-      justify-content: start;
-      gap: 4px;
-      min-width: 0;
-      width: max-content;
-      max-width: 100%;
+      justify-content: stretch;
+      gap: 5px;
+      box-sizing: border-box;
     }
 
-    @media (max-width: 860px) {
+    @media (max-width: 760px) {
       #${CONTROL_ID} .osd-window-scale-card {
         grid-template-columns: 1fr;
       }
@@ -172,13 +178,6 @@ const injectStyle = () => {
         padding-top: 16px;
         border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
         border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
-      }
-    }
-
-    @media (max-width: 620px) {
-      #${CONTROL_ID} .osd-window-scale-row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 5px;
       }
     }
 
