@@ -979,7 +979,7 @@
     },
     "cloud": {
       "title": "雲端硬碟 Pro",
-      "description": "在原有查看/刪除之外，支援重新匹配和雲端硬碟歌詞讀取。",
+      "description": "支援單首/批次刪除、重新匹配和雲端硬碟歌詞讀取。",
       "track": "雲端硬碟歌曲",
       "select": "請選擇",
       "targetId": "目標網易雲歌曲 ID",
@@ -996,7 +996,17 @@
       "noLyric": "沒有找到雲端硬碟歌詞",
       "deleteConfirm": "確定從網易雲雲端硬碟刪除這首歌曲嗎？",
       "deleteFailed": "雲端硬碟刪除失敗",
-      "deleted": "已從雲端硬碟刪除"
+      "deleted": "已從雲端硬碟刪除",
+      "batchDelete": "批次刪除",
+      "batchClose": "退出批次",
+      "batchSelectAll": "全選",
+      "batchSelected": "已選 {count} 首",
+      "batchDeleteSelected": "刪除所選 {count} 首",
+      "batchSelectFirst": "請先選擇要刪除的雲端硬碟歌曲",
+      "batchDeleteConfirm": "確定從網易雲雲端硬碟刪除所選 {count} 首歌曲嗎？此操作無法復原。",
+      "batchDeleting": "正在刪除 {count} 首歌曲…",
+      "batchDeleted": "已從雲端硬碟刪除 {count} 首歌曲",
+      "batchPartial": "已刪除 {success} 首，{failed} 首刪除失敗"
     }
   },
   "streamLogin": {
