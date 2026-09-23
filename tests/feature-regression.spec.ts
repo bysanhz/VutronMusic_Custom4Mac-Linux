@@ -1412,6 +1412,11 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain('padding: 0 24px 10px 0')
     expect(settingsFluidLayout).toContain('justify-self: end')
     expect(settingsFluidLayout).not.toContain('justify-self: stretch')
+    expect(settingsFluidLayout).toContain('grid-template-columns: minmax(0, 1fr) auto;')
+    expect(settingsFluidLayout).toContain('width: auto !important;')
+    expect(settingsFluidLayout).not.toContain(
+      'repeat(auto-fit, minmax(min(100%, 240px), 1fr))'
+    )
     expect(settings).toContain(':deep(.select-wrapper)')
     expect(settings).toContain(':deep(.custom-select .custom-text)')
     expect(settings).toContain(
