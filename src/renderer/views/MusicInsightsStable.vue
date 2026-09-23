@@ -133,9 +133,6 @@
       <div class="action-row">
         <button @click="matchCloudSong">{{ t('insights.cloud.rematch') }}</button>
         <button @click="readCloudLyric">{{ t('insights.cloud.readLyric') }}</button>
-        <button class="danger" :disabled="cloudBatchDeleting" @click="removeCloudSong">
-          {{ t('insights.cloud.delete') }}
-        </button>
         <button
           class="danger secondary-danger"
           :class="{ active: cloudBatchMode }"
@@ -151,52 +148,54 @@
       </div>
 
       <div v-show="cloudBatchMode && cloudTracks.length" class="cloud-batch-panel">
-        <div class="cloud-batch-toolbar">
-          <label class="cloud-batch-select-all">
-            <input
-              type="checkbox"
-              :checked="cloudBatchAllSelected"
-              :disabled="cloudBatchDeleting"
-              @change="toggleCloudBatchAll"
-            />
-            <span>{{ t('insights.cloud.batchSelectAll') }}</span>
-          </label>
-          <span class="cloud-batch-count">
-            {{ t('insights.cloud.batchSelected', { count: cloudBatchSongIds.length }) }}
-          </span>
-          <button
-            class="cloud-batch-clear"
-            :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
-            @click="clearCloudBatchSelection"
-          >
-            {{ t('insights.cloud.batchClearSelection') }}
-          </button>
-          <button
-            class="danger cloud-batch-delete"
-            :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
-            @click="removeCloudSongs"
-          >
-            {{
-              cloudBatchDeleting
-                ? t('insights.cloud.batchDeleting', { count: cloudBatchSongIds.length })
-                : t('insights.cloud.batchDeleteSelected', { count: cloudBatchSongIds.length })
-            }}
-          </button>
-        </div>
+        <div class="cloud-batch-sticky-tools">
+          <div class="cloud-batch-toolbar">
+            <label class="cloud-batch-select-all">
+              <input
+                type="checkbox"
+                :checked="cloudBatchAllSelected"
+                :disabled="cloudBatchDeleting"
+                @change="toggleCloudBatchAll"
+              />
+              <span>{{ t('insights.cloud.batchSelectAll') }}</span>
+            </label>
+            <span class="cloud-batch-count">
+              {{ t('insights.cloud.batchSelected', { count: cloudBatchSongIds.length }) }}
+            </span>
+            <button
+              class="cloud-batch-clear"
+              :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
+              @click="clearCloudBatchSelection"
+            >
+              {{ t('insights.cloud.batchClearSelection') }}
+            </button>
+            <button
+              class="danger cloud-batch-delete"
+              :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
+              @click="removeCloudSongs"
+            >
+              {{
+                cloudBatchDeleting
+                  ? t('insights.cloud.batchDeleting', { count: cloudBatchSongIds.length })
+                  : t('insights.cloud.batchDeleteSelected', { count: cloudBatchSongIds.length })
+              }}
+            </button>
+          </div>
 
-        <div class="cloud-batch-range">
-          <span class="cloud-batch-range-label">
-            {{ t('insights.cloud.batchRange') }}
-          </span>
-          <span class="cloud-batch-range-hint">
-            {{ t('insights.cloud.batchRangeHint') }}
-          </span>
-          <button
-            :disabled="cloudBatchDeleting || cloudBatchSongIds.length < 2"
-            @click="selectCloudBatchRange"
-          >
-            {{ t('insights.cloud.batchRangeSelect') }}
-          </button>
+          <div class="cloud-batch-range">
+            <span class="cloud-batch-range-label">
+              {{ t('insights.cloud.batchRange') }}
+            </span>
+            <span class="cloud-batch-range-hint">
+              {{ t('insights.cloud.batchRangeHint') }}
+            </span>
+            <button
+              :disabled="cloudBatchDeleting || cloudBatchSongIds.length < 2"
+              @click="selectCloudBatchRange"
+            >
+              {{ t('insights.cloud.batchRangeSelect') }}
+            </button>
+          </div>
         </div>
 
         <div class="cloud-batch-list">
@@ -518,27 +517,6 @@ const readCloudLyric = async (): Promise<void> => {
   cloudLyricPreview.value = String(
     deepFindValue(result, ['lyric', 'lrc', 'yrc', 'content']) ?? t('insights.cloud.noLyric')
   ).slice(0, 3000)
-}
-
-const removeCloudSong = async (): Promise<void> => {
-  if (!selectedCloudSongId.value) {
-    showToast(t('insights.cloud.selectFirst'))
-    return
-  }
-  if (!confirm(t('insights.cloud.deleteConfirm'))) return
-
-  const result = await safeRequest(
-    deleteCloudSong(Number(selectedCloudSongId.value)),
-    '删除云盘歌曲'
-  )
-  if (!isSuccessfulResponse(result)) {
-    showToast(t('insights.cloud.deleteFailed'))
-    return
-  }
-  selectedCloudSongId.value = ''
-  cloudLyricPreview.value = ''
-  await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
-  showToast(t('insights.cloud.deleted'))
 }
 
 const removeCloudSongs = async (): Promise<void> => {
@@ -959,6 +937,17 @@ input {
 .cloud-batch-panel {
   margin: 8px 0 16px;
   padding-top: 4px;
+}
+
+.cloud-batch-sticky-tools {
+  position: sticky;
+  top: 8px;
+  z-index: 6;
+  margin: 0 -6px 6px;
+  padding: 8px 6px 10px;
+  border-radius: 12px;
+  background: var(--color-secondary-bg);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-text) 7%, transparent);
 }
 
 .cloud-batch-toolbar {
