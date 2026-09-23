@@ -34,7 +34,7 @@
     "charts": "排行榜",
     "seeMore": "查看全部",
     "insightsTitle": "音乐洞察",
-    "insightsDesc": "听歌足迹 · 曲风漫游 · 云盘 Pro",
+    "insightsDesc": "听歌足迹 · 云盘 Pro",
     "openInsights": "打开 →",
     "guessYouLike": "猜你喜欢",
     "personalized": "为你定制"
@@ -933,7 +933,7 @@
   },
   "insights": {
     "title": "音乐洞察",
-    "description": "把听歌足迹、曲风探索和云盘能力集中在一个稳定的网易云工具页。",
+    "description": "把听歌足迹和云盘能力集中在一个稳定的网易云工具页。",
     "tabs": {
       "footprint": "听歌足迹",
       "style": "曲风漫游",
@@ -943,6 +943,8 @@
       "title": "听歌足迹",
       "description": "今日显示不同歌曲数；本周按周一至今天统计，时长会即时叠加本机尚未同步的有效播放。",
       "pending": "待同步 +{duration}",
+      "pendingHint": "播放中的本机时长会即时累计；当前歌曲会在切歌或播放结束后上报网易云。上报后应用会自动快速确认远端统计。",
+      "refreshHint": "重新读取网易云统计；若存在已上报但尚未落库的时长，会进行短时快速确认。",
       "today": "今日",
       "todayCount": "{count} 首",
       "todayListen": "累计收听 {duration}",
