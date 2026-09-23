@@ -2,32 +2,39 @@ import { ref } from 'vue'
 
 type PendingListenState = {
   pendingSeconds: number
+  submittedSeconds: number
   lastRemoteWeekSeconds?: number
 }
 
 const STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'
 
 const readState = (): PendingListenState => {
-  if (typeof localStorage === 'undefined') return { pendingSeconds: 0 }
+  if (typeof localStorage === 'undefined') return { pendingSeconds: 0, submittedSeconds: 0 }
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     const pendingSeconds = Math.max(0, Number(stored?.pendingSeconds) || 0)
+    const submittedSeconds = Math.min(
+      pendingSeconds,
+      Math.max(0, Number(stored?.submittedSeconds) || 0)
+    )
     const lastRemoteWeekSeconds = Number(stored?.lastRemoteWeekSeconds)
     return {
       pendingSeconds,
+      submittedSeconds,
       lastRemoteWeekSeconds:
         Number.isFinite(lastRemoteWeekSeconds) && lastRemoteWeekSeconds >= 0
           ? lastRemoteWeekSeconds
           : undefined
     }
   } catch {
-    return { pendingSeconds: 0 }
+    return { pendingSeconds: 0, submittedSeconds: 0 }
   }
 }
 
 const state = readState()
 
 export const pendingNeteaseListenSeconds = ref(state.pendingSeconds)
+export const submittedNeteaseListenSeconds = ref(state.submittedSeconds)
 
 const PERSIST_INTERVAL_MS = 5_000
 let lastRemoteWeekSeconds = state.lastRemoteWeekSeconds
@@ -42,6 +49,10 @@ const persist = (force = false): void => {
       STORAGE_KEY,
       JSON.stringify({
         pendingSeconds: Math.max(0, pendingNeteaseListenSeconds.value),
+        submittedSeconds: Math.min(
+          Math.max(0, pendingNeteaseListenSeconds.value),
+          Math.max(0, submittedNeteaseListenSeconds.value)
+        ),
         lastRemoteWeekSeconds
       })
     )
@@ -56,6 +67,16 @@ export const addPendingNeteaseListenSeconds = (seconds: number): void => {
   if (!Number.isFinite(value) || value <= 0) return
   pendingNeteaseListenSeconds.value += value
   persist()
+}
+
+export const markSubmittedNeteaseListenSeconds = (seconds: number): void => {
+  const value = Number(seconds)
+  if (!Number.isFinite(value) || value <= 0) return
+  submittedNeteaseListenSeconds.value = Math.min(
+    pendingNeteaseListenSeconds.value,
+    submittedNeteaseListenSeconds.value + value
+  )
+  persist(true)
 }
 
 export const flushPendingNeteaseListenSeconds = (): void => {
@@ -78,9 +99,24 @@ export const reconcileNeteaseRemoteWeekDuration = (remoteWeekSeconds?: number): 
 
   if (lastRemoteWeekSeconds !== undefined && next > lastRemoteWeekSeconds) {
     const syncedSeconds = next - lastRemoteWeekSeconds
+    /*
+     * 新版本会区分“尚未提交”和“已经提交、等待网易云确认”。
+     * 有明确 submitted 记录时，只用远端增长抵扣这一部分，避免另一台设备产生的
+     * 远端增长误吃掉当前仍未提交的本机播放。旧版本迁移数据没有 submitted 信息时
+     * 继续沿用原来的 pending 抵扣逻辑，保证历史状态仍能自然收敛。
+     */
+    const confirmableSeconds =
+      submittedNeteaseListenSeconds.value > 0
+        ? Math.min(syncedSeconds, submittedNeteaseListenSeconds.value)
+        : Math.min(syncedSeconds, pendingNeteaseListenSeconds.value)
+
     pendingNeteaseListenSeconds.value = Math.max(
       0,
-      pendingNeteaseListenSeconds.value - syncedSeconds
+      pendingNeteaseListenSeconds.value - confirmableSeconds
+    )
+    submittedNeteaseListenSeconds.value = Math.max(
+      0,
+      submittedNeteaseListenSeconds.value - confirmableSeconds
     )
   }
 
