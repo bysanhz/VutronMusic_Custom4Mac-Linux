@@ -1014,7 +1014,15 @@
       "batchRangeSelect": "Fill range",
       "batchRangeHint": "Check the first and last tracks, then fill the range to select everything between them.",
       "batchRangeInvalid": "Enter a valid range between 1 and {count}.",
-      "batchRangeNeedEndpoints": "Select the first and last tracks of the range first."
+      "batchRangeNeedEndpoints": "Select the first and last tracks of the range first.",
+      "singleToolsTitle": "Track Tools",
+      "singleToolsDescription": "Choose a cloud track first, then read its lyrics or rematch it.",
+      "lyricToolTitle": "Cloud Lyrics",
+      "lyricToolDescription": "Read lyrics for the currently selected cloud track.",
+      "rematchDescription": "Associate the selected cloud track with a specific online NetEase track.",
+      "targetIdHint": "How to get it: find the target track in Search, right-click it, then choose Copy ID.",
+      "deleteToolTitle": "Cloud Deletion",
+      "deleteToolDescription": "Enter multi-select mode to delete by selection, select all, or endpoint range."
     }
   },
   "streamLogin": {
