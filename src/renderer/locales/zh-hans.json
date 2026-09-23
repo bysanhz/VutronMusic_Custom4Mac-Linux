@@ -1014,7 +1014,15 @@
       "batchRangeSelect": "补全区间",
       "batchRangeHint": "先勾选区间首尾两首，再点击“补全区间”，会自动选中中间所有歌曲。",
       "batchRangeInvalid": "请输入 1 到 {count} 之间的有效区间",
-      "batchRangeNeedEndpoints": "请先勾选区间的首尾两首歌曲"
+      "batchRangeNeedEndpoints": "请先勾选区间的首尾两首歌曲",
+      "singleToolsTitle": "单曲工具",
+      "singleToolsDescription": "先选择一首云盘歌曲，再执行歌词读取或重新匹配。",
+      "lyricToolTitle": "云盘歌词",
+      "lyricToolDescription": "读取当前选中云盘歌曲的歌词内容。",
+      "rematchDescription": "将当前云盘歌曲重新关联到指定的网易云在线歌曲。",
+      "targetIdHint": "获取方式：在搜索页找到目标歌曲，右键该歌曲并选择“复制ID”。",
+      "deleteToolTitle": "云盘删除",
+      "deleteToolDescription": "进入多选模式后，可批量、全选或按首尾区间删除云盘歌曲。"
     }
   },
   "streamLogin": {
