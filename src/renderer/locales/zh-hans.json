@@ -1006,7 +1006,14 @@
       "batchDeleteConfirm": "确定从网易云云盘删除所选 {count} 首歌曲吗？此操作不可撤销。",
       "batchDeleting": "正在删除 {count} 首歌曲…",
       "batchDeleted": "已从云盘删除 {count} 首歌曲",
-      "batchPartial": "已删除 {success} 首，{failed} 首删除失败"
+      "batchPartial": "已删除 {success} 首，{failed} 首删除失败",
+      "batchClearSelection": "清空选择",
+      "batchRange": "区间选择",
+      "batchRangeStart": "起始序号",
+      "batchRangeEnd": "结束序号",
+      "batchRangeSelect": "选择区间",
+      "batchRangeHint": "按当前列表序号选择，范围 1–{count}",
+      "batchRangeInvalid": "请输入 1 到 {count} 之间的有效区间"
     }
   },
   "streamLogin": {
