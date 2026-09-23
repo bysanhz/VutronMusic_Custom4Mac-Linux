@@ -33,6 +33,22 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('lastUpdateTime = value')
   })
 
+  test('serializes duration-aware scrobbles across rapid track changes', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const trackApi = readSource('src/renderer/api/track.ts')
+
+    expect(player).toContain('let neteaseScrobbleQueue: Promise<void> = Promise.resolve()')
+    expect(player).toContain('const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350')
+    expect(player).toContain('const queued = neteaseScrobbleQueue.then(operation, operation)')
+    expect(player).toContain('neteaseScrobbleQueue = queued.catch(() => {})')
+    expect(player).toContain('const sourceid = resolveNeteaseScrobbleSourceID(track)')
+    expect(player).toContain('const source = playlistSource.value.type')
+    expect(player).toContain('result?.skipped || result?.deduplicated')
+    expect(trackApi.indexOf("url: '/scrobble-v1'")).toBeLessThan(
+      trackApi.indexOf("url: '/scrobble'")
+    )
+  })
+
   test('deduplicates natural-end and replacement reporting for one playback session', () => {
     const player = readSource('src/renderer/store/player.ts')
     const handlerIndex = player.indexOf('const scrobbleNetease = async')
@@ -84,10 +100,10 @@ test.describe('NetEase scrobble lifecycle', () => {
 
     expect(trackApi).toContain('if (import.meta.env.DEV) console.debug(...args)')
     expect(trackApi).toContain(
-      "debugScrobble('[Track API] /scrobble 未获得有效 play 确认，回退稳定 NCBL 路由：'"
+      "debugScrobble('[Track API] /scrobble-v1 未成功，回退 legacy /scrobble：'"
     )
     expect(trackApi).toContain(
-      "console.warn('[Track API] /scrobble-v1 上报失败：'"
+      "console.warn('[Track API] 网易云听歌上报失败：'"
     )
   })
 
@@ -97,8 +113,8 @@ test.describe('NetEase scrobble lifecycle', () => {
     const legacyIndex = trackApi.indexOf("url: '/scrobble'")
     const modernIndex = trackApi.indexOf("url: '/scrobble-v1'")
 
-    expect(legacyIndex).toBeGreaterThan(-1)
-    expect(modernIndex).toBeGreaterThan(legacyIndex)
+    expect(modernIndex).toBeGreaterThan(-1)
+    expect(legacyIndex).toBeGreaterThan(modernIndex)
     expect(trackApi).toContain('const playResult = result?.details?.play')
     expect(trackApi).toContain('return Boolean(playResult) && isSuccessfulResponse(playResult)')
     expect(trackApi).toContain('const normalizeScrobbleSourceId =')
