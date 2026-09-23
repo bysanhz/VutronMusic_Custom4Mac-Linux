@@ -64,8 +64,12 @@ const TEXTS = {
     importFailed: '模版文件无效或超过 256 KB',
     limitReached: `最多保存 ${MAX_USER_PRESETS} 个自定义预设`,
     importedSuffix: '导入',
-    conflict:
-      '已存在同名模版“{name}”。\n\n确定：替换现有模版\n取消：跳过此模版',
+    conflictTitle: '发现同名模版',
+    conflictDescription: '已存在同名模版“{name}”，请选择如何处理。',
+    replaceOne: '替换',
+    skipOne: '跳过',
+    replaceAll: '全部替换',
+    skipAll: '全部跳过',
     importSummary: '新增 {added} 个，替换 {replaced} 个，跳过 {skipped} 个'
   },
   zht: {
@@ -78,8 +82,12 @@ const TEXTS = {
     importFailed: '模版檔案無效或超過 256 KB',
     limitReached: `最多儲存 ${MAX_USER_PRESETS} 個自訂預設`,
     importedSuffix: '匯入',
-    conflict:
-      '已存在同名模版「{name}」。\n\n確定：取代現有模版\n取消：略過此模版',
+    conflictTitle: '發現同名模版',
+    conflictDescription: '已存在同名模版「{name}」，請選擇如何處理。',
+    replaceOne: '取代',
+    skipOne: '略過',
+    replaceAll: '全部取代',
+    skipAll: '全部略過',
     importSummary: '新增 {added} 個，取代 {replaced} 個，略過 {skipped} 個'
   },
   en: {
@@ -92,8 +100,12 @@ const TEXTS = {
     importFailed: 'The template file is invalid or larger than 256 KB.',
     limitReached: `Up to ${MAX_USER_PRESETS} custom presets are supported.`,
     importedSuffix: 'Imported',
-    conflict:
-      'A template named “{name}” already exists.\n\nOK: replace it\nCancel: skip it',
+    conflictTitle: 'Template name conflict',
+    conflictDescription: 'A template named “{name}” already exists. Choose how to handle it.',
+    replaceOne: 'Replace',
+    skipOne: 'Skip',
+    replaceAll: 'Replace All',
+    skipAll: 'Skip All',
     importSummary: 'Added {added}, replaced {replaced}, skipped {skipped}'
   }
 } as const
@@ -473,6 +485,62 @@ const installTransferAndPreview = (): boolean => {
   }
   window.addEventListener(PRESET_COMMITTED_EVENT, handlePresetCommitted)
 
+  type ConflictResolution = 'replace' | 'skip' | 'replace-all' | 'skip-all'
+
+  const askConflictResolution = (name: string): Promise<ConflictResolution> =>
+    new Promise((resolve) => {
+      const overlay = document.createElement('div')
+      const dialog = document.createElement('div')
+      const title = document.createElement('strong')
+      const description = document.createElement('p')
+      const buttons = document.createElement('div')
+
+      overlay.className = 'vutronmusic-template-conflict-overlay'
+      dialog.className = 'vutronmusic-template-conflict-dialog'
+      title.className = 'vutronmusic-template-conflict-title'
+      description.className = 'vutronmusic-template-conflict-description'
+      buttons.className = 'vutronmusic-template-conflict-actions'
+
+      title.textContent = text.conflictTitle
+      description.textContent = text.conflictDescription.replace('{name}', name)
+
+      const createChoiceButton = (
+        label: string,
+        resolution: ConflictResolution,
+        primary = false
+      ): HTMLButtonElement => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.textContent = label
+        if (primary) button.classList.add('is-primary')
+        button.addEventListener('click', () => finish(resolution))
+        return button
+      }
+
+      const finish = (resolution: ConflictResolution) => {
+        document.removeEventListener('keydown', handleKeydown)
+        overlay.remove()
+        resolve(resolution)
+      }
+
+      const handleKeydown = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape') return
+        event.preventDefault()
+        finish('skip')
+      }
+
+      buttons.append(
+        createChoiceButton(text.skipOne, 'skip'),
+        createChoiceButton(text.replaceOne, 'replace', true),
+        createChoiceButton(text.skipAll, 'skip-all'),
+        createChoiceButton(text.replaceAll, 'replace-all', true)
+      )
+      dialog.append(title, description, buttons)
+      overlay.append(dialog)
+      document.body.append(overlay)
+      document.addEventListener('keydown', handleKeydown)
+    })
+
   const refreshUserPresetOptions = (
     presets: StoredPreset[],
     preferredValue: string
@@ -557,6 +625,23 @@ const installTransferAndPreview = (): boolean => {
       let added = 0
       let replaced = 0
       let skipped = 0
+      let conflictPolicy: 'ask' | 'replace-all' | 'skip-all' = 'ask'
+
+      const shouldReplaceConflict = async (name: string): Promise<boolean> => {
+        if (conflictPolicy === 'replace-all') return true
+        if (conflictPolicy === 'skip-all') return false
+
+        const resolution = await askConflictResolution(name)
+        if (resolution === 'replace-all') {
+          conflictPolicy = 'replace-all'
+          return true
+        }
+        if (resolution === 'skip-all') {
+          conflictPolicy = 'skip-all'
+          return false
+        }
+        return resolution === 'replace'
+      }
 
       for (const template of imported) {
         const normalizedName = template.name.toLocaleLowerCase()
@@ -581,10 +666,7 @@ const installTransferAndPreview = (): boolean => {
             continue
           }
 
-          const shouldReplace = window.confirm(
-            text.conflict.replace('{name}', builtInConflict.name)
-          )
-          if (!shouldReplace) {
+          if (!(await shouldReplaceConflict(builtInConflict.name))) {
             skipped += 1
             continue
           }
@@ -609,10 +691,7 @@ const installTransferAndPreview = (): boolean => {
             continue
           }
 
-          const shouldReplace = window.confirm(
-            text.conflict.replace('{name}', userConflict.name)
-          )
-          if (!shouldReplace) {
+          if (!(await shouldReplaceConflict(userConflict.name))) {
             skipped += 1
             continue
           }
