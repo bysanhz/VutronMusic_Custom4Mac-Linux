@@ -27,7 +27,9 @@
       <VirtualScroll
         v-if="comments.length"
         :list="comments"
-        :item-size="63"
+        :item-size="72"
+        :dynamic-item-size="true"
+        item-key="commentId"
         :is-end="false"
         :height="commentHeight"
         :padding-bottom="0"
@@ -169,7 +171,7 @@ watch(
       commentInfo.cursor = 0
       commentInfo.pageSize = 50
       comments.value = []
-      loadComment()
+      void loadComment()
     }
   }
 )
@@ -199,7 +201,7 @@ const handleClickSortType = (type: number) => {
   commentInfo.totalCount = 0
   commentInfo.cursor = 0
   comments.value = []
-  loadComment()
+  void loadComment()
 }
 
 /**
@@ -208,7 +210,16 @@ const handleClickSortType = (type: number) => {
  * 2. 加载最新评论时，评论列表为之前的推荐+最新评论，所以评论列表数量比评论总数要更多
  * 3. 网易评论返回的数据问题很大，要么是hasMore为true但实际没有更多数据，要么是hasMore为false但实际还有更多数据, 要么会出现评论数量和总数不一致的问题，所以处理有些复杂，本项目里暂时按评论数量大于总数 或者 评论数量和总数之间的差值小于3视为加载完毕
  */
-const loadComment = () => {
+const appendUniqueComments = (incoming: any[]) => {
+  const knownIds = new Set(comments.value.map((item) => item.commentId))
+  incoming.forEach((item) => {
+    if (knownIds.has(item.commentId)) return
+    knownIds.add(item.commentId)
+    comments.value.push(item)
+  })
+}
+
+const loadComment = async (): Promise<void> => {
   if (
     !commentInfo.hasMore &&
     (comments.value.length >= commentInfo.totalCount ||
@@ -216,13 +227,22 @@ const loadComment = () => {
   ) {
     return
   }
-  const params = {
+
+  const params: {
+    id: number
+    type: number
+    sortType: number
+    pageNo: number
+    pageSize: number
+    cursor?: number
+  } = {
     id: props.id,
     type: typeMap[props.type],
     sortType: commentInfo.paramType,
     pageNo: commentInfo.pageNo,
     pageSize: commentInfo.pageSize
   }
+
   if (!commentInfo.hasMore && commentInfo.sortType === 1 && commentInfo.paramType === 1) {
     commentInfo.paramType = 3
     params.sortType = 3
@@ -231,22 +251,23 @@ const loadComment = () => {
   }
 
   if (params.sortType === 3 && params.pageNo > 1) {
-    // @ts-ignore
     params.cursor = commentInfo.cursor
   }
-  getComment(params).then((res) => {
+
+  try {
+    const res = await getComment(params)
     if (res.code === 200) {
       commentInfo.totalCount = res.data.totalCount || commentInfo.totalCount
       commentInfo.hasMore = res.data.hasMore
       commentInfo.pageNo++
       commentInfo.cursor = res.data.cursor
-      comments.value.push(...res.data.comments)
+      appendUniqueComments(res.data.comments || [])
     }
+  } finally {
     show.value = true
-    nextTick(() => {
-      commentHeight.value = mainRef.value?.offsetHeight || commentHeight.value
-    })
-  })
+    await nextTick()
+    commentHeight.value = mainRef.value?.offsetHeight || commentHeight.value
+  }
 }
 
 const goToUser = (item: any) => {
@@ -338,19 +359,16 @@ const handleSubmitComment = () => {
     })
 }
 
+const handleWindowResize = debounce(updateWindowHeight, 200)
+
 onMounted(() => {
-  window.addEventListener(
-    'resize',
-    debounce(() => updateWindowHeight(), 200)
-  )
-  loadComment()
+  window.addEventListener('resize', handleWindowResize)
+  void loadComment()
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener(
-    'resize',
-    debounce(() => updateWindowHeight(), 200)
-  )
+  window.removeEventListener('resize', handleWindowResize)
+  handleWindowResize.cancel()
 })
 </script>
 
@@ -408,13 +426,17 @@ onBeforeUnmount(() => {
   padding-bottom: 4px;
 
   .avatar {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
     cursor: pointer;
   }
   img {
+    display: block;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    margin-right: 10px;
   }
 }
 .comment-item.first {
@@ -428,6 +450,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
 }
 .comment {
   // width: auto;
