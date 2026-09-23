@@ -277,6 +277,7 @@ import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
+import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
   pendingNeteaseListenSeconds,
@@ -311,6 +312,7 @@ const tabs = computed(() => [
 
 const activeTab = ref<'footprint' | 'cloud'>('footprint')
 const dataStore = useDataStore()
+const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
 const { showToast } = stateStore
@@ -469,6 +471,9 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
  * 固定等 30 秒更符合“刷新”按钮的用户预期，同时不会重复 scrobble 当前歌曲。
  */
 const refreshFootprintWithConfirmation = async (): Promise<void> => {
+  // “刷新”不仅重新读取网易云，还先把当前歌曲尚未提交的真实收听增量做一次 checkpoint。
+  // 这样无需等切歌/自然结束，已经听过的当前歌曲时长也会立即进入远端同步流程。
+  await playerStore.syncCurrentNeteaseListenCheckpoint()
   await loadFootprint()
   if (pendingNeteaseListenSeconds.value <= 0) return
 
