@@ -1005,13 +1005,26 @@ test.describe('desktop feature integration', () => {
 
   test('keeps injected settings controls theme-aware and activates custom accent colors', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
+    const settingsStore = readSource('src/renderer/store/settings.ts')
     const sharedFeatures = readSource('src/renderer/utils/v327FeatureShared.ts')
+    const zhLocale = readSource('src/renderer/locales/zh-hans.json')
 
+    expect(settings).toContain('v-for="color of standardThemeColors"')
+    expect(settings).toContain('@click.capture="applyCustomizeColor"')
+    expect(settings).toContain(':width="54"')
+    expect(settings).toContain(':height="54"')
     expect(settings).toContain('@update:value="selectCustomizeColor"')
+    expect(settings).toContain('const applyCustomizeColor = () => {')
     expect(settings).toContain('const selectCustomizeColor = (value: string) => {')
     expect(settings).toContain('customizeColor.value.color = value')
     expect(settings).toContain('changeColor(customizeColor.value)')
-    expect(sharedFeatures).toContain('color: var(--color-text);')
+
+    for (const name of ['green', 'red', 'pink', 'gold']) {
+      expect(settingsStore).toContain(`name: '${name}'`)
+      expect(zhLocale).toContain(`"${name}"`)
+    }
+    expect(settingsStore).toContain('const ensureThemeColors = () => {')
+    expect(sharedFeatures).toContain('color: var(--color-primary);')
     expect(sharedFeatures).toContain('background: var(--color-secondary-bg);')
     expect(sharedFeatures).toContain('.vutronmusic-v327-controls button {')
   })
