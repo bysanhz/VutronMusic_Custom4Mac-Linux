@@ -211,6 +211,7 @@ const isCurrentRoute = (path: string): boolean => {
     border-radius: 6px;
     box-sizing: border-box;
     background: transparent;
+    color: var(--color-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,6 +219,8 @@ const isCurrentRoute = (path: string): boolean => {
     .history-icon {
       width: 18px;
       height: 18px;
+      color: currentColor;
+      fill: currentColor;
     }
 
     &:hover {
