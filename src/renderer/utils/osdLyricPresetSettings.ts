@@ -68,13 +68,16 @@ const TEXTS = {
     title: '桌面歌词样式预设',
     description: '预设会同时保存歌词样式与对应模式的窗口基准；内置预设可随时恢复初始设置',
     apply: '应用',
-    saveCopy: '另存为',
+    saveCopy: '新建预设',
+    saveNew: '保存新预设',
     updateSelected: '更新所选',
     delete: '删除',
     restoreDefault: '恢复默认',
     namePlaceholder: '输入预设名称',
     nameRequired: '请先输入预设名称',
-    saved: '已另存为新的自定义预设',
+    saved: '新预设已保存并选中',
+    createHint: '输入新预设名称，然后点击“保存新预设”；会保存当前歌词样式与窗口基准',
+    unsavedHint: '当前设置尚未保存；输入名称后点击“保存新预设”即可创建预设',
     updated: '所选预设已覆盖更新',
     restored: '内置预设已恢复默认并应用',
     duplicateName: '该名称已被其他预设使用',
@@ -95,13 +98,16 @@ const TEXTS = {
     title: '桌面歌詞樣式預設',
     description: '預設會同時儲存歌詞樣式與對應模式的視窗基準；內建預設可隨時恢復初始設定',
     apply: '套用',
-    saveCopy: '另存為',
+    saveCopy: '新增預設',
+    saveNew: '儲存新預設',
     updateSelected: '更新所選',
     delete: '刪除',
     restoreDefault: '恢復預設',
     namePlaceholder: '輸入預設名稱',
     nameRequired: '請先輸入預設名稱',
-    saved: '已另存為新的自訂預設',
+    saved: '新預設已儲存並選取',
+    createHint: '輸入新預設名稱，再點擊「儲存新預設」；會儲存目前歌詞樣式與視窗基準',
+    unsavedHint: '目前設定尚未儲存；輸入名稱後點擊「儲存新預設」即可建立預設',
     updated: '所選預設已覆蓋更新',
     restored: '內建預設已恢復並套用',
     duplicateName: '此名稱已被其他預設使用',
@@ -123,13 +129,18 @@ const TEXTS = {
     description:
       'Presets save both lyric styling and the matching window baseline; built-in presets can be restored at any time.',
     apply: 'Apply',
-    saveCopy: 'Save Copy',
+    saveCopy: 'New Preset',
+    saveNew: 'Save New Preset',
     updateSelected: 'Update Selected',
     delete: 'Delete',
     restoreDefault: 'Restore Default',
     namePlaceholder: 'Preset name',
     nameRequired: 'Enter a preset name first.',
-    saved: 'Saved as a new custom preset',
+    saved: 'New preset saved and selected',
+    createHint:
+      'Enter a new preset name, then choose “Save New Preset” to save the current lyric style and window baseline.',
+    unsavedHint:
+      'Current settings are not saved. Enter a name and choose “Save New Preset” to create one.',
     updated: 'Selected preset overwritten',
     restored: 'Built-in preset restored and applied',
     duplicateName: 'Another preset already uses this name.',
@@ -498,21 +509,27 @@ const ensureControl = (): boolean => {
   const getSelectedPreset = (): OsdPreset | undefined =>
     getAllPresets().find((preset) => preset.id === select.value)
 
+  let creatingPreset = false
+
   const syncEditorWithSelection = (showHint = true) => {
     const selected = getSelectedPreset()
 
     if (!selected) {
+      creatingPreset = true
       nameInput.hidden = false
       nameInput.value = ''
       nameInput.placeholder = text.namePlaceholder
+      copyButton.textContent = text.saveNew
       applyButton.disabled = true
       updateButton.disabled = true
       removeButton.disabled = true
       removeButton.textContent = text.delete
-      if (showHint) status.textContent = text.customHint
+      if (showHint) status.textContent = text.unsavedHint
       return
     }
 
+    creatingPreset = false
+    copyButton.textContent = text.saveCopy
     const builtIn = isBuiltInPreset(selected)
     applyButton.disabled = false
     updateButton.disabled = false
@@ -536,6 +553,7 @@ const ensureControl = (): boolean => {
     )
 
   select.addEventListener('change', () => {
+    creatingPreset = false
     if (select.value !== CURRENT_SETTINGS_OPTION_ID) {
       persistSelectedPresetId(select.value)
     }
@@ -606,20 +624,45 @@ const ensureControl = (): boolean => {
     status.textContent = text.updated
   }
 
-  const saveCurrentAsCopy = () => {
+  const beginCreatePreset = () => {
     const selected = getSelectedPreset()
+    creatingPreset = true
+    nameInput.hidden = false
+    nameInput.value = selected ? createUniqueCopyName(selected.name, selected.id) : ''
+    nameInput.placeholder = text.namePlaceholder
+    copyButton.textContent = text.saveNew
+    updateButton.disabled = true
+    removeButton.disabled = true
+    status.textContent = text.createHint
+    window.requestAnimationFrame(() => {
+      nameInput.focus()
+      nameInput.select()
+    })
+  }
+
+  const saveCurrentAsNewPreset = () => {
     const existing = loadUserPresets()
     if (existing.length >= MAX_USER_PRESETS) {
       status.textContent = text.limitReached
       return
     }
 
-    const enteredName = nameInput.value.trim().slice(0, 80)
-    const baseName = enteredName || selected?.name || text.title
-    const requestedNameConflicts = getAllPresets().some(
-      (preset) => preset.name.localeCompare(baseName, undefined, { sensitivity: 'accent' }) === 0
-    )
-    const name = requestedNameConflicts ? createUniqueCopyName(baseName) : baseName
+    const name = nameInput.value.trim().slice(0, 80)
+    if (!name) {
+      status.textContent = text.nameRequired
+      nameInput.focus()
+      return
+    }
+    if (
+      getAllPresets().some(
+        (preset) => preset.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0
+      )
+    ) {
+      status.textContent = text.duplicateName
+      nameInput.focus()
+      nameInput.select()
+      return
+    }
 
     const preset: OsdPreset = {
       id: createUserPresetId(),
@@ -631,6 +674,7 @@ const ensureControl = (): boolean => {
       return
     }
 
+    creatingPreset = false
     refreshSelect(select, preset.id)
     persistSelectedPresetId(preset.id)
     syncEditorWithSelection(false)
@@ -644,12 +688,20 @@ const ensureControl = (): boolean => {
 
   copyButton.addEventListener('click', (event) => {
     event.preventDefault()
-    saveCurrentAsCopy()
+    if (!creatingPreset) {
+      beginCreatePreset()
+      return
+    }
+    saveCurrentAsNewPreset()
   })
 
   nameInput.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return
     event.preventDefault()
+    if (creatingPreset) {
+      saveCurrentAsNewPreset()
+      return
+    }
     updateSelectedPreset()
   })
 
