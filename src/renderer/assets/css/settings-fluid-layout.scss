@@ -6,8 +6,8 @@
  * 1. 本文件直接作用于 SystemSettings.vue 的原始 .item/.left/.right 结构，不依赖
  *    smoothWindowScale.ts 动态添加布局 class；
  * 2. Electron webFrame 仍负责字体、图标、图片、按钮和间距的统一缩放；
- * 3. Grid 仅在可用空间不足时自动换行，不设置 700/520/460px 一类人工临界点；
- * 4. 外观、强调色、流媒体服务等卡片区域可以自动形成两排或 n 排。
+ * 3. 普通设置项优先保持“标题/说明 + 控件”同一行，只有真正宽的分组区域再自行换行；
+ * 4. 外观、强调色、流媒体服务等卡片区域保留独立自适应布局。
  */
 
 #app .system-settings {
@@ -32,21 +32,33 @@
   box-sizing: border-box;
 }
 
+#app .system-settings .main-container > .container {
+  container-type: inline-size;
+  container-name: settings-content;
+}
+
 /*
- * 普通设置项。
- * 240px 是逻辑列宽：窗口整体缩小时该值会跟随 webFrame 一起缩小，但在截图所示
- * 窄窗口中，两列已无法同时容纳，因此会自然变成“说明在上、控件在下”。
+ * 普通设置项优先保持单行。
+ *
+ * 旧版 repeat(auto-fit, minmax(..., 240px)) 会在 Electron 页面缩放后过早把左右两列
+ * 拆成上下两行：视觉上明明还有足够横向空间，开关/选择框却已经掉到下一行。
+ *
+ * 现在让左侧文案弹性占据剩余空间，右侧控件按自身实际宽度贴右排列。长说明文本可以
+ * 在左列内部换行，但不会因为固定的 240px“逻辑列宽”把整个设置项提前拆行。
  */
 #app .system-settings .item:not(.no-flex) {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  align-items: center;
-  justify-content: initial !important;
-  column-gap: clamp(12px, 2.5vw, 28px);
-  row-gap: 9px;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+}
+
+#app .system-settings .item:not(.no-flex):has(> .left):has(> .right) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: initial !important;
+  column-gap: clamp(16px, 3vw, 32px);
+  row-gap: 6px;
 }
 
 #app .system-settings .item:not(.no-flex) > .left {
@@ -56,19 +68,28 @@
 }
 
 #app .system-settings .item:not(.no-flex) > .right {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(100%, 440px);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   justify-self: end;
   flex-wrap: wrap;
   gap: 8px;
-  min-width: 0;
-  max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* 没有 left/right 包装的分组标题独占一整行。 */
+/*
+ * 大多数右侧控件本身只有 44~164px。保持右列按内容收缩后，开关、选择框和按钮都能
+ * 在同一条右边界上对齐，而不会占一个固定的“半屏列”。
+ */
+#app .system-settings .item:not(.no-flex) > .right > :only-child {
+  flex: 0 0 auto;
+}
+
+/* 没有 left/right 包装的分组区域仍由各自的专用规则管理。 */
 #app .system-settings .item:not(.no-flex) > :first-child:not(.left):not(.right) {
-  grid-column: 1 / -1;
   min-width: 0;
 }
 
@@ -101,6 +122,13 @@
   min-width: 0;
   flex-wrap: wrap;
   gap: 10px 14px !important;
+}
+
+/* 需要更宽输入框/多按钮的行也优先使用可用横向空间，而不是被旧的 164px 右列截断。 */
+#app .system-settings .item.lyric-source > .right,
+#app .system-settings .item:not(.no-flex) > .right:has(> input + button),
+#app .system-settings .item:not(.no-flex) > .right:has(> button + button) {
+  max-width: min(100%, 520px);
 }
 
 /* ==================== 主界面缩放基准 ==================== */
