@@ -258,14 +258,24 @@
       <pre v-show="cloudLyricPreview" class="preview">{{ cloudLyricPreview }}</pre>
       <div v-show="!cloudTracks.length" class="empty">{{ t('insights.cloud.empty') }}</div>
     </section>
+
+    <button
+      class="insights-scroll-top"
+      :title="t('localMusic.scrollToTop')"
+      :aria-label="t('localMusic.scrollToTop')"
+      @click="scrollToInsightsTop"
+    >
+      <SvgIcon icon-class="arrow-up-alt" />
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
+import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
 import { useNormalStateStore } from '../store/state'
 import {
@@ -304,6 +314,8 @@ const dataStore = useDataStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
 const { showToast } = stateStore
+const scrollMainTo = inject('scrollMainTo', (top: number, behavior: ScrollBehavior = 'smooth') => {})
+const scrollToInsightsTop = (): void => scrollMainTo(0, 'smooth')
 
 const refreshing = ref(false)
 const footprint = reactive<{
@@ -1292,6 +1304,36 @@ input {
   padding: 34px 0;
   text-align: center;
   opacity: 0.5;
+}
+
+.insights-scroll-top {
+  position: fixed;
+  right: 24px;
+  bottom: 52px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid rgba(60, 60, 60, 0.08);
+  border-radius: 9999px;
+  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  box-shadow: 0 8px 12px -6px rgba(0, 0, 0, 0.1);
+  opacity: 0.75;
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition:
+    opacity 0.3s ease,
+    transform 0.2s ease;
+}
+
+.insights-scroll-top:hover {
+  opacity: 0.9;
+}
+
+.insights-scroll-top:active {
+  transform: translateY(-50%) scale(0.96);
 }
 
 @media (max-width: 900px) {
