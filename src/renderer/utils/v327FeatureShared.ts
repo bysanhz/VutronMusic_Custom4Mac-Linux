@@ -182,7 +182,7 @@ export const injectV327FeatureStyle = (): void => {
       width: 100%;
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+      grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.55fr);
       align-items: stretch;
       gap: 16px;
       box-sizing: border-box;
