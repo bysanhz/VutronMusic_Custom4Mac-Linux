@@ -11,7 +11,9 @@
         v-if="floorComments.length"
         :list="floorComments"
         :height="commentHeight"
-        :item-size="63"
+        :item-size="72"
+        :dynamic-item-size="true"
+        item-key="commentId"
         :padding-bottom="0"
         :above-value="5"
         :below-value="5"
@@ -167,8 +169,18 @@ const switchToCommentPage = () => {
   show.value = false
 }
 
-const loadFloorComment = (pid: number) => {
+const appendUniqueFloorComments = (incoming: any[]) => {
+  const knownIds = new Set(floorComments.value.map((item) => item.commentId))
+  incoming.forEach((item) => {
+    if (knownIds.has(item.commentId)) return
+    knownIds.add(item.commentId)
+    floorComments.value.push(item)
+  })
+}
+
+const loadFloorComment = async (pid: number): Promise<void> => {
   if (!floorCommentInfo.hasMore) return
+
   const params = {
     parentCommentId: pid,
     type: typeMap[props.type],
@@ -176,24 +188,26 @@ const loadFloorComment = (pid: number) => {
     limit: floorCommentInfo.limit,
     time: floorCommentInfo.time
   }
-  getFloorComment(params).then((res) => {
+
+  try {
+    const res = await getFloorComment(params)
     if (res.code === 200) {
       floorCommentInfo.time = res.data.time
       floorCommentInfo.hasMore = res.data.hasMore
       floorCommentInfo.totalCount = res.data.totalCount || floorCommentInfo.totalCount
       floorCommentInfo.commentId = res.data.ownerComment?.commentId || floorCommentInfo.commentId
+
       if (res.data.ownerComment) {
         selectedComment.value = res.data.ownerComment
-        floorComments.value.push(res.data.ownerComment)
+        appendUniqueFloorComments([res.data.ownerComment])
       }
-      floorComments.value.push(...res.data.bestComments)
-      floorComments.value.push(...res.data.comments)
+      appendUniqueFloorComments([...(res.data.bestComments || []), ...(res.data.comments || [])])
     }
+  } finally {
     show.value = true
-    nextTick(() => {
-      commentHeight.value = mainRef.value?.offsetHeight || commentHeight.value
-    })
-  })
+    await nextTick()
+    commentHeight.value = mainRef.value?.offsetHeight || commentHeight.value
+  }
 }
 
 const handleLikeComment = (comment: any) => {
@@ -282,19 +296,16 @@ const handleSubmitComment = () => {
     })
 }
 
+const handleWindowResize = debounce(updateWindowHeight, 200)
+
 onMounted(() => {
-  window.addEventListener(
-    'resize',
-    debounce(() => updateWindowHeight(), 200)
-  )
-  loadFloorComment(props.beRepliedCommentId)
+  window.addEventListener('resize', handleWindowResize)
+  void loadFloorComment(props.beRepliedCommentId)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener(
-    'resize',
-    debounce(() => updateWindowHeight(), 200)
-  )
+  window.removeEventListener('resize', handleWindowResize)
+  handleWindowResize.cancel()
 })
 </script>
 
@@ -352,13 +363,17 @@ onBeforeUnmount(() => {
   padding-bottom: 4px;
 
   .avatar {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
     cursor: pointer;
   }
   img {
+    display: block;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    margin-right: 10px;
   }
 }
 .comment-item.first {
@@ -372,6 +387,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
 }
 .comment {
   width: auto;
