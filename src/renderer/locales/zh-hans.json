@@ -1011,9 +1011,10 @@
       "batchRange": "区间选择",
       "batchRangeStart": "起始序号",
       "batchRangeEnd": "结束序号",
-      "batchRangeSelect": "选择区间",
-      "batchRangeHint": "按当前列表序号选择，范围 1–{count}",
-      "batchRangeInvalid": "请输入 1 到 {count} 之间的有效区间"
+      "batchRangeSelect": "补全区间",
+      "batchRangeHint": "先勾选区间首尾两首，再点击“补全区间”，会自动选中中间所有歌曲。",
+      "batchRangeInvalid": "请输入 1 到 {count} 之间的有效区间",
+      "batchRangeNeedEndpoints": "请先勾选区间的首尾两首歌曲"
     }
   },
   "streamLogin": {
