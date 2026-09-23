@@ -52,7 +52,11 @@
   box-sizing: border-box;
 }
 
-#app .system-settings .item:not(.no-flex):has(> .left):has(> .right) {
+#app
+  .system-settings
+  .item:not(.no-flex):not(.vutronmusic-v327-settings-item):not(#osd-window-scale-baseline-setting):has(
+    > .left
+  ):has(> .right) {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -86,6 +90,67 @@
  */
 #app .system-settings .item:not(.no-flex) > .right > :only-child {
   flex: 0 0 auto;
+}
+
+/*
+ * v3.27 注入型设置（桌面歌词预设、诊断等）右侧通常包含预览、输入框和多个按钮，
+ * 不属于“标题 + 单个控件”的普通设置行。强行放成 minmax(0,1fr)+auto 会让左侧文案
+ * 被压成几个像素，中文最终逐字竖排。这里明确恢复为上下两段：标题/说明占满一行，
+ * 复杂控件在下一行使用全部可用宽度。
+ */
+#app .system-settings .item.vutronmusic-v327-settings-item {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 10px !important;
+  padding-top: 8px;
+  padding-bottom: 14px;
+}
+
+#app .system-settings .item.vutronmusic-v327-settings-item > .left {
+  width: 100%;
+  min-width: 0;
+  padding-right: 0 !important;
+}
+
+#app .system-settings .item.vutronmusic-v327-settings-item > .right {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+  justify-content: stretch !important;
+}
+
+#app
+  .system-settings
+  .item.vutronmusic-v327-settings-item
+  > .right
+  > .vutronmusic-v327-controls {
+  width: 100% !important;
+  max-width: none !important;
+  justify-content: flex-start !important;
+}
+
+#app
+  .system-settings
+  .item.vutronmusic-v327-settings-item
+  > .right
+  > .vutronmusic-v327-controls
+  > :is(select, input[type='text'], input[type='number']) {
+  flex: 1 1 220px;
+  min-width: min(220px, 100%);
+}
+
+#app
+  .system-settings
+  .item.vutronmusic-v327-settings-item
+  .vutronmusic-v327-status,
+#app
+  .system-settings
+  .item.vutronmusic-v327-settings-item
+  .vutronmusic-osd-preset-draft-row {
+  text-align: left;
+  justify-content: flex-start;
 }
 
 /* 没有 left/right 包装的分组区域仍由各自的专用规则管理。 */
