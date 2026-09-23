@@ -98,13 +98,13 @@ watch(
 
 <style scoped lang="scss">
 .fm {
-  padding: 0.5rem 0.85rem;
+  padding: 0.4rem 0.75rem;
   background: var(--color-secondary-bg);
   border-radius: 1rem;
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: clamp(132px, 40%, 176px) minmax(0, 1fr);
   align-items: stretch;
-  column-gap: clamp(0.6rem, 2.2cqw, 0.9rem);
+  column-gap: clamp(0.35rem, 1.4cqw, 0.55rem);
   width: 100%;
   min-width: 0;
   height: 198px;
@@ -121,16 +121,15 @@ watch(
   align-content: center;
   align-items: center;
   justify-items: stretch;
-  row-gap: 4px;
+  row-gap: 10px;
 }
 
 .cover {
-  justify-self: start;
-  width: 150px;
-  height: 150px;
+  justify-self: stretch;
+  width: 100%;
+  height: 145px;
   max-width: 100%;
   max-height: 100%;
-  aspect-ratio: 1;
   object-fit: cover;
   clip-path: border-box;
   border-radius: 0.75rem;
@@ -139,7 +138,7 @@ watch(
 }
 
 .buttons {
-  width: 150px;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   display: flex;
@@ -148,7 +147,7 @@ watch(
 
   .button-icon {
     margin: 0;
-    padding: 5px;
+    padding: 2px 4px;
   }
 
   .svg-icon {
@@ -172,7 +171,7 @@ watch(
 
   .info {
     min-width: 0;
-    margin-top: 0;
+    margin-top: 2px;
     padding-left: 0;
   }
 
@@ -223,24 +222,19 @@ watch(
 }
 
 @container (max-width: 420px) {
-  .fm {
-    grid-template-columns: 138px minmax(0, 1fr);
-    column-gap: 0.55rem;
-  }
-
   .cover {
-    width: 138px;
-    height: 138px;
+    width: 100%;
+    height: 136px;
     max-width: 100%;
     max-height: 100%;
   }
 
   .buttons {
-    width: 138px;
+    width: 100%;
     max-width: 100%;
 
     .button-icon {
-      padding: 4px;
+      padding: 2px 3px;
     }
 
     .svg-icon {
@@ -256,7 +250,7 @@ watch(
 
   .right-part {
     .info {
-      margin-top: 6px;
+      margin-top: 7px;
     }
 
     .title {
@@ -281,26 +275,20 @@ watch(
 }
 
 @container (max-width: 340px) {
-  .fm {
-    padding: 0.45rem 0.65rem;
-    grid-template-columns: 108px minmax(0, 1fr);
-    column-gap: 0.4rem;
-  }
-
   .media-column {
     grid-template-rows: auto auto;
-    row-gap: 3px;
+    row-gap: 8px;
   }
 
   .cover {
-    width: 108px;
+    width: 100%;
     height: 108px;
     max-width: 100%;
     max-height: 100%;
   }
 
   .buttons {
-    width: 108px;
+    width: 100%;
     max-width: 100%;
 
     .button-icon {
