@@ -203,6 +203,9 @@
     "trackCount": "{count}首",
     "playlistCount": "{count}個",
     "search": "搜尋{target}",
+    "scan": "掃描歌曲",
+    "scanning": "掃描中…",
+    "scanNoFolder": "請先在設定中加入本地音樂資料夾",
     "serviceOffline": "目前服務離線，請稍後再試",
     "aggregateActionDisabled": "彙總檢視下無法進行操作，請先選擇特定的串流服務"
   },
