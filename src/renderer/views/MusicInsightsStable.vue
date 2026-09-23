@@ -314,7 +314,7 @@ const dataStore = useDataStore()
 const stateStore = useNormalStateStore()
 const { liked, user } = storeToRefs(dataStore)
 const { showToast } = stateStore
-const scrollMainTo = inject('scrollMainTo', (top: number, behavior: ScrollBehavior = 'smooth') => {})
+const scrollMainTo = inject('scrollMainTo', (top: number, behavior = 'smooth') => {})
 const scrollToInsightsTop = (): void => scrollMainTo(0, 'smooth')
 
 const refreshing = ref(false)
