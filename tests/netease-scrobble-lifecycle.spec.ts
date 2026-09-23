@@ -11,6 +11,7 @@ test.describe('NetEase scrobble lifecycle', () => {
 
     expect(player).toContain("getTrackDetail, scrobble } from '../api/track'")
     expect(player).toContain('const scrobbleNetease = async')
+    expect(player).toContain('const syncCurrentNeteaseListenCheckpoint = async')
     expect(player).toContain('void scrobbleNetease(currentTrack.value, seek.value)')
     expect(player).toContain(
       'void scrobbleNetease(endedTrack, currentTrackDuration.value, true)'
@@ -18,6 +19,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
     expect(player).toContain("from '../utils/neteaseListenPending'")
     expect(player).toContain('addPendingNeteaseListenSeconds(delta)')
+    expect(player).toContain('neteaseSessionListenedSeconds += delta')
     expect(player).toContain('flushPendingNeteaseListenSeconds()')
     const trackApi = readSource('src/renderer/api/track.ts')
     expect(trackApi).not.toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
@@ -49,11 +51,11 @@ test.describe('NetEase scrobble lifecycle', () => {
     )
   })
 
-  test('deduplicates natural-end and replacement reporting for one playback session', () => {
+  test('deduplicates natural-end and replacement reporting by reserving submitted session deltas', () => {
     const player = readSource('src/renderer/store/player.ts')
     const handlerIndex = player.indexOf('const scrobbleNetease = async')
-    const lockIndex = player.indexOf(
-      'neteaseScrobbledForCurrentSession = true',
+    const reservationIndex = player.indexOf(
+      'neteaseSessionSubmittedSeconds = submittedAfter',
       handlerIndex
     )
     const requestIndex = player.indexOf('const result = await scrobble({', handlerIndex)
@@ -63,12 +65,15 @@ test.describe('NetEase scrobble lifecycle', () => {
     const resetSeekIndex = player.indexOf('seek.value = 0', endReportIndex)
 
     expect(handlerIndex).toBeGreaterThan(-1)
-    expect(player).toContain('if (neteaseScrobbledForCurrentSession) return')
-    expect(lockIndex).toBeGreaterThan(handlerIndex)
-    expect(requestIndex).toBeGreaterThan(lockIndex)
+    expect(player).toContain(
+      'sessionListenedSeconds - neteaseSessionSubmittedSeconds'
+    )
+    expect(reservationIndex).toBeGreaterThan(handlerIndex)
+    expect(requestIndex).toBeGreaterThan(reservationIndex)
     expect(endReportIndex).toBeGreaterThan(-1)
     expect(resetSeekIndex).toBeGreaterThan(endReportIndex)
-    expect(player).toContain('neteaseScrobbledForCurrentSession = false')
+    expect(player).toContain('neteaseSessionSubmittedSeconds = 0')
+    expect(player).toContain('neteaseSessionRevision += 1')
   })
 
   test('deduplicates concurrent and near-duplicate API writes for the same track', () => {
@@ -91,8 +96,29 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(trackApi).toContain(
       'return Math.min(MIN_NETEASE_SCROBBLE_SECONDS, Math.max(1, Math.floor(totalSeconds)))'
     )
-    expect(trackApi).toContain('listenedSeconds < minimumSeconds')
+    expect(trackApi).toContain('!params.allowShort && listenedSeconds < minimumSeconds')
     expect(trackApi).toContain("reason: 'short-playback'")
+    expect(trackApi).toContain('!params.allowRepeat && Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS')
+  })
+
+  test('supports manual refresh checkpoints without double counting later track changes', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
+    const trackApi = readSource('src/renderer/api/track.ts')
+
+    expect(player).toContain('const MIN_NETEASE_CHECKPOINT_SECONDS = 30')
+    expect(player).toContain('const syncCurrentNeteaseListenCheckpoint = async')
+    expect(player).toContain('checkpoint = false')
+    expect(player).toContain('const hasPreviousSubmission = neteaseSessionSubmittedSeconds > 0')
+    expect(player).toContain('time: listenedSeconds')
+    expect(player).toContain('allowShort: hasPreviousSubmission || completed')
+    expect(player).toContain('allowRepeat: hasPreviousSubmission')
+    expect(insights).toContain('await playerStore.syncCurrentNeteaseListenCheckpoint()')
+    expect(insights.indexOf('await playerStore.syncCurrentNeteaseListenCheckpoint()')).toBeLessThan(
+      insights.indexOf('await loadFootprint()', insights.indexOf('const refreshFootprintWithConfirmation'))
+    )
+    expect(trackApi).toContain('allowShort?: boolean')
+    expect(trackApi).toContain('allowRepeat?: boolean')
   })
 
   test('keeps normal scrobble diagnostics development-only but preserves failures', () => {
