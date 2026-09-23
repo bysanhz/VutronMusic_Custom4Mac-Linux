@@ -172,21 +172,46 @@ export const injectV327FeatureStyle = (): void => {
       font-weight: 600;
     }
 
-    .vutronmusic-osd-preset-transfer-preview {
+    #vutronmusic-osd-preset-setting .vutronmusic-v327-controls {
+      display: block;
+      width: 100%;
+      max-width: none;
+    }
+
+    .vutronmusic-osd-preset-layout {
+      width: 100%;
+      min-width: 0;
       display: grid;
-      flex-basis: 100%;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 8px;
+      grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+      align-items: stretch;
+      gap: 16px;
+      box-sizing: border-box;
+    }
+
+    .vutronmusic-osd-preset-preview-pane,
+    .vutronmusic-osd-preset-control-pane {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 14px;
+      box-sizing: border-box;
+      border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--color-secondary-bg) 88%, transparent);
+    }
+
+    .vutronmusic-osd-preset-transfer-preview {
+      min-height: 0;
     }
 
     .vutronmusic-osd-preset-preview {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       align-items: center;
-      min-height: 58px;
+      min-height: 112px;
       box-sizing: border-box;
-      padding: 8px 10px;
+      padding: 14px 16px;
       overflow: hidden;
       border: 1px solid var(--color-border);
       border-radius: 10px;
@@ -200,14 +225,14 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-preview.has-cover {
-      grid-template-columns: 38px minmax(0, 1fr);
-      gap: 8px;
+      grid-template-columns: 54px minmax(0, 1fr);
+      gap: 12px;
     }
 
     .vutronmusic-osd-preset-preview-cover {
-      width: 38px;
-      height: 38px;
-      border-radius: 7px;
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
       background:
         radial-gradient(circle at 58% 40%, rgba(255, 255, 255, 0.78) 0 9%, transparent 10%),
         linear-gradient(135deg, var(--color-primary), rgba(40, 40, 40, 0.82));
@@ -217,7 +242,7 @@ export const injectV327FeatureStyle = (): void => {
     .vutronmusic-osd-preset-preview-lyrics {
       display: grid;
       min-width: 0;
-      gap: 3px;
+      gap: 4px;
     }
 
     .vutronmusic-osd-preset-preview-lyrics strong,
@@ -228,26 +253,67 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-preview-lyrics strong {
-      font-size: 13px;
+      font-size: 14px;
     }
 
     .vutronmusic-osd-preset-preview-lyrics small {
-      font-size: 10px;
+      font-size: 11px;
     }
 
     .vutronmusic-osd-preset-preview.single-line {
-      min-height: 46px;
+      min-height: 92px;
+    }
+
+    #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-status,
+    #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-draft-row {
+      min-height: 20px;
+      justify-content: flex-start;
+      text-align: left;
+      line-height: 1.5;
     }
 
     .vutronmusic-osd-preset-transfer-actions {
       display: grid;
-      gap: 6px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .vutronmusic-osd-preset-transfer-actions button {
-      min-height: 28px;
-      padding: 3px 9px;
-      border-radius: 7px;
+      min-height: 36px;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    .vutronmusic-osd-preset-editor {
+      min-width: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .vutronmusic-osd-preset-field-row {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-field-row > select,
+    #vutronmusic-osd-preset-setting .vutronmusic-osd-preset-field-row > input[type='text'] {
+      width: 100%;
+      min-width: 0;
+      max-width: none;
+      margin: 0;
+    }
+
+    .vutronmusic-osd-preset-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .vutronmusic-osd-preset-action-row > button {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 118px;
     }
 
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
@@ -273,7 +339,7 @@ export const injectV327FeatureStyle = (): void => {
         text-align: left;
       }
 
-      .vutronmusic-osd-preset-transfer-preview {
+      .vutronmusic-osd-preset-layout {
         grid-template-columns: 1fr;
       }
 
