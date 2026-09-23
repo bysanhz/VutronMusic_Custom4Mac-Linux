@@ -1989,6 +1989,7 @@ onBeforeUnmount(() => {
     }
   }
   .keyboard-input {
+    color: var(--color-primary);
     font-weight: 600;
     background-color: var(--color-secondary-bg);
     padding: 0 12px;
@@ -2248,7 +2249,7 @@ select {
   border-radius: 8px;
   background-color: var(--color-secondary-bg);
   appearance: none;
-  color: var(--color-text);
+  color: var(--color-primary);
   outline: none;
 }
 
@@ -2264,6 +2265,7 @@ select {
 }
 
 :deep(.custom-select .custom-text) {
+  color: var(--color-primary);
   font-size: 16px;
   font-weight: 600;
   line-height: 1.2;
@@ -2339,7 +2341,7 @@ input.text-input {
   margin-right: 22px;
   padding: 0 12px;
   border-radius: 8px;
-  color: var(--color-text);
+  color: var(--color-primary);
   font-weight: 600;
   font-size: 16px;
   width: 164px;
@@ -2366,7 +2368,7 @@ input.text-input {
     outline: 0;
     padding: 0 8px 0 12px;
     background: transparent;
-    color: var(--color-text);
+    color: var(--color-primary);
     font: inherit;
     font-size: 16px;
     font-weight: 600;
@@ -2411,8 +2413,10 @@ input.text-input {
   min-width: 50px;
   text-align: right;
   margin-left: 8px;
+  color: var(--color-primary);
   font-size: 14px;
-  opacity: 0.8;
+  font-weight: 650;
+  opacity: 0.9;
 }
 
 .reset-btn {
@@ -2476,6 +2480,7 @@ input.text-input {
   min-width: 36px;
   text-align: center;
 
+  color: var(--color-primary);
   font-size: 15px;
   font-weight: 700;
 }
