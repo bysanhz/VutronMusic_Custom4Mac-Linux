@@ -1745,7 +1745,11 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(shared).toContain('grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);')
     expect(shared).toContain('.vutronmusic-osd-preset-preview-pane,')
     expect(shared).toContain('.vutronmusic-osd-preset-control-pane {')
+    expect(shared).toContain('align-items: start;')
     expect(shared).toContain('min-height: 112px;')
+    expect(shared).toContain('.vutronmusic-osd-preset-action-row {')
+    expect(shared).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));')
+    expect(shared).toContain('min-width: 0;')
   })
 
   test('previews the selected preset and keeps the canonical teal/pink palette', () => {
