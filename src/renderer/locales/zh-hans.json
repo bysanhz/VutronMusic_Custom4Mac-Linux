@@ -979,7 +979,7 @@
     },
     "cloud": {
       "title": "云盘 Pro",
-      "description": "在原有查看/删除之外，支持重新匹配和云盘歌词读取。",
+      "description": "支持单首/批量删除、重新匹配和云盘歌词读取。",
       "track": "云盘歌曲",
       "select": "请选择",
       "targetId": "目标网易云歌曲 ID",
@@ -996,7 +996,17 @@
       "noLyric": "没有找到云盘歌词",
       "deleteConfirm": "确定从网易云云盘删除这首歌曲吗？",
       "deleteFailed": "云盘删除失败",
-      "deleted": "已从云盘删除"
+      "deleted": "已从云盘删除",
+      "batchDelete": "批量删除",
+      "batchClose": "退出批量",
+      "batchSelectAll": "全选",
+      "batchSelected": "已选 {count} 首",
+      "batchDeleteSelected": "删除所选 {count} 首",
+      "batchSelectFirst": "请先选择要删除的云盘歌曲",
+      "batchDeleteConfirm": "确定从网易云云盘删除所选 {count} 首歌曲吗？此操作不可撤销。",
+      "batchDeleting": "正在删除 {count} 首歌曲…",
+      "batchDeleted": "已从云盘删除 {count} 首歌曲",
+      "batchPartial": "已删除 {success} 首，{failed} 首删除失败"
     }
   },
   "streamLogin": {
