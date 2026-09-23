@@ -1011,9 +1011,10 @@
       "batchRange": "區間選擇",
       "batchRangeStart": "起始序號",
       "batchRangeEnd": "結束序號",
-      "batchRangeSelect": "選擇區間",
-      "batchRangeHint": "依目前列表序號選擇，範圍 1–{count}",
-      "batchRangeInvalid": "請輸入 1 到 {count} 之間的有效區間"
+      "batchRangeSelect": "補全區間",
+      "batchRangeHint": "先勾選區間首尾兩首，再點擊「補全區間」，會自動選中中間所有歌曲。",
+      "batchRangeInvalid": "請輸入 1 到 {count} 之間的有效區間",
+      "batchRangeNeedEndpoints": "請先勾選區間的首尾兩首歌曲"
     }
   },
   "streamLogin": {
