@@ -303,9 +303,16 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
   const month = await safeRequest(listenRealtimeReport('month'), '确认听歌时长同步')
   if (!month) return
 
-  const nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
+  let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
   const nextMonthSeconds = extractRealtimeListenSeconds(month)
   const nextTodaySeconds = extractTodayListenSeconds(month)
+
+  // 少数账号/接口版本的 month report 不带逐日明细，无法计算自然周；
+  // 此时才额外请求 week report，避免待同步状态永远无法被抵扣。
+  if (nextRemoteWeekSeconds === undefined) {
+    const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
+    nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
+  }
 
   if (nextRemoteWeekSeconds !== undefined) {
     footprint.weekSeconds = nextRemoteWeekSeconds
