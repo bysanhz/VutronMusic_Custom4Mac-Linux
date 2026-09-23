@@ -54,6 +54,7 @@ const CONTROL_ID = 'vutronmusic-osd-preset-setting'
 const OSD_STORAGE_KEY = 'osdLyric'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const BUILTIN_OVERRIDES_STORAGE_KEY = 'vutronmusic-osd-builtin-preset-overrides'
+const SELECTED_PRESET_STORAGE_KEY = 'vutronmusic-osd-selected-preset-id'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const MAX_USER_PRESETS = 50
 const BUILTIN_LYRIC_BACKGROUND = 'rgba(0, 0, 0, 0)'
@@ -315,6 +316,26 @@ const getBuiltInPresets = (): OsdPreset[] => {
 
 const getAllPresets = (): OsdPreset[] => [...getBuiltInPresets(), ...loadUserPresets()]
 
+const readSelectedPresetId = (): string => {
+  const value = String(localStorage.getItem(SELECTED_PRESET_STORAGE_KEY) || '').trim()
+  return value.slice(0, 120)
+}
+
+const persistSelectedPresetId = (presetId: string): void => {
+  const normalized = String(presetId || '').trim().slice(0, 120)
+  if (!normalized) {
+    localStorage.removeItem(SELECTED_PRESET_STORAGE_KEY)
+    return
+  }
+  writeStorageValue(SELECTED_PRESET_STORAGE_KEY, normalized)
+}
+
+const findPresetMatchingCurrentSettings = (): OsdPreset | undefined => {
+  const current = readCurrentSettings()
+  const serializedCurrent = JSON.stringify(current)
+  return getAllPresets().find((preset) => JSON.stringify(preset.settings) === serializedCurrent)
+}
+
 const isBuiltInPreset = (preset: OsdPreset | undefined): boolean =>
   Boolean(preset?.id.startsWith('builtin-'))
 
@@ -430,7 +451,10 @@ const ensureControl = (): boolean => {
   copyButton.textContent = text.saveCopy
   status.className = 'vutronmusic-v327-status'
   status.setAttribute('aria-live', 'polite')
-  refreshSelect(select)
+
+  const persistedPresetId = readSelectedPresetId()
+  const currentMatchingPresetId = findPresetMatchingCurrentSettings()?.id
+  refreshSelect(select, persistedPresetId || currentMatchingPresetId)
 
   const getSelectedPreset = (): OsdPreset | undefined =>
     getAllPresets().find((preset) => preset.id === select.value)
@@ -455,6 +479,7 @@ const ensureControl = (): boolean => {
     )
 
   select.addEventListener('change', () => {
+    persistSelectedPresetId(select.value)
     syncEditorWithSelection()
   })
 
@@ -465,6 +490,7 @@ const ensureControl = (): boolean => {
 
     try {
       applyPreset(preset)
+      persistSelectedPresetId(preset.id)
       status.textContent = text.applied
     } catch (error) {
       console.warn('[OSD Presets] 应用预设失败：', error)
@@ -516,6 +542,7 @@ const ensureControl = (): boolean => {
     }
 
     refreshSelect(select, updatedPreset.id)
+    persistSelectedPresetId(updatedPreset.id)
     syncEditorWithSelection(false)
     status.textContent = text.updated
   }
@@ -546,6 +573,7 @@ const ensureControl = (): boolean => {
     }
 
     refreshSelect(select, preset.id)
+    persistSelectedPresetId(preset.id)
     syncEditorWithSelection(false)
     status.textContent = text.saved
   }
@@ -580,6 +608,7 @@ const ensureControl = (): boolean => {
 
       const restored = getDefaultBuiltInPresets().find((preset) => preset.id === selected.id)
       refreshSelect(select, selected.id)
+      persistSelectedPresetId(selected.id)
       syncEditorWithSelection(false)
       if (restored) applyPreset(restored)
       status.textContent = text.restored
@@ -594,11 +623,13 @@ const ensureControl = (): boolean => {
     }
 
     refreshSelect(select)
+    persistSelectedPresetId(select.value)
     syncEditorWithSelection(false)
     status.textContent = text.deleted
   })
 
   controls.append(select, nameInput, applyButton, updateButton, copyButton, removeButton, status)
+  persistSelectedPresetId(select.value)
   syncEditorWithSelection()
   const coverControl = document.getElementById('osd-cover-controls-visibility-setting')
   ;(coverControl || lockItem).insertAdjacentElement('afterend', item)
