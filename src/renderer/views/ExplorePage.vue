@@ -1,7 +1,7 @@
 <template>
   <div class="explore-page">
-    <div v-if="exploreTab === 'playlist'">
-      <div class="buttons">
+    <div v-if="exploreTab === 'playlist'" class="explore-filter-section">
+      <div class="buttons playlist-filter-bar">
         <div
           v-for="category in general.enabledPlaylistCategories"
           :key="category"
@@ -20,7 +20,7 @@
         </div>
       </div>
 
-      <div v-show="showCatOptions" class="panel">
+      <div v-show="showCatOptions" class="panel playlist-category-panel">
         <div v-for="bigCat in allBigCats" :key="bigCat" class="big-cat">
           <div class="name">{{ categoryLabel(bigCat) }}</div>
           <div class="cats">
@@ -51,16 +51,11 @@
       </div>
     </div>
 
-    <div v-if="exploreTab === 'artist'">
-      <div class="panel" style="background-color: unset">
-        <div
-          v-for="bigCat in artistBigCats"
-          :key="bigCat"
-          class="big-cat"
-          style="margin-bottom: 10px"
-        >
+    <div v-if="exploreTab === 'artist'" class="explore-filter-section">
+      <div class="panel artist-filter-panel">
+        <div v-for="bigCat in artistBigCats" :key="bigCat" class="big-cat">
           <div class="name">{{ categoryLabel(bigCat) }}</div>
-          <div class="cats">
+          <div class="cats" :class="{ 'artist-alpha-row': bigCat === '筛选' }">
             <div
               v-for="cat in getArtistCatsByBigCat(bigCat)"
               :key="cat.name"
@@ -74,8 +69,8 @@
       </div>
     </div>
 
-    <div v-if="exploreTab === 'newTrack'">
-      <div class="buttons">
+    <div v-if="exploreTab === 'newTrack'" class="explore-filter-section">
+      <div class="buttons area-filter-bar">
         <div
           v-for="category in newTrackBtn"
           :key="category"
@@ -88,8 +83,8 @@
       </div>
     </div>
 
-    <div v-if="exploreTab === 'newAlbum'" class="albumsTab">
-      <div class="buttons">
+    <div v-if="exploreTab === 'newAlbum'" class="albumsTab explore-filter-section">
+      <div class="buttons area-filter-bar">
         <div
           v-for="category in newTrackBtn"
           :key="category"
@@ -100,7 +95,7 @@
           {{ categoryLabel(category) }}
         </div>
       </div>
-      <div class="buttons">
+      <div class="buttons album-type-filter-bar">
         <div
           v-for="(itemType, index) in albumTypeBtn"
           :key="index"
@@ -1228,46 +1223,82 @@ onBeforeUnmount(() => {
   opacity: 0.58;
 }
 
+.explore-filter-section {
+  margin-bottom: 14px;
+}
+
 .buttons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.playlist-filter-bar,
+.area-filter-bar {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-secondary-bg) 78%, transparent);
 }
 
 .compact-buttons {
   flex-wrap: nowrap;
-
-  .button {
-    margin-top: 0;
-  }
 }
 
 .button {
   user-select: none;
   cursor: pointer;
-  padding: 8px 16px;
-  margin: 10px 16px 6px 0;
-  display: flex;
+  min-height: 38px;
+  padding: 0 15px;
+  margin: 0;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
   gap: 5px;
-  font-weight: 600;
-  font-size: 18px;
-  border-radius: 10px;
+  font-weight: 650;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: 11px;
   background-color: var(--color-secondary-bg);
-  color: var(--color-secondary);
-  transition: 0.2s;
+  color: color-mix(in srgb, var(--color-text) 68%, transparent);
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 
   &:hover,
   &.active {
-    background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
+    background: color-mix(in srgb, var(--color-primary) 11%, var(--color-secondary-bg));
     color: var(--color-primary);
   }
 }
 
+.playlist-filter-bar .button,
+.area-filter-bar .button {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.album-type-filter-bar {
+  align-self: center;
+  justify-content: flex-end;
+
+  .button {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
+
 .style-buttons .button {
-  font-size: 15px;
-  padding: 7px 13px;
-  margin-right: 10px;
+  min-height: 34px;
+  font-size: 14px;
+  padding: 0 12px;
 }
 
 .preferred-dot {
@@ -1278,65 +1309,109 @@ onBeforeUnmount(() => {
 .panel {
   margin-top: 10px;
   background: var(--color-secondary-bg);
-  border-radius: 10px;
-  padding: 8px;
+  border-radius: 16px;
+  padding: 14px 16px;
   color: var(--color-text);
 
   .big-cat {
-    display: flex;
-    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px 14px;
+    margin-bottom: 12px;
+  }
+
+  .big-cat:last-child {
+    margin-bottom: 0;
   }
 
   .name {
-    font-size: 24px;
-    font-weight: 700;
-    opacity: 0.68;
-    margin-left: 24px;
-    min-width: 54px;
-    height: 26px;
-    margin-top: 8px;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    padding-top: 7px;
+    font-size: 15px;
+    line-height: 1.25;
+    font-weight: 750;
+    opacity: 0.62;
   }
 
   .cats {
-    margin-left: 24px;
+    min-width: 0;
+    margin: 0;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
   }
 
   .cat {
     user-select: none;
-    margin: 4px 0 0;
-    display: flex;
+    margin: 0;
+    min-width: 0;
+    display: inline-flex;
     align-items: center;
-    font-weight: 500;
-    font-size: 16px;
-    transition: 0.2s;
-    min-width: 98px;
+    font-weight: 550;
+    font-size: 14px;
+    transition: 0.16s ease;
 
     span {
-      display: flex;
+      display: inline-flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      padding: 6px 12px;
-      height: 26px;
-      border-radius: 10px;
-      opacity: 0.88;
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 9px;
+      opacity: 0.82;
+      transition:
+        background 0.16s ease,
+        color 0.16s ease,
+        opacity 0.16s ease;
 
       &:hover {
         opacity: 1;
-        background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
+        background: color-mix(in srgb, var(--color-primary) 9%, transparent);
         color: var(--color-primary);
       }
     }
   }
 
-  .cat.unset span:hover {
-    background-color: unset;
+  .cat.active span {
+    opacity: 1;
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+}
+
+.playlist-category-panel {
+  margin-top: 8px;
+}
+
+.artist-filter-panel {
+  margin-top: 0;
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--color-secondary-bg) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
+
+  .big-cat {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
-  .cat.active {
-    color: var(--color-primary);
+  .artist-alpha-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+    gap: 6px;
+  }
+
+  .artist-alpha-row .cat {
+    width: 100%;
+  }
+
+  .artist-alpha-row .cat span {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 6px;
   }
 }
 
@@ -1394,7 +1469,7 @@ onBeforeUnmount(() => {
 }
 
 .playlists {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .following-loading {
@@ -1455,6 +1530,62 @@ onBeforeUnmount(() => {
 @keyframes explore-load-more-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .albumsTab {
+    flex-wrap: wrap;
+  }
+
+  .artist-filter-panel .big-cat,
+  .playlist-category-panel .big-cat {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .artist-filter-panel .artist-alpha-row {
+    grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .playlist-filter-bar,
+  .area-filter-bar,
+  .panel {
+    padding: 10px;
+    border-radius: 13px;
+  }
+
+  .buttons {
+    gap: 7px;
+  }
+
+  .button,
+  .playlist-filter-bar .button,
+  .area-filter-bar .button {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .artist-filter-panel .big-cat,
+  .playlist-category-panel .big-cat {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .panel .name {
+    padding-top: 0;
+    font-size: 13px;
+  }
+
+  .panel .cats {
+    gap: 5px 6px;
+  }
+
+  .artist-filter-panel .artist-alpha-row {
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
   }
 }
 
