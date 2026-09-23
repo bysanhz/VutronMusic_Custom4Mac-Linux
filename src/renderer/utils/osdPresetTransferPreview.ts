@@ -489,24 +489,57 @@ const installTransferAndPreview = (): boolean => {
   }
   window.addEventListener(PRESET_COMMITTED_EVENT, handlePresetCommitted)
 
+  const refreshUserPresetOptions = (
+    presets: StoredPreset[],
+    preferredValue: string
+  ): void => {
+    Array.from(select.options)
+      .filter((option) => option.value.startsWith('user-'))
+      .forEach((option) => option.remove())
+
+    presets.forEach((preset) => {
+      const option = document.createElement('option')
+      option.value = preset.id
+      option.textContent = preset.name
+      select.appendChild(option)
+    })
+
+    if (Array.from(select.options).some((option) => option.value === preferredValue)) {
+      select.value = preferredValue
+    }
+  }
+
   exportButton.addEventListener('click', () => {
-    const name = nameInput.value.trim() || select.selectedOptions[0]?.textContent || 'preset'
+    const templates = Array.from(select.options)
+      .filter((option) => option.value !== CURRENT_SETTINGS_OPTION_ID)
+      .map((option): ImportedTemplate | null => {
+        const settings = resolveSelectedSettings(option.value)
+        const name = String(option.textContent || '')
+          .trim()
+          .slice(0, 80)
+        if (!settings || !name) return null
+        return {
+          id: option.value,
+          name,
+          settings
+        }
+      })
+      .filter((template): template is ImportedTemplate => template !== null)
+
     const payload = {
-      schema: 'vutronmusic-osd-preset',
-      version: 2,
-      preset: {
-        name,
-        settings: readCurrentSettings()
-      }
+      schema: TEMPLATE_BUNDLE_SCHEMA,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      templates
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${sanitizeFileName(name)}.json`
+    link.download = `${sanitizeFileName('vutronmusic-desktop-lyric-templates')}.json`
     link.click()
     window.setTimeout(() => URL.revokeObjectURL(url), 0)
-    if (status) status.textContent = text.exported
+    if (status) status.textContent = `${text.exported}（${templates.length}）`
   })
 
   importButton.addEventListener('click', () => {
@@ -522,45 +555,121 @@ const installTransferAndPreview = (): boolean => {
     }
 
     try {
-      const value = JSON.parse(await file.text())
-      const version = Number(value?.version)
-      if (
-        value?.schema !== 'vutronmusic-osd-preset' ||
-        (version !== 1 && version !== 2)
-      ) {
-        throw new Error('Unsupported preset schema')
-      }
-      const settings = normalizeSettings(value?.preset?.settings)
-      if (!settings) throw new Error('Invalid preset settings')
+      const imported = parseImportedTemplates(JSON.parse(await file.text()))
+      if (imported.length === 0) throw new Error('Unsupported or empty template bundle')
 
-      const existing = loadUserPresets()
-      if (existing.length >= MAX_USER_PRESETS) {
-        if (status) status.textContent = text.limitReached
-        return
+      const previousValue = select.value
+      const originalUsers = loadUserPresets()
+      const originalOverrides = loadBuiltInOverrides()
+      const nextUsers = originalUsers.map((preset) => ({ ...preset }))
+      const nextOverrides = originalOverrides.map((preset) => ({ ...preset }))
+      const builtInCatalog = Array.from(select.options)
+        .filter((option) => option.value.startsWith('builtin-'))
+        .map((option) => ({
+          id: option.value,
+          name: String(option.textContent || '').trim()
+        }))
+
+      let added = 0
+      let replaced = 0
+      let skipped = 0
+
+      for (const template of imported) {
+        const normalizedName = template.name.toLocaleLowerCase()
+        const builtInById = template.id?.startsWith('builtin-')
+          ? builtInCatalog.find((preset) => preset.id === template.id)
+          : undefined
+        const builtInByName = builtInCatalog.find(
+          (preset) => preset.name.toLocaleLowerCase() === normalizedName
+        )
+        const builtInConflict = builtInById || builtInByName
+        const userConflict = nextUsers.find(
+          (preset) => preset.name.toLocaleLowerCase() === normalizedName
+        )
+
+        if (builtInConflict) {
+          const currentSettings =
+            nextOverrides.find((preset) => preset.id === builtInConflict.id)?.settings ||
+            DEFAULT_BUILTIN_SETTINGS[builtInConflict.id]
+
+          if (currentSettings && sameSettings(currentSettings, template.settings)) {
+            skipped += 1
+            continue
+          }
+
+          const shouldReplace = window.confirm(
+            text.conflict.replace('{name}', builtInConflict.name)
+          )
+          if (!shouldReplace) {
+            skipped += 1
+            continue
+          }
+
+          const replacement: StoredPreset = {
+            id: builtInConflict.id,
+            name: builtInConflict.name,
+            settings: template.settings
+          }
+          const overrideIndex = nextOverrides.findIndex(
+            (preset) => preset.id === builtInConflict.id
+          )
+          if (overrideIndex >= 0) nextOverrides[overrideIndex] = replacement
+          else nextOverrides.push(replacement)
+          replaced += 1
+          continue
+        }
+
+        if (userConflict) {
+          if (sameSettings(userConflict.settings, template.settings)) {
+            skipped += 1
+            continue
+          }
+
+          const shouldReplace = window.confirm(
+            text.conflict.replace('{name}', userConflict.name)
+          )
+          if (!shouldReplace) {
+            skipped += 1
+            continue
+          }
+
+          userConflict.settings = template.settings
+          replaced += 1
+          continue
+        }
+
+        if (nextUsers.length >= MAX_USER_PRESETS) {
+          skipped += 1
+          continue
+        }
+
+        nextUsers.push({
+          id: createImportedPresetId(),
+          name: template.name,
+          settings: template.settings
+        })
+        added += 1
       }
 
-      const preset: StoredPreset = {
-        id:
-          typeof crypto.randomUUID === 'function'
-            ? `user-${crypto.randomUUID()}`
-            : `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: createUniqueName(String(value?.preset?.name || text.importedSuffix), existing),
-        settings
+      if (added > 0 || replaced > 0) {
+        const savedOverrides = saveBuiltInOverrides(nextOverrides)
+        const savedUsers = saveUserPresets(nextUsers)
+        if (!savedOverrides || !savedUsers) {
+          saveBuiltInOverrides(originalOverrides)
+          saveUserPresets(originalUsers)
+          throw new Error('Could not save imported templates')
+        }
       }
-      if (!saveUserPresets([...existing, preset])) throw new Error('Could not save preset')
 
-      const option = document.createElement('option')
-      option.value = preset.id
-      option.textContent = preset.name
-      select.appendChild(option)
-      select.value = preset.id
-      nameInput.value = preset.name
-      applySettings(settings)
-      showCurrentSettingsPreview()
-      window.dispatchEvent(new CustomEvent(PRESET_COMMITTED_EVENT))
-      if (status) status.textContent = text.imported
+      refreshUserPresetOptions(nextUsers, previousValue)
+      showSelectedPresetPreview()
+
+      if (status) {
+        const summary = formatImportSummary(text.importSummary, added, replaced, skipped)
+        status.textContent = `${text.imported}：${summary}`
+      }
     } catch (error) {
-      console.warn('[OSD Presets] 导入预设失败：', error)
+      console.warn('[OSD Presets] 导入模版失败：', error)
       if (status) status.textContent = text.importFailed
     }
   })
