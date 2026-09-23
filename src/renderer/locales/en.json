@@ -1008,12 +1008,13 @@
       "batchDeleted": "Deleted {count} tracks from cloud.",
       "batchPartial": "Deleted {success} tracks; {failed} failed.",
       "batchClearSelection": "Clear selection",
-      "batchRange": "Range",
+      "batchRange": "Range selection",
       "batchRangeStart": "Start",
       "batchRangeEnd": "End",
-      "batchRangeSelect": "Select range",
-      "batchRangeHint": "Uses the current list order, from 1 to {count}",
-      "batchRangeInvalid": "Enter a valid range between 1 and {count}."
+      "batchRangeSelect": "Fill range",
+      "batchRangeHint": "Check the first and last tracks, then fill the range to select everything between them.",
+      "batchRangeInvalid": "Enter a valid range between 1 and {count}.",
+      "batchRangeNeedEndpoints": "Select the first and last tracks of the range first."
     }
   },
   "streamLogin": {
