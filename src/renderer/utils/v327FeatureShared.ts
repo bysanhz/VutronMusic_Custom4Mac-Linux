@@ -183,7 +183,7 @@ export const injectV327FeatureStyle = (): void => {
       min-width: 0;
       display: grid;
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-      align-items: stretch;
+      align-items: start;
       gap: 16px;
       box-sizing: border-box;
     }
@@ -306,14 +306,14 @@ export const injectV327FeatureStyle = (): void => {
     }
 
     .vutronmusic-osd-preset-action-row {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
     .vutronmusic-osd-preset-action-row > button {
-      flex: 1 1 calc(50% - 4px);
-      min-width: 118px;
+      width: 100%;
+      min-width: 0;
     }
 
     #vutronmusic-diagnostics-snapshot-setting .vutronmusic-v327-controls button {
