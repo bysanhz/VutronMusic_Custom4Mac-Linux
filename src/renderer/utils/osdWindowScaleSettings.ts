@@ -85,17 +85,18 @@ const injectStyle = () => {
     #${CONTROL_ID} > .right {
       width: 100% !important;
       min-width: 0 !important;
+      max-width: none !important;
       display: block;
-      justify-self: stretch;
+      justify-self: stretch !important;
     }
 
     #${CONTROL_ID} .osd-window-scale-card {
       width: 100%;
       max-width: none;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
       align-items: start;
-      gap: 12px;
+      gap: clamp(18px, 2.2vw, 28px);
       padding: 0;
       box-sizing: border-box;
       border-radius: 10px;
@@ -106,8 +107,8 @@ const injectStyle = () => {
       min-width: 0;
       display: grid;
       align-content: start;
-      gap: 6px;
-      padding: 10px 12px;
+      gap: 8px;
+      padding: 16px 18px;
       box-sizing: border-box;
       border: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
       border-radius: 9px;
@@ -115,12 +116,12 @@ const injectStyle = () => {
     }
 
     #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
-      padding-top: 10px;
+      padding-top: 16px;
       border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
     }
 
     #${CONTROL_ID} .osd-window-scale-section-title {
-      margin-bottom: 2px;
+      margin-bottom: 6px;
       font-weight: 700;
       opacity: 0.88;
       white-space: nowrap;
@@ -129,11 +130,11 @@ const injectStyle = () => {
     #${CONTROL_ID} .osd-window-scale-row {
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto auto;
-      align-items: start;
-      gap: 4px;
-      padding: 2px 0 4px;
+      grid-template-columns: minmax(120px, 1fr) auto;
+      grid-template-rows: auto;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0 6px;
     }
 
     #${CONTROL_ID} .osd-window-scale-label {
@@ -162,15 +163,22 @@ const injectStyle = () => {
       max-width: 100%;
     }
 
-    @media (max-width: 620px) {
+    @media (max-width: 860px) {
       #${CONTROL_ID} .osd-window-scale-card {
         grid-template-columns: 1fr;
       }
 
       #${CONTROL_ID} .osd-window-scale-section + .osd-window-scale-section {
-        padding-top: 10px;
+        padding-top: 16px;
         border-left: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
         border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 91%);
+      }
+    }
+
+    @media (max-width: 620px) {
+      #${CONTROL_ID} .osd-window-scale-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
       }
     }
 
