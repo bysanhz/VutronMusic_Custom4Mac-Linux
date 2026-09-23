@@ -631,7 +631,11 @@
       "purple": "Purple",
       "orange": "Orange",
       "cyan": "Cyan",
-      "Customize": "Customize"
+      "Customize": "Customize",
+      "green": "Green",
+      "red": "Red",
+      "pink": "Pink",
+      "gold": "Gold"
     },
     "tray": {
       "showLyric": "Show Tray Lyrics",
