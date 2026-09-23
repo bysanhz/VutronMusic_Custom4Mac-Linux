@@ -1913,6 +1913,24 @@ test.describe('library hydration and stable rendering', () => {
   })
 })
 
+test.describe('local music scanning controls', () => {
+  test('exposes a visible rescan action on the local music page', () => {
+    const localMusic = readSource('src/renderer/views/LocalMusic.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+    const zhHant = readSource('src/renderer/locales/zh-hant.json')
+    const en = readSource('src/renderer/locales/en.json')
+
+    expect(localMusic).toContain('class="tab-button scan-button"')
+    expect(localMusic).toContain(':disabled="scanning || !scanDir.length"')
+    expect(localMusic).toContain('@click="handleScanLocalMusic"')
+    expect(localMusic).toContain('void scanLocalMusic(false)')
+    expect(localMusic).toContain('const { scanDir, scanning } = toRefs(useSettingsStore().localMusic)')
+    expect(zhHans).toContain('"scan": "扫描歌曲"')
+    expect(zhHant).toContain('"scan": "掃描歌曲"')
+    expect(en).toContain('"scan": "Scan Tracks"')
+  })
+})
+
 test.describe('compact desktop lyric spacing', () => {
   test('keeps cover controls flush left and lyrics adjacent', () => {
     const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
