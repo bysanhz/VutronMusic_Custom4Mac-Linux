@@ -680,7 +680,7 @@ watch(_listData, (newList, oldList) => {
 })
 
 watch(
-  () => [props.columnNumber, props.itemSize, props.isEnd],
+  () => [props.columnNumber, props.itemSize, props.isEnd, props.dynamicItemSize],
   () => {
     initPosition()
     startRow.value = Math.min(startRow.value, Math.max(0, totalRowCount.value - 1))
@@ -719,7 +719,6 @@ onActivated(() => {
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
     observeDynamicItems()
-    observeDynamicItems()
     observeLoadMoreSentinel()
     bindParentScrollListener()
   })
@@ -742,6 +741,7 @@ onMounted(() => {
   nextTick(() => {
     const element = getListElement()
     if (element && props.enableVirtualScroll) observer.observe(element)
+    observeDynamicItems()
     observeLoadMoreSentinel()
     bindParentScrollListener()
   })
