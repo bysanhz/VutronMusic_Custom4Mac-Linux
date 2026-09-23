@@ -129,7 +129,7 @@ export const injectV327FeatureStyle = (): void => {
       border-radius: 8px;
       outline: none;
       background: var(--color-secondary-bg);
-      color: var(--color-text);
+      color: var(--color-primary);
       font: inherit;
     }
 
