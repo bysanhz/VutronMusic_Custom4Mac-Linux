@@ -32,7 +32,8 @@ import {
 import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import {
   addPendingNeteaseListenSeconds,
-  flushPendingNeteaseListenSeconds
+  flushPendingNeteaseListenSeconds,
+  markSubmittedNeteaseListenSeconds
 } from '../utils/neteaseListenPending'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
@@ -1068,8 +1069,12 @@ export const usePlayerStore = defineStore(
             allowRepeat: hasPreviousSubmission
           })
           const skipped = Boolean(result?.skipped || result?.deduplicated)
+          const durationAware = result?.durationAware === true
           const success =
-            !skipped && Boolean(result) && (result.code === undefined || Number(result.code) === 200)
+            !skipped &&
+            durationAware &&
+            Boolean(result) &&
+            (result.code === undefined || Number(result.code) === 200)
 
           if (!success) {
             if (sessionRevision === neteaseSessionRevision) {
@@ -1079,15 +1084,18 @@ export const usePlayerStore = defineStore(
               )
             }
             if (!skipped) {
-              console.warn('[Player] 网易云听歌记录上报失败：', {
+              console.warn('[Player] 网易云听歌时长上报失败：', {
                 trackId: id,
                 time: listenedSeconds,
                 checkpoint,
+                durationAware,
                 result
               })
             }
             return false
           }
+
+          markSubmittedNeteaseListenSeconds(listenedSeconds)
 
           window.dispatchEvent(
             new CustomEvent('vutronmusic-netease-scrobble', {
