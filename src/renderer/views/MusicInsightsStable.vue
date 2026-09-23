@@ -466,9 +466,9 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
 }
 
 /**
- * 手动刷新时，在完整刷新之后进行一小段“远端确认突发轮询”。
- * 网易云写入存在最终一致性，单次立即读取经常仍是旧值；短时复查比原先
- * 固定等 30 秒更符合“刷新”按钮的用户预期，同时不会重复 scrobble 当前歌曲。
+ * 手动刷新时先 checkpoint 当前歌曲尚未提交的有效收听增量，再完整刷新并进行
+ * 一小段“远端确认突发轮询”。网易云写入存在最终一致性，单次立即读取经常仍是旧值；
+ * 后续切歌/自然结束只补交本次播放会话剩余增量，不会重复计算已经 checkpoint 的时长。
  */
 const refreshFootprintWithConfirmation = async (): Promise<void> => {
   // “刷新”不仅重新读取网易云，还先把当前歌曲尚未提交的真实收听增量做一次 checkpoint。
