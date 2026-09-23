@@ -320,9 +320,17 @@ export const useSettingsStore = defineStore(
 
       theme.colors = DEFAULT_THEME_COLORS.map((fallback) => {
         const existing = existingByName.get(fallback.name)
+        const existingColor = String(existing?.color || '').trim()
+        const shouldKeepExistingColor =
+          Boolean(existingColor) &&
+          !(
+            fallback.name === 'Customize' &&
+            /^rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,?\s*0?\s*\)$/i.test(existingColor)
+          )
+
         return {
           ...fallback,
-          ...(existing ? { color: existing.color } : {}),
+          ...(shouldKeepExistingColor ? { color: existingColor } : {}),
           selected: fallback.name === selectedName
         }
       })
