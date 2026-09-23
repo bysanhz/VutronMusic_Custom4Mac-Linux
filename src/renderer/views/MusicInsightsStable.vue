@@ -165,6 +165,13 @@
             {{ t('insights.cloud.batchSelected', { count: cloudBatchSongIds.length }) }}
           </span>
           <button
+            class="cloud-batch-clear"
+            :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
+            @click="clearCloudBatchSelection"
+          >
+            {{ t('insights.cloud.batchClearSelection') }}
+          </button>
+          <button
             class="danger cloud-batch-delete"
             :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
             @click="removeCloudSongs"
@@ -177,9 +184,40 @@
           </button>
         </div>
 
+        <div class="cloud-batch-range">
+          <span class="cloud-batch-range-label">
+            {{ t('insights.cloud.batchRange') }}
+          </span>
+          <input
+            v-model.trim="cloudBatchRangeStart"
+            type="number"
+            min="1"
+            :max="cloudTracks.length"
+            :placeholder="t('insights.cloud.batchRangeStart')"
+            :disabled="cloudBatchDeleting"
+            @keyup.enter="selectCloudBatchRange"
+          />
+          <span class="cloud-batch-range-separator">—</span>
+          <input
+            v-model.trim="cloudBatchRangeEnd"
+            type="number"
+            min="1"
+            :max="cloudTracks.length"
+            :placeholder="t('insights.cloud.batchRangeEnd')"
+            :disabled="cloudBatchDeleting"
+            @keyup.enter="selectCloudBatchRange"
+          />
+          <button :disabled="cloudBatchDeleting" @click="selectCloudBatchRange">
+            {{ t('insights.cloud.batchRangeSelect') }}
+          </button>
+          <span class="cloud-batch-range-hint">
+            {{ t('insights.cloud.batchRangeHint', { count: cloudTracks.length }) }}
+          </span>
+        </div>
+
         <div class="cloud-batch-list">
           <label
-            v-for="track in cloudTracks"
+            v-for="(track, index) in cloudTracks"
             :key="`batch-${cloudSongId(track)}`"
             class="cloud-batch-item"
           >
@@ -189,6 +227,7 @@
               :value="cloudSongId(track)"
               :disabled="cloudBatchDeleting"
             />
+            <span class="cloud-batch-index">{{ index + 1 }}</span>
             <span class="cloud-batch-name">{{ cloudSongName(track) }}</span>
             <span class="cloud-batch-id">{{ cloudSongId(track) }}</span>
           </label>
@@ -305,6 +344,8 @@ const cloudLyricPreview = ref('')
 const cloudBatchMode = ref(false)
 const cloudBatchSongIds = ref<string[]>([])
 const cloudBatchDeleting = ref(false)
+const cloudBatchRangeStart = ref('')
+const cloudBatchRangeEnd = ref('')
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
 const cloudBatchAllSelected = computed(() => {
   const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
@@ -431,6 +472,43 @@ const toggleCloudBatchAll = (): void => {
   )
 }
 
+const clearCloudBatchSelection = (): void => {
+  if (cloudBatchDeleting.value) return
+  cloudBatchSongIds.value = []
+}
+
+const selectCloudBatchRange = (): void => {
+  if (cloudBatchDeleting.value) return
+
+  const total = cloudTracks.value.length
+  const start = Number(cloudBatchRangeStart.value)
+  const end = Number(cloudBatchRangeEnd.value)
+
+  if (
+    !Number.isInteger(start) ||
+    !Number.isInteger(end) ||
+    start < 1 ||
+    end < 1 ||
+    start > total ||
+    end > total
+  ) {
+    showToast(t('insights.cloud.batchRangeInvalid', { count: total }))
+    return
+  }
+
+  const from = Math.min(start, end)
+  const to = Math.max(start, end)
+  cloudBatchRangeStart.value = String(from)
+  cloudBatchRangeEnd.value = String(to)
+
+  const selected = new Set(cloudBatchSongIds.value)
+  for (const track of cloudTracks.value.slice(from - 1, to)) {
+    const id = cloudSongId(track)
+    if (id) selected.add(id)
+  }
+  cloudBatchSongIds.value = Array.from(selected)
+}
+
 const matchCloudSong = async (): Promise<void> => {
   const uid = user.value.userId
   if (!uid || !selectedCloudSongId.value || !cloudTargetSongId.value) {
@@ -541,7 +619,8 @@ const removeCloudSongs = async (): Promise<void> => {
         })
       )
     } else {
-      cloudBatchMode.value = false
+      // Keep batch mode open after a successful deletion so the user can
+      // immediately choose the next range without reopening the batch UI.
       showToast(t('insights.cloud.batchDeleted', { count: successCount }))
     }
   } finally {
@@ -901,11 +980,8 @@ input {
 }
 
 .cloud-batch-panel {
-  margin: 4px 0 16px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--color-body-bg);
-  border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  margin: 8px 0 16px;
+  padding-top: 4px;
 }
 
 .cloud-batch-toolbar {
@@ -913,7 +989,7 @@ input {
   align-items: center;
   gap: 10px;
   min-height: 36px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .cloud-batch-select-all {
@@ -938,32 +1014,70 @@ input {
   opacity: 0.58;
 }
 
+.cloud-batch-clear,
+.cloud-batch-range button,
 .cloud-batch-delete {
-  margin-left: auto;
   padding: 8px 12px;
   border: 0;
   border-radius: 8px;
   cursor: pointer;
-  background: color-mix(in srgb, #d94a4a 10%, var(--color-secondary-bg));
+  color: var(--color-text);
+  background: var(--color-body-bg);
   font-weight: 650;
 }
 
+.cloud-batch-clear {
+  margin-left: auto;
+}
+
+.cloud-batch-delete {
+  background: color-mix(in srgb, #d94a4a 10%, var(--color-secondary-bg));
+}
+
+.cloud-batch-clear:disabled,
+.cloud-batch-range button:disabled,
 .cloud-batch-delete:disabled {
   cursor: wait;
   opacity: 0.5;
 }
 
+.cloud-batch-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+
+.cloud-batch-range-label {
+  font-size: 12px;
+  font-weight: 650;
+  opacity: 0.72;
+}
+
+.cloud-batch-range input {
+  width: 92px;
+  min-height: 34px;
+  padding: 6px 9px;
+}
+
+.cloud-batch-range-separator {
+  opacity: 0.42;
+}
+
+.cloud-batch-range-hint {
+  font-size: 11px;
+  opacity: 0.46;
+}
+
 .cloud-batch-list {
-  max-height: 260px;
-  overflow: auto;
   display: grid;
   gap: 4px;
-  padding-right: 4px;
 }
 
 .cloud-batch-item {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto 34px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
   min-height: 38px;
@@ -981,6 +1095,13 @@ input {
     min-height: 16px;
     margin: 0;
   }
+}
+
+.cloud-batch-index {
+  text-align: right;
+  font-size: 11px;
+  opacity: 0.42;
+  font-variant-numeric: tabular-nums;
 }
 
 .cloud-batch-name {
