@@ -715,26 +715,57 @@ onBeforeUnmount(() => {
 }
 
 .hero {
-  padding: 24px 28px;
-  border-radius: 18px;
-  background: var(--color-secondary-bg);
+  position: relative;
+  overflow: hidden;
+  padding: 32px 36px;
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 88% 18%,
+      color-mix(in srgb, var(--color-primary) 14%, transparent) 0,
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 11%, var(--color-secondary-bg)),
+      color-mix(in srgb, #8fa7ff 7%, var(--color-secondary-bg))
+    );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 11%, transparent);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-text) 6%, transparent);
 
   h1 {
-    margin: 5px 0 8px;
-    font-size: 36px;
+    margin: 4px 0 10px;
+    font-size: 38px;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
   }
 
   p {
     margin: 0;
-    opacity: 0.62;
+    max-width: 760px;
+    font-size: 15px;
+    line-height: 1.65;
+    opacity: 0.66;
+  }
+
+  .refresh-button {
+    position: relative;
+    z-index: 1;
+    background: color-mix(in srgb, var(--color-body-bg) 82%, transparent);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--color-text) 5%, transparent);
   }
 }
 
 .eyebrow {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
 }
 
 .refresh-button,
