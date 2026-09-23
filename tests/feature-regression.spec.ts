@@ -1441,7 +1441,16 @@ test.describe('desktop feature integration', () => {
     expect(settingsFluidLayout).toContain('grid-template-columns: minmax(0, 1fr) auto;')
     expect(settingsFluidLayout).toContain('width: auto !important;')
     expect(settingsFluidLayout).toContain('padding-left: 0 !important;')
-    expect(settingsFluidLayout).toContain('padding-right: 24px !important;')
+    expect(settingsFluidLayout).toContain('--settings-content-right-gutter: 24px;')
+    expect(settingsFluidLayout).toContain(
+      'padding-right: var(--settings-content-right-gutter) !important;'
+    )
+    expect(settingsFluidLayout).toContain(
+      'width: calc(100% - var(--settings-content-right-gutter)) !important;'
+    )
+    expect(settingsFluidLayout).toContain(
+      '#app .system-settings :is(.update-release, .diagnostic-panel)'
+    )
     expect(settingsFluidLayout).toContain(':not(.vutronmusic-v327-settings-item)')
     expect(settingsFluidLayout).toContain(':not(#osd-window-scale-baseline-setting)')
     expect(settingsFluidLayout).toContain(
