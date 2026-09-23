@@ -631,7 +631,11 @@
       "purple": "紫色",
       "orange": "橙色",
       "cyan": "青色",
-      "Customize": "自定义"
+      "Customize": "自定义",
+      "green": "绿色",
+      "red": "红色",
+      "pink": "粉色",
+      "gold": "金色"
     },
     "tray": {
       "showLyric": "显示状态栏歌词",
