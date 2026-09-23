@@ -120,10 +120,11 @@ export const useSettingsStore = defineStore(
     )
 
     watch(
-      () => localMusic.scanDir,
-      () => {
-        scanLocalMusic()
-      }
+      [() => localMusic.scanDir, () => localMusic.enble],
+      ([, enabled]) => {
+        if (enabled) scanLocalMusic()
+      },
+      { deep: true }
     )
 
     watch(
@@ -358,6 +359,10 @@ export const useSettingsStore = defineStore(
       if (typeof path === 'string') {
         localMusic.scanDir = path ? [path] : []
       }
+
+      // 已保存的目录在启动时不会触发上面的 watcher。延后到 App 完成 IPC
+      // 监听注册后做一次增量扫描，让之后复制进目录的新歌曲自动进入本地库。
+      setTimeout(() => scanLocalMusic(), 0)
 
       window.mainApi?.invoke('get-lastfm-session').then((result: { name: string }) => {
         misc.lastfm.name = result.name

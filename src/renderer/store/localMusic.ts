@@ -175,20 +175,32 @@ export const useLocalMusicStore = defineStore(
       const settingsStore = useSettingsStore()
       const { scanDir, scanning, enble } = toRefs(settingsStore.localMusic)
 
-      window.mainApi?.send('clearDeletedMusic')
+      if (!scanDir.value.length || !enble.value || scanning.value) return
 
-      if (!scanDir.value.length || !enble.value) return
-      const existResults = (await window.mainApi?.invoke(
-        'msgCheckFileExist',
-        toRaw(scanDir.value)
-      )) as {
-        path: string
-        exist: boolean
-      }[]
-      const validDirs = existResults.filter((item) => item.exist).map((item) => item.path)
-      if (!validDirs.length) return
       scanning.value = true
-      window.mainApi?.send('msgScanLocalMusic', { filePath: validDirs, update })
+      try {
+        window.mainApi?.send('clearDeletedMusic')
+        const existResults = (await window.mainApi?.invoke(
+          'msgCheckFileExist',
+          toRaw(scanDir.value)
+        )) as
+          | {
+              path: string
+              exist: boolean
+            }[]
+          | undefined
+        const validDirs = (existResults ?? [])
+          .filter((item) => item.exist)
+          .map((item) => item.path)
+        if (!validDirs.length || !window.mainApi) {
+          scanning.value = false
+          return
+        }
+        window.mainApi.send('msgScanLocalMusic', { filePath: validDirs, update })
+      } catch (error) {
+        scanning.value = false
+        console.error('启动本地音乐扫描失败：', error)
+      }
     }
 
     const resetLocalMusic = () => {
