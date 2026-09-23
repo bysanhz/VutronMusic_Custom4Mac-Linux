@@ -133,8 +133,68 @@
       <div class="action-row">
         <button @click="matchCloudSong">{{ t('insights.cloud.rematch') }}</button>
         <button @click="readCloudLyric">{{ t('insights.cloud.readLyric') }}</button>
-        <button class="danger" @click="removeCloudSong">{{ t('insights.cloud.delete') }}</button>
+        <button class="danger" :disabled="cloudBatchDeleting" @click="removeCloudSong">
+          {{ t('insights.cloud.delete') }}
+        </button>
+        <button
+          class="danger secondary-danger"
+          :class="{ active: cloudBatchMode }"
+          :disabled="cloudBatchDeleting || !cloudTracks.length"
+          @click="toggleCloudBatchMode"
+        >
+          {{
+            cloudBatchMode
+              ? t('insights.cloud.batchClose')
+              : t('insights.cloud.batchDelete')
+          }}
+        </button>
       </div>
+
+      <div v-show="cloudBatchMode && cloudTracks.length" class="cloud-batch-panel">
+        <div class="cloud-batch-toolbar">
+          <label class="cloud-batch-select-all">
+            <input
+              type="checkbox"
+              :checked="cloudBatchAllSelected"
+              :disabled="cloudBatchDeleting"
+              @change="toggleCloudBatchAll"
+            />
+            <span>{{ t('insights.cloud.batchSelectAll') }}</span>
+          </label>
+          <span class="cloud-batch-count">
+            {{ t('insights.cloud.batchSelected', { count: cloudBatchSongIds.length }) }}
+          </span>
+          <button
+            class="danger cloud-batch-delete"
+            :disabled="cloudBatchDeleting || !cloudBatchSongIds.length"
+            @click="removeCloudSongs"
+          >
+            {{
+              cloudBatchDeleting
+                ? t('insights.cloud.batchDeleting', { count: cloudBatchSongIds.length })
+                : t('insights.cloud.batchDeleteSelected', { count: cloudBatchSongIds.length })
+            }}
+          </button>
+        </div>
+
+        <div class="cloud-batch-list">
+          <label
+            v-for="track in cloudTracks"
+            :key="`batch-${cloudSongId(track)}`"
+            class="cloud-batch-item"
+          >
+            <input
+              v-model="cloudBatchSongIds"
+              type="checkbox"
+              :value="cloudSongId(track)"
+              :disabled="cloudBatchDeleting"
+            />
+            <span class="cloud-batch-name">{{ cloudSongName(track) }}</span>
+            <span class="cloud-batch-id">{{ cloudSongId(track) }}</span>
+          </label>
+        </div>
+      </div>
+
       <pre v-show="cloudLyricPreview" class="preview">{{ cloudLyricPreview }}</pre>
       <div v-show="!cloudTracks.length" class="empty">{{ t('insights.cloud.empty') }}</div>
     </section>
@@ -242,7 +302,16 @@ let footprintRequestInFlight = false
 const selectedCloudSongId = ref('')
 const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
+const cloudBatchMode = ref(false)
+const cloudBatchSongIds = ref<string[]>([])
+const cloudBatchDeleting = ref(false)
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
+const cloudBatchAllSelected = computed(() => {
+  const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
+  if (!ids.length) return false
+  const selected = new Set(cloudBatchSongIds.value)
+  return ids.every((id) => selected.has(id))
+})
 
 const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<T | undefined> => {
   try {
@@ -345,6 +414,23 @@ const cloudSongId = (track: any): string =>
 const cloudSongName = (track: any): string =>
   track?.simpleSong?.name ?? track?.songName ?? track?.name ?? t('insights.cloud.unknownTrack')
 
+const toggleCloudBatchMode = (): void => {
+  if (cloudBatchDeleting.value) return
+  cloudBatchMode.value = !cloudBatchMode.value
+  if (!cloudBatchMode.value) cloudBatchSongIds.value = []
+}
+
+const toggleCloudBatchAll = (): void => {
+  if (cloudBatchDeleting.value) return
+  if (cloudBatchAllSelected.value) {
+    cloudBatchSongIds.value = []
+    return
+  }
+  cloudBatchSongIds.value = Array.from(
+    new Set(cloudTracks.value.map(cloudSongId).filter(Boolean))
+  )
+}
+
 const matchCloudSong = async (): Promise<void> => {
   const uid = user.value.userId
   if (!uid || !selectedCloudSongId.value || !cloudTargetSongId.value) {
@@ -400,6 +486,69 @@ const removeCloudSong = async (): Promise<void> => {
   showToast(t('insights.cloud.deleted'))
 }
 
+const removeCloudSongs = async (): Promise<void> => {
+  const ids = Array.from(
+    new Set(
+      cloudBatchSongIds.value.filter((id) => {
+        const numericId = Number(id)
+        return Boolean(id) && Number.isFinite(numericId) && numericId > 0
+      })
+    )
+  )
+
+  if (!ids.length) {
+    showToast(t('insights.cloud.batchSelectFirst'))
+    return
+  }
+  if (!confirm(t('insights.cloud.batchDeleteConfirm', { count: ids.length }))) return
+
+  cloudBatchDeleting.value = true
+  const failedIds: string[] = []
+  let successCount = 0
+
+  try {
+    // Keep a small concurrency window: bulk deletion stays responsive without
+    // flooding the NetEase endpoint when a cloud library contains many tracks.
+    const DELETE_CONCURRENCY = 3
+    for (let offset = 0; offset < ids.length; offset += DELETE_CONCURRENCY) {
+      const batch = ids.slice(offset, offset + DELETE_CONCURRENCY)
+      const results = await Promise.all(
+        batch.map(async (id) => {
+          const result = await safeRequest(deleteCloudSong(Number(id)), `批量删除云盘歌曲 ${id}`)
+          return { id, ok: isSuccessfulResponse(result) }
+        })
+      )
+
+      for (const result of results) {
+        if (result.ok) successCount += 1
+        else failedIds.push(result.id)
+      }
+    }
+
+    selectedCloudSongId.value = failedIds.includes(selectedCloudSongId.value)
+      ? selectedCloudSongId.value
+      : ''
+    if (!selectedCloudSongId.value) cloudLyricPreview.value = ''
+
+    await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
+    cloudBatchSongIds.value = failedIds
+
+    if (failedIds.length) {
+      showToast(
+        t('insights.cloud.batchPartial', {
+          success: successCount,
+          failed: failedIds.length
+        })
+      )
+    } else {
+      cloudBatchMode.value = false
+      showToast(t('insights.cloud.batchDeleted', { count: successCount }))
+    }
+  } finally {
+    cloudBatchDeleting.value = false
+  }
+}
+
 const refreshCurrent = async (): Promise<void> => {
   if (refreshing.value) return
   refreshing.value = true
@@ -443,6 +592,16 @@ const handleNeteaseScrobble = (): void => {
     if (!refreshing.value) void refreshPendingRemoteDuration()
   }, 1200)
 }
+
+watch(
+  cloudTracks,
+  (tracks) => {
+    const availableIds = new Set(tracks.map(cloudSongId).filter(Boolean))
+    cloudBatchSongIds.value = cloudBatchSongIds.value.filter((id) => availableIds.has(id))
+    if (!tracks.length) cloudBatchMode.value = false
+  },
+  { deep: false }
+)
 
 watch(
   () => [activeTab.value, pendingNeteaseListenSeconds.value] as const,
@@ -732,8 +891,109 @@ input {
   color: var(--color-primary);
 }
 
-.action-row .danger {
+.action-row .danger,
+.cloud-batch-toolbar .danger {
   color: #d94a4a;
+}
+
+.action-row .secondary-danger.active {
+  background: color-mix(in srgb, #d94a4a 10%, var(--color-body-bg));
+}
+
+.cloud-batch-panel {
+  margin: 4px 0 16px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-body-bg);
+  border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.cloud-batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-bottom: 10px;
+}
+
+.cloud-batch-select-all {
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+
+  input {
+    width: 16px;
+    min-height: 16px;
+    margin: 0;
+  }
+
+  span {
+    font-size: 13px;
+    opacity: 0.82;
+  }
+}
+
+.cloud-batch-count {
+  font-size: 12px;
+  opacity: 0.58;
+}
+
+.cloud-batch-delete {
+  margin-left: auto;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  background: color-mix(in srgb, #d94a4a 10%, var(--color-secondary-bg));
+  font-weight: 650;
+}
+
+.cloud-batch-delete:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.cloud-batch-list {
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.cloud-batch-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+
+  input {
+    width: 16px;
+    min-height: 16px;
+    margin: 0;
+  }
+}
+
+.cloud-batch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.cloud-batch-id {
+  font-size: 11px;
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
 }
 
 .preview {
