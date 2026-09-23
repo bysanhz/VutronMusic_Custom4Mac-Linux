@@ -33,8 +33,14 @@ import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import {
   addPendingNeteaseListenSeconds,
   flushPendingNeteaseListenSeconds,
-  markSubmittedNeteaseListenSeconds
+  markSubmittedNeteaseListenSeconds,
+  setProvisionalNeteaseListenSeconds
 } from '../utils/neteaseListenPending'
+import {
+  enqueueNeteaseScrobble,
+  listNeteaseScrobbleJobs,
+  removeNeteaseScrobbleJob
+} from '../utils/neteaseScrobbleOutbox'
 import { Track, serviceName, lyricLine } from '@/types/music'
 
 interface biquadType {
@@ -109,8 +115,8 @@ export const usePlayerStore = defineStore(
     let trackLoadRevision = 0
     let trackLookupFailureRevision = -1
     let neteaseSessionListenedSeconds = 0
+    let neteaseSessionCommittedSeconds = 0
     let neteaseSessionSubmittedSeconds = 0
-    let neteaseSessionRevision = 0
     let neteaseScrobbleQueue: Promise<void> = Promise.resolve()
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
     const MIN_NETEASE_CHECKPOINT_SECONDS = 30
@@ -970,8 +976,9 @@ export const usePlayerStore = defineStore(
 
       currentTrack.value = track
       neteaseSessionListenedSeconds = 0
+      neteaseSessionCommittedSeconds = 0
       neteaseSessionSubmittedSeconds = 0
-      neteaseSessionRevision += 1
+      setProvisionalNeteaseListenSeconds(0)
       lyrics.value = []
       currentIndex.value = -1
       chorusStartTime.value = 0
@@ -1023,6 +1030,28 @@ export const usePlayerStore = defineStore(
       const id = Number(track.id)
       const trackDuration = ~~((track.dt || track.duration || 0) / 1000)
       const sessionListenedSeconds = Math.max(0, Math.floor(neteaseSessionListenedSeconds))
+
+      /*
+       * 只有达到有效播放门槛、完整播放，或用户明确点击刷新时，才把本次 session
+       * 计入全局待同步。旧逻辑在 timeupdate 时把所有短试听都加进去，切歌后却拒绝
+       * 上报，最终产生永远无法同步、也无法定位到歌曲的“待提交”脏账。
+       */
+      const minimumSeconds = Math.min(
+        MIN_NETEASE_CHECKPOINT_SECONDS,
+        Math.max(1, trackDuration)
+      )
+      if (completed || checkpoint || sessionListenedSeconds >= minimumSeconds) {
+        const newlyCommittedSeconds = Math.max(
+          0,
+          sessionListenedSeconds - neteaseSessionCommittedSeconds
+        )
+        if (newlyCommittedSeconds > 0) {
+          addPendingNeteaseListenSeconds(newlyCommittedSeconds)
+          neteaseSessionCommittedSeconds += newlyCommittedSeconds
+        }
+        setProvisionalNeteaseListenSeconds(0)
+      }
+
       const listenedSeconds = Math.max(
         0,
         sessionListenedSeconds - neteaseSessionSubmittedSeconds
@@ -1035,16 +1064,11 @@ export const usePlayerStore = defineStore(
       /*
        * 手动刷新现在可以把“当前已经真实听过但尚未提交”的增量立即 checkpoint。
        *
-       * 第一次 checkpoint 仍要求至少 30 秒，避免快速试听污染网易云足迹；一旦本次
-       * session 已经提交过，后续刷新/切歌只提交新增的 delta，因此哪怕剩余不足
-       * 30 秒也需要允许提交，否则会永久留下尾差。
+       * 用户明确点击刷新时允许提交不足 30 秒的当前片段；普通切歌仍保留有效播放
+       * 门槛。后续刷新/切歌只提交新增的 delta，不会重复发送已经入队的部分。
        */
       const hasPreviousSubmission = neteaseSessionSubmittedSeconds > 0
-      if (checkpoint && !hasPreviousSubmission && listenedSeconds < MIN_NETEASE_CHECKPOINT_SECONDS) {
-        return false
-      }
 
-      const sessionRevision = neteaseSessionRevision
       const submittedBefore = neteaseSessionSubmittedSeconds
       const submittedAfter = submittedBefore + listenedSeconds
 
@@ -1054,20 +1078,22 @@ export const usePlayerStore = defineStore(
       const artists = track.artists ?? track.ar ?? []
       const sourceid = resolveNeteaseScrobbleSourceID(track)
       const source = playlistSource.value.type
+      const scrobbleParams = {
+        id,
+        sourceid,
+        time: listenedSeconds,
+        total: trackDuration,
+        name: track.name,
+        artist: artists.map((artist) => artist.name).filter(Boolean).join('/'),
+        source,
+        allowShort: checkpoint || hasPreviousSubmission || completed,
+        allowRepeat: checkpoint || hasPreviousSubmission
+      }
+      const outboxJob = enqueueNeteaseScrobble(scrobbleParams)
 
       const operation = async (): Promise<boolean> => {
         try {
-          const result = await scrobble({
-            id,
-            sourceid,
-            time: listenedSeconds,
-            total: trackDuration,
-            name: track.name,
-            artist: artists.map((artist) => artist.name).filter(Boolean).join('/'),
-            source,
-            allowShort: hasPreviousSubmission || completed,
-            allowRepeat: hasPreviousSubmission
-          })
+          const result = await scrobble(scrobbleParams)
           const skipped = Boolean(result?.skipped || result?.deduplicated)
           const durationAware = result?.durationAware === true
           const success =
@@ -1077,12 +1103,9 @@ export const usePlayerStore = defineStore(
             (result.code === undefined || Number(result.code) === 200)
 
           if (!success) {
-            if (sessionRevision === neteaseSessionRevision) {
-              neteaseSessionSubmittedSeconds = Math.min(
-                neteaseSessionSubmittedSeconds,
-                submittedBefore
-              )
-            }
+            // Deliberately skipped short plays were never committed to pending and need no retry.
+            // Real transport/upstream failures stay in the durable outbox for refresh/startup retry.
+            if (skipped) removeNeteaseScrobbleJob(outboxJob.id)
             if (!skipped) {
               console.warn('[Player] 网易云听歌时长上报失败：', {
                 trackId: id,
@@ -1095,6 +1118,7 @@ export const usePlayerStore = defineStore(
             return false
           }
 
+          removeNeteaseScrobbleJob(outboxJob.id)
           markSubmittedNeteaseListenSeconds(listenedSeconds)
 
           window.dispatchEvent(
@@ -1110,12 +1134,6 @@ export const usePlayerStore = defineStore(
           )
           return true
         } catch (error) {
-          if (sessionRevision === neteaseSessionRevision) {
-            neteaseSessionSubmittedSeconds = Math.min(
-              neteaseSessionSubmittedSeconds,
-              submittedBefore
-            )
-          }
           console.warn('[Player] 网易云听歌记录上报异常：', error)
           return false
         } finally {
@@ -1131,14 +1149,56 @@ export const usePlayerStore = defineStore(
       return queued
     }
 
-    const syncCurrentNeteaseListenCheckpoint = async (): Promise<boolean> => {
-      if (!currentTrack.value) return false
-      return scrobbleNetease(
-        currentTrack.value,
-        audioNodes.audio?.currentTime || seek.value,
-        false,
-        true
+    const retryNeteaseScrobbleOutbox = async (): Promise<number> => {
+      const queued = neteaseScrobbleQueue.then(async () => {
+        let submittedCount = 0
+        for (const job of listNeteaseScrobbleJobs()) {
+          try {
+            const result = await scrobble({
+              ...job.params,
+              allowShort: true,
+              allowRepeat: true
+            })
+            const success =
+              result?.durationAware === true &&
+              !result?.skipped &&
+              !result?.deduplicated &&
+              (result.code === undefined || Number(result.code) === 200)
+            if (!success) continue
+
+            removeNeteaseScrobbleJob(job.id)
+            markSubmittedNeteaseListenSeconds(Number(job.params.time) || 0)
+            submittedCount += 1
+            window.dispatchEvent(
+              new CustomEvent('vutronmusic-netease-scrobble', {
+                detail: { trackId: job.params.id, time: job.params.time, retried: true }
+              })
+            )
+          } catch (error) {
+            console.warn('[Player] 重试网易云听歌记录失败：', error)
+          }
+          await delay(NETEASE_SCROBBLE_QUEUE_GAP_MS)
+        }
+        return submittedCount
+      })
+      neteaseScrobbleQueue = queued.then(
+        () => undefined,
+        () => undefined
       )
+      return queued
+    }
+
+    const syncCurrentNeteaseListenCheckpoint = async (): Promise<boolean> => {
+      const submittedCurrent = currentTrack.value
+        ? await scrobbleNetease(
+            currentTrack.value,
+            audioNodes.audio?.currentTime || seek.value,
+            false,
+            true
+          )
+        : false
+      const retriedCount = await retryNeteaseScrobbleOutbox()
+      return submittedCurrent || retriedCount > 0
     }
 
     const scrobbleFM = (track: Track, time: number, completed = false) => {
@@ -1575,9 +1635,9 @@ export const usePlayerStore = defineStore(
       const delta = currentTime - lastUpdateTime
       if (Math.abs(delta) >= 1) {
         /*
-         * 听歌足迹需要即时反映本机真实播放，而不是等切歌后的 scrobble 成功才累计。
-         * seek setter 会同步 lastUpdateTime，因此手动拖动进度条不会被算成收听时长。
-         * 对异常的大跳变再做一次上限保护，避免媒体恢复/外部修改 currentTime 污染统计。
+         * session 内持续累计真实播放；达到有效播放门槛后才把整段加入待同步，避免
+         * 不会上报的短试听污染全局账本。seek setter 会同步 lastUpdateTime，因此手动
+         * 拖动进度条不会被算成收听时长；异常的大跳变也会被上限保护过滤。
          */
         const maxExpectedDelta = Math.max(5, 5 * Number(playbackRate.value || 1))
         if (
@@ -1586,8 +1646,26 @@ export const usePlayerStore = defineStore(
           delta <= maxExpectedDelta &&
           shouldTrackNeteaseListenTime(currentTrack.value)
         ) {
-          addPendingNeteaseListenSeconds(delta)
           neteaseSessionListenedSeconds += delta
+
+          const trackDuration = Math.max(
+            1,
+            Math.floor((currentTrack.value?.dt || currentTrack.value?.duration || 0) / 1000)
+          )
+          const minimumSeconds = Math.min(MIN_NETEASE_CHECKPOINT_SECONDS, trackDuration)
+          if (neteaseSessionListenedSeconds >= minimumSeconds) {
+            const newlyCommittedSeconds = Math.max(
+              0,
+              neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
+            )
+            addPendingNeteaseListenSeconds(newlyCommittedSeconds)
+            neteaseSessionCommittedSeconds += newlyCommittedSeconds
+            setProvisionalNeteaseListenSeconds(0)
+          } else {
+            setProvisionalNeteaseListenSeconds(
+              neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
+            )
+          }
         }
 
         _progress.value = currentTime
@@ -1837,6 +1915,10 @@ export const usePlayerStore = defineStore(
       enabled.value = false
       currentTrackIndex.value = 0
       currentTrack.value = null
+      neteaseSessionListenedSeconds = 0
+      neteaseSessionCommittedSeconds = 0
+      neteaseSessionSubmittedSeconds = 0
+      setProvisionalNeteaseListenSeconds(0)
       progress.value = 0
       _shuffleList.value = []
       _list.value = []
@@ -2237,6 +2319,7 @@ export const usePlayerStore = defineStore(
       title.value = 'VutronMusic'
       handleIpcRenderer()
       initMediaSession()
+      void retryNeteaseScrobbleOutbox()
       if (enabled.value) {
         if (currentTrack.value?.type === 'stream') {
           if (
@@ -2276,13 +2359,15 @@ export const usePlayerStore = defineStore(
     })
 
     onBeforeUnmount(() => {
-      flushPendingNeteaseListenSeconds()
       if (currentTrack.value) {
         void scrobbleNetease(
           currentTrack.value,
           audioNodes.audio?.currentTime || seek.value
         )
       }
+      // scrobbleNetease 会在首个 await 前同步提交有效 session 到 pending/outbox；
+      // 必须在它之后强制落盘，避免退出窗口丢掉最后不足 5 秒的账本更新。
+      flushPendingNeteaseListenSeconds()
       trackLoadRevision += 1
       registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0

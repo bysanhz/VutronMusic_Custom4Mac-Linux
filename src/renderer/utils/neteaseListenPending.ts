@@ -6,21 +6,41 @@ type PendingListenState = {
   lastRemoteWeekSeconds?: number
 }
 
-const STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'
+const STORAGE_KEY = 'vutronmusic-netease-listen-pending-v2'
+const LEGACY_STORAGE_KEY = 'vutronmusic-netease-listen-pending-v1'
+// realtime/report 的时长只精确到分钟，秒级尾差不可能通过远端增量单独确认。
+const REMOTE_DURATION_QUANTUM_SECONDS = 60
+
+const settleUnconfirmableRemainder = (
+  pendingSeconds: number,
+  submittedSeconds: number
+): Pick<PendingListenState, 'pendingSeconds' | 'submittedSeconds'> => {
+  const remainder = submittedSeconds % REMOTE_DURATION_QUANTUM_SECONDS
+  return {
+    pendingSeconds: Math.max(0, pendingSeconds - remainder),
+    submittedSeconds: Math.max(0, submittedSeconds - remainder)
+  }
+}
 
 const readState = (): PendingListenState => {
   if (typeof localStorage === 'undefined') return { pendingSeconds: 0, submittedSeconds: 0 }
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    const current = localStorage.getItem(STORAGE_KEY)
+    const stored = JSON.parse(current || localStorage.getItem(LEGACY_STORAGE_KEY) || '{}')
     const pendingSeconds = Math.max(0, Number(stored?.pendingSeconds) || 0)
     const submittedSeconds = Math.min(
       pendingSeconds,
       Math.max(0, Number(stored?.submittedSeconds) || 0)
     )
     const lastRemoteWeekSeconds = Number(stored?.lastRemoteWeekSeconds)
+    const migratedPendingSeconds = current ? pendingSeconds : submittedSeconds
+    const settled = settleUnconfirmableRemainder(migratedPendingSeconds, submittedSeconds)
     return {
-      pendingSeconds,
-      submittedSeconds,
+      // v1 counted every short preview locally although those plays were deliberately never
+      // submitted. It also lacked per-track metadata, so the unsubmitted remainder cannot be
+      // retried safely. Preserve only records that v1 had actually accepted for remote delivery.
+      pendingSeconds: settled.pendingSeconds,
+      submittedSeconds: settled.submittedSeconds,
       lastRemoteWeekSeconds:
         Number.isFinite(lastRemoteWeekSeconds) && lastRemoteWeekSeconds >= 0
           ? lastRemoteWeekSeconds
@@ -35,6 +55,14 @@ const state = readState()
 
 export const pendingNeteaseListenSeconds = ref(state.pendingSeconds)
 export const submittedNeteaseListenSeconds = ref(state.submittedSeconds)
+// 当前歌曲尚未达到普通上报门槛的实时播放量。只用于平滑 UI，不持久化；
+// 达到门槛或手动刷新后会原子地转入 pending，短试听切歌则直接清零。
+export const provisionalNeteaseListenSeconds = ref(0)
+
+export const setProvisionalNeteaseListenSeconds = (seconds: number): void => {
+  const value = Number(seconds)
+  provisionalNeteaseListenSeconds.value = Number.isFinite(value) ? Math.max(0, value) : 0
+}
 
 const PERSIST_INTERVAL_MS = 5_000
 let lastRemoteWeekSeconds = state.lastRemoteWeekSeconds
@@ -76,6 +104,17 @@ export const markSubmittedNeteaseListenSeconds = (seconds: number): void => {
     pendingNeteaseListenSeconds.value,
     submittedNeteaseListenSeconds.value + value
   )
+  /*
+   * NCBL 已明确接收上报后，只把整分钟部分留给 realtime/report 做二次确认。
+   * 不足一分钟的尾差在报告里不会形成独立增量，如果继续等待就会永久显示
+   * “已提交待确认 +14秒”之类的状态。
+   */
+  const settled = settleUnconfirmableRemainder(
+    pendingNeteaseListenSeconds.value,
+    submittedNeteaseListenSeconds.value
+  )
+  pendingNeteaseListenSeconds.value = settled.pendingSeconds
+  submittedNeteaseListenSeconds.value = settled.submittedSeconds
   persist(true)
 }
 

@@ -34,7 +34,7 @@
           <p>{{ t('insights.footprint.description') }}</p>
         </div>
         <div
-          v-if="pendingNeteaseListenSeconds > 0"
+          v-if="visiblePendingNeteaseListenSeconds > 0"
           class="sync-status"
           :title="t('insights.footprint.pendingHint')"
         >
@@ -173,11 +173,7 @@
           :disabled="cloudBatchDeleting || !cloudTracks.length"
           @click="toggleCloudBatchMode"
         >
-          {{
-            cloudBatchMode
-              ? t('insights.cloud.batchClose')
-              : t('insights.cloud.batchDelete')
-          }}
+          {{ cloudBatchMode ? t('insights.cloud.batchClose') : t('insights.cloud.batchDelete') }}
         </button>
       </div>
 
@@ -277,6 +273,7 @@ import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
   pendingNeteaseListenSeconds,
+  provisionalNeteaseListenSeconds,
   reconcileNeteaseRemoteWeekDuration,
   submittedNeteaseListenSeconds
 } from '../utils/neteaseListenPending'
@@ -327,10 +324,13 @@ const footprint = reactive<{
   allTracks: any[]
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
+const visiblePendingNeteaseListenSeconds = computed(
+  () => pendingNeteaseListenSeconds.value + provisionalNeteaseListenSeconds.value
+)
 
 const addPendingListenSeconds = (remoteSeconds?: number): number | undefined => {
   const remote = Number(remoteSeconds)
-  const pending = Math.max(0, pendingNeteaseListenSeconds.value)
+  const pending = Math.max(0, visiblePendingNeteaseListenSeconds.value)
   if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
   return remote + pending
 }
@@ -340,7 +340,7 @@ const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.week
 const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
 const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
 const pendingUnsubmittedSeconds = computed(() =>
-  Math.max(0, pendingNeteaseListenSeconds.value - submittedNeteaseListenSeconds.value)
+  Math.max(0, visiblePendingNeteaseListenSeconds.value - submittedNeteaseListenSeconds.value)
 )
 
 const formatPendingListenDuration = (seconds: number): string => {
@@ -452,8 +452,7 @@ const loadFootprint = async (): Promise<void> => {
   }
 }
 
-const wait = (ms: number): Promise<void> =>
-  new Promise((resolve) => window.setTimeout(resolve, ms))
+const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 /**
  * 只刷新网易云用于“待同步”确认的远端时长。
@@ -523,9 +522,7 @@ const toggleCloudBatchAll = (): void => {
     cloudBatchSongIds.value = []
     return
   }
-  cloudBatchSongIds.value = Array.from(
-    new Set(cloudTracks.value.map(cloudSongId).filter(Boolean))
-  )
+  cloudBatchSongIds.value = Array.from(new Set(cloudTracks.value.map(cloudSongId).filter(Boolean)))
 }
 
 const clearCloudBatchSelection = (): void => {
