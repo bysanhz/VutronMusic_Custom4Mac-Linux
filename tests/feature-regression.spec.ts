@@ -1734,6 +1734,12 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(presets).toContain("fieldRow.className = 'vutronmusic-osd-preset-field-row'")
     expect(presets).toContain("actionRow.className = 'vutronmusic-osd-preset-action-row'")
     expect(presets).toContain('nameInput.hidden = builtIn')
+    expect(presets).toContain("saveCopy: '新建预设'")
+    expect(presets).toContain("saveNew: '保存新预设'")
+    expect(presets).toContain('const beginCreatePreset = () => {')
+    expect(presets).toContain('if (!creatingPreset) {')
+    expect(presets).toContain('saveCurrentAsNewPreset()')
+    expect(presets).toContain('status.textContent = text.createHint')
     expect(transferPreview).toContain("layout.className = 'vutronmusic-osd-preset-layout'")
     expect(transferPreview).toContain(
       "wrapper.className = `${FEATURE_CLASS} vutronmusic-osd-preset-preview-pane`"
@@ -1743,7 +1749,7 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     )
     expect(transferPreview).toContain('controls.replaceChildren(layout)')
     expect(draftState).toContain("'.vutronmusic-osd-preset-preview-pane'")
-    expect(shared).toContain('grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);')
+    expect(shared).toContain('grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);')
     expect(shared).toContain('.vutronmusic-osd-preset-preview-pane,')
     expect(shared).toContain('.vutronmusic-osd-preset-control-pane {')
     expect(shared).toContain('align-items: start;')
