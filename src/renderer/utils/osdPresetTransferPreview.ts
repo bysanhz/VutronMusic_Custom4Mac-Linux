@@ -349,9 +349,6 @@ const parseImportedTemplates = (value: unknown): ImportedTemplate[] => {
   return []
 }
 
-const sameSettings = (left: PresetSettings, right: PresetSettings): boolean =>
-  JSON.stringify(left) === JSON.stringify(right)
-
 const formatImportSummary = (
   template: string,
   added: number,
@@ -657,15 +654,6 @@ const installTransferAndPreview = (): boolean => {
         )
 
         if (builtInConflict) {
-          const currentSettings =
-            nextOverrides.find((preset) => preset.id === builtInConflict.id)?.settings ||
-            DEFAULT_BUILTIN_SETTINGS[builtInConflict.id]
-
-          if (currentSettings && sameSettings(currentSettings, template.settings)) {
-            skipped += 1
-            continue
-          }
-
           if (!(await shouldReplaceConflict(builtInConflict.name))) {
             skipped += 1
             continue
@@ -686,11 +674,6 @@ const installTransferAndPreview = (): boolean => {
         }
 
         if (userConflict) {
-          if (sameSettings(userConflict.settings, template.settings)) {
-            skipped += 1
-            continue
-          }
-
           if (!(await shouldReplaceConflict(userConflict.name))) {
             skipped += 1
             continue
