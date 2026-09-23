@@ -20,6 +20,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain("from '../utils/neteaseListenPending'")
     expect(player).toContain('addPendingNeteaseListenSeconds(delta)')
     expect(player).toContain('neteaseSessionListenedSeconds += delta')
+    expect(player).toContain('markSubmittedNeteaseListenSeconds(listenedSeconds)')
     expect(player).toContain('flushPendingNeteaseListenSeconds()')
     const trackApi = readSource('src/renderer/api/track.ts')
     expect(trackApi).not.toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
@@ -99,6 +100,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(trackApi).toContain('!params.allowShort && listenedSeconds < minimumSeconds')
     expect(trackApi).toContain("reason: 'short-playback'")
     expect(trackApi).toContain('!params.allowRepeat && Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS')
+    expect(trackApi).toContain('result?.durationAware === true')
   })
 
   test('supports manual refresh checkpoints without double counting later track changes', () => {
@@ -119,6 +121,22 @@ test.describe('NetEase scrobble lifecycle', () => {
     )
     expect(trackApi).toContain('allowShort?: boolean')
     expect(trackApi).toContain('allowRepeat?: boolean')
+    expect(trackApi).toContain('durationAware: true')
+    expect(trackApi).toContain('durationAware: false')
+    expect(player).toContain('const durationAware = result?.durationAware === true')
+  })
+
+  test('tracks submitted listen time separately until NetEase confirms it', () => {
+    const pending = readSource('src/renderer/utils/neteaseListenPending.ts')
+    const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
+
+    expect(pending).toContain('export const submittedNeteaseListenSeconds = ref(state.submittedSeconds)')
+    expect(pending).toContain('export const markSubmittedNeteaseListenSeconds =')
+    expect(pending).toContain('submittedNeteaseListenSeconds.value + value')
+    expect(pending).toContain('const confirmableSeconds =')
+    expect(insights).toContain('const pendingUnsubmittedSeconds = computed')
+    expect(insights).toContain("t('insights.footprint.pendingSubmitted'")
+    expect(insights).toContain("t('insights.footprint.pendingMixed'")
   })
 
   test('keeps normal scrobble diagnostics development-only but preserves failures', () => {
