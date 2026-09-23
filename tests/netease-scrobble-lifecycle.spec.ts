@@ -111,7 +111,9 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(insights).toContain(
       "window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)"
     )
-    expect(insights).toContain('}, 1800)')
+    expect(insights).toContain('const PENDING_SYNC_INTERVAL_MS = 10_000')
+    expect(insights).toContain('void refreshPendingRemoteDuration()')
+    expect(insights).toContain('}, 1200)')
   })
 
   test('uses an app-owned stable route and bundled fallback for scrobble v1', () => {
