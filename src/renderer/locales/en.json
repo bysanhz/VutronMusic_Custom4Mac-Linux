@@ -1006,7 +1006,14 @@
       "batchDeleteConfirm": "Delete the selected {count} tracks from NetEase Cloud? This cannot be undone.",
       "batchDeleting": "Deleting {count} tracks…",
       "batchDeleted": "Deleted {count} tracks from cloud.",
-      "batchPartial": "Deleted {success} tracks; {failed} failed."
+      "batchPartial": "Deleted {success} tracks; {failed} failed.",
+      "batchClearSelection": "Clear selection",
+      "batchRange": "Range",
+      "batchRangeStart": "Start",
+      "batchRangeEnd": "End",
+      "batchRangeSelect": "Select range",
+      "batchRangeHint": "Uses the current list order, from 1 to {count}",
+      "batchRangeInvalid": "Enter a valid range between 1 and {count}."
     }
   },
   "streamLogin": {
