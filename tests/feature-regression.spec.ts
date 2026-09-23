@@ -1620,6 +1620,16 @@ test.describe('modern NetEase API integration', () => {
   })
 })
 
+test('keeps personal FM media compact and aligned with track info', () => {
+  const fmCard = readSource('src/renderer/components/FMCard.vue')
+
+  expect(fmCard).toContain('grid-template-columns: clamp(132px, 40%, 176px) minmax(0, 1fr);')
+  expect(fmCard).toContain('column-gap: clamp(0.35rem, 1.4cqw, 0.55rem);')
+  expect(fmCard).toContain('row-gap: 10px;')
+  expect(fmCard).toContain('width: 100%;')
+  expect(fmCard).toContain('height: 145px;')
+})
+
 test.describe('virtual list and desktop lyric preview stability', () => {
   test('guards transient IntersectionObserver refs and supports Library nested scrolling', () => {
     const virtualScroll = readSource('src/renderer/components/VirtualScrollNoHeight.vue')
