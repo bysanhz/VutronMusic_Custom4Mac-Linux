@@ -55,6 +55,7 @@ const OSD_STORAGE_KEY = 'osdLyric'
 const PRESETS_STORAGE_KEY = 'vutronmusic-osd-presets'
 const BUILTIN_OVERRIDES_STORAGE_KEY = 'vutronmusic-osd-builtin-preset-overrides'
 const SELECTED_PRESET_STORAGE_KEY = 'vutronmusic-osd-selected-preset-id'
+const CURRENT_SETTINGS_OPTION_ID = '__current-osd-settings__'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const MAX_USER_PRESETS = 50
 const BUILTIN_LYRIC_BACKGROUND = 'rgba(0, 0, 0, 0)'
@@ -87,7 +88,8 @@ const TEXTS = {
     minimal: '极简透明双行',
     centered: '大字居中',
     left: '左对齐单行',
-    cover: '封面控制模式'
+    cover: '封面控制模式',
+    currentUnsaved: '当前设置（未保存）'
   },
   zht: {
     title: '桌面歌詞樣式預設',
@@ -113,7 +115,8 @@ const TEXTS = {
     minimal: '極簡透明雙行',
     centered: '大字置中',
     left: '靠左單行',
-    cover: '封面控制模式'
+    cover: '封面控制模式',
+    currentUnsaved: '目前設定（未儲存）'
   },
   en: {
     title: 'Desktop Lyric Presets',
@@ -142,7 +145,8 @@ const TEXTS = {
     minimal: 'Minimal Transparent Two-line',
     centered: 'Large Centered',
     left: 'Left-aligned Single-line',
-    cover: 'Cover Controls'
+    cover: 'Cover Controls',
+    currentUnsaved: 'Current Settings (Unsaved)'
   }
 } as const
 
@@ -382,10 +386,21 @@ const applyPreset = (preset: OsdPreset): void => {
   }
 }
 
-const refreshSelect = (select: HTMLSelectElement, preferredId?: string): void => {
+const refreshSelect = (
+  select: HTMLSelectElement,
+  preferredId?: string,
+  includeCurrentSettings = false
+): void => {
   const presets = getAllPresets()
   const previousValue = preferredId || select.value
   select.replaceChildren()
+
+  if (includeCurrentSettings) {
+    const currentOption = document.createElement('option')
+    currentOption.value = CURRENT_SETTINGS_OPTION_ID
+    currentOption.textContent = TEXTS[resolveFeatureLanguage()].currentUnsaved
+    select.appendChild(currentOption)
+  }
 
   presets.forEach((preset) => {
     const option = document.createElement('option')
@@ -394,8 +409,15 @@ const refreshSelect = (select: HTMLSelectElement, preferredId?: string): void =>
     select.appendChild(option)
   })
 
-  if (presets.some((preset) => preset.id === previousValue)) {
+  if (
+    previousValue === CURRENT_SETTINGS_OPTION_ID &&
+    includeCurrentSettings
+  ) {
+    select.value = CURRENT_SETTINGS_OPTION_ID
+  } else if (presets.some((preset) => preset.id === previousValue)) {
     select.value = previousValue
+  } else if (includeCurrentSettings) {
+    select.value = CURRENT_SETTINGS_OPTION_ID
   } else if (presets.length > 0) {
     select.value = presets[0].id
   }
@@ -454,15 +476,37 @@ const ensureControl = (): boolean => {
 
   const persistedPresetId = readSelectedPresetId()
   const currentMatchingPresetId = findPresetMatchingCurrentSettings()?.id
-  refreshSelect(select, persistedPresetId || currentMatchingPresetId)
+  const hasUnsavedCurrentSettings = !currentMatchingPresetId
+
+  // The live desktop-lyric settings are the source of truth on remount.
+  // If they exactly match a preset, show that preset. Otherwise expose a
+  // temporary "current settings" entry instead of misleadingly falling back
+  // to a previously selected built-in preset (usually the first/minimal one).
+  refreshSelect(
+    select,
+    currentMatchingPresetId || CURRENT_SETTINGS_OPTION_ID,
+    hasUnsavedCurrentSettings
+  )
 
   const getSelectedPreset = (): OsdPreset | undefined =>
     getAllPresets().find((preset) => preset.id === select.value)
 
   const syncEditorWithSelection = (showHint = true) => {
     const selected = getSelectedPreset()
-    if (!selected) return
 
+    if (!selected) {
+      nameInput.value = ''
+      nameInput.placeholder = text.namePlaceholder
+      applyButton.disabled = true
+      updateButton.disabled = true
+      removeButton.disabled = true
+      removeButton.textContent = text.delete
+      if (showHint) status.textContent = text.customHint
+      return
+    }
+
+    applyButton.disabled = false
+    updateButton.disabled = false
     nameInput.value = selected.name
     removeButton.textContent = isBuiltInPreset(selected) ? text.restoreDefault : text.delete
     removeButton.disabled = false
@@ -479,7 +523,9 @@ const ensureControl = (): boolean => {
     )
 
   select.addEventListener('change', () => {
-    persistSelectedPresetId(select.value)
+    if (select.value !== CURRENT_SETTINGS_OPTION_ID) {
+      persistSelectedPresetId(select.value)
+    }
     syncEditorWithSelection()
   })
 
@@ -629,7 +675,12 @@ const ensureControl = (): boolean => {
   })
 
   controls.append(select, nameInput, applyButton, updateButton, copyButton, removeButton, status)
-  persistSelectedPresetId(select.value)
+  if (select.value !== CURRENT_SETTINGS_OPTION_ID) {
+    persistSelectedPresetId(select.value)
+  } else if (persistedPresetId) {
+    // Keep the last real preset id only as history; it must not override the
+    // live settings when this panel is recreated.
+  }
   syncEditorWithSelection()
   const coverControl = document.getElementById('osd-cover-controls-visibility-setting')
   ;(coverControl || lockItem).insertAdjacentElement('afterend', item)
