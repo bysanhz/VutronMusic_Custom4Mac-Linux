@@ -2039,7 +2039,10 @@ export const usePlayerStore = defineStore(
         } else if (event.data.type === 'get-seek') {
           window.mainApi?.sendMessage({
             type: 'update-osd-status',
-            data: { seek: audioNodes.audio?.currentTime || 0 }
+            data: {
+              seek: audioNodes.audio?.currentTime || 0,
+              syncGuard: event.data.source === 'osd-sync-guard'
+            }
           })
         }
       })
