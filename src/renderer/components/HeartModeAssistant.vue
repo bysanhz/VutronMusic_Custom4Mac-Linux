@@ -358,6 +358,7 @@ import {
   boostHeartModeCurrentBranch,
   getCurrentHeartModeSession,
   getEffectiveHeartModeProfile,
+  resolveHeartModeSourceSeedId,
   resetCurrentHeartModeLearning,
   steerHeartModeFurther
 } from '../utils/heartModeSession'
@@ -933,12 +934,19 @@ const currentProfileModeDescription = computed(() => {
   }
 })
 
-const isHeartMode = computed(() => playlistSource.value?.type === 'intelligence')
 const sessionSnapshot = computed(() => ({
   version: sessionVersion.value,
   value: getCurrentHeartModeSession()
 }))
 const session = computed(() => sessionSnapshot.value.value)
+const isHeartMode = computed(() => {
+  if (playlistSource.value?.type === 'intelligence') return true
+
+  const activeSession = sessionSnapshot.value.value
+  const trackId = Number(currentTrack.value?.id)
+  if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return false
+  return resolveHeartModeSourceSeedId(activeSession, trackId) !== null
+})
 const effectiveProfile = computed(() => getEffectiveHeartModeProfile(session.value))
 const reason = computed(() => {
   const activeSession = sessionSnapshot.value.value

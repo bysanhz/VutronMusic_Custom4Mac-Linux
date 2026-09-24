@@ -1341,6 +1341,7 @@ test.describe('desktop feature integration', () => {
 
   test('keeps Heart Mode assistant draggable, theme-aware and visually consistent', () => {
     const assistant = readSource('src/renderer/components/HeartModeAssistant.vue')
+    const app = readSource('src/renderer/App.vue')
 
     expect(assistant).toContain('@pointerdown="startDrag"')
     expect(assistant).toContain('vutronmusic-heart-mode-assistant-position-v1')
@@ -1357,6 +1358,12 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('strategyFeedbackBullets')
     expect(assistant).toContain('strategyControlBullets')
     expect(assistant).toContain('v-for="bullet in item.bullets"')
+    expect(assistant).toContain('resolveHeartModeSourceSeedId(activeSession, trackId) !== null')
+    expect(app).toContain('const syncHeartModePlaylistSource = () =>')
+    expect(app).not.toContain('syncLinuxHeartModePlaylistSource')
+    expect(app).not.toContain(
+      "if (!window.env?.isLinux || playlistSource.value?.type === 'intelligence') return"
+    )
   })
 
   test('keeps Heart Mode controls in the assistant only and shares runtime state', () => {

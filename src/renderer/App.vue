@@ -258,12 +258,12 @@ const isMac = computed(() => window.env?.isMac)
 const isLinux = computed(() => window.env?.isLinux)
 
 /**
- * Linux 某些窗口/恢复路径会丢失 playlistSource.type，但 Heart Mode session 仍然有效。
- * 悬浮助手以 playlistSource.type === 'intelligence' 判断显示，因此这里仅在 Linux 上、且
- * 当前歌曲能明确映射回现存 Heart Mode session 时修复 source 元数据。
+ * 窗口恢复或播放器状态迁移时可能丢失 playlistSource.type，但 Heart Mode session 仍然有效。
+ * 只在当前歌曲能明确映射回现存 Heart Mode session 时修复 source 元数据，避免把普通
+ * 播放列表误识别为心动模式。此问题并非 Linux 独有，macOS 恢复持久化状态时也会出现。
  */
-const syncLinuxHeartModePlaylistSource = () => {
-  if (!window.env?.isLinux || playlistSource.value?.type === 'intelligence') return
+const syncHeartModePlaylistSource = () => {
+  if (playlistSource.value?.type === 'intelligence') return
 
   const activeSession = getCurrentHeartModeSession()
   const trackId = Number(currentTrack.value?.id)
@@ -276,11 +276,11 @@ const syncLinuxHeartModePlaylistSource = () => {
   }
 }
 
-const handleHeartModeSessionChange = () => syncLinuxHeartModePlaylistSource()
+const handleHeartModeSessionChange = () => syncHeartModePlaylistSource()
 
 watch(
   () => [currentTrack.value?.id, playlistSource.value?.type] as const,
-  () => syncLinuxHeartModePlaylistSource(),
+  () => syncHeartModePlaylistSource(),
   { immediate: true }
 )
 
@@ -397,7 +397,7 @@ onMounted(async () => {
   window.addEventListener('online', handleOnline)
   window.addEventListener('vutronmusic-netease-unavailable', handleNeteaseUnavailable)
   window.addEventListener('vutronmusic-netease-available', handleNeteaseAvailable)
-  syncLinuxHeartModePlaylistSource()
+  syncHeartModePlaylistSource()
   hasCustomTitleBar.value =
     (window.env?.isLinux && general.value.useCustomTitlebar) || window.env?.isWindows || false
   if (isMac.value) {
