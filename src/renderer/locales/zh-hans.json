@@ -1007,6 +1007,7 @@
       "readLyric": "读取云盘歌词",
       "delete": "从云盘删除",
       "empty": "当前云盘为空，或账号尚未登录。",
+      "searchNoResults": "没有匹配的云盘歌曲。",
       "unknownTrack": "未知歌曲",
       "selectAndTarget": "请选择云盘歌曲并填写目标歌曲 ID",
       "rematchFailed": "云盘重新匹配失败",
@@ -1041,7 +1042,7 @@
       "rematchDescription": "将当前云盘歌曲重新关联到指定的网易云在线歌曲。",
       "targetIdHint": "获取方式：在搜索页找到目标歌曲，右键该歌曲并选择“复制ID”。",
       "deleteToolTitle": "云盘删除",
-      "deleteToolDescription": "进入多选模式后，可批量、全选或按首尾区间删除云盘歌曲。"
+      "deleteToolDescription": "进入多选模式后，可搜索、批量、全选或按首尾区间删除云盘歌曲。"
     }
   },
   "streamLogin": {
