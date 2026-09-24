@@ -88,16 +88,18 @@ test.describe('desktop lyric continuity', () => {
     expect(guard).toContain('hasAnchorForCurrentLyrics = true')
   })
 
-  test('keeps Linux word timing monotonic without changing two-line lifecycle', () => {
+  test('keeps two-line lifecycle while rejecting late same-line timing rewinds', () => {
     const container = readSource('src/renderer/components/OsdLyricContainer.vue')
     const line = readSource('src/renderer/components/LyricLine.vue')
 
     expect(container).toContain(':key="index"')
     expect(container).toContain('watch(lyricToShow, async () => {')
     expect(container).toContain('clearAnimations()')
-    expect(line).toContain('const isLinux = Boolean(window.env?.isLinux)')
-    expect(line).toContain('liveTime <= 1200')
-    expect(line).toContain('liveTime - timeOffset <= 350')
+    expect(container).toContain('const lineChanged = lineIndex !== currentIndex.value')
+    expect(container).toContain('const isExplicitSeek = data.seek !== undefined && data.syncGuard !== true')
+    expect(container).toContain('if (lineChanged || isExplicitSeek || !playing.value)')
+    expect(line).not.toContain('const isLinux = Boolean(window.env?.isLinux)')
+    expect(line).not.toContain('liveTime <= 1200')
     expect(line).not.toContain('needsWordAnimation')
   })
 
