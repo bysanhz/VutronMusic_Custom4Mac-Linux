@@ -948,7 +948,7 @@
     },
     "footprint": {
       "title": "Listening Footprint",
-      "description": "Today counts unique tracks; This Week runs from Monday through today, with unsynced local listening time added immediately.",
+      "description": "Metric cards show only NetEase-confirmed account data. Local pending/awaiting-confirmation time is shown separately; This Week runs Monday through today.",
       "pending": "Pending +{duration}",
       "pendingUnsubmitted": "To submit +{duration}",
       "pendingSubmitted": "Submitted, awaiting confirmation +{duration}",
@@ -961,7 +961,7 @@
       "pendingSubmittedLabel": "To confirm:",
       "pendingSubmittedHelp": "Accepted by NetEase; waiting for report updates.",
       "pendingSyncedLabel": "Synced:",
-      "pendingSyncedHelp": "Realtime reports caught up; slower lifetime totals remain locally adjusted.",
+      "pendingSyncedHelp": "Realtime reports caught up; metric cards show only NetEase-confirmed account data.",
       "refreshHint": "Submit the current track and retry earlier failed reports, then reload NetEase statistics and briefly confirm the remote update.",
       "today": "Today",
       "todayCount": "{count} tracks",
