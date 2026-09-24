@@ -1913,6 +1913,23 @@ test.describe('library hydration and stable rendering', () => {
   })
 })
 
+test.describe('cloud library search', () => {
+  test('filters cloud-disk tracks without changing the stored cloud library', () => {
+    const library = readSource('src/renderer/views/LibraryMusic.vue')
+
+    expect(library).toContain("import SearchBox from '../components/SearchBox.vue'")
+    expect(library).toContain('ref="cloudSearchBoxRef"')
+    expect(library).toContain("v-show=\"currentTab === 'cloudDisk'\"")
+    expect(library).toContain(':items="filteredCloudDisk"')
+    expect(library).toContain('const cloudSearchKeyword = computed(() =>')
+    expect(library).toContain('const cloudDiskSearchText = (track: any): string =>')
+    expect(library).toContain('const filteredCloudDisk = computed(() =>')
+    expect(library).toContain('libraryData.value.cloudDisk.filter')
+    expect(library).toContain('album?.name')
+    expect(library).toContain('...artists.map((artist: any) => artist?.name)')
+  })
+})
+
 test.describe('local music scanning controls', () => {
   test('exposes a visible rescan action on the local music page', () => {
     const localMusic = readSource('src/renderer/views/LocalMusic.vue')
