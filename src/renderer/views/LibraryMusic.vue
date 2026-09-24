@@ -131,9 +131,25 @@
             {{ $t('library.cloudDisk') }}
           </div>
         </div>
-        <button v-show="currentTab === 'playlist'" class="tab-button" @click="openAddPlaylistModal"
-          ><svg-icon icon-class="plus" />{{ $t('library.playlist.newPlaylist') }}
-        </button>
+        <div class="tabs-actions">
+          <SearchBox
+            v-show="currentTab === 'cloudDisk'"
+            ref="cloudSearchBoxRef"
+            :show-input-initially="true"
+            :input-width="200"
+            :placeholder="
+              t('localMusic.search', {
+                target: t('library.cloudDisk')
+              })
+            "
+          />
+          <button
+            v-show="currentTab === 'playlist'"
+            class="tab-button"
+            @click="openAddPlaylistModal"
+            ><svg-icon icon-class="plus" />{{ $t('library.playlist.newPlaylist') }}
+          </button>
+        </div>
       </div>
 
       <div class="section-two-content" :style="tabStyle">
@@ -198,7 +214,7 @@
         <div v-if="currentTab === 'cloudDisk'">
           <TrackList
             :id="-8"
-            :items="libraryData.cloudDisk"
+            :items="filteredCloudDisk"
             :colunm-number="1"
             type="cloudDisk"
             :is-end="true"
@@ -247,6 +263,7 @@ import SvgIcon from '../components/SvgIcon.vue'
 import TrackList from '../components/VirtualTrackList.vue'
 import CoverRow from '../components/VirtualCoverRow.vue'
 import Mvrow from '../components/MvRow.vue'
+import SearchBox from '../components/SearchBox.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../store/player'
@@ -267,6 +284,7 @@ const { replacePlaylist } = playerStore
 const lyric = ref<{ content: string }[]>([])
 const randomtrack = ref<{ [key: string]: any }>()
 const currentTab = ref('playlist')
+const cloudSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
 const playlistTabMenu = ref<InstanceType<typeof ContextMenu>>()
 
 const libraryData = computed(() => {
@@ -367,6 +385,37 @@ const filterPlaylists = computed(() => {
     return playlists.filter((p) => p.creator.userId !== userId)
   }
   return playlists
+})
+
+const cloudSearchKeyword = computed(() =>
+  String(cloudSearchBoxRef.value?.keywords || '')
+    .trim()
+    .toLocaleLowerCase()
+)
+
+const cloudDiskSearchText = (track: any): string => {
+  const song = track?.simpleSong ?? track
+  const artists = song?.ar ?? song?.artists ?? track?.ar ?? track?.artists ?? []
+  const aliases = song?.alia ?? song?.alias ?? track?.alia ?? track?.alias ?? []
+  const album = song?.al ?? song?.album ?? track?.al ?? track?.album
+  const id = track?.songId ?? song?.id ?? track?.id ?? ''
+
+  return [
+    song?.name ?? track?.songName ?? track?.name,
+    id,
+    album?.name,
+    ...artists.map((artist: any) => artist?.name),
+    ...(Array.isArray(aliases) ? aliases : [aliases])
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLocaleLowerCase()
+}
+
+const filteredCloudDisk = computed(() => {
+  const keyword = cloudSearchKeyword.value
+  if (!keyword) return libraryData.value.cloudDisk
+  return libraryData.value.cloudDisk.filter((track) => cloudDiskSearchText(track).includes(keyword))
 })
 
 const {
@@ -732,6 +781,16 @@ onUnmounted(() => {
     width: 100%;
     box-sizing: border-box;
     z-index: 10;
+
+    .tabs-actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 0;
+      -webkit-app-region: no-drag;
+    }
 
     .tabs {
       display: flex;
