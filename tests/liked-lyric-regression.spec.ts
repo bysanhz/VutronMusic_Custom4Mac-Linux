@@ -62,16 +62,24 @@ test.describe('desktop lyric continuity', () => {
     expect(watchdog).toContain('WATCHDOG_INTERVAL_MS = 250')
   })
 
-  test('keeps an independent OSD clock and periodically requests authoritative seek', () => {
+  test('keeps an independent OSD clock without fighting word-by-word WAAPI timing', () => {
     const osdEntry = readSource('src/renderer/osdLyric.ts')
     const guard = readSource('src/renderer/utils/osdLyricSyncGuard.ts')
+    const container = readSource('src/renderer/components/OsdLyricContainer.vue')
+    const player = readSource('src/renderer/store/player.ts')
 
     expect(osdEntry).toContain(
       "import { initializeOsdLyricSyncGuard } from './utils/osdLyricSyncGuard'"
     )
     expect(osdEntry).toContain('initializeOsdLyricSyncGuard()')
-    expect(guard).toContain("window.mainApi?.sendMessage({ type: 'get-seek' })")
+    expect(guard).toContain(
+      "window.mainApi?.sendMessage({ type: 'get-seek', source: 'osd-sync-guard' })"
+    )
+    expect(guard).toContain('if (line === lastKnownLine) return')
+    expect(guard).toContain('lastKnownLine = Number(data.line[0])')
     expect(guard).toContain("type: 'update-osd-status'")
     expect(guard).toContain('LOCAL_TICK_MS = 250')
+    expect(player).toContain("syncGuard: event.data.source === 'osd-sync-guard'")
+    expect(container).toContain('if (data.seek !== undefined && data.syncGuard !== true)')
   })
 })
