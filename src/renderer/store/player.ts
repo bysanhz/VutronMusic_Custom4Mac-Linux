@@ -2081,12 +2081,17 @@ export const usePlayerStore = defineStore(
             }
           }
 
+          const currentTime = audioNodes.audio?.currentTime || 0
           window.mainApi?.sendMessage({
             type: 'update-osd-status',
             data: {
               lyrics: toRaw(newLyric),
               isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
-              fallbackTrackText: fallbackTrackInfo.fallbackTrackText
+              fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
+              // 歌词与当前行/seek 必须原子同步。否则换歌时 OSD sync guard 可能拿
+              // 上一首歌的时间锚点去计算新歌词，短暂把新歌词误判为“已播放”。
+              line: [currentIndex.value, currentTime],
+              seek: currentTime
             }
           })
         }
