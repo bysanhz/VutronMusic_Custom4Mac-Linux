@@ -124,3 +124,28 @@ test('isolates accounts and date ranges while preserving retry state', () => {
     getNeteaseListenLedgerTotals('account-a', dayTwoStart, dayTwoEnd, 'month:2026-09').accepted
   ).toBe(60)
 })
+
+test('does not let background retries claim the currently playing session', () => {
+  const now = Date.now()
+  for (const sessionId of ['active-session', 'older-session']) {
+    recordNeteaseListenSegment({
+      accountId: 'account-a',
+      sessionId,
+      startedAt: now - 60_000,
+      endedAt: now,
+      seconds: 60,
+      params
+    })
+  }
+
+  const claimed = claimPendingNeteaseListenEntries({
+    accountId: 'account-a',
+    excludeSessionId: 'active-session',
+    force: true
+  })
+
+  expect(claimed.map((entry) => entry.sessionId)).toEqual(['older-session'])
+  expect(
+    neteaseListenEntries.value.find((entry) => entry.sessionId === 'active-session')?.status
+  ).toBe('pending')
+})

@@ -32,7 +32,8 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('formatDisplayListenDuration(displayWeekSeconds)')
     expect(view).toContain('formatDisplayListenDuration(displayMonthSeconds)')
     expect(view).toContain('formatDisplayListenDuration(displayTotalSeconds)')
-    expect(view).toContain('formatPendingListenDuration(unsubmitted)')
+    expect(view).toContain('formatPendingListenDuration(pendingUnsubmittedSeconds)')
+    expect(view).toContain('formatPendingListenDuration(submittedNeteaseListenSeconds)')
     expect(ledger).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-ledger-v3'")
     expect(ledger).toContain('accountId')
     expect(ledger).toContain('dateKey')
@@ -43,6 +44,11 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('startPendingSyncPolling()')
     expect(view).toContain('stopPendingSyncPolling()')
     expect(view).toContain('visiblePendingNeteaseListenSeconds.value <= 0')
+    expect(view).toContain('const backgroundPendingNeteaseListenSeconds = computed')
+    expect(view).toContain('backgroundPendingNeteaseListenSeconds.value <= 0')
+    expect(view).not.toContain(
+      'monthLedger.value.accepted,\n    totalLedger.value.accepted'
+    )
     expect(view).toContain('if (footprintRequestInFlight) return')
     const service = readSource('src/renderer/services/neteaseModern.ts')
     expect(service).toContain('item.period')
@@ -52,6 +58,16 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('extractCalendarWeekListenSeconds(month)')
     expect(view).toContain('todayDataConflict')
     expect(view).toContain('class="sync-status"')
+    expect(view).toContain('class="sync-status-panel"')
+    expect(view).toContain('class="sync-status-stack"')
+    expect(view).toContain(':class="{ inactive: pendingUnsubmittedSeconds <= 0 }"')
+    expect(view).toContain(':class="{ inactive: submittedNeteaseListenSeconds <= 0 }"')
+    expect(view).toContain('class="sync-status-help"')
+    expect(view.indexOf('class="sync-status-help"')).toBeLessThan(
+      view.indexOf('class="sync-status-panel"')
+    )
+    expect(view).toContain('font-variant-numeric: tabular-nums')
+    expect(view).toContain('grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr)')
   })
 
   test('keeps report confirmation isolated for every displayed period', () => {

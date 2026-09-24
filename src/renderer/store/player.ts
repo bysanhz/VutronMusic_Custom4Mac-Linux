@@ -125,7 +125,6 @@ export const usePlayerStore = defineStore(
     let neteaseSessionCommittedAt = 0
     let neteaseSessionId = ''
     let neteaseSessionAccountId = 'anonymous'
-    let neteaseSessionLastAutoSubmitSeconds = 0
     let neteaseSessionSlices: Array<{
       startedAt: number
       endedAt: number
@@ -135,7 +134,6 @@ export const usePlayerStore = defineStore(
     let neteaseRetryTimer: number | null = null
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
     const MIN_NETEASE_CHECKPOINT_SECONDS = 30
-    const AUTO_NETEASE_SUBMIT_SECONDS = 60
     const NETEASE_RETRY_POLL_MS = 30_000
 
     // 同一首歌曲的远程音源只自动刷新一次。
@@ -999,7 +997,6 @@ export const usePlayerStore = defineStore(
       neteaseSessionCommittedAt = 0
       neteaseSessionId = createNeteaseSessionId()
       neteaseSessionAccountId = currentNeteaseAccountId()
-      neteaseSessionLastAutoSubmitSeconds = 0
       neteaseSessionSlices = []
       setProvisionalNeteaseListen()
       lyrics.value = []
@@ -1169,12 +1166,14 @@ export const usePlayerStore = defineStore(
 
     const queueNeteaseListenSubmission = (options: {
       sessionId?: string
+      excludeSessionId?: string
       force?: boolean
       accountId?: string
     }): Promise<number> => {
       const entries = claimPendingNeteaseListenEntries({
         accountId: options.accountId || currentNeteaseAccountId(),
         sessionId: options.sessionId,
+        excludeSessionId: options.excludeSessionId,
         force: options.force
       })
       if (!entries.length) return Promise.resolve(0)
@@ -1209,7 +1208,12 @@ export const usePlayerStore = defineStore(
     }
 
     const retryNeteaseScrobbleOutbox = async (): Promise<number> => {
-      return queueNeteaseListenSubmission({ force: false })
+      // 当前歌曲的 pending 条目是正在增长的草稿，应等到自然结束或切歌时再一次提交。
+      // 定时器只重试以前歌曲遗留的失败条目，避免重新产生每分钟一个回执。
+      return queueNeteaseListenSubmission({
+        excludeSessionId: neteaseSessionId || undefined,
+        force: false
+      })
     }
 
     const syncCurrentNeteaseListenCheckpoint = async (): Promise<boolean> => {
@@ -1692,17 +1696,6 @@ export const usePlayerStore = defineStore(
           const minimumSeconds = Math.min(MIN_NETEASE_CHECKPOINT_SECONDS, trackDuration)
           if (neteaseSessionListenedSeconds >= minimumSeconds) {
             commitNeteaseSessionProgress(currentTrack.value!)
-            if (
-              neteaseSessionListenedSeconds - neteaseSessionLastAutoSubmitSeconds >=
-              AUTO_NETEASE_SUBMIT_SECONDS
-            ) {
-              neteaseSessionLastAutoSubmitSeconds = neteaseSessionListenedSeconds
-              void queueNeteaseListenSubmission({
-                sessionId: neteaseSessionId,
-                force: true,
-                accountId: neteaseSessionAccountId
-              })
-            }
           } else {
             setProvisionalNeteaseListen({
               accountId: neteaseSessionAccountId,
@@ -1967,7 +1960,6 @@ export const usePlayerStore = defineStore(
       neteaseSessionCommittedAt = 0
       neteaseSessionId = ''
       neteaseSessionAccountId = 'anonymous'
-      neteaseSessionLastAutoSubmitSeconds = 0
       neteaseSessionSlices = []
       setProvisionalNeteaseListen()
       progress.value = 0
@@ -2386,7 +2378,6 @@ export const usePlayerStore = defineStore(
           neteaseSessionCommittedAt = 0
           neteaseSessionId = createNeteaseSessionId()
           neteaseSessionAccountId = nextAccountId
-          neteaseSessionLastAutoSubmitSeconds = 0
           neteaseSessionSlices = []
           setProvisionalNeteaseListen()
           flushNeteaseListenLedger(true)

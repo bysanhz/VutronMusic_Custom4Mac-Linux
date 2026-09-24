@@ -344,6 +344,7 @@ export const recordNeteaseListenSegment = (input: RecordSegmentInput): NeteaseLi
 export const claimPendingNeteaseListenEntries = (options: {
   accountId: unknown
   sessionId?: string
+  excludeSessionId?: string
   force?: boolean
 }): NeteaseListenEntry[] => {
   const accountId = normalizeAccountId(options.accountId)
@@ -354,6 +355,7 @@ export const claimPendingNeteaseListenEntries = (options: {
       entry.accountId === accountId &&
       entry.status === 'pending' &&
       (!options.sessionId || entry.sessionId === options.sessionId) &&
+      (!options.excludeSessionId || entry.sessionId !== options.excludeSessionId) &&
       (options.force || entry.nextRetryAt <= now)
     if (!eligible) return entry
     const next = { ...entry, status: 'sending' as const, updatedAt: now }

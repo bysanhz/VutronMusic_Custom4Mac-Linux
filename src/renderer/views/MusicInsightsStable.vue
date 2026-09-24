@@ -28,17 +28,48 @@
     </div>
 
     <section v-show="activeTab === 'footprint'" class="panel">
-      <div class="section-head">
-        <div>
+      <div class="section-head footprint-head">
+        <div class="section-information">
           <h2>{{ t('insights.footprint.title') }}</h2>
           <p>{{ t('insights.footprint.description') }}</p>
+          <dl class="sync-status-help">
+            <div>
+              <dt>{{ t('insights.footprint.pendingUnsubmittedLabel') }}</dt>
+              <dd>{{ t('insights.footprint.pendingUnsubmittedHelp') }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('insights.footprint.pendingSubmittedLabel') }}</dt>
+              <dd>{{ t('insights.footprint.pendingSubmittedHelp') }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('insights.footprint.pendingSyncedLabel') }}</dt>
+              <dd>{{ t('insights.footprint.pendingSyncedHelp') }}</dd>
+            </div>
+          </dl>
         </div>
-        <div
-          v-if="visiblePendingNeteaseListenSeconds > 0"
-          class="sync-status"
-          :title="t('insights.footprint.pendingHint')"
-        >
-          {{ pendingStatusText }}
+        <div class="sync-status-panel">
+          <strong class="sync-status-title">{{ t('insights.footprint.syncStatusTitle') }}</strong>
+          <div class="sync-status-stack">
+            <template v-if="visiblePendingNeteaseListenSeconds > 0">
+              <div class="sync-status" :class="{ inactive: pendingUnsubmittedSeconds <= 0 }">
+                {{
+                  t('insights.footprint.pendingUnsubmitted', {
+                    duration: formatPendingListenDuration(pendingUnsubmittedSeconds)
+                  })
+                }}
+              </div>
+              <div class="sync-status" :class="{ inactive: submittedNeteaseListenSeconds <= 0 }">
+                {{
+                  t('insights.footprint.pendingSubmitted', {
+                    duration: formatPendingListenDuration(submittedNeteaseListenSeconds)
+                  })
+                }}
+              </div>
+            </template>
+            <div v-else class="sync-status synced">
+              {{ t('insights.footprint.pendingSynced') }}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -383,13 +414,17 @@ const ledgerUnconfirmedSeconds = (value: {
   accepted: number
   provisional: number
 }) => value.pending + value.accepted + value.provisional
+// 状态栏以 month 实时报表及其逐日明细为准。listen/total 的累计值通常更新更慢，
+// 只用于累计卡片的本机补偿，不能再把已经由实时报表确认的时长显示成“待确认”。
 const visiblePendingNeteaseListenSeconds = computed(() =>
   Math.max(
     ledgerUnconfirmedSeconds(todayLedger.value),
     ledgerUnconfirmedSeconds(weekLedger.value),
-    ledgerUnconfirmedSeconds(monthLedger.value),
-    ledgerUnconfirmedSeconds(totalLedger.value)
+    ledgerUnconfirmedSeconds(monthLedger.value)
   )
+)
+const backgroundPendingNeteaseListenSeconds = computed(() =>
+  Math.max(visiblePendingNeteaseListenSeconds.value, ledgerUnconfirmedSeconds(totalLedger.value))
 )
 
 const addPendingListenSeconds = (
@@ -421,8 +456,7 @@ const submittedNeteaseListenSeconds = computed(() =>
   Math.max(
     todayLedger.value.accepted,
     weekLedger.value.accepted,
-    monthLedger.value.accepted,
-    totalLedger.value.accepted
+    monthLedger.value.accepted
   )
 )
 const todayDataConflict = computed(
@@ -441,26 +475,6 @@ const formatPendingListenDuration = (seconds: number): string => {
   }
   return t('insights.footprint.durationSeconds', { seconds: restSeconds })
 }
-
-const pendingStatusText = computed(() => {
-  const submitted = Math.max(0, submittedNeteaseListenSeconds.value)
-  const unsubmitted = pendingUnsubmittedSeconds.value
-
-  if (submitted > 0 && unsubmitted > 0) {
-    return t('insights.footprint.pendingMixed', {
-      pending: formatPendingListenDuration(unsubmitted),
-      submitted: formatPendingListenDuration(submitted)
-    })
-  }
-  if (submitted > 0) {
-    return t('insights.footprint.pendingSubmitted', {
-      duration: formatPendingListenDuration(submitted)
-    })
-  }
-  return t('insights.footprint.pendingUnsubmitted', {
-    duration: formatPendingListenDuration(unsubmitted)
-  })
-})
 
 const formatDisplayListenDuration = (seconds?: number): string => {
   if (!Number.isFinite(seconds) || Number(seconds) < 0) return '—'
@@ -634,7 +648,6 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
       remoteSeconds: nextTodaySeconds
     })
   }
-
 }
 
 /**
@@ -655,7 +668,7 @@ const refreshFootprintWithConfirmation = async (): Promise<void> => {
     if (visiblePendingNeteaseListenSeconds.value <= 0) return
   }
 
-  showToast(t('insights.footprint.pendingHint'))
+  showToast(t('insights.footprint.pendingRefreshNotice'))
 }
 
 const cloudSongId = (track: any): string =>
@@ -829,13 +842,16 @@ const startPendingSyncPolling = (): void => {
   if (
     footprintSyncInterval !== null ||
     activeTab.value !== 'footprint' ||
-    visiblePendingNeteaseListenSeconds.value <= 0
+    backgroundPendingNeteaseListenSeconds.value <= 0
   ) {
     return
   }
 
   footprintSyncInterval = window.setInterval(() => {
-    if (activeTab.value !== 'footprint' || visiblePendingNeteaseListenSeconds.value <= 0) {
+    if (
+      activeTab.value !== 'footprint' ||
+      backgroundPendingNeteaseListenSeconds.value <= 0
+    ) {
       stopPendingSyncPolling()
       return
     }
@@ -863,7 +879,7 @@ watch(
 )
 
 watch(
-  () => [activeTab.value, visiblePendingNeteaseListenSeconds.value] as const,
+  () => [activeTab.value, backgroundPendingNeteaseListenSeconds.value] as const,
   ([tab, pendingSeconds]) => {
     if (tab === 'footprint' && pendingSeconds > 0) startPendingSyncPolling()
     else stopPendingSyncPolling()
@@ -913,6 +929,16 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
+}
+
+.footprint-head {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+  align-items: start;
+}
+
+.section-information {
+  min-width: 0;
 }
 
 .hero {
@@ -1092,15 +1118,83 @@ button:disabled {
   }
 }
 
+.sync-status-panel {
+  display: grid;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-body-bg));
+}
+
+.sync-status-title {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.sync-status-stack {
+  display: grid;
+  gap: 6px;
+}
+
 .sync-status {
-  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
   padding: 7px 11px;
   border-radius: 999px;
   color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
   font-size: 12px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sync-status.synced {
+  color: #16803c;
+  background: color-mix(in srgb, #22c55e 12%, var(--color-body-bg));
+}
+
+.sync-status.inactive {
+  opacity: 0.48;
+}
+
+.sync-status-help {
+  display: grid;
+  gap: 5px;
+  max-width: 680px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.sync-status-help > div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px;
+}
+
+.sync-status-help dt {
+  font-weight: 700;
+}
+
+.sync-status-help dd {
+  min-width: 0;
+  margin: 0;
+  opacity: 0.62;
 }
 
 .metric-grid:not(.compact) .metric-card:nth-child(4) strong {
@@ -1536,6 +1630,10 @@ input {
 }
 
 @media (max-width: 900px) {
+  .footprint-head {
+    grid-template-columns: minmax(0, 7fr) minmax(240px, 3fr);
+  }
+
   .metric-grid,
   .metric-grid.compact {
     grid-template-columns: 1fr 1fr;
@@ -1547,9 +1645,17 @@ input {
 }
 
 @media (max-width: 640px) {
-  .hero,
-  .section-head {
+  .hero {
     flex-direction: column;
+  }
+
+  .footprint-head {
+    grid-template-columns: minmax(0, 7fr) minmax(210px, 3fr);
+    gap: 12px;
+  }
+
+  .sync-status-panel {
+    padding: 10px;
   }
 
   .metric-grid,

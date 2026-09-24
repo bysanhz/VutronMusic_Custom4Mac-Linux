@@ -142,6 +142,19 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(ledger).toContain('migrateLegacyOutbox')
   })
 
+  test('automatically submits the active listening session only when the song ends or changes', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
+
+    expect(player).not.toContain('AUTO_NETEASE_SUBMIT_SECONDS')
+    expect(player).not.toContain('neteaseSessionLastAutoSubmitSeconds')
+    expect(player).toContain('excludeSessionId: neteaseSessionId || undefined')
+    expect(player).toContain('void scrobbleNetease(currentTrack.value, seek.value)')
+    expect(player).toContain('void scrobbleNetease(endedTrack, currentTrackDuration.value, true)')
+    expect(ledger).toContain('excludeSessionId?: string')
+    expect(ledger).toContain('entry.sessionId !== options.excludeSessionId')
+  })
+
   test('tracks submitted listen time separately until NetEase confirms it', () => {
     const pending = readSource('src/renderer/utils/neteaseListenLedger.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
@@ -156,7 +169,8 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(pending).toContain('export const reconcileNeteaseListenReport =')
     expect(insights).toContain('const pendingUnsubmittedSeconds = computed')
     expect(insights).toContain("t('insights.footprint.pendingSubmitted'")
-    expect(insights).toContain("t('insights.footprint.pendingMixed'")
+    expect(insights).toContain("t('insights.footprint.pendingUnsubmitted'")
+    expect(insights).toContain('class="sync-status-stack"')
   })
 
   test('keeps normal scrobble diagnostics development-only but preserves failures', () => {
