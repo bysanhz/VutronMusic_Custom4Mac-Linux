@@ -413,6 +413,7 @@ type statusMap = {
   line: [number, number] // 当前行，当前播放进度
   rate: number
   seek: number // 目前这一项的触发是在当单双行切换、翻译切换时更新播放进度
+  syncGuard: boolean // 看门狗校时只更新内部锚点，不应重写正在播放的 WAAPI currentTime
   isFallbackTrackInfo: boolean
   fallbackTrackText: string
 }
@@ -467,7 +468,14 @@ window.addEventListener('message', (event: MessageEvent) => {
     playbackRate.value = data.rate
   }
 
-  if (data.seek !== undefined) {
+  if (data.seek !== undefined && data.syncGuard !== true) {
+    /*
+     * osdLyricSyncGuard 会周期性向主播放器取真实 seek，用于校正它自己的本地时钟。
+     * 这类响应不能再写回 LyricLine 的 WAAPI currentTime：动画已经由 document.timeline
+     * 连续推进，Linux 下 IPC/合成器延迟会让刚收到的 seek 比当前动画落后几十到数百毫秒，
+     * 反复覆盖后就表现为第一个字来回闪/回退。用户主动 seek、可见性恢复等未带
+     * syncGuard 标记的校时仍正常应用。
+     */
     seek.value = data.seek
   }
 })
