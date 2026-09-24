@@ -62,6 +62,18 @@ test.describe('desktop lyric continuity', () => {
     expect(watchdog).toContain('WATCHDOG_INTERVAL_MS = 250')
   })
 
+  test('keeps OSD word timing event-driven instead of progress-driven', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const container = readSource('src/renderer/components/OsdLyricContainer.vue')
+
+    expect(player).toContain('watch(currentIndex, (value) => {')
+    expect(player).not.toContain('() => [currentIndex.value, progress.value]')
+    expect(player).toContain('line: [currentIndex.value, value]')
+    expect(player).toContain('seek: value')
+    expect(container).toContain('if (isShowingNextGroup.value && i === 0)')
+    expect(container).toContain("instance?.updatePlayStatus('reset')")
+  })
+
   test('does not render a new track with the previous track played state', () => {
     const player = readSource('src/renderer/store/player.ts')
     const container = readSource('src/renderer/components/OsdLyricContainer.vue')
