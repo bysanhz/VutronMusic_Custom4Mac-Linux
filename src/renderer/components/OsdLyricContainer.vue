@@ -472,8 +472,22 @@ window.addEventListener('message', (event: MessageEvent) => {
 
   if (data.line !== undefined) {
     const [lineIndex, seekValue] = data.line
+    const lineChanged = lineIndex !== currentIndex.value
+    const isExplicitSeek = data.seek !== undefined && data.syncGuard !== true
+
+    /*
+     * 正常播放时，一次换行可能先由 OSD sync guard 预测出来，随后主播放器再发来
+     * 同一 lineIndex 的权威消息。Linux 下后者常晚几百毫秒到达；如果再次把旧的
+     * seekValue 写进 seek，WAAPI 的逐字 currentTime 就会被拉回，于是视频里能看到
+     * “因为 → 因 → 因为…”这类开头几字往返。
+     *
+     * 同一行的普通 line 消息现在只确认行号，不再重写时间轴。真正的用户 seek、
+     * 新歌初始化和 OSD 初始化都会同时携带 data.seek，仍然会执行精确校时。
+     */
     currentIndex.value = lineIndex
-    seek.value = seekValue
+    if (lineChanged || isExplicitSeek || !playing.value) {
+      seek.value = seekValue
+    }
   }
 
   if (data.rate !== undefined) {
