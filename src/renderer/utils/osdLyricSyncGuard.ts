@@ -12,7 +12,6 @@ type OsdStatus = {
 
 const LOCAL_TICK_MS = 250
 const AUTHORITATIVE_SYNC_MS = 1500
-const SYNTHETIC_LINE_GRACE_MS = 500
 const SYNTHETIC_MESSAGE_FLAG = '__vutronOsdSyncGuard'
 
 let initialized = false
@@ -48,8 +47,6 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
   let anchorTime = performance.now()
   let lastAuthoritativeSync = 0
   let lastKnownLine = Number.NaN
-  let pendingSyntheticLine = Number.NaN
-  let pendingSyntheticSince = 0
 
   const estimateSeek = (now = performance.now()) => {
     if (!playing) return anchorSeek
@@ -99,29 +96,8 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
      * 的 currentTime 会让第一个字在前后两个时间点之间反复回跳。只在行号真正变化
      * 时发布 synthetic line，既保留卡行容错，也不再和逐字动画争夺时间轴。
      */
-    if (line === lastKnownLine) {
-      pendingSyntheticLine = Number.NaN
-      pendingSyntheticSince = 0
-      return
-    }
-
-    const now = performance.now()
-    if (line !== pendingSyntheticLine) {
-      pendingSyntheticLine = line
-      pendingSyntheticSince = now
-      return
-    }
-
-    /*
-     * 给主播放器真实换行消息留 500ms 的优先窗口。Linux 上 setTimeout、
-     * MessagePort 和 compositor 的调度先后更容易在行边界交错；如果看门狗一预测到
-     * 下一行就立即抢先发布，真实旧行/新行消息可能与它来回覆盖，造成行首动画重启。
-     */
-    if (now - pendingSyntheticSince < SYNTHETIC_LINE_GRACE_MS) return
-
+    if (line === lastKnownLine) return
     lastKnownLine = line
-    pendingSyntheticLine = Number.NaN
-    pendingSyntheticSince = 0
 
     window.postMessage(
       {
@@ -149,8 +125,6 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
       lyrics = data.lyrics
       // 新歌词可能从相同的数字行号开始，必须允许看门狗重新建立行状态。
       lastKnownLine = Number.NaN
-      pendingSyntheticLine = Number.NaN
-      pendingSyntheticSince = 0
     }
 
     if (data.rate !== undefined) {
@@ -170,8 +144,6 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
 
     if (data.line !== undefined) {
       lastKnownLine = Number(data.line[0])
-      pendingSyntheticLine = Number.NaN
-      pendingSyntheticSince = 0
       setSeekAnchor(data.line[1])
     } else if (data.seek !== undefined) {
       setSeekAnchor(data.seek)
