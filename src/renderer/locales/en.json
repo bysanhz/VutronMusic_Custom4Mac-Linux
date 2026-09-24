@@ -1007,6 +1007,7 @@
       "readLyric": "Read Cloud Lyrics",
       "delete": "Delete from Cloud",
       "empty": "Cloud storage is empty, or you are not signed in.",
+      "searchNoResults": "No matching cloud tracks.",
       "unknownTrack": "Unknown track",
       "selectAndTarget": "Select a cloud track and enter the target track ID.",
       "rematchFailed": "Cloud rematch failed.",
@@ -1041,7 +1042,7 @@
       "rematchDescription": "Associate the selected cloud track with a specific online NetEase track.",
       "targetIdHint": "How to get it: find the target track in Search, right-click it, then choose Copy ID.",
       "deleteToolTitle": "Cloud Deletion",
-      "deleteToolDescription": "Enter multi-select mode to delete by selection, select all, or endpoint range."
+      "deleteToolDescription": "Enter multi-select mode to search, select, select all, or delete by endpoint range."
     }
   },
   "streamLogin": {
