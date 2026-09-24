@@ -47,6 +47,7 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
   let anchorTime = performance.now()
   let lastAuthoritativeSync = 0
   let lastKnownLine = Number.NaN
+  let hasAnchorForCurrentLyrics = false
 
   const estimateSeek = (now = performance.now()) => {
     if (!playing) return anchorSeek
@@ -83,7 +84,7 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
   }
 
   const postSyntheticLine = () => {
-    if (!playing || !lyrics.length) return
+    if (!playing || !lyrics.length || !hasAnchorForCurrentLyrics) return
 
     const seek = estimateSeek()
     const line = findLyricIndex(seek)
@@ -123,8 +124,11 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
 
     if (Array.isArray(data.lyrics)) {
       lyrics = data.lyrics
-      // 新歌词可能从相同的数字行号开始，必须允许看门狗重新建立行状态。
+      // 新歌词到达时上一首歌的 anchorSeek 已经失效。Linux 下 IPC 调度更容易让
+      // 看门狗先于新的 line/seek 消息运行，因此必须先冻结 synthetic line，
+      // 直到同一首新歌拿到权威时间锚点。
       lastKnownLine = Number.NaN
+      hasAnchorForCurrentLyrics = false
     }
 
     if (data.rate !== undefined) {
@@ -140,13 +144,16 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
       const nextOffset = Number(offset)
       if (Number.isFinite(nextOffset)) lyricOffset = nextOffset
       setSeekAnchor(seek)
+      hasAnchorForCurrentLyrics = true
     }
 
     if (data.line !== undefined) {
       lastKnownLine = Number(data.line[0])
       setSeekAnchor(data.line[1])
+      hasAnchorForCurrentLyrics = true
     } else if (data.seek !== undefined) {
       setSeekAnchor(data.seek)
+      hasAnchorForCurrentLyrics = true
     }
 
     if (data.playing !== undefined && data.playing !== playing) {
