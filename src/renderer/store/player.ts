@@ -335,6 +335,15 @@ export const usePlayerStore = defineStore(
         if (window.env?.isLinux) {
           window.mainApi?.send('updatePlayerState', { progress: value })
         }
+        if (osdLyricStore.show) {
+          window.mainApi?.sendMessage({
+            type: 'update-osd-status',
+            data: {
+              line: [currentIndex.value, value],
+              seek: value
+            }
+          })
+        }
         navigator.mediaSession.setPositionState({
           duration: currentTrackDuration.value,
           playbackRate: playbackRate.value,
@@ -2047,16 +2056,13 @@ export const usePlayerStore = defineStore(
         }
       })
 
-      watch(
-        () => [currentIndex.value, progress.value],
-        (value) => {
-          if (osdLyricStore.show)
-            window.mainApi?.sendMessage({
-              type: 'update-osd-status',
-              data: { line: [value[0], audioNodes.audio?.currentTime || 0] }
-            })
-        }
-      )
+      watch(currentIndex, (value) => {
+        if (!osdLyricStore.show) return
+        window.mainApi?.sendMessage({
+          type: 'update-osd-status',
+          data: { line: [value, audioNodes.audio?.currentTime || 0] }
+        })
+      })
 
       watch(backRate, (value) => {
         if (osdLyricStore.show)
