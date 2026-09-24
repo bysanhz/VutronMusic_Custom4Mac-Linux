@@ -30,7 +30,7 @@
       <div
         v-for="(lyric, index) in lyricToShow"
         :id="`lyric${index}`"
-        :key="`${lyricRevision}:${lyricRenderKey(lyric)}`"
+        :key="index"
         class="lyric"
         :class="{
           active: index === highlightIdx,
@@ -93,19 +93,12 @@ const fallbackTextEl = ref<HTMLElement>()
 const fallbackNeedsMarquee = ref(false)
 const fallbackTravelPx = ref(0)
 const fallbackDurationSeconds = ref(8)
-const lyricRevision = ref(0)
 let fallbackResizeObserver: ResizeObserver | null = null
-let animationScheduleRevision = 0
 
 const fallbackTrackInfoStyle = computed(() => ({
   '--fallback-travel': `${fallbackTravelPx.value}px`,
   '--fallback-duration': `${fallbackDurationSeconds.value}s`
 }))
-
-const lyricRenderKey = (lyric: lyricLine): string => {
-  const sourceIndex = lyrics.value.indexOf(lyric)
-  return `${sourceIndex}:${lyric.start}:${lyric.end}`
-}
 
 const measureFallbackTrackInfo = async () => {
   await nextTick()
@@ -149,7 +142,6 @@ const applyFallbackTrackTitle = (player: Record<string, any>) => {
   const titleText = track.name || t('settings.osdLyric.fallbackTitle')
   const displayText = artistText ? `${artistText} - ${titleText}` : titleText
 
-  lyricRevision.value += 1
   lyrics.value = [
     {
       start: 0,
@@ -277,7 +269,6 @@ const isShowingNextGroup = computed(() => {
 })
 
 const clearAnimations = (clearAll = true) => {
-  animationScheduleRevision += 1
   lyricRefs.value.forEach((instance) => {
     instance.clearAnimation(clearAll)
   })
@@ -286,13 +277,10 @@ const clearAnimations = (clearAll = true) => {
 const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
   if (!lyricRefs.value?.length) return
 
-  const revision = ++animationScheduleRevision
   const BATCH_SIZE = 3
   const BATCH_DELAY_MS = 50
 
   for (let index = 0; index < lyricToShow.value.length; index++) {
-    if (revision !== animationScheduleRevision) return
-
     const instance = lyricRefs.value[index]
     if (!instance) continue
     const idx =
@@ -304,13 +292,11 @@ const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
     const delayMs = isMini.value ? 0 : Math.floor(diff / BATCH_SIZE) * BATCH_DELAY_MS
 
     if (delayMs > 0) {
-      window.setTimeout(() => {
-        if (revision !== animationScheduleRevision) return
-        void instance?.createAnimations(type)
+      setTimeout(() => {
+        instance?.createAnimations(type)
       }, delayMs)
     } else {
       await instance?.createAnimations(type)
-      if (revision !== animationScheduleRevision) return
     }
 
     if (index === highlightIdx.value) {
@@ -332,13 +318,9 @@ watch(
 )
 
 watch(lyricToShow, async () => {
-  /*
-   * mini 双行模式会在每次换行时替换“旁边那一行”的内容。旧逻辑因此把当前
-   * 正在播放的 LyricLine 动画也一起 cancel/recreate，Linux 上较慢的 DOM/WAAPI
-   * 调度会把当前行开头重置数次。现在保留仍存在的行，只为新进入视图的行补动画。
-   */
+  clearAnimations()
   await nextTick()
-  void scheduleAnimation()
+  scheduleAnimation()
 })
 
 watch(playing, (value) => {
@@ -354,15 +336,14 @@ watch(isWordByWord, async () => {
   const idx = currentIndex.value
   currentIndex.value = -1
   clearAnimations()
+  scheduleAnimation()
   await nextTick()
   currentIndex.value = idx
-  await nextTick()
-  void scheduleAnimation()
 })
 
 watch(translationMode, () => {
   clearAnimations(false)
-  void scheduleAnimation('translation')
+  scheduleAnimation('translation')
   if (isMini.value) return
   const idx = Math.max(0, highlightIdx.value)
   const el = document.getElementById(`lyric${idx}`)
@@ -444,7 +425,6 @@ window.addEventListener('message', (event: MessageEvent) => {
 
   if (data.lyrics !== undefined) {
     if (data.isFallbackTrackInfo === true) {
-      lyricRevision.value += 1
       lyrics.value = Array.isArray(data.lyrics) ? data.lyrics : []
       fallbackTrackText.value =
         String(data.fallbackTrackText || data.lyrics?.[0]?.lyric?.text || '').trim() ||
@@ -453,7 +433,6 @@ window.addEventListener('message', (event: MessageEvent) => {
       isFallbackTrackTitle.value = true
       void measureFallbackTrackInfo()
     } else if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
-      lyricRevision.value += 1
       lyrics.value = data.lyrics
       isFallbackTrackTitle.value = false
       fallbackTrackText.value = ''
@@ -532,7 +511,6 @@ onMounted(async () => {
   lyricOffset.value = Math.round((trackOffset + globalOffset) * 10) / 10
 
   if (Array.isArray(player.lyrics)) {
-    lyricRevision.value += 1
     lyrics.value = player.lyrics
   }
 
@@ -546,7 +524,7 @@ onMounted(async () => {
   if (fallbackViewport.value) fallbackResizeObserver?.observe(fallbackViewport.value)
   void measureFallbackTrackInfo()
 
-  void scheduleAnimation()
+  scheduleAnimation()
 
   if (isMini.value) return
   await nextTick()
