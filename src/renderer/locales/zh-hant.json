@@ -948,7 +948,7 @@
     },
     "footprint": {
       "title": "聽歌足跡",
-      "description": "今日顯示不同歌曲數；本週按週一至今天統計，時長會即時疊加本機尚未同步的有效播放。",
+      "description": "統計卡僅顯示網易雲已確認的帳號資料；本機待提交/待確認時長在右側單獨顯示，本週按週一至今天統計。",
       "pending": "待同步 +{duration}",
       "pendingUnsubmitted": "待提交 +{duration}",
       "pendingSubmitted": "已提交待確認 +{duration}",
@@ -961,7 +961,7 @@
       "pendingSubmittedLabel": "待確認：",
       "pendingSubmittedHelp": "網易雲已接收，等待報表更新。",
       "pendingSyncedLabel": "已同步：",
-      "pendingSyncedHelp": "即時報表已追上；更新較慢的累計報表仍會由本機補償。",
+      "pendingSyncedHelp": "即時報表已追上；統計卡只顯示網易雲已確認的帳號資料。",
       "refreshHint": "提交目前歌曲尚未上報的收聽時長並重試歷史失敗記錄，再重新讀取網易雲統計，短時間確認遠端是否已落庫。",
       "today": "今日",
       "todayCount": "{count} 首",
