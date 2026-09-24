@@ -433,6 +433,13 @@ window.addEventListener('message', (event: MessageEvent) => {
       isFallbackTrackTitle.value = true
       void measureFallbackTrackInfo()
     } else if (Array.isArray(data.lyrics) && data.lyrics.length > 0) {
+      /*
+       * 新歌歌词不能沿用上一首歌的 currentIndex。即使新的 line 与 lyrics 因 IPC
+       * 调度分成两个消息到达，也宁可先显示“未播放”，不能短暂套用旧歌的 played 类。
+       * 当前协议会把 line/seek 与 lyrics 同包发送；Vue 同一事件内会批量提交，因此
+       * 正常情况下不会产生额外的视觉中间态。
+       */
+      currentIndex.value = -1
       lyrics.value = data.lyrics
       isFallbackTrackTitle.value = false
       fallbackTrackText.value = ''
