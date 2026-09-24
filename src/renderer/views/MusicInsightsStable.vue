@@ -596,29 +596,29 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
     if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
 
     const nextTotalSeconds = extractTotalListenSeconds(total)
-  if (nextTotalSeconds !== undefined) {
-    footprint.totalSeconds = nextTotalSeconds
-    reconcileNeteaseListenReport({
-      accountId: accountId.value,
-      periodKey: totalPeriodKey,
-      rangeStart: Number.NEGATIVE_INFINITY,
-      rangeEnd: Number.POSITIVE_INFINITY,
-      remoteSeconds: nextTotalSeconds
-    })
-  }
+    if (nextTotalSeconds !== undefined) {
+      footprint.totalSeconds = nextTotalSeconds
+      reconcileNeteaseListenReport({
+        accountId: accountId.value,
+        periodKey: totalPeriodKey,
+        rangeStart: Number.NEGATIVE_INFINITY,
+        rangeEnd: Number.POSITIVE_INFINITY,
+        remoteSeconds: nextTotalSeconds
+      })
+    }
     if (!month) return
 
     let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
     const nextMonthSeconds = extractRealtimeListenSeconds(month)
     const nextTodaySeconds = extractTodayListenSeconds(month)
 
-    // 少数账号/接口版本的 month report 不带逐日明细，无法计算自然周；
-    // 此时才额外请求 week report，避免待同步状态永远无法被抵扣。
-    if (nextRemoteWeekSeconds === undefined) {
+    // month 缺逐日明细，或今日专用接口临时不可用时，才补请求 week report。
+    // 这样既保留自然周兜底，也能避免今日首数因为单个接口失败长期停留在旧值。
+    if (nextRemoteWeekSeconds === undefined || nextTodayCount === undefined) {
       const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
-      nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
-
-      // 今日专用接口异常时才使用 weekTodayListenBlock 兜底。
+      if (nextRemoteWeekSeconds === undefined) {
+        nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
+      }
       if (nextTodayCount === undefined) {
         const fallbackCount = extractTodaySongCount(today, week)
         if (fallbackCount !== undefined) footprint.todayCount = fallbackCount
