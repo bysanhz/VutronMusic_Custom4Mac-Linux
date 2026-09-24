@@ -258,6 +258,19 @@
 
       <div v-show="cloudBatchMode && cloudTracks.length" class="cloud-batch-panel">
         <div class="cloud-batch-sticky-tools">
+          <div class="cloud-batch-search">
+            <SvgIcon icon-class="search" />
+            <input
+              v-model="cloudBatchKeyword"
+              type="search"
+              :placeholder="
+                t('localMusic.search', {
+                  target: t('insights.cloud.track')
+                })
+              "
+            />
+          </div>
+
           <div class="cloud-batch-toolbar">
             <label class="cloud-batch-select-all">
               <input
@@ -309,7 +322,7 @@
 
         <div class="cloud-batch-list">
           <label
-            v-for="(track, index) in cloudTracks"
+            v-for="(track, index) in filteredCloudBatchTracks"
             :key="`batch-${cloudSongId(track)}`"
             class="cloud-batch-item"
           >
@@ -323,6 +336,9 @@
             <span class="cloud-batch-name">{{ cloudSongName(track) }}</span>
             <span class="cloud-batch-id">{{ cloudSongId(track) }}</span>
           </label>
+          <div v-if="!filteredCloudBatchTracks.length" class="cloud-batch-empty">
+            {{ t('insights.cloud.searchNoResults') }}
+          </div>
         </div>
       </div>
 
@@ -535,6 +551,7 @@ const cloudSingleKeyword = ref('')
 const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
 const cloudBatchMode = ref(false)
+const cloudBatchKeyword = ref('')
 const cloudBatchSongIds = ref<string[]>([])
 const cloudBatchDeleting = ref(false)
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
@@ -567,6 +584,12 @@ const selectedCloudTrack = computed(
   () => cloudTracks.value.find((track) => cloudSongId(track) === selectedCloudSongId.value) ?? null
 )
 
+const filteredCloudBatchTracks = computed(() => {
+  const keyword = cloudBatchKeyword.value.trim().toLocaleLowerCase()
+  if (!keyword) return cloudTracks.value
+  return cloudTracks.value.filter((track) => cloudTrackSearchText(track).includes(keyword))
+})
+
 const closeCloudTrackPicker = (): void => {
   cloudTrackPickerOpen.value = false
 }
@@ -594,7 +617,7 @@ const handleCloudTrackPickerOutsidePointer = (event: PointerEvent): void => {
 }
 
 const cloudBatchAllSelected = computed(() => {
-  const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
+  const ids = filteredCloudBatchTracks.value.map(cloudSongId).filter(Boolean)
   if (!ids.length) return false
   const selected = new Set(cloudBatchSongIds.value)
   return ids.every((id) => selected.has(id))
@@ -791,16 +814,25 @@ const cloudSongName = (track: any): string =>
 const toggleCloudBatchMode = (): void => {
   if (cloudBatchDeleting.value) return
   cloudBatchMode.value = !cloudBatchMode.value
-  if (!cloudBatchMode.value) cloudBatchSongIds.value = []
+  if (!cloudBatchMode.value) {
+    cloudBatchKeyword.value = ''
+    cloudBatchSongIds.value = []
+  }
 }
 
 const toggleCloudBatchAll = (): void => {
   if (cloudBatchDeleting.value) return
+
+  const visibleIds = filteredCloudBatchTracks.value.map(cloudSongId).filter(Boolean)
+  if (!visibleIds.length) return
+
+  const nextSelected = new Set(cloudBatchSongIds.value)
   if (cloudBatchAllSelected.value) {
-    cloudBatchSongIds.value = []
-    return
+    visibleIds.forEach((id) => nextSelected.delete(id))
+  } else {
+    visibleIds.forEach((id) => nextSelected.add(id))
   }
-  cloudBatchSongIds.value = Array.from(new Set(cloudTracks.value.map(cloudSongId).filter(Boolean)))
+  cloudBatchSongIds.value = Array.from(nextSelected)
 }
 
 const clearCloudBatchSelection = (): void => {
@@ -812,7 +844,7 @@ const selectCloudBatchRange = (): void => {
   if (cloudBatchDeleting.value) return
 
   const selectedIds = new Set(cloudBatchSongIds.value)
-  const selectedIndexes = cloudTracks.value
+  const selectedIndexes = filteredCloudBatchTracks.value
     .map((track, index) => (selectedIds.has(cloudSongId(track)) ? index : -1))
     .filter((index) => index >= 0)
 
@@ -827,7 +859,7 @@ const selectCloudBatchRange = (): void => {
   const to = Math.max(...selectedIndexes)
   const nextSelected = new Set(cloudBatchSongIds.value)
 
-  for (const track of cloudTracks.value.slice(from, to + 1)) {
+  for (const track of filteredCloudBatchTracks.value.slice(from, to + 1)) {
     const id = cloudSongId(track)
     if (id) nextSelected.add(id)
   }
@@ -1689,6 +1721,32 @@ input {
   box-shadow: 0 8px 18px color-mix(in srgb, var(--color-text) 7%, transparent);
 }
 
+.cloud-batch-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  margin-bottom: 8px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--color-body-bg);
+
+  .svg-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    opacity: 0.42;
+  }
+
+  input {
+    min-height: 38px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+  }
+}
+
 .cloud-batch-toolbar {
   display: flex;
   align-items: center;
@@ -1769,6 +1827,13 @@ input {
 .cloud-batch-list {
   display: grid;
   gap: 4px;
+}
+
+.cloud-batch-empty {
+  padding: 24px 10px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.5;
 }
 
 .cloud-batch-item {
