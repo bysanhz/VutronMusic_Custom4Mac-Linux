@@ -62,6 +62,20 @@ test.describe('desktop lyric continuity', () => {
     expect(watchdog).toContain('WATCHDOG_INTERVAL_MS = 250')
   })
 
+  test('does not render a new track with the previous track played state', () => {
+    const player = readSource('src/renderer/store/player.ts')
+    const container = readSource('src/renderer/components/OsdLyricContainer.vue')
+    const guard = readSource('src/renderer/utils/osdLyricSyncGuard.ts')
+
+    expect(player).toContain('line: [currentIndex.value, currentTime]')
+    expect(player).toContain('seek: currentTime')
+    expect(container).toContain('currentIndex.value = -1')
+    expect(guard).toContain('let hasAnchorForCurrentLyrics = false')
+    expect(guard).toContain('!hasAnchorForCurrentLyrics')
+    expect(guard).toContain('hasAnchorForCurrentLyrics = false')
+    expect(guard).toContain('hasAnchorForCurrentLyrics = true')
+  })
+
   test('keeps Linux word timing monotonic without changing two-line lifecycle', () => {
     const container = readSource('src/renderer/components/OsdLyricContainer.vue')
     const line = readSource('src/renderer/components/LyricLine.vue')
