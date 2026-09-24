@@ -1007,6 +1007,7 @@
       "readLyric": "讀取雲端硬碟歌詞",
       "delete": "從雲端硬碟刪除",
       "empty": "目前雲端硬碟為空，或帳號尚未登入。",
+      "searchNoResults": "沒有符合的雲端硬碟歌曲。",
       "unknownTrack": "未知歌曲",
       "selectAndTarget": "請選擇雲端硬碟歌曲並填寫目標歌曲 ID",
       "rematchFailed": "雲端硬碟重新匹配失敗",
@@ -1041,7 +1042,7 @@
       "rematchDescription": "將目前雲端硬碟歌曲重新關聯到指定的網易雲線上歌曲。",
       "targetIdHint": "取得方式：在搜尋頁找到目標歌曲，右鍵該歌曲並選擇「複製ID」。",
       "deleteToolTitle": "雲端硬碟刪除",
-      "deleteToolDescription": "進入多選模式後，可批次、全選或按首尾區間刪除雲端硬碟歌曲。"
+      "deleteToolDescription": "進入多選模式後，可搜尋、批次、全選或按首尾區間刪除雲端硬碟歌曲。"
     }
   },
   "streamLogin": {
