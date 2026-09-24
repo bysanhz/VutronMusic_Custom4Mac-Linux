@@ -51,6 +51,7 @@ const animationActionMap: Record<AnimationStatus, (an: Animation) => void> = {
 
 const lineRef = ref<HTMLElement | null>(null)
 const translationRef = ref<HTMLElement | null>()
+const isLinux = Boolean(window.env?.isLinux)
 
 const animations = {
   lyric: null as Animation | null,
@@ -247,17 +248,36 @@ const createAnimations = async (type: 'all' | 'translation' = 'all') => {
   for (const l of lst) {
     const item = map[l]
     if (!item.dom) continue
-    let spanWidths: number[] = []
 
-    if (item.info) {
+    const needsWordAnimation = Boolean(item.info && !animations[l])
+    const needsScrollAnimation = Boolean(props.isMini && !scrollAnimations[l])
+    if (!needsWordAnimation && !needsScrollAnimation) continue
+
+    /*
+     * Linux 下字体解析/替换通常比 macOS 慢一拍。等 FontFaceSet 稳定后再测字宽，
+     * 避免同一行刚开始时因为字体度量变化反复重建第一字的渐变位置。
+     */
+    if (isLinux && document.fonts?.status === 'loading') {
+      try {
+        await document.fonts.ready
+      } catch {
+        // 字体加载失败时仍继续使用当前可用字体度量。
+      }
+    }
+
+    let spanWidths: number[] = []
+    if (item.info && (needsWordAnimation || needsScrollAnimation)) {
       spanWidths = await measureDom(item.dom, item.info)
+    }
+
+    if (needsWordAnimation && item.info) {
       animations[l] = buildWordAnimation(item.dom, item.info, spanWidths)
     }
 
-    if (props.isMini) {
-      const an = buildScrollAnimation(item.dom, item.info, spanWidths)
-      scrollAnimations[l] = an
+    if (needsScrollAnimation) {
+      scrollAnimations[l] = buildScrollAnimation(item.dom, item.info, spanWidths)
     }
+
     await new Promise(requestAnimationFrame)
   }
 }
@@ -277,7 +297,32 @@ const updateCurrentTime = (timeMs: number) => {
   ]
 
   const lineStartMs = props.item.start * 1000
-  const timeOffset = timeMs - lineStartMs
+  let timeOffset = timeMs - lineStartMs
+
+  /*
+   * Linux Chromium 的 WAAPI 在歌词行刚开始时，IPC 校时可能比 compositor 已推进的
+   * currentTime 落后几十到几百毫秒。直接覆盖会让第一字“前进→回退→再前进”。
+   *
+   * 这里只钳制行首 1.5 秒内、幅度不超过 600ms 的小幅回退；明显的用户 seek、
+   * 切歌或大范围跳转仍然允许正常后退。
+   */
+  if (isLinux && props.playing) {
+    const liveTimes = anList
+      .map((animation) => Number(animation?.currentTime))
+      .filter((value) => Number.isFinite(value))
+    const liveTime = liveTimes.length ? Math.max(...liveTimes) : Number.NaN
+
+    if (
+      Number.isFinite(liveTime) &&
+      liveTime >= 0 &&
+      liveTime <= 1500 &&
+      timeOffset >= -100 &&
+      timeOffset < liveTime &&
+      liveTime - timeOffset <= 600
+    ) {
+      timeOffset = liveTime
+    }
+  }
 
   anList.forEach((an) => {
     if (an) an.currentTime = timeOffset
