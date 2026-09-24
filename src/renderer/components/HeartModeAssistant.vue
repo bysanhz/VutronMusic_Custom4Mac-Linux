@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="isHeartMode"
+    v-if="shouldShowAssistant"
     :class="['heart-mode-assistant', { 'is-dark': isDarkMode, dragging: isDragging }]"
     :style="assistantStyle"
   >
@@ -947,6 +947,9 @@ const isHeartMode = computed(() => {
   if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return false
   return resolveHeartModeSourceSeedId(activeSession, trackId) !== null
 })
+// macOS 将悬浮按钮作为自研心动模式的常驻入口；即使当前播放源不是心动模式，
+// 用户仍可打开说明与参数设置。其他平台继续只在心动模式播放期间显示。
+const shouldShowAssistant = computed(() => Boolean(window.env?.isMac) || isHeartMode.value)
 const effectiveProfile = computed(() => getEffectiveHeartModeProfile(session.value))
 const reason = computed(() => {
   const activeSession = sessionSnapshot.value.value
