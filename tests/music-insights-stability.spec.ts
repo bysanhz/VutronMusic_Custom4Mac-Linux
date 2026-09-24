@@ -79,6 +79,20 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('void refreshPendingRemoteDuration()')
   })
 
+  test('filters the Cloud Pro single-track selector by local metadata', () => {
+    const view = readSource('src/renderer/views/MusicInsightsStable.vue')
+
+    expect(view).toContain("import SearchBox from '../components/SearchBox.vue'")
+    expect(view).toContain('ref="cloudSingleSearchBoxRef"')
+    expect(view).toContain(':show-input-initially="true"')
+    expect(view).toContain('v-for="track in filteredCloudTracks"')
+    expect(view).toContain('const cloudSingleKeyword = computed(() =>')
+    expect(view).toContain('const cloudTrackSearchText = (track: any): string =>')
+    expect(view).toContain('const filteredCloudTracks = computed(() =>')
+    expect(view).toContain('album?.name')
+    expect(view).toContain('...artists.map((artist: any) => artist?.name)')
+  })
+
   test('keeps report confirmation isolated for every displayed period', () => {
     const view = readSource('src/renderer/views/MusicInsightsStable.vue')
     const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
