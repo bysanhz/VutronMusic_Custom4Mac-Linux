@@ -104,6 +104,10 @@ export function getTrackDetail(ids: string) {
 export type ScrobbleParams = {
   id: number
   sourceid: number | string
+  /** 稳定的播放片段 ID，用于请求重试和并发去重。 */
+  segmentId?: string
+  /** 实际播放记录产生时间（毫秒时间戳）；重试时必须保持不变，避免串到新的一天。 */
+  playedAt?: number
   time?: number
   total?: number
   name?: string
@@ -114,12 +118,14 @@ export type ScrobbleParams = {
   vip?: boolean
   allowShort?: boolean
   allowRepeat?: boolean
+  /** 时长账本必须收到 PLD 确认；失败时不回退会重复增加首数的旧接口。 */
+  requireDurationAware?: boolean
 }
 
 const SCROBBLE_DEDUP_WINDOW_MS = 10_000
 const MIN_NETEASE_SCROBBLE_SECONDS = 30
-const scrobbleInFlight = new Map<number, Promise<any>>()
-const lastSuccessfulScrobbleAt = new Map<number, number>()
+const scrobbleInFlight = new Map<string, Promise<any>>()
+const lastSuccessfulScrobbleAt = new Map<string, number>()
 
 /**
  * scrobble 的成功/回退/去重信息只在开发环境输出。
@@ -169,6 +175,7 @@ const performScrobble = async (params: ScrobbleParams) => {
     params: {
       ...params,
       sourceid,
+      playedAt: params.playedAt,
       timestamp: Date.now()
     }
   })
@@ -184,6 +191,16 @@ const performScrobble = async (params: ScrobbleParams) => {
       ...modernResult,
       durationAware: true
     }
+  }
+
+  if (params.requireDurationAware) {
+    console.warn('[Track API] 网易云时长上报失败，保留片段等待重试：', {
+      trackId: params.id,
+      sourceid,
+      time: params.time,
+      modernResult
+    })
+    return modernResult
   }
 
   debugScrobble('[Track API] /scrobble-v1 未成功，回退 legacy /scrobble：', {
@@ -248,6 +265,7 @@ const performScrobble = async (params: ScrobbleParams) => {
  */
 export function scrobble(params: ScrobbleParams): Promise<any> {
   const trackId = Number(params.id)
+  const deduplicationKey = params.segmentId || `track:${trackId}`
   const listenedSeconds = Number(params.time)
   const minimumSeconds = getMinimumScrobbleSeconds(params.total)
 
@@ -271,7 +289,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
     })
   }
 
-  const existing = scrobbleInFlight.get(trackId)
+  const existing = scrobbleInFlight.get(deduplicationKey)
   if (existing) {
     debugScrobble('[Track API] 合并同歌曲的并发 scrobble：', {
       trackId,
@@ -280,7 +298,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
     return existing
   }
 
-  const lastSuccessAt = lastSuccessfulScrobbleAt.get(trackId) || 0
+  const lastSuccessAt = lastSuccessfulScrobbleAt.get(deduplicationKey) || 0
   if (!params.allowRepeat && Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS) {
     debugScrobble('[Track API] 跳过短时间内的重复 scrobble：', {
       trackId,
@@ -298,17 +316,17 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
       // legacy /scrobble 只能作为“听过”的降级写入，不能阻止后续 duration-aware
       // checkpoint 在 10 秒内重试；只有 PLV/PLD 真正成功才进入时长去重窗口。
       if (isSuccessfulResponse(result) && result?.durationAware === true) {
-        lastSuccessfulScrobbleAt.set(trackId, Date.now())
+        lastSuccessfulScrobbleAt.set(deduplicationKey, Date.now())
       }
       return result
     })
     .finally(() => {
-      if (scrobbleInFlight.get(trackId) === operation) {
-        scrobbleInFlight.delete(trackId)
+      if (scrobbleInFlight.get(deduplicationKey) === operation) {
+        scrobbleInFlight.delete(deduplicationKey)
       }
     })
 
-  scrobbleInFlight.set(trackId, operation)
+  scrobbleInFlight.set(deduplicationKey, operation)
   return operation
 }
 

@@ -50,11 +50,16 @@
               ? t('insights.footprint.todayCount', { count: footprint.todayCount })
               : '—'
           }}</strong>
-          <small>{{
-            t('insights.footprint.todayListen', {
-              duration: formatDisplayListenDuration(displayTodaySeconds)
-            })
-          }}</small>
+          <div class="metric-foot">
+            <small>{{
+              t('insights.footprint.todayListen', {
+                duration: formatDisplayListenDuration(displayTodaySeconds)
+              })
+            }}</small>
+            <small v-if="todayDataConflict" class="metric-warning">{{
+              t('insights.footprint.todayDataConflict')
+            }}</small>
+          </div>
         </div>
         <div class="metric-card">
           <span>{{ t('insights.footprint.week') }}</span>
@@ -272,11 +277,13 @@ import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
-  pendingNeteaseListenSeconds,
-  provisionalNeteaseListenSeconds,
-  reconcileNeteaseRemoteWeekDuration,
-  submittedNeteaseListenSeconds
-} from '../utils/neteaseListenPending'
+  getNeteaseListenLedgerTotals,
+  localDateKey,
+  neteaseListenEntries,
+  provisionalNeteaseListen,
+  reconcileNeteaseListenReport,
+  setActiveNeteaseListenAccount
+} from '../utils/neteaseListenLedger'
 import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -324,23 +331,102 @@ const footprint = reactive<{
   allTracks: any[]
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
-const visiblePendingNeteaseListenSeconds = computed(
-  () => pendingNeteaseListenSeconds.value + provisionalNeteaseListenSeconds.value
+const clockNow = ref(Date.now())
+const accountId = computed(() => String(user.value.userId || 'anonymous'))
+
+const startOfToday = computed(() => {
+  const value = new Date(clockNow.value)
+  value.setHours(0, 0, 0, 0)
+  return value.getTime()
+})
+const endOfToday = computed(() => {
+  const value = new Date(startOfToday.value)
+  value.setHours(23, 59, 59, 999)
+  return value.getTime()
+})
+const startOfWeek = computed(() => {
+  const value = new Date(startOfToday.value)
+  value.setDate(value.getDate() - ((value.getDay() + 6) % 7))
+  return value.getTime()
+})
+const startOfMonth = computed(() => {
+  const value = new Date(startOfToday.value)
+  value.setDate(1)
+  return value.getTime()
+})
+
+const todayPeriodKey = computed(() => `today:${localDateKey(startOfToday.value)}`)
+const weekPeriodKey = computed(() => `week:${localDateKey(startOfWeek.value)}`)
+const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).slice(0, 7)}`)
+const totalPeriodKey = 'total'
+
+const ledgerTotals = (start: number, end: number, periodKey: string) => {
+  // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
+  void neteaseListenEntries.value
+  void provisionalNeteaseListen.value
+  return getNeteaseListenLedgerTotals(accountId.value, start, end, periodKey)
+}
+const todayLedger = computed(() =>
+  ledgerTotals(startOfToday.value, endOfToday.value, todayPeriodKey.value)
+)
+const weekLedger = computed(() =>
+  ledgerTotals(startOfWeek.value, endOfToday.value, weekPeriodKey.value)
+)
+const monthLedger = computed(() =>
+  ledgerTotals(startOfMonth.value, endOfToday.value, monthPeriodKey.value)
+)
+const totalLedger = computed(() =>
+  ledgerTotals(Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, totalPeriodKey)
+)
+const ledgerUnconfirmedSeconds = (value: {
+  pending: number
+  accepted: number
+  provisional: number
+}) => value.pending + value.accepted + value.provisional
+const visiblePendingNeteaseListenSeconds = computed(() =>
+  Math.max(
+    ledgerUnconfirmedSeconds(todayLedger.value),
+    ledgerUnconfirmedSeconds(weekLedger.value),
+    ledgerUnconfirmedSeconds(monthLedger.value),
+    ledgerUnconfirmedSeconds(totalLedger.value)
+  )
 )
 
-const addPendingListenSeconds = (remoteSeconds?: number): number | undefined => {
+const addPendingListenSeconds = (
+  remoteSeconds: number | undefined,
+  localSeconds: number
+): number | undefined => {
   const remote = Number(remoteSeconds)
-  const pending = Math.max(0, visiblePendingNeteaseListenSeconds.value)
+  const pending = Math.max(0, localSeconds)
   if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
   return remote + pending
 }
 
-const displayTodaySeconds = computed(() => addPendingListenSeconds(footprint.todaySeconds))
-const displayWeekSeconds = computed(() => addPendingListenSeconds(footprint.weekSeconds))
-const displayMonthSeconds = computed(() => addPendingListenSeconds(footprint.monthSeconds))
-const displayTotalSeconds = computed(() => addPendingListenSeconds(footprint.totalSeconds))
-const pendingUnsubmittedSeconds = computed(() =>
-  Math.max(0, visiblePendingNeteaseListenSeconds.value - submittedNeteaseListenSeconds.value)
+const displayTodaySeconds = computed(() =>
+  addPendingListenSeconds(footprint.todaySeconds, ledgerUnconfirmedSeconds(todayLedger.value))
+)
+const displayWeekSeconds = computed(() =>
+  addPendingListenSeconds(footprint.weekSeconds, ledgerUnconfirmedSeconds(weekLedger.value))
+)
+const displayMonthSeconds = computed(() =>
+  addPendingListenSeconds(footprint.monthSeconds, ledgerUnconfirmedSeconds(monthLedger.value))
+)
+const displayTotalSeconds = computed(() =>
+  addPendingListenSeconds(footprint.totalSeconds, ledgerUnconfirmedSeconds(totalLedger.value))
+)
+const pendingUnsubmittedSeconds = computed(
+  () => totalLedger.value.pending + totalLedger.value.provisional
+)
+const submittedNeteaseListenSeconds = computed(() =>
+  Math.max(
+    todayLedger.value.accepted,
+    weekLedger.value.accepted,
+    monthLedger.value.accepted,
+    totalLedger.value.accepted
+  )
+)
+const todayDataConflict = computed(
+  () => footprint.todayCount === 0 && Number(footprint.todaySeconds) > 0
 )
 
 const formatPendingListenDuration = (seconds: number): string => {
@@ -432,7 +518,8 @@ const loadFootprint = async (): Promise<void> => {
     ])
 
     // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
-    footprint.todayCount = extractTodaySongCount(today, week)
+    const nextTodayCount = extractTodaySongCount(today, week)
+    footprint.todayCount = nextTodayCount
     footprint.todaySeconds = extractTodayListenSeconds(month) ?? extractTodayListenSeconds(week)
 
     // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
@@ -441,9 +528,36 @@ const loadFootprint = async (): Promise<void> => {
     footprint.weekSeconds = nextRemoteWeekSeconds
     footprint.monthSeconds = extractRealtimeListenSeconds(month)
 
-    // 只有 UI 实际使用的“本周时长”增长，才抵扣本机 pending。
-    reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: weekPeriodKey.value,
+      rangeStart: startOfWeek.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: nextRemoteWeekSeconds
+    })
     footprint.totalSeconds = extractTotalListenSeconds(total)
+
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: todayPeriodKey.value,
+      rangeStart: startOfToday.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: footprint.todaySeconds
+    })
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: monthPeriodKey.value,
+      rangeStart: startOfMonth.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: footprint.monthSeconds
+    })
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: totalPeriodKey,
+      rangeStart: Number.NEGATIVE_INFINITY,
+      rangeEnd: Number.POSITIVE_INFINITY,
+      remoteSeconds: footprint.totalSeconds
+    })
 
     footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week')
     footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
@@ -457,12 +571,26 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setT
 /**
  * 只刷新网易云用于“待同步”确认的远端时长。
  *
- * 与完整 loadFootprint() 不同，这里优先只请求 month realtime report：
- * 它同时包含今日、本月以及按自然周汇总所需的逐日数据，因此适合高频确认，
- * 不需要每 10 秒把今日/周/月/累计/两份播放排行全部请求一遍。
+ * 与完整 loadFootprint() 不同，这里只请求 month realtime report 和累计时长：
+ * 前者包含今日、本月以及自然周明细，后者独立确认累计卡片。不会每 10 秒重复
+ * 请求今日歌曲列表与两份播放排行。
  */
 const refreshPendingRemoteDuration = async (): Promise<void> => {
-  const month = await safeRequest(listenRealtimeReport('month'), '确认听歌时长同步')
+  const [month, total] = await Promise.all([
+    safeRequest(listenRealtimeReport('month'), '确认听歌时长同步'),
+    safeRequest(listenTotal(), '确认累计听歌时长同步')
+  ])
+  const nextTotalSeconds = extractTotalListenSeconds(total)
+  if (nextTotalSeconds !== undefined) {
+    footprint.totalSeconds = nextTotalSeconds
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: totalPeriodKey,
+      rangeStart: Number.NEGATIVE_INFINITY,
+      rangeEnd: Number.POSITIVE_INFINITY,
+      remoteSeconds: nextTotalSeconds
+    })
+  }
   if (!month) return
 
   let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
@@ -478,10 +606,35 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
 
   if (nextRemoteWeekSeconds !== undefined) {
     footprint.weekSeconds = nextRemoteWeekSeconds
-    reconcileNeteaseRemoteWeekDuration(nextRemoteWeekSeconds)
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: weekPeriodKey.value,
+      rangeStart: startOfWeek.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: nextRemoteWeekSeconds
+    })
   }
-  if (nextMonthSeconds !== undefined) footprint.monthSeconds = nextMonthSeconds
-  if (nextTodaySeconds !== undefined) footprint.todaySeconds = nextTodaySeconds
+  if (nextMonthSeconds !== undefined) {
+    footprint.monthSeconds = nextMonthSeconds
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: monthPeriodKey.value,
+      rangeStart: startOfMonth.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: nextMonthSeconds
+    })
+  }
+  if (nextTodaySeconds !== undefined) {
+    footprint.todaySeconds = nextTodaySeconds
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: todayPeriodKey.value,
+      rangeStart: startOfToday.value,
+      rangeEnd: endOfToday.value,
+      remoteSeconds: nextTodaySeconds
+    })
+  }
+
 }
 
 /**
@@ -494,12 +647,12 @@ const refreshFootprintWithConfirmation = async (): Promise<void> => {
   // 这样无需等切歌/自然结束，已经听过的当前歌曲时长也会立即进入远端同步流程。
   await playerStore.syncCurrentNeteaseListenCheckpoint()
   await loadFootprint()
-  if (pendingNeteaseListenSeconds.value <= 0) return
+  if (visiblePendingNeteaseListenSeconds.value <= 0) return
 
   for (const delay of [900, 1800, 3200]) {
     await wait(delay)
     await refreshPendingRemoteDuration()
-    if (pendingNeteaseListenSeconds.value <= 0) return
+    if (visiblePendingNeteaseListenSeconds.value <= 0) return
   }
 
   showToast(t('insights.footprint.pendingHint'))
@@ -676,13 +829,13 @@ const startPendingSyncPolling = (): void => {
   if (
     footprintSyncInterval !== null ||
     activeTab.value !== 'footprint' ||
-    pendingNeteaseListenSeconds.value <= 0
+    visiblePendingNeteaseListenSeconds.value <= 0
   ) {
     return
   }
 
   footprintSyncInterval = window.setInterval(() => {
-    if (activeTab.value !== 'footprint' || pendingNeteaseListenSeconds.value <= 0) {
+    if (activeTab.value !== 'footprint' || visiblePendingNeteaseListenSeconds.value <= 0) {
       stopPendingSyncPolling()
       return
     }
@@ -710,7 +863,7 @@ watch(
 )
 
 watch(
-  () => [activeTab.value, pendingNeteaseListenSeconds.value] as const,
+  () => [activeTab.value, visiblePendingNeteaseListenSeconds.value] as const,
   ([tab, pendingSeconds]) => {
     if (tab === 'footprint' && pendingSeconds > 0) startPendingSyncPolling()
     else stopPendingSyncPolling()
@@ -721,15 +874,29 @@ watch(
   }
 )
 
+watch(accountId, () => {
+  setActiveNeteaseListenAccount(accountId.value)
+  void loadFootprint()
+})
+
+let dateBoundaryTimer: number | null = null
+
 onMounted(() => {
+  setActiveNeteaseListenAccount(accountId.value)
   window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
   void loadFootprint()
   startPendingSyncPolling()
+  dateBoundaryTimer = window.setInterval(() => {
+    const previousDate = localDateKey(clockNow.value)
+    clockNow.value = Date.now()
+    if (localDateKey(clockNow.value) !== previousDate) void loadFootprint()
+  }, 60_000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
   stopPendingSyncPolling()
+  if (dateBoundaryTimer !== null) window.clearInterval(dateBoundaryTimer)
 })
 </script>
 
@@ -912,6 +1079,16 @@ button:disabled {
     font-weight: 650;
     line-height: 1.4;
     opacity: 0.58;
+  }
+
+  .metric-foot {
+    display: grid;
+    gap: 3px;
+  }
+
+  .metric-warning {
+    color: #d97706;
+    opacity: 0.9;
   }
 }
 

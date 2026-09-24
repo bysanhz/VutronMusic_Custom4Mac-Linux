@@ -12,6 +12,15 @@ import {
   buildMetaJson,
   doUpload
 } from './ncbl'
+import store from '../../store'
+
+const RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'
+const MAX_RECEIPTS = 2000
+
+const readReceipts = () => {
+  const value = store.get(RECEIPTS_KEY)
+  return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : []
+}
 
 const scrobbleV1 = async (query) => {
   const songId = Number(query.id)
@@ -30,6 +39,14 @@ const scrobbleV1 = async (query) => {
   const totalTime = Number(query.total) || playTime
   const sourceId = String(query.sourceid || query.sourceId || '')
   const sourceName = query.source || 'list'
+  const segmentId = String(query.segmentId || '').trim()
+
+  if (segmentId && readReceipts().includes(segmentId)) {
+    return {
+      status: 200,
+      body: { code: 200, data: 'scrobble_v1 已处理', deduplicatedSegment: true }
+    }
+  }
 
   const rawCookie = query.cookie || ''
   const cookieObj = parseCookie(rawCookie)
@@ -62,12 +79,23 @@ const scrobbleV1 = async (query) => {
 
   const metaJson = buildMetaJson(ctx)
   const cookieStr = buildCookieStr(ctx)
-  const ts = Math.floor(Date.now() / 1000)
+  /*
+   * 持久化队列可能隔天才重试。记录时间必须使用原播放/入队时间，否则网易云会把
+   * 昨天的失败记录算到今天。限制到最近 30 天并禁止未来时间，避免异常参数污染记录。
+   */
+  const now = Date.now()
+  const requestedPlayedAt = Number(query.playedAt)
+  const normalizedPlayedAt =
+    requestedPlayedAt > 0 && requestedPlayedAt < 10_000_000_000
+      ? requestedPlayedAt * 1000
+      : requestedPlayedAt
+  const playedAt = Number.isFinite(normalizedPlayedAt)
+    ? Math.min(now, Math.max(now - 30 * 24 * 60 * 60 * 1000, normalizedPlayedAt))
+    : now
+  const ts = Math.floor(playedAt / 1000)
   const played = Math.min(playTime, totalTime)
 
-  const plvBody = buildRecords([
-    { time: ts, action: '_plv', data: buildPlv(ctx, song, source) }
-  ])
+  const plvBody = buildRecords([{ time: ts, action: '_plv', data: buildPlv(ctx, song, source) }])
   const pldBody = buildRecords([
     { time: ts, action: '_pld', data: buildPld(ctx, song, source, played) }
   ])
@@ -96,6 +124,11 @@ const scrobbleV1 = async (query) => {
           details: { plv: plv.respBody, pld: pld.respBody }
         }
       }
+    }
+
+    if (segmentId) {
+      const receipts = [...new Set([...readReceipts(), segmentId])].slice(-MAX_RECEIPTS)
+      store.set(RECEIPTS_KEY, receipts)
     }
 
     return {

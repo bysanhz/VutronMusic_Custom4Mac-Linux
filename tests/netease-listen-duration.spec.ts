@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 import {
   extractCalendarWeekListenSeconds,
-  extractTodayListenSeconds
+  extractTodayListenSeconds,
+  extractTodaySongCount
 } from '../src/renderer/services/neteaseModern'
 
 const makeReport = () => ({
@@ -40,5 +41,19 @@ test.describe('NetEase listening duration extraction', () => {
     expect(extractTodayListenSeconds(report, sunday)).not.toBe(
       extractCalendarWeekListenSeconds(report, sunday)
     )
+  })
+
+  test('does not let a stale week report override an explicitly empty today response', () => {
+    const today = { code: 200, data: { songDTOs: [] } }
+    const week = { code: 200, data: { weekTodayListenBlock: { songCount: 5 } } }
+
+    const count = extractTodaySongCount(today, week)
+    expect(count).toBe(0)
+  })
+
+  test('falls back to the week count only when the today response is unavailable', () => {
+    const week = { code: 200, data: { weekTodayListenBlock: { songCount: 5 } } }
+
+    expect(extractTodaySongCount(undefined, week)).toBe(5)
   })
 })

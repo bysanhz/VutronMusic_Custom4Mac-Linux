@@ -9,24 +9,25 @@ test.describe('NetEase scrobble lifecycle', () => {
   test('wires player playback into the NetEase scrobble API', () => {
     const player = readSource('src/renderer/store/player.ts')
 
-    expect(player).toContain("getTrackDetail, scrobble } from '../api/track'")
+    expect(player).toContain("from '../api/track'")
+    expect(player).toContain('scrobble,')
     expect(player).toContain('const scrobbleNetease = async')
     expect(player).toContain('const syncCurrentNeteaseListenCheckpoint = async')
     expect(player).toContain('void scrobbleNetease(currentTrack.value, seek.value)')
     expect(player).toContain('void scrobbleNetease(endedTrack, currentTrackDuration.value, true)')
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
-    expect(player).toContain("from '../utils/neteaseListenPending'")
-    expect(player).toContain('addPendingNeteaseListenSeconds(newlyCommittedSeconds)')
+    expect(player).toContain("from '../utils/neteaseListenLedger'")
+    expect(player).toContain('recordNeteaseListenSegment({')
     expect(player).toContain('neteaseSessionListenedSeconds += delta')
     expect(player).toContain('neteaseSessionListenedSeconds >= minimumSeconds')
-    expect(player).toContain('setProvisionalNeteaseListenSeconds(')
-    expect(player).toContain('markSubmittedNeteaseListenSeconds(listenedSeconds)')
-    expect(player).toContain('flushPendingNeteaseListenSeconds()')
-    expect(player.lastIndexOf('flushPendingNeteaseListenSeconds()')).toBeGreaterThan(
+    expect(player).toContain('setProvisionalNeteaseListen(')
+    expect(player).toContain('markNeteaseListenEntryAccepted(entry.id)')
+    expect(player).toContain('flushNeteaseListenLedger(true)')
+    expect(player.lastIndexOf('flushNeteaseListenLedger(true)')).toBeGreaterThan(
       player.lastIndexOf('void scrobbleNetease(')
     )
     const trackApi = readSource('src/renderer/api/track.ts')
-    expect(trackApi).not.toContain('addPendingNeteaseListenSeconds(listenedSeconds)')
+    expect(trackApi).not.toContain('addPendingNeteaseListenSeconds')
   })
 
   test('counts real playback progress continuously without counting seeks twice', () => {
@@ -45,11 +46,12 @@ test.describe('NetEase scrobble lifecycle', () => {
 
     expect(player).toContain('let neteaseScrobbleQueue: Promise<void> = Promise.resolve()')
     expect(player).toContain('const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350')
-    expect(player).toContain('const queued = neteaseScrobbleQueue.then(operation, operation)')
+    expect(player).toContain('const queued = neteaseScrobbleQueue.then(')
+    expect(player).toContain('() => submitNeteaseListenEntries(entries)')
     expect(player).toContain('neteaseScrobbleQueue = queued.then(')
-    expect(player).toContain('const sourceid = resolveNeteaseScrobbleSourceID(track)')
-    expect(player).toContain('const source = playlistSource.value.type')
-    expect(player).toContain('result?.skipped || result?.deduplicated')
+    expect(player).toContain('sourceid: resolveNeteaseScrobbleSourceID(track)')
+    expect(player).toContain('source: playlistSource.value.type')
+    expect(player).toContain('segmentId: entry.id')
     expect(trackApi.indexOf("url: '/scrobble-v1'")).toBeLessThan(
       trackApi.indexOf("url: '/scrobble'")
     )
@@ -57,27 +59,17 @@ test.describe('NetEase scrobble lifecycle', () => {
 
   test('deduplicates natural-end and replacement reporting by reserving submitted session deltas', () => {
     const player = readSource('src/renderer/store/player.ts')
-    const handlerIndex = player.indexOf('const scrobbleNetease = async')
-    const reservationIndex = player.indexOf(
-      'neteaseSessionSubmittedSeconds = submittedAfter',
-      handlerIndex
-    )
-    const requestIndex = player.indexOf(
-      'const result = await scrobble(scrobbleParams)',
-      handlerIndex
-    )
+    const reservationIndex = player.indexOf('claimPendingNeteaseListenEntries({')
+    const requestIndex = player.indexOf('const result = await scrobble({')
     const endReportIndex = player.indexOf(
       'void scrobbleNetease(endedTrack, currentTrackDuration.value, true)'
     )
     const resetSeekIndex = player.indexOf('seek.value = 0', endReportIndex)
 
-    expect(handlerIndex).toBeGreaterThan(-1)
-    expect(player).toContain('sessionListenedSeconds - neteaseSessionSubmittedSeconds')
-    expect(reservationIndex).toBeGreaterThan(handlerIndex)
-    expect(requestIndex).toBeGreaterThan(reservationIndex)
+    expect(reservationIndex).toBeGreaterThan(-1)
+    expect(requestIndex).toBeGreaterThan(-1)
     expect(endReportIndex).toBeGreaterThan(-1)
     expect(resetSeekIndex).toBeGreaterThan(endReportIndex)
-    expect(player).toContain('neteaseSessionSubmittedSeconds = 0')
     expect(player).toContain('neteaseSessionCommittedSeconds = 0')
   })
 
@@ -85,11 +77,11 @@ test.describe('NetEase scrobble lifecycle', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
 
     expect(trackApi).toContain('const SCROBBLE_DEDUP_WINDOW_MS = 10_000')
-    expect(trackApi).toContain('const scrobbleInFlight = new Map<number, Promise<any>>()')
-    expect(trackApi).toContain('const lastSuccessfulScrobbleAt = new Map<number, number>()')
-    expect(trackApi).toContain('const existing = scrobbleInFlight.get(trackId)')
+    expect(trackApi).toContain('const scrobbleInFlight = new Map<string, Promise<any>>()')
+    expect(trackApi).toContain('const lastSuccessfulScrobbleAt = new Map<string, number>()')
+    expect(trackApi).toContain('const existing = scrobbleInFlight.get(deduplicationKey)')
     expect(trackApi).toContain('return existing')
-    expect(trackApi).toContain('lastSuccessfulScrobbleAt.set(trackId, Date.now())')
+    expect(trackApi).toContain('lastSuccessfulScrobbleAt.set(deduplicationKey, Date.now())')
     expect(trackApi).toContain('deduplicated: true')
   })
 
@@ -117,10 +109,10 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('const MIN_NETEASE_CHECKPOINT_SECONDS = 30')
     expect(player).toContain('const syncCurrentNeteaseListenCheckpoint = async')
     expect(player).toContain('checkpoint = false')
-    expect(player).toContain('const hasPreviousSubmission = neteaseSessionSubmittedSeconds > 0')
-    expect(player).toContain('time: listenedSeconds')
-    expect(player).toContain('allowShort: checkpoint || hasPreviousSubmission || completed')
-    expect(player).toContain('allowRepeat: checkpoint || hasPreviousSubmission')
+    expect(player).toContain('commitNeteaseSessionProgress(track, {')
+    expect(player).toContain('sessionId: neteaseSessionId')
+    expect(player).toContain('time: entry.seconds')
+    expect(player).toContain('requireDurationAware: true')
     expect(insights).toContain('await playerStore.syncCurrentNeteaseListenCheckpoint()')
     expect(insights.indexOf('await playerStore.syncCurrentNeteaseListenCheckpoint()')).toBeLessThan(
       insights.indexOf(
@@ -132,40 +124,36 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(trackApi).toContain('allowRepeat?: boolean')
     expect(trackApi).toContain('durationAware: true')
     expect(trackApi).toContain('durationAware: false')
-    expect(player).toContain('const durationAware = result?.durationAware === true')
+    expect(trackApi).toContain('if (params.requireDurationAware)')
+    expect(player).toContain('result?.durationAware === true')
   })
 
   test('persists failed duration writes and retries them on refresh or startup', () => {
     const player = readSource('src/renderer/store/player.ts')
-    const outbox = readSource('src/renderer/utils/neteaseScrobbleOutbox.ts')
-    const pending = readSource('src/renderer/utils/neteaseListenPending.ts')
+    const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
 
-    expect(player).toContain('const outboxJob = enqueueNeteaseScrobble(scrobbleParams)')
     expect(player).toContain('const retryNeteaseScrobbleOutbox = async')
-    expect(player).toContain('for (const job of listNeteaseScrobbleJobs())')
+    expect(player).toContain('claimPendingNeteaseListenEntries({')
     expect(player).toContain('const retriedCount = await retryNeteaseScrobbleOutbox()')
-    expect(player).toContain('void retryNeteaseScrobbleOutbox()')
-    expect(outbox).toContain("STORAGE_KEY = 'vutronmusic-netease-scrobble-outbox-v1'")
-    expect(outbox).toContain('export const enqueueNeteaseScrobble =')
-    expect(outbox).toContain('export const removeNeteaseScrobbleJob =')
-    expect(pending).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-pending-v2'")
-    expect(pending).toContain('const REMOTE_DURATION_QUANTUM_SECONDS = 60')
-    expect(pending).toContain('const settled = settleUnconfirmableRemainder(')
+    expect(player).toContain("window.addEventListener('online', retryPendingNeteaseListen)")
+    expect(ledger).toContain("STORAGE_KEY = 'vutronmusic-netease-listen-ledger-v3'")
+    expect(ledger).toContain('markNeteaseListenEntryFailed')
+    expect(ledger).toContain('MIN_RETRY_MS * 2 **')
+    expect(ledger).toContain('migrateLegacyOutbox')
   })
 
   test('tracks submitted listen time separately until NetEase confirms it', () => {
-    const pending = readSource('src/renderer/utils/neteaseListenPending.ts')
+    const pending = readSource('src/renderer/utils/neteaseListenLedger.ts')
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
 
     expect(pending).toContain(
-      'export const submittedNeteaseListenSeconds = ref(state.submittedSeconds)'
+      "export type NeteaseListenEntryStatus = 'pending' | 'sending' | 'accepted'"
     )
-    expect(pending).toContain('export const markSubmittedNeteaseListenSeconds =')
-    expect(pending).toContain('submittedNeteaseListenSeconds.value + value')
-    expect(pending).toContain('submittedSeconds % REMOTE_DURATION_QUANTUM_SECONDS')
-    expect(pending).toContain('export const provisionalNeteaseListenSeconds = ref(0)')
+    expect(pending).toContain('export const markNeteaseListenEntryAccepted =')
+    expect(pending).toContain('confirmedSeconds')
+    expect(pending).toContain('export const provisionalNeteaseListen = ref({')
     expect(insights).toContain('const visiblePendingNeteaseListenSeconds = computed(')
-    expect(pending).toContain('const confirmableSeconds =')
+    expect(pending).toContain('export const reconcileNeteaseListenReport =')
     expect(insights).toContain('const pendingUnsubmittedSeconds = computed')
     expect(insights).toContain("t('insights.footprint.pendingSubmitted'")
     expect(insights).toContain("t('insights.footprint.pendingMixed'")
@@ -222,6 +210,10 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(neteaseServer).toContain("appServerRevision: 'scrobble-v1-route-v3'")
     expect(bundledScrobble).toContain("action: '_plv'")
     expect(bundledScrobble).toContain("action: '_pld'")
+    expect(bundledScrobble).toContain('const requestedPlayedAt = Number(query.playedAt)')
+    expect(bundledScrobble).toContain('const ts = Math.floor(playedAt / 1000)')
+    expect(bundledScrobble).toContain("RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'")
+    expect(bundledScrobble).toContain('deduplicatedSegment: true')
     expect(bundledScrobble).toContain("from './ncbl'")
     expect(bundledScrobble).toContain('export default scrobbleV1')
     expect(bundledNcbl).toContain("import * as crypto from 'node:crypto'")
@@ -238,5 +230,14 @@ test.describe('NetEase scrobble lifecycle', () => {
     )
     expect(player).toContain("sourceType !== 'personalfm'")
     expect(player).toContain("!sourceType.includes('local')")
+  })
+
+  test('keeps preference feedback read-only and uses a single NetEase writer', () => {
+    const feedback = readSource('src/renderer/utils/playbackFeedback.ts')
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(feedback).not.toContain("from '../api/track'")
+    expect(feedback).not.toContain('reportNeteasePlayback')
+    expect(player).toContain('const submitNeteaseListenEntries = async')
   })
 })

@@ -8,3 +8,13 @@ declare module 'virtual:svg-icons-register'
 // 兼容第三方样式库
 declare module 'vscode-codicons/dist/codicon.css'
 declare module 'trickling/lib/style.css'
+
+interface ImportMetaEnv {
+  readonly DEV: boolean
+  readonly PROD: boolean
+  readonly MODE: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}

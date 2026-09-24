@@ -1,5 +1,8 @@
 <template>
   <div id="app" :class="{ 'user-select-none': userSelectNone }" :style="appFontStyle">
+    <div v-if="networkIssue" class="network-status-banner" role="status" aria-live="polite">
+      {{ networkStatusText }}
+    </div>
     <ScrollBar v-show="!showLyrics" />
     <SideNav />
     <NavBar ref="navBarRef" />
@@ -56,6 +59,15 @@ import { Track } from '@/types/music'
 
 const { t } = useI18n()
 
+type NetworkIssue = 'offline' | 'netease-unavailable' | null
+const networkIssue = ref<NetworkIssue>(navigator.onLine ? null : 'offline')
+let neteaseRecoveryTimer: number | null = null
+const networkStatusText = computed(() =>
+  networkIssue.value === 'offline'
+    ? t('toast.networkOffline')
+    : t('toast.neteaseUnavailable')
+)
+
 const localMusicStore = useLocalMusicStore()
 const { localTracks } = storeToRefs(localMusicStore)
 const { deleteLocalTracks } = localMusicStore
@@ -88,6 +100,43 @@ const fetchData = () => {
   fetchLikedArtists()
   fetchLikedMVs()
   fetchCloudDisk()
+}
+
+const setNetworkIssue = (issue: Exclude<NetworkIssue, null>): void => {
+  if (neteaseRecoveryTimer !== null) {
+    window.clearTimeout(neteaseRecoveryTimer)
+    neteaseRecoveryTimer = null
+  }
+  if (networkIssue.value === issue) return
+  networkIssue.value = issue
+  showToast(
+    issue === 'offline' ? t('toast.networkOffline') : t('toast.neteaseUnavailable')
+  )
+}
+
+const handleOffline = (): void => setNetworkIssue('offline')
+
+const handleOnline = (): void => {
+  const recovered = networkIssue.value !== null
+  networkIssue.value = null
+  if (recovered) showToast(t('toast.networkRestored'))
+  fetchData()
+}
+
+const handleNeteaseUnavailable = (): void => {
+  if (!navigator.onLine) handleOffline()
+  else setNetworkIssue('netease-unavailable')
+}
+
+const handleNeteaseAvailable = (): void => {
+  if (networkIssue.value !== 'netease-unavailable') return
+  if (neteaseRecoveryTimer !== null) window.clearTimeout(neteaseRecoveryTimer)
+  neteaseRecoveryTimer = window.setTimeout(() => {
+    neteaseRecoveryTimer = null
+    if (networkIssue.value !== 'netease-unavailable') return
+    networkIssue.value = null
+    showToast(t('toast.networkRestored'))
+  }, 1500)
 }
 
 let mainScrollFrame: number | null = null
@@ -344,6 +393,10 @@ onMounted(async () => {
   handleEventBus()
   handleChanelEvent()
   window.addEventListener(HEART_MODE_SESSION_CHANGE_EVENT, handleHeartModeSessionChange)
+  window.addEventListener('offline', handleOffline)
+  window.addEventListener('online', handleOnline)
+  window.addEventListener('vutronmusic-netease-unavailable', handleNeteaseUnavailable)
+  window.addEventListener('vutronmusic-netease-available', handleNeteaseAvailable)
   syncLinuxHeartModePlaylistSource()
   hasCustomTitleBar.value =
     (window.env?.isLinux && general.value.useCustomTitlebar) || window.env?.isWindows || false
@@ -365,15 +418,21 @@ onMounted(async () => {
     '--color-primary',
     theme.value.colors.find((c) => c.selected)?.color || 'rgba(51, 94, 234, 1)'
   )
-  fetchData()
+  if (navigator.onLine) fetchData()
+  else setNetworkIssue('offline')
 })
 
 onBeforeUnmount(() => {
+  if (neteaseRecoveryTimer !== null) window.clearTimeout(neteaseRecoveryTimer)
   if (mainScrollFrame !== null) {
     window.cancelAnimationFrame(mainScrollFrame)
     mainScrollFrame = null
   }
   window.removeEventListener(HEART_MODE_SESSION_CHANGE_EVENT, handleHeartModeSessionChange)
+  window.removeEventListener('offline', handleOffline)
+  window.removeEventListener('online', handleOnline)
+  window.removeEventListener('vutronmusic-netease-unavailable', handleNeteaseUnavailable)
+  window.removeEventListener('vutronmusic-netease-available', handleNeteaseAvailable)
   unregisterInstance(instanceId.value)
 })
 </script>
@@ -389,6 +448,24 @@ onBeforeUnmount(() => {
   // 对于写死字号的组件，下面再用 :deep() 做温和覆盖。
   font-size: var(--app-global-font-size);
   // =========== newADD end ========
+}
+
+.network-status-banner {
+  position: fixed;
+  z-index: 10000;
+  top: 12px;
+  left: 50%;
+  max-width: min(620px, calc(100vw - 48px));
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, #f59e0b 48%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, #7c2d12 92%, var(--color-body-bg));
+  box-shadow: 0 8px 28px rgb(0 0 0 / 24%);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  transform: translateX(-50%);
 }
 
 .user-select-none {

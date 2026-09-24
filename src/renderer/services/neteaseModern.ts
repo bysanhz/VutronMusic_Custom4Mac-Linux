@@ -219,10 +219,7 @@ type PersonalizedTrackSnapshot = {
 
 let personalizedTrackSnapshot: PersonalizedTrackSnapshot | null = null
 
-export const setPersonalizedTrackSnapshot = (
-  tracks: any[],
-  cursor?: string | number
-) => {
+export const setPersonalizedTrackSnapshot = (tracks: any[], cursor?: string | number) => {
   personalizedTrackSnapshot = {
     tracks: Array.isArray(tracks) ? tracks.slice() : [],
     cursor
@@ -482,21 +479,16 @@ export const extractListenReportRank = (source: any, limit = 20): any[] => {
     .filter(Boolean)
 }
 
-export const extractUserPlayRecord = (
-  source: any,
-  type: 'week' | 'all',
-  limit?: number
-): any[] => {
+export const extractUserPlayRecord = (source: any, type: 'week' | 'all', limit?: number): any[] => {
   const container = source?.data ?? source
   const records = type === 'week' ? container?.weekData : container?.allData
   if (!Array.isArray(records)) return []
 
   const visibleRecords =
-    Number.isFinite(limit) && Number(limit) > 0
-      ? records.slice(0, Number(limit))
-      : records
+    Number.isFinite(limit) && Number(limit) > 0 ? records.slice(0, Number(limit)) : records
 
-  return visibleRecords.map((record: any, index: number) => {
+  return visibleRecords
+    .map((record: any, index: number) => {
       const track = normalizeTrack(record?.song ?? record)
       if (!track) return null
       const playCount = Number(record?.playCount)
@@ -601,17 +593,17 @@ const extractListenSongCount = (source: any): number | undefined => {
 /**
  * 今日不同歌曲数。
  *
- * 主来源是专用 `/listen/data/today/song`；周实时报告里的
- * `weekTodayListenBlock.songCount` 作为交叉校验。两个网易云端点存在短暂同步延迟时，
- * 取同一天内较大的非负值，避免一个端点晚几秒同步导致数字倒退或长期卡住。
+ * 主来源是专用 `/listen/data/today/song`；只有该接口不可用或缺少可识别数据时，
+ * 才回退到周实时报告的 `weekTodayListenBlock.songCount`。
  */
 export const extractTodaySongCount = (todaySource: any, weekSource?: any): number | undefined => {
   const todayCount = extractListenSongCount(todaySource)
+  // 专用今日接口明确返回 0 时必须相信它。周报的 weekTodayListenBlock 会在跨日后
+  // 短暂保留、甚至接收延迟上报的昨天记录，取 max 会制造“新一天凭空有歌曲”。
+  if (todayCount !== undefined) return todayCount
+
   const reportCount = Number(weekSource?.data?.weekTodayListenBlock?.songCount)
-  const candidates = [todayCount, reportCount].filter(
-    (value): value is number => Number.isFinite(value) && Number(value) >= 0
-  )
-  return candidates.length ? Math.max(...candidates) : undefined
+  return Number.isFinite(reportCount) && reportCount >= 0 ? reportCount : undefined
 }
 
 export const extractMetric = (source: any, keys: string[]) => {

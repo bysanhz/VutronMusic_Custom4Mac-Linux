@@ -28,6 +28,7 @@ service.interceptors.request.use((config: any) => {
 
 service.interceptors.response.use(
   (response: AxiosResponse) => {
+    window.dispatchEvent(new CustomEvent('vutronmusic-netease-available'))
     const res = response
     return res
   },
@@ -37,6 +38,17 @@ service.interceptors.response.use(
     if (data?.code === 301 && data?.message === '未登录') {
       console.log('未登录')
       doLogout()
+    }
+    const status = Number(response?.status)
+    if (!navigator.onLine || error.code === 'ERR_NETWORK' || status >= 500) {
+      window.dispatchEvent(
+        new CustomEvent('vutronmusic-netease-unavailable', {
+          detail: {
+            status: Number.isFinite(status) ? status : undefined,
+            message: data?.message || data?.msg || error.message
+          }
+        })
+      )
     }
     return Promise.reject(error)
   }

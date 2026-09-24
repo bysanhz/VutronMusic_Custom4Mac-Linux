@@ -841,7 +841,7 @@ const dedupeTracksById = (items: any[]) => {
   return result
 }
 
-const getFollowedArtistIds = async () => {
+const getFollowedArtistIds = async (): Promise<Set<string>> => {
   try {
     const result = await likedArtists({ limit: 1000 })
     const rows = Array.isArray(result?.data)
@@ -852,7 +852,7 @@ const getFollowedArtistIds = async () => {
           ? result.data.artists
           : []
 
-    return new Set(
+    return new Set<string>(
       rows
         .map((artist: any) => artist?.id ?? artist?.artistId)
         .filter((id: any) => id !== undefined && id !== null)
