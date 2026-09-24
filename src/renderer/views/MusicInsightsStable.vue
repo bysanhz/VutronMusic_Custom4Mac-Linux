@@ -427,28 +427,17 @@ const backgroundPendingNeteaseListenSeconds = computed(() =>
   Math.max(visiblePendingNeteaseListenSeconds.value, ledgerUnconfirmedSeconds(totalLedger.value))
 )
 
-const addPendingListenSeconds = (
-  remoteSeconds: number | undefined,
-  localSeconds: number
-): number | undefined => {
-  const remote = Number(remoteSeconds)
-  const pending = Math.max(0, localSeconds)
-  if (!Number.isFinite(remote)) return pending > 0 ? pending : undefined
-  return remote + pending
-}
-
-const displayTodaySeconds = computed(() =>
-  addPendingListenSeconds(footprint.todaySeconds, ledgerUnconfirmedSeconds(todayLedger.value))
-)
-const displayWeekSeconds = computed(() =>
-  addPendingListenSeconds(footprint.weekSeconds, ledgerUnconfirmedSeconds(weekLedger.value))
-)
-const displayMonthSeconds = computed(() =>
-  addPendingListenSeconds(footprint.monthSeconds, ledgerUnconfirmedSeconds(monthLedger.value))
-)
-const displayTotalSeconds = computed(() =>
-  addPendingListenSeconds(footprint.totalSeconds, ledgerUnconfirmedSeconds(totalLedger.value))
-)
+/*
+ * 四张统计卡只展示网易云服务端已经确认的账号数据。
+ *
+ * 本机账本属于设备局部状态；如果把 pending/accepted/provisional 直接叠加进卡片，
+ * 同一账号在两台 Mac 上会因为各自 localStorage 不同而显示不同的“今日/本周/本月/累计”。
+ * 未同步时长继续完整保留在右侧同步状态中，不再污染跨设备可比较的账号统计。
+ */
+const displayTodaySeconds = computed(() => footprint.todaySeconds)
+const displayWeekSeconds = computed(() => footprint.weekSeconds)
+const displayMonthSeconds = computed(() => footprint.monthSeconds)
+const displayTotalSeconds = computed(() => footprint.totalSeconds)
 const pendingUnsubmittedSeconds = computed(
   () => totalLedger.value.pending + totalLedger.value.provisional
 )
@@ -490,8 +479,10 @@ const formatDisplayListenDuration = (seconds?: number): string => {
 }
 
 const PENDING_SYNC_INTERVAL_MS = 10_000
+const REMOTE_SNAPSHOT_INTERVAL_MS = 60_000
 let footprintSyncInterval: number | null = null
 let footprintRequestInFlight = false
+let footprintSnapshotInFlight = false
 
 const selectedCloudSongId = ref('')
 const cloudTargetSongId = ref('')
@@ -583,18 +574,28 @@ const loadFootprint = async (): Promise<void> => {
 const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 /**
- * 只刷新网易云用于“待同步”确认的远端时长。
+ * 轻量刷新网易云账号统计快照。
  *
- * 与完整 loadFootprint() 不同，这里只请求 month realtime report 和累计时长：
- * 前者包含今日、本月以及自然周明细，后者独立确认累计卡片。不会每 10 秒重复
- * 请求今日歌曲列表与两份播放排行。
+ * 今日歌曲数也必须跟随轻量轮询刷新；否则页面打开后它只在手动刷新/重新进入页面时更新，
+ * 两台设备即使登录同一账号，也可能长时间显示不同的首数。
+ *
+ * 这里不请求两份播放排行，只更新今日歌曲数、今日/本周/本月时长及累计时长。
  */
 const refreshPendingRemoteDuration = async (): Promise<void> => {
-  const [month, total] = await Promise.all([
-    safeRequest(listenRealtimeReport('month'), '确认听歌时长同步'),
-    safeRequest(listenTotal(), '确认累计听歌时长同步')
-  ])
-  const nextTotalSeconds = extractTotalListenSeconds(total)
+  if (footprintSnapshotInFlight) return
+  footprintSnapshotInFlight = true
+
+  try {
+    const [today, month, total] = await Promise.all([
+      safeRequest(listenTodaySongs(), '刷新今日听歌'),
+      safeRequest(listenRealtimeReport('month'), '确认听歌时长同步'),
+      safeRequest(listenTotal(), '确认累计听歌时长同步')
+    ])
+
+    const nextTodayCount = extractTodaySongCount(today)
+    if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
+
+    const nextTotalSeconds = extractTotalListenSeconds(total)
   if (nextTotalSeconds !== undefined) {
     footprint.totalSeconds = nextTotalSeconds
     reconcileNeteaseListenReport({
@@ -605,48 +606,57 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
       remoteSeconds: nextTotalSeconds
     })
   }
-  if (!month) return
+    if (!month) return
 
-  let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
-  const nextMonthSeconds = extractRealtimeListenSeconds(month)
-  const nextTodaySeconds = extractTodayListenSeconds(month)
+    let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
+    const nextMonthSeconds = extractRealtimeListenSeconds(month)
+    const nextTodaySeconds = extractTodayListenSeconds(month)
 
-  // 少数账号/接口版本的 month report 不带逐日明细，无法计算自然周；
-  // 此时才额外请求 week report，避免待同步状态永远无法被抵扣。
-  if (nextRemoteWeekSeconds === undefined) {
-    const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
-    nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
-  }
+    // 少数账号/接口版本的 month report 不带逐日明细，无法计算自然周；
+    // 此时才额外请求 week report，避免待同步状态永远无法被抵扣。
+    if (nextRemoteWeekSeconds === undefined) {
+      const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
+      nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
 
-  if (nextRemoteWeekSeconds !== undefined) {
-    footprint.weekSeconds = nextRemoteWeekSeconds
-    reconcileNeteaseListenReport({
-      accountId: accountId.value,
-      periodKey: weekPeriodKey.value,
-      rangeStart: startOfWeek.value,
-      rangeEnd: endOfToday.value,
-      remoteSeconds: nextRemoteWeekSeconds
-    })
-  }
-  if (nextMonthSeconds !== undefined) {
-    footprint.monthSeconds = nextMonthSeconds
-    reconcileNeteaseListenReport({
-      accountId: accountId.value,
-      periodKey: monthPeriodKey.value,
-      rangeStart: startOfMonth.value,
-      rangeEnd: endOfToday.value,
-      remoteSeconds: nextMonthSeconds
-    })
-  }
-  if (nextTodaySeconds !== undefined) {
-    footprint.todaySeconds = nextTodaySeconds
-    reconcileNeteaseListenReport({
-      accountId: accountId.value,
-      periodKey: todayPeriodKey.value,
-      rangeStart: startOfToday.value,
-      rangeEnd: endOfToday.value,
-      remoteSeconds: nextTodaySeconds
-    })
+      // 今日专用接口异常时才使用 weekTodayListenBlock 兜底。
+      if (nextTodayCount === undefined) {
+        const fallbackCount = extractTodaySongCount(today, week)
+        if (fallbackCount !== undefined) footprint.todayCount = fallbackCount
+      }
+    }
+
+    if (nextRemoteWeekSeconds !== undefined) {
+      footprint.weekSeconds = nextRemoteWeekSeconds
+      reconcileNeteaseListenReport({
+        accountId: accountId.value,
+        periodKey: weekPeriodKey.value,
+        rangeStart: startOfWeek.value,
+        rangeEnd: endOfToday.value,
+        remoteSeconds: nextRemoteWeekSeconds
+      })
+    }
+    if (nextMonthSeconds !== undefined) {
+      footprint.monthSeconds = nextMonthSeconds
+      reconcileNeteaseListenReport({
+        accountId: accountId.value,
+        periodKey: monthPeriodKey.value,
+        rangeStart: startOfMonth.value,
+        rangeEnd: endOfToday.value,
+        remoteSeconds: nextMonthSeconds
+      })
+    }
+    if (nextTodaySeconds !== undefined) {
+      footprint.todaySeconds = nextTodaySeconds
+      reconcileNeteaseListenReport({
+        accountId: accountId.value,
+        periodKey: todayPeriodKey.value,
+        rangeStart: startOfToday.value,
+        rangeEnd: endOfToday.value,
+        remoteSeconds: nextTodaySeconds
+      })
+    }
+  } finally {
+    footprintSnapshotInFlight = false
   }
 }
 
@@ -905,8 +915,17 @@ onMounted(() => {
   dateBoundaryTimer = window.setInterval(() => {
     const previousDate = localDateKey(clockNow.value)
     clockNow.value = Date.now()
-    if (localDateKey(clockNow.value) !== previousDate) void loadFootprint()
-  }, 60_000)
+    if (localDateKey(clockNow.value) !== previousDate) {
+      void loadFootprint()
+      return
+    }
+
+    // 即使本机没有 pending，也定期拉一次轻量服务端快照。
+    // 这样另一台设备产生的听歌记录会在一分钟内反映到当前页面。
+    if (activeTab.value === 'footprint' && !refreshing.value) {
+      void refreshPendingRemoteDuration()
+    }
+  }, REMOTE_SNAPSHOT_INTERVAL_MS)
 })
 
 onBeforeUnmount(() => {
