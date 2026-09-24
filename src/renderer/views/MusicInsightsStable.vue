@@ -149,11 +149,23 @@
         </div>
 
         <label class="cloud-track-select">
-          <span>{{ t('insights.cloud.track') }}</span>
+          <div class="cloud-track-select-head">
+            <span>{{ t('insights.cloud.track') }}</span>
+            <SearchBox
+              ref="cloudSingleSearchBoxRef"
+              :show-input-initially="true"
+              :input-width="280"
+              :placeholder="
+                t('localMusic.search', {
+                  target: t('insights.cloud.track')
+                })
+              "
+            />
+          </div>
           <select v-model="selectedCloudSongId">
             <option value="">{{ t('insights.cloud.select') }}</option>
             <option
-              v-for="track in cloudTracks"
+              v-for="track in filteredCloudTracks"
               :key="cloudSongId(track)"
               :value="cloudSongId(track)"
             >
@@ -303,6 +315,7 @@ import { computed, inject, onBeforeUnmount, onMounted, reactive, ref, watch } fr
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
+import SearchBox from '../components/SearchBox.vue'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
@@ -485,12 +498,52 @@ let footprintRequestInFlight = false
 let footprintSnapshotInFlight = false
 
 const selectedCloudSongId = ref('')
+const cloudSingleSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
 const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
 const cloudBatchMode = ref(false)
 const cloudBatchSongIds = ref<string[]>([])
 const cloudBatchDeleting = ref(false)
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
+const cloudSingleKeyword = computed(() =>
+  String(cloudSingleSearchBoxRef.value?.keywords || '')
+    .trim()
+    .toLocaleLowerCase()
+)
+
+const cloudTrackSearchText = (track: any): string => {
+  const song = track?.simpleSong ?? track
+  const artists = song?.ar ?? song?.artists ?? track?.ar ?? track?.artists ?? []
+  const aliases = song?.alia ?? song?.alias ?? track?.alia ?? track?.alias ?? []
+  const album = song?.al ?? song?.album ?? track?.al ?? track?.album
+
+  return [
+    cloudSongName(track),
+    cloudSongId(track),
+    album?.name,
+    ...artists.map((artist: any) => artist?.name),
+    ...(Array.isArray(aliases) ? aliases : [aliases])
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLocaleLowerCase()
+}
+
+const filteredCloudTracks = computed(() => {
+  const keyword = cloudSingleKeyword.value
+  if (!keyword) return cloudTracks.value
+  return cloudTracks.value.filter((track) => cloudTrackSearchText(track).includes(keyword))
+})
+
+watch(cloudSingleKeyword, () => {
+  if (
+    selectedCloudSongId.value &&
+    !filteredCloudTracks.value.some((track) => cloudSongId(track) === selectedCloudSongId.value)
+  ) {
+    selectedCloudSongId.value = ''
+  }
+})
+
 const cloudBatchAllSelected = computed(() => {
   const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
   if (!ids.length) return false
@@ -1302,7 +1355,42 @@ button:disabled {
 }
 
 .cloud-track-select {
+  display: grid;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+.cloud-track-select-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  > span {
+    flex: 0 0 auto;
+  }
+
+  :deep(.search-container) {
+    flex: 0 1 auto;
+    max-width: min(100%, 320px);
+  }
+}
+
+@media (max-width: 760px) {
+  .cloud-track-select-head {
+    align-items: stretch;
+    flex-direction: column;
+
+    :deep(.search-container) {
+      width: 100%;
+      max-width: none;
+    }
+
+    :deep(.search-input) {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
 }
 
 .cloud-tool-actions {
