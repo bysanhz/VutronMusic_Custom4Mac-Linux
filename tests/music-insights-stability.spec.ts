@@ -98,6 +98,26 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('...artists.map((artist: any) => artist?.name)')
   })
 
+  test('filters Cloud Pro deletion rows and scopes bulk selection to visible results', () => {
+    const view = readSource('src/renderer/views/MusicInsightsStable.vue')
+    const zhHans = readSource('src/renderer/locales/zh-hans.json')
+    const zhHant = readSource('src/renderer/locales/zh-hant.json')
+    const en = readSource('src/renderer/locales/en.json')
+
+    expect(view).toContain('v-model="cloudBatchKeyword"')
+    expect(view).toContain('v-for="(track, index) in filteredCloudBatchTracks"')
+    expect(view).toContain('const cloudBatchKeyword = ref(\'\')')
+    expect(view).toContain('const filteredCloudBatchTracks = computed(() =>')
+    expect(view).toContain('filteredCloudBatchTracks.value.map(cloudSongId)')
+    expect(view).toContain('filteredCloudBatchTracks.value.slice(from, to + 1)')
+    expect(view).toContain('visibleIds.forEach((id) => nextSelected.add(id))')
+    expect(view).toContain('visibleIds.forEach((id) => nextSelected.delete(id))')
+    expect(view).toContain("t('insights.cloud.searchNoResults')")
+    expect(zhHans).toContain('"searchNoResults": "没有匹配的云盘歌曲。"')
+    expect(zhHant).toContain('"searchNoResults": "沒有符合的雲端硬碟歌曲。"')
+    expect(en).toContain('"searchNoResults": "No matching cloud tracks."')
+  })
+
   test('keeps report confirmation isolated for every displayed period', () => {
     const view = readSource('src/renderer/views/MusicInsightsStable.vue')
     const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
