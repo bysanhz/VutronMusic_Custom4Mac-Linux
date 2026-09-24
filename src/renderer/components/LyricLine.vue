@@ -248,36 +248,17 @@ const createAnimations = async (type: 'all' | 'translation' = 'all') => {
   for (const l of lst) {
     const item = map[l]
     if (!item.dom) continue
-
-    const needsWordAnimation = Boolean(item.info && !animations[l])
-    const needsScrollAnimation = Boolean(props.isMini && !scrollAnimations[l])
-    if (!needsWordAnimation && !needsScrollAnimation) continue
-
-    /*
-     * Linux 下字体解析/替换通常比 macOS 慢一拍。等 FontFaceSet 稳定后再测字宽，
-     * 避免同一行刚开始时因为字体度量变化反复重建第一字的渐变位置。
-     */
-    if (isLinux && document.fonts?.status === 'loading') {
-      try {
-        await document.fonts.ready
-      } catch {
-        // 字体加载失败时仍继续使用当前可用字体度量。
-      }
-    }
-
     let spanWidths: number[] = []
-    if (item.info && (needsWordAnimation || needsScrollAnimation)) {
-      spanWidths = await measureDom(item.dom, item.info)
-    }
 
-    if (needsWordAnimation && item.info) {
+    if (item.info) {
+      spanWidths = await measureDom(item.dom, item.info)
       animations[l] = buildWordAnimation(item.dom, item.info, spanWidths)
     }
 
-    if (needsScrollAnimation) {
-      scrollAnimations[l] = buildScrollAnimation(item.dom, item.info, spanWidths)
+    if (props.isMini) {
+      const an = buildScrollAnimation(item.dom, item.info, spanWidths)
+      scrollAnimations[l] = an
     }
-
     await new Promise(requestAnimationFrame)
   }
 }
@@ -300,25 +281,21 @@ const updateCurrentTime = (timeMs: number) => {
   let timeOffset = timeMs - lineStartMs
 
   /*
-   * Linux Chromium 的 WAAPI 在歌词行刚开始时，IPC 校时可能比 compositor 已推进的
-   * currentTime 落后几十到几百毫秒。直接覆盖会让第一字“前进→回退→再前进”。
+   * Linux 下主播放器/OSD 的换行消息偶尔会以略微乱序的 seek 到达。
+   * 仅在当前行刚开始时拦截“小幅倒退”，避免第一字前进后又被旧 seek 拉回。
    *
-   * 这里只钳制行首 1.5 秒内、幅度不超过 600ms 的小幅回退；明显的用户 seek、
-   * 切歌或大范围跳转仍然允许正常后退。
+   * 注意这里不改变双行歌词的组件创建/销毁流程，也不复用上下行的动画实例：
+   * 上、下两行仍按原来的成熟逻辑各自创建逐字动画。
    */
   if (isLinux && props.playing) {
-    const liveTimes = anList
-      .map((animation) => Number(animation?.currentTime))
-      .filter((value) => Number.isFinite(value))
-    const liveTime = liveTimes.length ? Math.max(...liveTimes) : Number.NaN
-
+    const liveTime = Number(animations.lyric?.currentTime)
     if (
       Number.isFinite(liveTime) &&
       liveTime >= 0 &&
-      liveTime <= 1500 &&
+      liveTime <= 1200 &&
       timeOffset >= -100 &&
       timeOffset < liveTime &&
-      liveTime - timeOffset <= 600
+      liveTime - timeOffset <= 350
     ) {
       timeOffset = liveTime
     }
