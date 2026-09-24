@@ -948,7 +948,7 @@
     },
     "footprint": {
       "title": "听歌足迹",
-      "description": "今日显示不同歌曲数；本周按周一至今天统计，时长会即时叠加本机尚未同步的有效播放。",
+      "description": "统计卡仅显示网易云已确认的账号数据；本机待提交/待确认时长在右侧单独显示，本周按周一至今天统计。",
       "pending": "待同步 +{duration}",
       "pendingUnsubmitted": "待提交 +{duration}",
       "pendingSubmitted": "已提交待确认 +{duration}",
@@ -961,7 +961,7 @@
       "pendingSubmittedLabel": "待确认：",
       "pendingSubmittedHelp": "网易云已接收，等待报表更新。",
       "pendingSyncedLabel": "已同步：",
-      "pendingSyncedHelp": "实时报表已追上；更新较慢的累计报表仍会由本机补偿。",
+      "pendingSyncedHelp": "实时报表已追上；统计卡只显示网易云已确认的账号数据。",
       "refreshHint": "提交当前歌曲尚未上报的收听时长并重试历史失败记录，再重新读取网易云统计，短时确认远端是否已落库。",
       "today": "今日",
       "todayCount": "{count} 首",
