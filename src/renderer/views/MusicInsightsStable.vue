@@ -148,31 +148,62 @@
           </div>
         </div>
 
-        <label class="cloud-track-select">
-          <div class="cloud-track-select-head">
-            <span>{{ t('insights.cloud.track') }}</span>
-            <SearchBox
-              ref="cloudSingleSearchBoxRef"
-              :show-input-initially="true"
-              :input-width="280"
-              :placeholder="
-                t('localMusic.search', {
-                  target: t('insights.cloud.track')
-                })
-              "
-            />
+        <div ref="cloudTrackPickerRef" class="cloud-track-select">
+          <span class="cloud-track-label">{{ t('insights.cloud.track') }}</span>
+          <button
+            class="cloud-track-picker-trigger"
+            type="button"
+            :aria-expanded="cloudTrackPickerOpen"
+            @click.stop="toggleCloudTrackPicker"
+          >
+            <span class="cloud-track-picker-value">
+              {{
+                selectedCloudTrack
+                  ? `${cloudSongName(selectedCloudTrack)} · ${cloudSongId(selectedCloudTrack)}`
+                  : t('insights.cloud.select')
+              }}
+            </span>
+            <SvgIcon icon-class="dropdown" />
+          </button>
+
+          <div
+            v-if="cloudTrackPickerOpen"
+            class="cloud-track-picker-panel"
+            @click.stop
+            @keydown.esc.stop.prevent="closeCloudTrackPicker"
+          >
+            <div class="cloud-track-search">
+              <SvgIcon icon-class="search" />
+              <input
+                ref="cloudTrackSearchInputRef"
+                v-model="cloudSingleKeyword"
+                type="search"
+                :placeholder="
+                  t('localMusic.search', {
+                    target: t('insights.cloud.track')
+                  })
+                "
+              />
+            </div>
+
+            <div class="cloud-track-picker-results">
+              <button
+                v-for="track in filteredCloudTracks"
+                :key="cloudSongId(track)"
+                type="button"
+                class="cloud-track-picker-option"
+                :class="{ active: cloudSongId(track) === selectedCloudSongId }"
+                @click="selectCloudTrack(track)"
+              >
+                <span>{{ cloudSongName(track) }}</span>
+                <small>{{ cloudSongId(track) }}</small>
+              </button>
+              <div v-if="!filteredCloudTracks.length" class="cloud-track-picker-empty">
+                {{ t('insights.cloud.empty') }}
+              </div>
+            </div>
           </div>
-          <select v-model="selectedCloudSongId">
-            <option value="">{{ t('insights.cloud.select') }}</option>
-            <option
-              v-for="track in filteredCloudTracks"
-              :key="cloudSongId(track)"
-              :value="cloudSongId(track)"
-            >
-              {{ cloudSongName(track) }} · {{ cloudSongId(track) }}
-            </option>
-          </select>
-        </label>
+        </div>
 
         <div class="cloud-tool-actions">
           <div class="cloud-tool-card">
@@ -311,11 +342,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
-import SearchBox from '../components/SearchBox.vue'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
@@ -498,18 +528,16 @@ let footprintRequestInFlight = false
 let footprintSnapshotInFlight = false
 
 const selectedCloudSongId = ref('')
-const cloudSingleSearchBoxRef = ref<InstanceType<typeof SearchBox>>()
+const cloudTrackPickerOpen = ref(false)
+const cloudTrackPickerRef = ref<HTMLElement | null>(null)
+const cloudTrackSearchInputRef = ref<HTMLInputElement | null>(null)
+const cloudSingleKeyword = ref('')
 const cloudTargetSongId = ref('')
 const cloudLyricPreview = ref('')
 const cloudBatchMode = ref(false)
 const cloudBatchSongIds = ref<string[]>([])
 const cloudBatchDeleting = ref(false)
 const cloudTracks = computed(() => liked.value.cloudDisk ?? [])
-const cloudSingleKeyword = computed(() =>
-  String(cloudSingleSearchBoxRef.value?.keywords || '')
-    .trim()
-    .toLocaleLowerCase()
-)
 
 const cloudTrackSearchText = (track: any): string => {
   const song = track?.simpleSong ?? track
@@ -530,19 +558,40 @@ const cloudTrackSearchText = (track: any): string => {
 }
 
 const filteredCloudTracks = computed(() => {
-  const keyword = cloudSingleKeyword.value
+  const keyword = cloudSingleKeyword.value.trim().toLocaleLowerCase()
   if (!keyword) return cloudTracks.value
   return cloudTracks.value.filter((track) => cloudTrackSearchText(track).includes(keyword))
 })
 
-watch(cloudSingleKeyword, () => {
-  if (
-    selectedCloudSongId.value &&
-    !filteredCloudTracks.value.some((track) => cloudSongId(track) === selectedCloudSongId.value)
-  ) {
-    selectedCloudSongId.value = ''
-  }
-})
+const selectedCloudTrack = computed(
+  () => cloudTracks.value.find((track) => cloudSongId(track) === selectedCloudSongId.value) ?? null
+)
+
+const closeCloudTrackPicker = (): void => {
+  cloudTrackPickerOpen.value = false
+}
+
+const toggleCloudTrackPicker = (): void => {
+  cloudTrackPickerOpen.value = !cloudTrackPickerOpen.value
+  if (!cloudTrackPickerOpen.value) return
+  void nextTick(() => {
+    cloudTrackSearchInputRef.value?.focus()
+    cloudTrackSearchInputRef.value?.select()
+  })
+}
+
+const selectCloudTrack = (track: any): void => {
+  selectedCloudSongId.value = cloudSongId(track)
+  cloudSingleKeyword.value = ''
+  cloudTrackPickerOpen.value = false
+}
+
+const handleCloudTrackPickerOutsidePointer = (event: PointerEvent): void => {
+  if (!cloudTrackPickerOpen.value) return
+  const target = event.target
+  if (target instanceof Node && cloudTrackPickerRef.value?.contains(target)) return
+  closeCloudTrackPicker()
+}
 
 const cloudBatchAllSelected = computed(() => {
   const ids = cloudTracks.value.map(cloudSongId).filter(Boolean)
@@ -963,6 +1012,7 @@ let dateBoundaryTimer: number | null = null
 onMounted(() => {
   setActiveNeteaseListenAccount(accountId.value)
   window.addEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
+  window.addEventListener('pointerdown', handleCloudTrackPickerOutsidePointer)
   void loadFootprint()
   startPendingSyncPolling()
   dateBoundaryTimer = window.setInterval(() => {
@@ -983,6 +1033,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
+  window.removeEventListener('pointerdown', handleCloudTrackPickerOutsidePointer)
   stopPendingSyncPolling()
   if (dateBoundaryTimer !== null) window.clearInterval(dateBoundaryTimer)
 })
@@ -1355,42 +1406,130 @@ button:disabled {
 }
 
 .cloud-track-select {
+  position: relative;
   display: grid;
-  gap: 8px;
+  gap: 7px;
   margin-bottom: 12px;
 }
 
-.cloud-track-select-head {
+.cloud-track-label {
+  font-size: 12px;
+  opacity: 0.62;
+}
+
+.cloud-track-picker-trigger {
+  width: 100%;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 9px;
+  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  cursor: pointer;
+  text-align: left;
 
-  > span {
-    flex: 0 0 auto;
-  }
-
-  :deep(.search-container) {
-    flex: 0 1 auto;
-    max-width: min(100%, 320px);
+  .svg-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    opacity: 0.58;
   }
 }
 
-@media (max-width: 760px) {
-  .cloud-track-select-head {
-    align-items: stretch;
-    flex-direction: column;
+.cloud-track-picker-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-    :deep(.search-container) {
-      width: 100%;
-      max-width: none;
-    }
+.cloud-track-picker-panel {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 12px;
+  background: var(--color-body-bg);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--color-text) 18%, transparent);
+}
 
-    :deep(.search-input) {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
+.cloud-track-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--color-secondary-bg);
+
+  .svg-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    opacity: 0.42;
   }
+
+  input {
+    min-height: 38px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+  }
+}
+
+.cloud-track-picker-results {
+  max-height: min(360px, 48vh);
+  margin-top: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cloud-track-picker-option {
+  width: 100%;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &.active {
+    background: var(--color-secondary-bg);
+  }
+
+  > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    opacity: 0.46;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.cloud-track-picker-empty {
+  padding: 18px 10px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.5;
 }
 
 .cloud-tool-actions {
