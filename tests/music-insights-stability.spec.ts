@@ -79,16 +79,21 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('void refreshPendingRemoteDuration()')
   })
 
-  test('filters the Cloud Pro single-track selector by local metadata', () => {
+  test('keeps Cloud Pro search inside a persistent custom track picker', () => {
     const view = readSource('src/renderer/views/MusicInsightsStable.vue')
 
-    expect(view).toContain("import SearchBox from '../components/SearchBox.vue'")
-    expect(view).toContain('ref="cloudSingleSearchBoxRef"')
-    expect(view).toContain(':show-input-initially="true"')
+    expect(view).not.toContain("import SearchBox from '../components/SearchBox.vue'")
+    expect(view).not.toContain('<select v-model="selectedCloudSongId">')
+    expect(view).toContain('ref="cloudTrackPickerRef"')
+    expect(view).toContain('ref="cloudTrackSearchInputRef"')
+    expect(view).toContain('v-model="cloudSingleKeyword"')
     expect(view).toContain('v-for="track in filteredCloudTracks"')
-    expect(view).toContain('const cloudSingleKeyword = computed(() =>')
+    expect(view).toContain('const cloudSingleKeyword = ref(\'\')')
     expect(view).toContain('const cloudTrackSearchText = (track: any): string =>')
     expect(view).toContain('const filteredCloudTracks = computed(() =>')
+    expect(view).toContain('const toggleCloudTrackPicker = (): void =>')
+    expect(view).toContain('const selectCloudTrack = (track: any): void =>')
+    expect(view).toContain("window.addEventListener('pointerdown', handleCloudTrackPickerOutsidePointer)")
     expect(view).toContain('album?.name')
     expect(view).toContain('...artists.map((artist: any) => artist?.name)')
   })
