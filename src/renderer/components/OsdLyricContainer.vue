@@ -374,7 +374,12 @@ watch(
 
       for (let i = start; i < end; i++) {
         const instance = lyricRefs.value[i]
-        if (i < highlightIdx.value) {
+        if (isShowingNextGroup.value && i === 0) {
+          // 双行模式中，当前行位于第二行时 index 0 已经是下一组的预览歌词。
+          // 它不能因为 i < highlightIdx 就被 finish，否则下一句开头会先呈现已播放状态，
+          // 再在真正激活时被重置，Linux 上尤其容易表现为前几个词来回闪跳。
+          instance?.updatePlayStatus('reset')
+        } else if (i < highlightIdx.value) {
           instance?.updatePlayStatus('finish')
         } else if (i === highlightIdx.value) {
           const currentTime = (seek.value + value[1]) * 1000
