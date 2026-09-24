@@ -51,7 +51,6 @@ const animationActionMap: Record<AnimationStatus, (an: Animation) => void> = {
 
 const lineRef = ref<HTMLElement | null>(null)
 const translationRef = ref<HTMLElement | null>()
-const isLinux = Boolean(window.env?.isLinux)
 
 const animations = {
   lyric: null as Animation | null,
@@ -278,28 +277,7 @@ const updateCurrentTime = (timeMs: number) => {
   ]
 
   const lineStartMs = props.item.start * 1000
-  let timeOffset = timeMs - lineStartMs
-
-  /*
-   * Linux 下主播放器/OSD 的换行消息偶尔会以略微乱序的 seek 到达。
-   * 仅在当前行刚开始时拦截“小幅倒退”，避免第一字前进后又被旧 seek 拉回。
-   *
-   * 注意这里不改变双行歌词的组件创建/销毁流程，也不复用上下行的动画实例：
-   * 上、下两行仍按原来的成熟逻辑各自创建逐字动画。
-   */
-  if (isLinux && props.playing) {
-    const liveTime = Number(animations.lyric?.currentTime)
-    if (
-      Number.isFinite(liveTime) &&
-      liveTime >= 0 &&
-      liveTime <= 1200 &&
-      timeOffset >= -100 &&
-      timeOffset < liveTime &&
-      liveTime - timeOffset <= 350
-    ) {
-      timeOffset = liveTime
-    }
-  }
+  const timeOffset = timeMs - lineStartMs
 
   anList.forEach((an) => {
     if (an) an.currentTime = timeOffset
