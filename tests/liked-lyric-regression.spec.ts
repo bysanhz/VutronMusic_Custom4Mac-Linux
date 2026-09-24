@@ -62,6 +62,19 @@ test.describe('desktop lyric continuity', () => {
     expect(watchdog).toContain('WATCHDOG_INTERVAL_MS = 250')
   })
 
+  test('keeps Linux word timing monotonic without changing two-line lifecycle', () => {
+    const container = readSource('src/renderer/components/OsdLyricContainer.vue')
+    const line = readSource('src/renderer/components/LyricLine.vue')
+
+    expect(container).toContain(':key="index"')
+    expect(container).toContain('watch(lyricToShow, async () => {')
+    expect(container).toContain('clearAnimations()')
+    expect(line).toContain('const isLinux = Boolean(window.env?.isLinux)')
+    expect(line).toContain('liveTime <= 1200')
+    expect(line).toContain('liveTime - timeOffset <= 350')
+    expect(line).not.toContain('needsWordAnimation')
+  })
+
   test('keeps an independent OSD clock without fighting word-by-word WAAPI timing', () => {
     const osdEntry = readSource('src/renderer/osdLyric.ts')
     const guard = readSource('src/renderer/utils/osdLyricSyncGuard.ts')
@@ -75,29 +88,11 @@ test.describe('desktop lyric continuity', () => {
     expect(guard).toContain(
       "window.mainApi?.sendMessage({ type: 'get-seek', source: 'osd-sync-guard' })"
     )
-    expect(guard).toContain('if (line === lastKnownLine) {')
-    expect(guard).toContain('SYNTHETIC_LINE_GRACE_MS = 500')
-    expect(guard).toContain('pendingSyntheticLine = line')
+    expect(guard).toContain('if (line === lastKnownLine) return')
     expect(guard).toContain('lastKnownLine = Number(data.line[0])')
     expect(guard).toContain("type: 'update-osd-status'")
     expect(guard).toContain('LOCAL_TICK_MS = 250')
     expect(player).toContain("syncGuard: event.data.source === 'osd-sync-guard'")
     expect(container).toContain('if (data.seek !== undefined && data.syncGuard !== true)')
-  })
-
-  test('preserves the active mini lyric animation when adjacent lines rotate', () => {
-    const container = readSource('src/renderer/components/OsdLyricContainer.vue')
-    const line = readSource('src/renderer/components/LyricLine.vue')
-
-    expect(container).toContain(':key="\`\${lyricRevision}:\${lyricRenderKey(lyric)}\`"')
-    expect(container).toContain('const lyricRenderKey = (lyric: lyricLine): string =>')
-    expect(container).toContain('const revision = ++animationScheduleRevision')
-    expect(container).toContain('void scheduleAnimation()')
-    expect(container).not.toContain('watch(lyricToShow, async () => {\n  clearAnimations()')
-    expect(line).toContain('const needsWordAnimation = Boolean(item.info && !animations[l])')
-    expect(line).toContain('const needsScrollAnimation = Boolean(props.isMini && !scrollAnimations[l])')
-    expect(line).toContain("document.fonts?.status === 'loading'")
-    expect(line).toContain('liveTime <= 1500')
-    expect(line).toContain('liveTime - timeOffset <= 600')
   })
 })
