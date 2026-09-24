@@ -7,6 +7,7 @@ type OsdStatus = {
   line?: [number, number]
   rate?: number
   seek?: number
+  syncGuard?: boolean
 }
 
 const LOCAL_TICK_MS = 250
@@ -45,6 +46,7 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
   let anchorSeek = 0
   let anchorTime = performance.now()
   let lastAuthoritativeSync = 0
+  let lastKnownLine = Number.NaN
 
   const estimateSeek = (now = performance.now()) => {
     if (!playing) return anchorSeek
@@ -86,6 +88,17 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
     const seek = estimateSeek()
     const line = findLyricIndex(seek)
 
+    /*
+     * WAAPI 本身会在当前歌词行内连续推进逐字动画。看门狗只需要在主播放器
+     * 的“换行”消息意外丢失时补一次行切换，不能每 250 ms 都重写 currentTime。
+     *
+     * Linux/Electron 下 MessagePort + compositor 调度抖动更明显；持续重写同一行
+     * 的 currentTime 会让第一个字在前后两个时间点之间反复回跳。只在行号真正变化
+     * 时发布 synthetic line，既保留卡行容错，也不再和逐字动画争夺时间轴。
+     */
+    if (line === lastKnownLine) return
+    lastKnownLine = line
+
     window.postMessage(
       {
         type: 'update-osd-status',
@@ -110,6 +123,8 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
 
     if (Array.isArray(data.lyrics)) {
       lyrics = data.lyrics
+      // 新歌词可能从相同的数字行号开始，必须允许看门狗重新建立行状态。
+      lastKnownLine = Number.NaN
     }
 
     if (data.rate !== undefined) {
@@ -128,6 +143,7 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
     }
 
     if (data.line !== undefined) {
+      lastKnownLine = Number(data.line[0])
       setSeekAnchor(data.line[1])
     } else if (data.seek !== undefined) {
       setSeekAnchor(data.seek)
@@ -146,7 +162,7 @@ export const initializeOsdLyricSyncGuard = (): (() => void) | undefined => {
     if (!playing) return
 
     try {
-      window.mainApi?.sendMessage({ type: 'get-seek' })
+      window.mainApi?.sendMessage({ type: 'get-seek', source: 'osd-sync-guard' })
     } catch (error) {
       console.warn('[OSD Sync] 请求播放器进度失败：', error)
     }
