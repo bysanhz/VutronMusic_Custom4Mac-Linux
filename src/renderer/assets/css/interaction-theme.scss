@@ -101,17 +101,28 @@
  * 不给爱心按钮强制铺主题色底。
  */
 #app .like-button:not(.disabled),
-#app .like-button:not(.disabled) .svg-icon,
-#lyric .control-like,
-#lyric .control-like .svg-icon {
+#app .like-button:not(.disabled) .svg-icon {
   color: color-mix(in srgb, var(--color-text) 68%, transparent) !important;
 }
 
 #app .like-button:not(.disabled):hover,
-#app .like-button:not(.disabled):hover .svg-icon,
+#app .like-button:not(.disabled):hover .svg-icon {
+  color: var(--color-text) !important;
+}
+
+/*
+ * 桌面歌词控制区使用深色半透明背景，不能直接复用主界面的
+ * var(--color-text)：浅色主题下它会接近黑色，导致空心爱心几乎不可见。
+ * 未喜欢时与其它桌面歌词控制按钮保持同一高对比中性色；仅 liked 状态变红。
+ */
+#lyric .control-like,
+#lyric .control-like .svg-icon {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
 #lyric .control-like:hover,
 #lyric .control-like:hover .svg-icon {
-  color: var(--color-text) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
 }
 
 #app .like-button.liked:not(.disabled),
