@@ -96,22 +96,22 @@
 /* ==================== 喜欢 / 爱心 ==================== */
 
 /*
- * 爱心是独立语义色，不跟随主题色。
- * 未点赞保持较轻红色，点赞后使用完整红色。
- * 不再给爱心按钮强制铺主题色底。
+ * 爱心的红色只表达“已加入喜欢”这一状态。
+ * 未点赞时使用普通图标色；悬浮仅增强可见度，不提前显示为红色。
+ * 不给爱心按钮强制铺主题色底。
  */
 #app .like-button:not(.disabled),
 #app .like-button:not(.disabled) .svg-icon,
 #lyric .control-like,
 #lyric .control-like .svg-icon {
-  color: color-mix(in srgb, var(--color-like) 68%, transparent) !important;
+  color: color-mix(in srgb, var(--color-text) 68%, transparent) !important;
 }
 
 #app .like-button:not(.disabled):hover,
 #app .like-button:not(.disabled):hover .svg-icon,
 #lyric .control-like:hover,
 #lyric .control-like:hover .svg-icon {
-  color: var(--color-like) !important;
+  color: var(--color-text) !important;
 }
 
 #app .like-button.liked:not(.disabled),
