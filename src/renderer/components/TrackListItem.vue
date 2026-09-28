@@ -10,6 +10,7 @@
         fetchpriority="low"
         :class="{ hover: focus }"
         @click="goToAlbum"
+        @error="handleCoverImageError"
       />
       <div v-if="showOrderNumber" class="no">
         <button v-show="focus && !isPlaying" @click="playThisList(track.id)">
@@ -113,6 +114,10 @@ import { usePlayerStore } from '../store/player'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Track } from '@/types/music.d'
+import {
+  buildNeteaseImageProxyUrl,
+  buildNeteaseImageUrl
+} from '../../shared/neteaseAssetUrl'
 
 const router = useRouter()
 const props = withDefaults(
@@ -165,9 +170,7 @@ const image = computed(() => {
 
   if (track.value.type === 'online') {
     url = track.value.al?.picUrl || track.value.album?.picUrl || track.value.picUrl || ''
-    if (!url) return 'atom://get-default-pic'
-    if (url.startsWith('http')) url = url.replace('http:', 'https:')
-    return `${url}${url.includes('?') ? '&' : '?'}param=64y64`
+    return buildNeteaseImageUrl(url, 64) || 'atom://get-default-pic'
   }
 
   if (track.value.type === 'stream') {
@@ -180,6 +183,16 @@ const image = computed(() => {
     ? `atom://get-pic-path/${track.value.filePath}`
     : `atom://local-asset?type=pic&id=${track.value.id}&size=64`
 })
+
+const handleCoverImageError = (event: Event) => {
+  const imageElement = event.currentTarget as HTMLImageElement | null
+  if (!imageElement) return
+
+  const currentSource = imageElement.getAttribute('src') || ''
+  const proxyUrl = buildNeteaseImageProxyUrl(currentSource, 64)
+  imageElement.src =
+    proxyUrl && proxyUrl !== currentSource ? proxyUrl : 'atom://get-default-pic'
+}
 
 const hover = ref(false)
 

@@ -20,7 +20,7 @@
         <span class="cover-loading-spinner"></span>
       </div>
       <img
-        :src="imageUrl"
+        :src="resolvedImageUrl"
         :style="imageStyles"
         :loading="imageLoading"
         decoding="async"
@@ -47,6 +47,10 @@ import { getArtist } from '../api/artist'
 import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
 import { observeCoverVisibility } from '../utils/coverVisibility'
+import {
+  buildNeteaseImageProxyUrl,
+  buildNeteaseImageUrl
+} from '../../shared/neteaseAssetUrl'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -70,6 +74,10 @@ const props = defineProps({
 const focus = ref(false)
 const coverContainerRef = ref<HTMLElement>()
 const imageLoaded = ref(false)
+const coverSize = computed(() => props.fixedSize || 256)
+const resolvedImageUrl = ref(
+  buildNeteaseImageUrl(props.imageUrl, coverSize.value) || 'atom://get-default-pic'
+)
 const isNearViewport = ref(false)
 const showImageLoading = computed(() => isNearViewport.value && !imageLoaded.value)
 let stopObservingCover: (() => void) | null = null
@@ -79,13 +87,28 @@ const handleImageLoad = () => {
 }
 
 const handleImageError = () => {
+  const proxyUrl = buildNeteaseImageProxyUrl(resolvedImageUrl.value, coverSize.value)
+  if (proxyUrl && proxyUrl !== resolvedImageUrl.value) {
+    imageLoaded.value = false
+    resolvedImageUrl.value = proxyUrl
+    return
+  }
+
+  if (resolvedImageUrl.value !== 'atom://get-default-pic') {
+    imageLoaded.value = false
+    resolvedImageUrl.value = 'atom://get-default-pic'
+    return
+  }
+
   imageLoaded.value = true
 }
 
 watch(
-  () => props.imageUrl,
+  () => [props.imageUrl, props.fixedSize],
   () => {
     imageLoaded.value = false
+    resolvedImageUrl.value =
+      buildNeteaseImageUrl(props.imageUrl, coverSize.value) || 'atom://get-default-pic'
   }
 )
 
@@ -131,7 +154,7 @@ const imageStyles = computed(() => {
 
 const shadowStyles = computed(() => {
   const styles = {
-    backgroundImage: `url(${props.imageUrl})`,
+    backgroundImage: `url(${resolvedImageUrl.value})`,
     borderRadius: props.type === 'artist' ? '50%' : '0'
   }
   return styles
