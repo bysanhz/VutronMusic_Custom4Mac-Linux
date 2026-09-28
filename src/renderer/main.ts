@@ -108,6 +108,20 @@ declare global {
       currentTrack: Record<string, any>
       isLiked: boolean
       repeatMode: string
+      media: {
+        paused: boolean
+        ended: boolean
+        readyState: number
+        networkState: number
+        duration: number | null
+        bufferedEnd: number
+        lastEvent: string
+        lastEventAt: string
+        stalledForMs: number
+        stallCount: number
+        recoveryCount: number
+        recoveryInFlight: boolean
+      }
       lyric: { lrc: string; tlyric: string; romalrc: string }
     }
     LottieAnimation: (typeof import('vue3-lottie'))['Vue3Lottie']

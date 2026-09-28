@@ -142,6 +142,24 @@ export const usePlayerStore = defineStore(
     let playbackSourceRetryTrackId: string | null = null
     let playbackSourceRetryCount = 0
 
+    // 媒体元素有时会保持 paused=false / playing=true，但网络流已经不再推进。
+    // 通过独立 watchdog 观察真实 currentTime，避免 UI 处于“假播放”状态。
+    const PLAYBACK_STALL_CHECK_INTERVAL_MS = 2_000
+    const PLAYBACK_STALL_TIMEOUT_MS = 12_000
+    const PLAYBACK_PROGRESS_EPSILON_SECONDS = 0.15
+    const PLAYBACK_STALL_RECOVERY_RESET_SECONDS = 15
+    const MAX_PLAYBACK_STALL_RECOVERIES = 1
+    let playbackHealthTimer: number | null = null
+    let playbackHealthLastProgress = 0
+    let playbackHealthLastAdvanceAt = Date.now()
+    let playbackHealthLastEvent = 'init'
+    let playbackHealthLastEventAt = Date.now()
+    let playbackHealthStallCount = 0
+    let playbackHealthRecoveryInFlight = false
+    let playbackStallRecoveryTrackId: string | null = null
+    let playbackStallRecoveryCount = 0
+    let playbackStallRecoveryAtProgress: number | null = null
+
     const isTrackLoadCurrent = (revision: number, track?: Track | null) => {
       if (revision !== trackLoadRevision) return false
       if (!track || !currentTrack.value) return true
@@ -958,7 +976,11 @@ export const usePlayerStore = defineStore(
       if (!enabled.value) enabled.value = true
     }
 
-    const replaceCurrentTrack = async (trackID: number | string, autoPlay = true) => {
+    const replaceCurrentTrack = async (
+      trackID: number | string,
+      autoPlay = true,
+      resumePositionOverride: number | null = null
+    ) => {
       const revision = ++trackLoadRevision
       trackLookupFailureRevision = -1
 
@@ -966,6 +988,11 @@ export const usePlayerStore = defineStore(
       if (playbackSourceRetryTrackId !== retryTrackId) {
         playbackSourceRetryTrackId = retryTrackId
         playbackSourceRetryCount = 0
+      }
+      if (playbackStallRecoveryTrackId !== retryTrackId) {
+        playbackStallRecoveryTrackId = retryTrackId
+        playbackStallRecoveryCount = 0
+        playbackStallRecoveryAtProgress = null
       }
 
       cancelSleepTimerForTrackChange(trackID)
@@ -992,10 +1019,11 @@ export const usePlayerStore = defineStore(
         return false
       }
 
-      const resumePosition =
-        !autoPlay &&
-        currentTrack.value?.id !== undefined &&
-        String(currentTrack.value.id) === String(trackID)
+      const resumePosition = Number.isFinite(resumePositionOverride)
+        ? Math.max(0, Number(resumePositionOverride))
+        : !autoPlay &&
+            currentTrack.value?.id !== undefined &&
+            String(currentTrack.value.id) === String(trackID)
           ? seek.value
           : 0
 
@@ -1028,7 +1056,7 @@ export const usePlayerStore = defineStore(
         return false
       }
 
-      const replaced = await playAudioSource(source, autoPlay, revision)
+      const replaced = await playAudioSource(source, autoPlay, revision, resumePosition)
       if (revision !== trackLoadRevision) return false
 
       if (autoPlay && currentTrack.value?.type === 'stream') {
@@ -1271,7 +1299,8 @@ export const usePlayerStore = defineStore(
     const playAudioSource = async (
       source: string,
       autoPlay = true,
-      revision = trackLoadRevision
+      revision = trackLoadRevision,
+      startAt = 0
     ) => {
       if (revision !== trackLoadRevision) return false
 
@@ -1284,6 +1313,38 @@ export const usePlayerStore = defineStore(
       audioNodes.audio!.load()
       audioNodes.audio!.src = source
       audioNodes.audio!.load()
+
+      if (startAt > 0) {
+        const applyResumePosition = () => {
+          const audio = audioNodes.audio
+          if (!audio || revision !== trackLoadRevision) return
+
+          const maximumPosition =
+            Number.isFinite(audio.duration) && audio.duration > 0
+              ? Math.max(0, audio.duration - 0.25)
+              : startAt
+          const position = Math.min(startAt, maximumPosition)
+
+          try {
+            audio.currentTime = position
+            _progress.value = position
+            progress.value = position
+            lastUpdateTime = position
+            playbackHealthLastProgress = position
+            playbackHealthLastAdvanceAt = Date.now()
+          } catch (error) {
+            console.warn('[Player] 恢复播放位置失败', { position, error })
+          }
+        }
+
+        if (audioNodes.audio!.readyState >= 1) {
+          applyResumePosition()
+        } else {
+          audioNodes.audio!.addEventListener('loadedmetadata', applyResumePosition, {
+            once: true
+          })
+        }
+      }
 
       if (autoPlay) {
         const isPlaying = await play()
@@ -1497,8 +1558,9 @@ export const usePlayerStore = defineStore(
 
       if (playbackSourceRetryCount < MAX_PLAYBACK_SOURCE_RETRIES) {
         playbackSourceRetryCount += 1
+        const resumePosition = Math.max(0, audioNodes.audio?.currentTime || seek.value || 0)
         showToast(t('toast.audioSourceRetrying', { name: track.name }))
-        void replaceCurrentTrack(track.id, true)
+        void replaceCurrentTrack(track.id, true, resumePosition)
         return
       }
 
@@ -1507,6 +1569,164 @@ export const usePlayerStore = defineStore(
       showToast(t('toast.audioPlaybackFailedNext', { name: track.name }))
       markPlaybackEndReason('playback-error')
       void _playNextTrack(isPersonalFM.value)
+    }
+
+    const recordPlaybackMediaEvent = (event: string) => {
+      playbackHealthLastEvent = event
+      playbackHealthLastEventAt = Date.now()
+    }
+
+    const notePlaybackProgress = (currentTime: number, force = false) => {
+      if (
+        force ||
+        Math.abs(currentTime - playbackHealthLastProgress) >=
+          PLAYBACK_PROGRESS_EPSILON_SECONDS
+      ) {
+        playbackHealthLastProgress = currentTime
+        playbackHealthLastAdvanceAt = Date.now()
+
+        if (
+          playbackStallRecoveryCount > 0 &&
+          playbackStallRecoveryAtProgress !== null &&
+          currentTime >=
+            playbackStallRecoveryAtProgress + PLAYBACK_STALL_RECOVERY_RESET_SECONDS
+        ) {
+          playbackStallRecoveryCount = 0
+          playbackStallRecoveryAtProgress = null
+        }
+      }
+    }
+
+    const recoverStalledPlayback = async (reason: string) => {
+      const track = currentTrack.value
+      const audio = audioNodes.audio
+      if (!track || !audio || playbackHealthRecoveryInFlight) return
+
+      const trackId = String(track.id)
+      if (playbackStallRecoveryTrackId !== trackId) {
+        playbackStallRecoveryTrackId = trackId
+        playbackStallRecoveryCount = 0
+        playbackStallRecoveryAtProgress = null
+      }
+
+      playbackHealthStallCount += 1
+      recordPlaybackMediaEvent(`recovery:${reason}`)
+
+      if (playbackStallRecoveryCount >= MAX_PLAYBACK_STALL_RECOVERIES) {
+        console.warn('[Player] 播放停滞恢复次数已用尽，切换下一首', {
+          trackId: track.id,
+          progress: audio.currentTime,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          reason
+        })
+        showToast(t('toast.audioPlaybackFailedNext', { name: track.name }))
+        markPlaybackEndReason('playback-error')
+        void _playNextTrack(isPersonalFM.value)
+        return
+      }
+
+      playbackStallRecoveryCount += 1
+      playbackHealthRecoveryInFlight = true
+      const resumePosition = Math.max(0, audio.currentTime || seek.value || 0)
+      playbackStallRecoveryAtProgress = resumePosition
+
+      console.warn('[Player] 检测到播放停滞，刷新音源并恢复当前位置', {
+        trackId: track.id,
+        progress: resumePosition,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        reason,
+        recoveryCount: playbackStallRecoveryCount
+      })
+      showToast(t('toast.audioSourceRetrying', { name: track.name }))
+
+      try {
+        await replaceCurrentTrack(track.id, true, resumePosition)
+      } finally {
+        playbackHealthRecoveryInFlight = false
+        playbackHealthLastProgress = audioNodes.audio?.currentTime || resumePosition
+        playbackHealthLastAdvanceAt = Date.now()
+      }
+    }
+
+    const checkPlaybackHealth = () => {
+      const audio = audioNodes.audio
+      if (
+        !audio ||
+        !currentTrack.value ||
+        playbackHealthRecoveryInFlight ||
+        !playing.value ||
+        audio.paused ||
+        audio.ended
+      ) {
+        return
+      }
+
+      const currentTime = audio.currentTime
+      notePlaybackProgress(currentTime)
+      const stalledFor = Date.now() - playbackHealthLastAdvanceAt
+      if (stalledFor < PLAYBACK_STALL_TIMEOUT_MS) return
+
+      void recoverStalledPlayback(
+        `watchdog-${playbackHealthLastEvent}-${Math.round(stalledFor)}ms`
+      )
+    }
+
+    const startPlaybackHealthWatchdog = () => {
+      if (playbackHealthTimer !== null) window.clearInterval(playbackHealthTimer)
+      playbackHealthLastProgress = audioNodes.audio?.currentTime || 0
+      playbackHealthLastAdvanceAt = Date.now()
+      playbackHealthTimer = window.setInterval(
+        checkPlaybackHealth,
+        PLAYBACK_STALL_CHECK_INTERVAL_MS
+      )
+    }
+
+    const stopPlaybackHealthWatchdog = () => {
+      if (playbackHealthTimer !== null) {
+        window.clearInterval(playbackHealthTimer)
+        playbackHealthTimer = null
+      }
+    }
+
+    const _handleMediaPlay = () => {
+      recordPlaybackMediaEvent('play')
+      notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
+      playing.value = true
+    }
+
+    const _handleMediaPlaying = () => {
+      recordPlaybackMediaEvent('playing')
+      notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
+      playing.value = true
+    }
+
+    const _handleMediaPause = () => {
+      recordPlaybackMediaEvent('pause')
+      playing.value = false
+    }
+
+    const _handleMediaWaiting = () => recordPlaybackMediaEvent('waiting')
+    const _handleMediaStalled = () => recordPlaybackMediaEvent('stalled')
+    const _handleMediaSeeked = () => {
+      recordPlaybackMediaEvent('seeked')
+      notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
+    }
+
+    const _handleMediaError = () => {
+      const audio = audioNodes.audio
+      if (!audio) return
+
+      const mediaError = audio.error
+      const detail = mediaError
+        ? `code=${mediaError.code}, message=${mediaError.message || 'unknown'}`
+        : 'unknown media error'
+      recordPlaybackMediaEvent(`error:${detail}`)
+
+      if (!audio.paused || playing.value) {
+        void recoverStalledPlayback(`media-error-${detail}`)
+      }
     }
 
     const play = async (): Promise<boolean> => {
@@ -1530,6 +1750,7 @@ export const usePlayerStore = defineStore(
         const fade = fadeDuration.value
         await smoothGain(0, 0)
         await audioNodes.audio.play()
+        notePlaybackProgress(audioNodes.audio.currentTime, true)
         void smoothGain(volume.value, fade)
 
         title.value = `${currentTrack.value?.name} · ${arts[0].name} - VutronMusic`
@@ -1670,6 +1891,7 @@ export const usePlayerStore = defineStore(
       if (!audioNodes.audio) return
 
       const currentTime = audioNodes.audio.currentTime
+      notePlaybackProgress(currentTime)
       const delta = currentTime - lastUpdateTime
       if (Math.abs(delta) >= 1) {
         /*
@@ -1729,6 +1951,13 @@ export const usePlayerStore = defineStore(
       if (audioNodes.audio) {
         audioNodes.audio.removeEventListener('timeupdate', _handleTimeUpdate)
         audioNodes.audio.removeEventListener('ended', nextTrackCallback)
+        audioNodes.audio.removeEventListener('play', _handleMediaPlay)
+        audioNodes.audio.removeEventListener('playing', _handleMediaPlaying)
+        audioNodes.audio.removeEventListener('pause', _handleMediaPause)
+        audioNodes.audio.removeEventListener('waiting', _handleMediaWaiting)
+        audioNodes.audio.removeEventListener('stalled', _handleMediaStalled)
+        audioNodes.audio.removeEventListener('seeked', _handleMediaSeeked)
+        audioNodes.audio.removeEventListener('error', _handleMediaError)
         audioNodes.audio.pause()
 
         audioNodes.audioSource?.disconnect()
@@ -1789,6 +2018,13 @@ export const usePlayerStore = defineStore(
 
       audioNodes.audio.addEventListener('timeupdate', _handleTimeUpdate)
       audioNodes.audio.addEventListener('ended', nextTrackCallback)
+      audioNodes.audio.addEventListener('play', _handleMediaPlay)
+      audioNodes.audio.addEventListener('playing', _handleMediaPlaying)
+      audioNodes.audio.addEventListener('pause', _handleMediaPause)
+      audioNodes.audio.addEventListener('waiting', _handleMediaWaiting)
+      audioNodes.audio.addEventListener('stalled', _handleMediaStalled)
+      audioNodes.audio.addEventListener('seeked', _handleMediaSeeked)
+      audioNodes.audio.addEventListener('error', _handleMediaError)
 
       audioNodes.audioContext = new AudioContext()
       audioNodes.audioSource = audioNodes.audioContext.createMediaElementSource(audioNodes.audio)
@@ -2346,6 +2582,32 @@ export const usePlayerStore = defineStore(
         get repeatMode() {
           return repeatMode.value
         },
+        get media() {
+          const audio = audioNodes.audio
+          const bufferedEnd =
+            audio && audio.buffered.length > 0
+              ? audio.buffered.end(audio.buffered.length - 1)
+              : 0
+
+          return {
+            paused: audio?.paused ?? true,
+            ended: audio?.ended ?? false,
+            readyState: audio?.readyState ?? 0,
+            networkState: audio?.networkState ?? 0,
+            duration:
+              audio && Number.isFinite(audio.duration) ? Number(audio.duration.toFixed(2)) : null,
+            bufferedEnd: Number(bufferedEnd.toFixed(2)),
+            lastEvent: playbackHealthLastEvent,
+            lastEventAt: new Date(playbackHealthLastEventAt).toISOString(),
+            stalledForMs:
+              audio && playing.value && !audio.paused
+                ? Math.max(0, Date.now() - playbackHealthLastAdvanceAt)
+                : 0,
+            stallCount: playbackHealthStallCount,
+            recoveryCount: playbackStallRecoveryCount,
+            recoveryInFlight: playbackHealthRecoveryInFlight
+          }
+        },
         get lyric() {
           const hasTLyric = lyrics.value.some((lrc) => lrc.tlyric && lrc.tlyric.text.trim() !== '')
           const hasRLyric = lyrics.value.some((lrc) => lrc.rlyric && lrc.rlyric.text.trim() !== '')
@@ -2405,6 +2667,7 @@ export const usePlayerStore = defineStore(
       await Promise.all([fetchLocalMusic(), fetchStreamMusic()])
       await nextTick()
       await setupAudioNode()
+      startPlaybackHealthWatchdog()
       playing.value = false
       title.value = 'VutronMusic'
       handleIpcRenderer()
@@ -2474,6 +2737,7 @@ export const usePlayerStore = defineStore(
         neteaseRetryTimer = null
       }
       trackLoadRevision += 1
+      stopPlaybackHealthWatchdog()
       registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0
       if (pic.value.startsWith('blob:')) URL.revokeObjectURL(pic.value)

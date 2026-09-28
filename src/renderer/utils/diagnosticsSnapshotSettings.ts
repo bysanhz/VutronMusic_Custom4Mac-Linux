@@ -90,7 +90,8 @@ const collectRendererDiagnostics = () => {
       repeatMode: player.repeatMode || '',
       playlistType: readJsonRecord('player')?.playlistSource?.type || '',
       playbackStartReason: playbackStartReason.value,
-      playbackStartGuardActive: playbackStartGuardActive.value
+      playbackStartGuardActive: playbackStartGuardActive.value,
+      media: player.media || null
     },
     desktopLyric: {
       type: osd.type,

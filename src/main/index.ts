@@ -773,6 +773,14 @@ class BackGround {
               res = cache.get(CacheAPIs.Track, { ids })
               if (res) {
                 const track = res.songs[0]
+                if (track.type !== 'local' && !track.cache) {
+                  const { url, br, gain, peak, source } = await getAudioSource(track)
+                  track.url = url
+                  track.source = source
+                  track.gain = gain
+                  track.peak = peak
+                  track.br = br
+                }
                 return new Response(JSON.stringify(track), {
                   headers: { 'content-type': 'application/json' }
                 })
@@ -884,7 +892,7 @@ class BackGround {
         url += search
 
         try {
-          const response = await proxyFetch(url, { headers })
+          const response = await proxyFetch(url, { headers, signal: request.signal })
           if (!response.ok) {
             return new Response(null, {
               status: response.status,
@@ -920,6 +928,15 @@ class BackGround {
 
           return response
         } catch (error) {
+          if (
+            request.signal?.aborted ||
+            (error instanceof Error && error.name === 'AbortError')
+          ) {
+            return new Response(null, {
+              status: 499,
+              statusText: 'Client Closed Request'
+            })
+          }
           log.error('[AudioProxy] get-online-music failed', error)
           return new Response(null, {
             status: 500,

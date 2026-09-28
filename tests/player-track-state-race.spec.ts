@@ -77,6 +77,34 @@ test.describe('player track-state race guards', () => {
     expect(netease).not.toContain('rejectUnauthorized: false')
   })
 
+  test('detects stalled media, retries once, and preserves playback position', () => {
+    const player = readSource('src/renderer/store/player.ts')
+
+    expect(player).toContain('const PLAYBACK_STALL_TIMEOUT_MS = 12_000')
+    expect(player).toContain("addEventListener('stalled', _handleMediaStalled)")
+    expect(player).toContain("addEventListener('error', _handleMediaError)")
+    expect(player).toContain('const recoverStalledPlayback = async')
+    expect(player).toContain('replaceCurrentTrack(track.id, true, resumePosition)')
+    expect(player).toContain('resumePositionOverride: number | null = null')
+    expect(player).toContain('startPlaybackHealthWatchdog()')
+    expect(player).toContain('stopPlaybackHealthWatchdog()')
+  })
+
+  test('refreshes cached online URLs and aborts abandoned proxy streams', () => {
+    const main = readSource('src/main/index.ts')
+
+    expect(main).toContain("if (track.type !== 'local' && !track.cache)")
+    expect(main).toContain('await getAudioSource(track)')
+    expect(main).toContain('proxyFetch(url, { headers, signal: request.signal })')
+    expect(main).toContain("statusText: 'Client Closed Request'")
+  })
+
+  test('includes media health in diagnostics snapshots', () => {
+    const diagnostics = readSource('src/renderer/utils/diagnosticsSnapshotSettings.ts')
+
+    expect(diagnostics).toContain('media: player.media || null')
+  })
+
   test('keeps heart-mode selection in bounds and ignores stale responses', () => {
     const playlist = readSource('src/renderer/views/PlaylistPage.vue')
 
