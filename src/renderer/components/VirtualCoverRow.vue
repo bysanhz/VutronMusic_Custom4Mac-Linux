@@ -58,6 +58,7 @@ import Cover from './CoverBox.vue'
 import SvgIcon from './SvgIcon.vue'
 import ExplicitSymbol from './ExplicitSymbol.vue'
 import { formatPlayCount } from '../utils'
+import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
 
 const props = defineProps({
   items: { type: Array as () => any[], required: true },
@@ -189,8 +190,9 @@ const getImageUrl = (item: any) => {
       return 'https://p2.music.126.net/VnZiScyynLG7atLIZ2YPkw==/18686200114669622.jpg?param=256y256'
     }
   }
-  const img = item.img1v1Url || item.picUrl || item.coverImgUrl || item.avatarUrl
-  return `${img?.replace('thumbnail=140y140&', 'thumbnail=256y256&')}${item.service ? '' : '?param=256y256'}`
+  const img = item.img1v1Url || item.picUrl || item.coverImgUrl || item.avatarUrl || ''
+  const url = img.replace('thumbnail=140y140&', 'thumbnail=256y256&')
+  return item.service ? url : buildNeteaseImageUrl(url, 256)
 }
 
 const isExplicit = (item: any) => {

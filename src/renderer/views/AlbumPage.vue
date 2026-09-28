@@ -3,7 +3,7 @@
     <div class="playlist-info">
       <Cover
         :id="album?.id || 0"
-        :image-url="album?.picUrl + '?param=512y512'"
+        :image-url="buildNeteaseImageUrl(album?.picUrl || '', 512)"
         :show-play-button="true"
         :always-show-shadow="true"
         :click-cover-to-play="true"
@@ -168,6 +168,7 @@ import CoverRow from '../components/VirtualCoverRow.vue'
 import CommentPage from '../components/CommentPage.vue'
 import ExplicitSymbol from '../components/ExplicitSymbol.vue'
 import { useI18n } from 'vue-i18n'
+import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { isAccountLoggedIn } from '../utils/auth'

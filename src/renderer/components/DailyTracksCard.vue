@@ -36,6 +36,7 @@ import { isAccountLoggedIn } from '../utils/auth'
 import { dailyRecommendTracks } from '../api/playlist'
 import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
+import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
 
 const defaultCovers = [
   'https://p2.music.126.net/0-Ybpa8FrDfRgKYCTJD8Xg==/109951164796696795.jpg',
@@ -81,7 +82,8 @@ const { replacePlaylist } = playerStore
 const paused = ref(document.visibilityState === 'hidden')
 
 const coverUrl = computed(() => {
-  return `${dailyTracks.value[0]?.al.picUrl || _.sample(defaultCovers)}?param=256y256`
+  const source = dailyTracks.value[0]?.al.picUrl || _.sample(defaultCovers) || ''
+  return buildNeteaseImageUrl(source, 256)
 })
 
 const router = useRouter()

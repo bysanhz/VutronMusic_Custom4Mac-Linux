@@ -39,6 +39,7 @@ import SvgIcon from './SvgIcon.vue'
 import ExplicitSymbol from './ExplicitSymbol.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { formatPlayCount } from '../utils'
+import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
 
 const props = defineProps({
   items: {
@@ -83,11 +84,9 @@ const getImageUrl = (item: any) => {
       return 'https://p2.music.126.net/VnZiScyynLG7atLIZ2YPkw==/18686200114669622.jpg?param=256y256'
     }
   }
-  const img = item.img1v1Url || item.picUrl || item.coverImgUrl
-  let url = img?.replace('size=512', 'size=256')
-  url = url?.replace('http://', 'https://')
-  if (url.startsWith('https://')) url += '?param=256y256'
-  return url
+  const img = item.img1v1Url || item.picUrl || item.coverImgUrl || ''
+  const url = img.replace('size=512', 'size=256')
+  return buildNeteaseImageUrl(url, 256)
 }
 
 const isExplicit = (item: any) => {
