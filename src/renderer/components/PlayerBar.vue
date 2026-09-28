@@ -27,12 +27,7 @@
     </div>
     <div class="controls" @click="switchLyricPage">
       <div class="left">
-        <img
-          :src="pic"
-          loading="lazy"
-          @click.stop="goToAlbum"
-          @error="handleCoverImageError"
-        />
+        <img :src="pic" loading="lazy" @click.stop="goToAlbum" />
         <div class="track-info">
           <div
             :class="['title', { haslist: hasListSource() }]"
@@ -180,7 +175,6 @@ import SvgIcon from './SvgIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { buildNeteaseImageProxyUrl } from '../../shared/neteaseAssetUrl'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -204,16 +198,6 @@ const {
   chorus,
   source
 } = storeToRefs(playerStore)
-
-const handleCoverImageError = (event: Event) => {
-  const imageElement = event.currentTarget as HTMLImageElement | null
-  if (!imageElement) return
-
-  const currentSource = imageElement.getAttribute('src') || ''
-  const proxyUrl = buildNeteaseImageProxyUrl(currentSource, 512)
-  imageElement.src =
-    proxyUrl && proxyUrl !== currentSource ? proxyUrl : 'atom://get-default-pic'
-}
 
 const playerBarRef = ref()
 const hoverX = ref('0')

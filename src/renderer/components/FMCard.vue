@@ -1,13 +1,7 @@
 <template>
   <div class="fm" :style="{ background }" data-theme="dark">
     <div class="media-column">
-      <img
-        class="cover"
-        :src="image"
-        loading="lazy"
-        @click="goToAlbum"
-        @error="handleCoverImageError"
-      />
+      <img class="cover" :src="image" loading="lazy" @click="goToAlbum" />
       <div class="buttons">
         <button-icon :title="$t('fm.dislike')" @click="moveToFMTrash">
           <svg-icon id="thumbs-down" icon-class="thumbs-down" />
@@ -43,10 +37,7 @@ import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useRouter } from 'vue-router'
-import {
-  buildNeteaseImageProxyUrl,
-  buildNeteaseImageUrl
-} from '../../shared/neteaseAssetUrl'
+import { normalizeNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
@@ -61,24 +52,15 @@ const artists = computed(() => track.value.artists || track.value.ar || [])
 const album = computed(() => track.value?.album || track.value?.al)
 
 const image = computed(() => {
-  return buildNeteaseImageUrl(album.value?.picUrl || '', 256) || 'atom://get-default-pic'
+  const picUrl = album.value?.picUrl
+  return picUrl ? `${normalizeNeteaseAssetUrl(picUrl)}?param=256y256` : ''
 })
-
-const handleCoverImageError = (event: Event) => {
-  const imageElement = event.currentTarget as HTMLImageElement | null
-  if (!imageElement) return
-
-  const currentSource = imageElement.getAttribute('src') || ''
-  const proxyUrl = buildNeteaseImageProxyUrl(currentSource, 256)
-  imageElement.src =
-    proxyUrl && proxyUrl !== currentSource ? proxyUrl : 'atom://get-default-pic'
-}
 
 const getColor = async (currentTrack: any) => {
   const currentAlbum = currentTrack.album || currentTrack.al
   if (!currentAlbum?.picUrl) return
 
-  const cover = buildNeteaseImageUrl(currentAlbum.picUrl, 512)
+  const cover = `${normalizeNeteaseAssetUrl(currentAlbum.picUrl)}?param=512y512`
   try {
     const response = await fetch(`atom://get-color/${encodeURIComponent(cover)}`)
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
