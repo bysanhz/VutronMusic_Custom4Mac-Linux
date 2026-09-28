@@ -3,6 +3,7 @@ import Constants from '../utils/Constants'
 import { session } from 'electron'
 import log from '../log'
 import store from '../store'
+import { buildProxyUrl } from '../../shared/proxySettings'
 
 const port = Number(
   Constants.IS_DEV_ENV
@@ -24,17 +25,8 @@ service.interceptors.request.use(async (config: any) => {
   const cookie = cookieString.find((cookie: any) => cookie.name === 'MUSIC_U')
   if (cookie) config.params.cookie = `MUSIC_U=${cookie.value}`
 
-  const proxy = (store.get('settings.proxy') || { type: 0, address: '', port: '' }) as {
-    type: 0 | 1 | 2
-    address: string
-    port: string
-  }
-
-  if (proxy && proxy.type !== 0) {
-    const map = { 1: 'http', 2: 'https' }
-    const url = `${map[proxy.type]}://${proxy.address}:${proxy.port}`
-    config.params.proxy = url
-  }
+  const proxyUrl = buildProxyUrl(store.get('settings.proxy'))
+  if (proxyUrl) config.params.proxy = proxyUrl
 
   return config
 })

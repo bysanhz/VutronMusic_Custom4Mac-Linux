@@ -37,8 +37,6 @@ import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useRouter } from 'vue-router'
-import { Vibrant } from 'node-vibrant/browser'
-import Color from 'color'
 import { normalizeNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
 const router = useRouter()
@@ -58,27 +56,22 @@ const image = computed(() => {
   return picUrl ? `${normalizeNeteaseAssetUrl(picUrl)}?param=256y256` : ''
 })
 
-const getColor = (currentTrack: any) => {
+const getColor = async (currentTrack: any) => {
   const currentAlbum = currentTrack.album || currentTrack.al
   if (!currentAlbum?.picUrl) return
 
   const cover = `${normalizeNeteaseAssetUrl(currentAlbum.picUrl)}?param=512y512`
-  Vibrant.from(cover)
-    .getPalette()
-    .then((palette) => {
-      const swatch = palette.DarkMuted
-      if (swatch) {
-        const originColor = Color.rgb(swatch.rgb)
-        const color = originColor.darken(0.1).rgb().string()
-        const color2 = originColor.lighten(0.28).rotate(-30).rgb().string()
-        background.value = `linear-gradient(to top left, ${color}, ${color2})`
-      } else {
-        console.log('未找到 DarkMuted 颜色')
-      }
-    })
-    .catch((error) => {
-      console.warn('[FMCard] 提取封面颜色失败', error)
-    })
+  try {
+    const response = await fetch(`atom://get-color/${encodeURIComponent(cover)}`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const palette = (await response.json()) as { color?: string | null; color2?: string | null }
+    if (palette.color && palette.color2) {
+      background.value = `linear-gradient(to top left, ${palette.color}, ${palette.color2})`
+    }
+  } catch (error) {
+    console.warn('[FMCard] 提取封面颜色失败', error)
+  }
 }
 
 const goToAlbum = () => {
@@ -90,7 +83,7 @@ const goToAlbum = () => {
 watch(
   track,
   (value) => {
-    if (value) getColor(value)
+    if (value) void getColor(value)
   },
   { immediate: true }
 )

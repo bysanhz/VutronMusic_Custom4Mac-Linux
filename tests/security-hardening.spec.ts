@@ -7,6 +7,7 @@ import {
 } from '../src/main/security/validation'
 import { isRedirectStatus } from '../src/main/security/remoteUrl'
 import { deepMerge } from '../src/renderer/utils/v327FeatureShared'
+import { buildProxyUrl } from '../src/shared/proxySettings'
 
 test.describe('security validation', () => {
   test('rejects unsafe URL schemes and local targets', () => {
@@ -36,6 +37,20 @@ test.describe('security validation', () => {
     expect(isRedirectStatus(301)).toBe(true)
     expect(isRedirectStatus(308)).toBe(true)
     expect(isRedirectStatus(200)).toBe(false)
+  })
+
+  test('accepts only complete proxy settings', () => {
+    expect(buildProxyUrl(undefined)).toBe('')
+    expect(buildProxyUrl({})).toBe('')
+    expect(buildProxyUrl({ type: 1, address: '', port: '' })).toBe('')
+    expect(buildProxyUrl({ type: 1, address: '127.0.0.1', port: '0' })).toBe('')
+    expect(buildProxyUrl({ type: 1, address: 'http://127.0.0.1', port: '7890' })).toBe('')
+    expect(buildProxyUrl({ type: 1, address: '127.0.0.1', port: '7890' })).toBe(
+      'http://127.0.0.1:7890'
+    )
+    expect(buildProxyUrl({ type: 2, address: 'proxy.example.com', port: 443 })).toBe(
+      'https://proxy.example.com:443'
+    )
   })
 
   test('prevents path traversal outside an allowed root', () => {

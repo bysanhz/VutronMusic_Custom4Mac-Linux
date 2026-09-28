@@ -1,18 +1,13 @@
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import store from '../store'
 import { assertPublicRemoteUrl, isRedirectStatus } from '../security/remoteUrl'
+import { buildProxyUrl } from '../../shared/proxySettings'
 
 const MAX_REDIRECTS = 5
 
 const getProxyAgent = () => {
-  const proxy = store.get('settings.proxy') as { type: 0 | 1 | 2; address: string; port: string }
-
-  if (proxy && proxy.type !== 0) {
-    const map = { 1: 'http', 2: 'https' }
-    const proxyUrl = `${map[proxy.type]}://${proxy.address}:${proxy.port}`
-    return new HttpsProxyAgent(proxyUrl)
-  }
-  return undefined
+  const proxyUrl = buildProxyUrl(store.get('settings.proxy'))
+  return proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined
 }
 
 /**

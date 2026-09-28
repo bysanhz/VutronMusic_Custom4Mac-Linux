@@ -1,8 +1,8 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { doLogout } from './auth'
+import { buildProxyUrl } from '../../shared/proxySettings'
 
 const baseUrl = '/netease'
-const map = { 1: 'http', 2: 'https' }
 
 const service: AxiosInstance = axios.create({
   baseURL: baseUrl,
@@ -12,14 +12,17 @@ const service: AxiosInstance = axios.create({
 
 service.interceptors.request.use((config: any) => {
   if (!config.params) config.params = {}
-  const misc = JSON.parse(localStorage.getItem('settings') || '{}').misc
-
-  const proxy = misc.proxy as { type: 0 | 1 | 2; address: string; port: string }
-  if (proxy && proxy.type !== 0) {
-    config.params.proxy = `${map[proxy.type]}://${proxy.address}:${proxy.port}`
+  let misc: Record<string, any> = {}
+  try {
+    misc = JSON.parse(localStorage.getItem('settings') || '{}')?.misc || {}
+  } catch {
+    misc = {}
   }
 
-  const realIp = misc.realIp as { enable: boolean; ip: string }
+  const proxyUrl = buildProxyUrl(misc.proxy)
+  if (proxyUrl) config.params.proxy = proxyUrl
+
+  const realIp = misc.realIp as { enable: boolean; ip: string } | undefined
   if (realIp && realIp.enable && realIp.ip) {
     config.params.realIP = realIp.ip
   }

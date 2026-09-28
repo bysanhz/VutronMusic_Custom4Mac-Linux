@@ -40,6 +40,7 @@ import { registerGlobalShortcuts } from './globalShortcut'
 import { initAutoUpdater } from './checkUpdate'
 import log from './log'
 import { lyricLine } from '@/types/music'
+import { buildProxyUrl } from '../shared/proxySettings'
 
 const CLOSE_DIALOG_TEXT = {
   zh: {
@@ -677,7 +678,7 @@ class BackGround {
           headers: { 'Content-Type': result.format }
         })
       } else if (host === 'get-color') {
-        const urlString = pathname.slice(1)
+        const urlString = decodeURIComponent(pathname.slice(1))
         const [url, savePic] = urlString.split('/save-pic=')
         const { pic, format } = await getPicFromApi(url)
         const { color, color2 } = await getPicColor(pic)
@@ -988,18 +989,11 @@ class BackGround {
       IPCs.initialize(this.win, this.tray, this.mpris, lrc)
       this.initOSDWindow()
 
-      const proxy = (store.get('settings.proxy') || { type: 0, address: '', port: '' }) as {
-        type: 0 | 1 | 2
-        address: string
-        port: string
-      }
-
-      if (proxy.type === 0) {
-        this.win.webContents.session.setProxy({})
+      const proxyRules = buildProxyUrl(store.get('settings.proxy'))
+      if (proxyRules) {
+        void this.win.webContents.session.setProxy({ proxyRules })
       } else {
-        const map = { 1: 'http', 2: 'https' }
-        const proxyRules = `${map[proxy.type]}://${proxy.address}:${proxy.port}`
-        this.win.webContents.session.setProxy({ proxyRules })
+        void this.win.webContents.session.setProxy({})
       }
 
       createMenu(this.win)
