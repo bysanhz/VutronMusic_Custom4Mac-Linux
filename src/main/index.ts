@@ -41,6 +41,7 @@ import { initAutoUpdater } from './checkUpdate'
 import log from './log'
 import { lyricLine } from '@/types/music'
 import { buildProxyUrl } from '../shared/proxySettings'
+import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
 const CLOSE_DIALOG_TEXT = {
   zh: {
@@ -669,6 +670,29 @@ class BackGround {
       if (host === 'get-default-pic') {
         const pic = fs.readFileSync(defaultImagePath)
         return new Response(new Uint8Array(pic))
+      } else if (host === 'get-image') {
+        const remoteUrl = decodeURIComponent(pathname.slice(1))
+        if (!isNeteaseAssetUrl(remoteUrl)) {
+          const pic = fs.readFileSync(defaultImagePath)
+          return new Response(new Uint8Array(pic), {
+            headers: { 'Content-Type': 'image/jpeg' }
+          })
+        }
+
+        const result = await getPicFromApi(remoteUrl)
+        if (!result.pic) {
+          const pic = fs.readFileSync(defaultImagePath)
+          return new Response(new Uint8Array(pic), {
+            headers: { 'Content-Type': 'image/jpeg' }
+          })
+        }
+
+        return new Response(new Uint8Array(result.pic), {
+          headers: {
+            'Content-Type': result.format || 'image/jpeg',
+            'Cache-Control': 'public, max-age=86400'
+          }
+        })
       } else if (host === 'get-pic-path') {
         const filePath = pathname.slice(1)
         const track = { matched: false, filePath, album: { picUrl: 'atom://get-default-pic' } }
@@ -773,7 +797,31 @@ class BackGround {
             try {
               res = cache.get(CacheAPIs.Track, { ids })
               if (res) {
-                const track = res.songs[0]
+                let track = res.songs[0]
+                const hasCover = Boolean(
+                  track?.al?.picUrl || track?.album?.picUrl || track?.picUrl
+                )
+
+                if (track?.type !== 'local' && !hasCover) {
+                  const detail = await getTrackDetail(ids).catch(() => null)
+                  const hydrated = detail?.songs?.[0]
+                  if (hydrated) {
+                    track = {
+                      ...hydrated,
+                      ...track,
+                      al: track?.al?.picUrl ? track.al : hydrated.al,
+                      album: track?.album?.picUrl ? track.album : hydrated.album,
+                      ar: Array.isArray(track?.ar) && track.ar.length ? track.ar : hydrated.ar,
+                      artists:
+                        Array.isArray(track?.artists) && track.artists.length
+                          ? track.artists
+                          : hydrated.artists,
+                      dt: track?.dt || hydrated.dt,
+                      duration: track?.duration || hydrated.duration
+                    }
+                  }
+                }
+
                 if (track.type !== 'local' && !track.cache) {
                   const { url, br, gain, peak, source } = await getAudioSource(track)
                   track.url = url

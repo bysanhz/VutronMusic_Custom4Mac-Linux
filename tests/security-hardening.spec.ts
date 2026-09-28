@@ -8,6 +8,11 @@ import {
 import { isRedirectStatus } from '../src/main/security/remoteUrl'
 import { deepMerge } from '../src/renderer/utils/v327FeatureShared'
 import { buildProxyUrl } from '../src/shared/proxySettings'
+import {
+  buildNeteaseImageProxyUrl,
+  buildNeteaseImageUrl,
+  getNeteaseImageCandidateUrls
+} from '../src/shared/neteaseAssetUrl'
 
 test.describe('security validation', () => {
   test('rejects unsafe URL schemes and local targets', () => {
@@ -51,6 +56,27 @@ test.describe('security validation', () => {
     expect(buildProxyUrl({ type: 2, address: 'proxy.example.com', port: 443 })).toBe(
       'https://proxy.example.com:443'
     )
+  })
+
+  test('normalizes NetEase image sizing and CDN fallbacks', () => {
+    expect(
+      buildNeteaseImageUrl(
+        'http://p3.music.126.net/example/cover.jpg?foo=1?param=64y64',
+        256
+      )
+    ).toBe('https://p3.music.126.net/example/cover.jpg?foo=1&param=256y256')
+
+    expect(
+      buildNeteaseImageProxyUrl('https://p3.music.126.net/example/cover.jpg', 64)
+    ).toContain('atom://get-image/')
+
+    expect(
+      getNeteaseImageCandidateUrls('https://p3.music.126.net/example/cover.jpg')
+    ).toEqual([
+      'https://p3.music.126.net/example/cover.jpg',
+      'https://p1.music.126.net/example/cover.jpg',
+      'https://p2.music.126.net/example/cover.jpg'
+    ])
   })
 
   test('prevents path traversal outside an allowed root', () => {

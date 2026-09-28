@@ -14,6 +14,7 @@ import { db, Tables } from '../db'
 import log from '../log'
 import { Worker } from 'worker_threads'
 import { TrackInfoOrder, lyricLine } from '@/types/music'
+import { getNeteaseImageCandidateUrls } from '../../shared/neteaseAssetUrl'
 
 export const isFileExist = (file: string) => {
   return fs.existsSync(file)
@@ -146,21 +147,26 @@ const getLyricFromPath = async (filePath: string) => {
 
 // new
 export const getPicFromApi = async (url: string) => {
-  let pic: Buffer | null = null
-  let format: string = ''
-  if (!url) return { pic, format }
-  pic = await net
-    .fetch(url)
-    .then((res) => {
-      format = res.headers.get('Content-Type')
-      return res.arrayBuffer()
-    })
-    .then((res) => Buffer.from(res))
-    .catch((err) => {
-      console.log('===1===', err)
-      return err
-    })
-  return { pic, format }
+  if (!url) return { pic: null as Buffer | null, format: '' }
+
+  const candidates = getNeteaseImageCandidateUrls(url)
+  for (const candidate of candidates) {
+    try {
+      const response = await net.fetch(candidate)
+      if (!response.ok) continue
+
+      const format = String(response.headers.get('Content-Type') || '')
+      if (format && !format.toLowerCase().startsWith('image/')) continue
+
+      const pic = Buffer.from(await response.arrayBuffer())
+      if (pic.length > 0) return { pic, format: format || 'image/jpeg' }
+    } catch {
+      // Try the next NetEase CDN sibling.
+    }
+  }
+
+  log.warn('[Cover] 网易云封面全部 CDN 节点加载失败', { url })
+  return { pic: null as Buffer | null, format: '' }
 }
 
 export const getPicFromEmbedded = async (filePath: string) => {
@@ -219,7 +225,9 @@ export const getPic = async (track: any): Promise<{ pic: Buffer; format: string 
   return res
 }
 
-export const getPicColor = async (pic: Buffer) => {
+export const getPicColor = async (pic: Buffer | null) => {
+  if (!pic?.length) return { color: null, color2: null }
+
   const { Vibrant } = require('node-vibrant/node')
   const Color = require('color')
   try {

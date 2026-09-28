@@ -29,6 +29,7 @@ import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { extractExpirationFromUrl } from '../utils'
 import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
+import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
 import {
   cancelSleepTimerForTrackChange,
   consumeSleepTimerAtTrackEnd,
@@ -2097,9 +2098,8 @@ export const usePlayerStore = defineStore(
       } else if (track.type === 'stream') {
         return getStreamPic(track, size)!
       } else {
-        let url = (track.album || track.al).picUrl
-        url = url.replace('http://', 'https://')
-        return url + `?param=${size}y${size}`
+        const url = track.album?.picUrl || track.al?.picUrl || track.picUrl || ''
+        return buildNeteaseImageUrl(url, size) || 'atom://get-default-pic'
       }
     }
 
