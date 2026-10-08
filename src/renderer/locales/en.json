@@ -914,7 +914,9 @@
         "exported": "Diagnostics file exported",
         "logLocated": "Log file located in the file manager"
       },
-      "manualOnly": "Updates are checked only when you click “Check For Update”; the app does not check on startup."
+      "manualOnly": "Updates are checked only when you click “Check For Update”; the app does not check on startup.",
+      "receiveBetas": "Receive beta updates",
+      "receiveBetasDescription": "Off: stable releases only. On: manual checks include available prereleases."
     },
     "playerTheme": {
       "title": "Player Theme",
