@@ -150,11 +150,9 @@ const checkGitHubRelease = async () => {
 
   const releases = (await response.json()) as Array<Record<string, any>>
   const installedVersion = normalizeVersion(app.getVersion())
-  // Beta builds always stay on the preview channel; stable installs only see
-  // prereleases when the user explicitly opts in from Settings.
-  const receiveBetas =
-    String(store.get('settings.updateChannel') || '') === 'beta' ||
-    /-(?:alpha|beta|rc)(?:\.|$)/i.test(installedVersion)
+  // The update channel is an explicit user choice, even on Beta builds.
+  // This allows testers to return to stable-only update notifications.
+  const receiveBetas = String(store.get('settings.updateChannel') || '') === 'beta'
   const candidates = releases
     .filter((release) => !release.draft && (receiveBetas || !release.prerelease))
     .filter((release) =>
