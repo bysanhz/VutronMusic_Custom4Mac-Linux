@@ -1,0 +1,11 @@
+{
+  "version": "3.3.3-beta.1",
+  "channel": "beta",
+  "releaseNotes": ".github/release-notes/v3.3.3-beta.1.md",
+  "platforms": [
+    "win-x64-exe",
+    "linux-amd64-deb",
+    "mac-arm64-dmg"
+  ],
+  "note": "Publish a prerelease with exactly three installers; do not replace the stable release."
+}
