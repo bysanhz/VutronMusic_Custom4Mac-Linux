@@ -914,7 +914,9 @@
         "exported": "診斷檔案已匯出",
         "logLocated": "已在檔案管理器中定位日誌檔案"
       },
-      "manualOnly": "僅在你點擊「檢查更新」時連線檢查；啟動應用程式不會自動檢查。"
+      "manualOnly": "僅在你點擊「檢查更新」時連線檢查；啟動應用程式不會自動檢查。",
+      "receiveBetas": "接收 Beta 測試版更新",
+      "receiveBetasDescription": "關閉時只檢查正式版；開啟後手動檢查也會顯示可用的預發佈版本。"
     },
     "playerTheme": {
       "title": "播放器樣式",
