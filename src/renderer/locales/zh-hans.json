@@ -914,7 +914,9 @@
         "exported": "诊断文件已导出",
         "logLocated": "已在文件管理器中定位日志文件"
       },
-      "manualOnly": "仅在你点击“检查更新”时联网检查；启动应用不会自动检查。"
+      "manualOnly": "仅在你点击“检查更新”时联网检查；启动应用不会自动检查。",
+      "receiveBetas": "接收 Beta 测试版更新",
+      "receiveBetasDescription": "关闭时只检查正式版；开启后手动检查也会显示可用的预发布版本。"
     },
     "playerTheme": {
       "title": "播放器样式",
