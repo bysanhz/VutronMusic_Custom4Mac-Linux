@@ -1064,6 +1064,23 @@
         <div v-if="isElectron" v-show="tab === 'update'" key="update">
           <div class="item">
             <div class="left">
+              <div class="title">{{ $t('settings.update.receiveBetas') }}</div>
+              <div class="description">{{ $t('settings.update.receiveBetasDescription') }}</div>
+            </div>
+            <div class="right">
+              <div class="toggle">
+                <input
+                  id="receive-beta-updates"
+                  v-model="receiveBetaUpdates"
+                  type="checkbox"
+                  name="receive-beta-updates"
+                />
+                <label for="receive-beta-updates"></label>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="left">
               <div class="title"
                 >{{ $t('settings.update.currentVersion') + '：' + appVersion }}
                 <label v-if="latestVersion?.isUpdateAvailable" class="update-ext">{{
@@ -1262,6 +1279,14 @@ const serviceTitle = (platform: serviceType) => {
   const action = t(platform.status === 'logout' ? 'common.login' : 'common.logout')
   return t('settings.stream.serviceAction', { action })
 }
+
+const receiveBetaUpdates = computed({
+  get: () => general.value.updateChannel === 'beta',
+  set: (enabled: boolean) => {
+    general.value.updateChannel = enabled ? 'beta' : 'stable'
+    latestVersion.value = null
+  }
+})
 
 const handleUpdate = () => {
   if (isDownloading.value) return
