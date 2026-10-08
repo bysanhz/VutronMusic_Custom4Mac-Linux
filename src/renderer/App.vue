@@ -4,7 +4,7 @@
       {{ networkStatusText }}
     </div>
     <ScrollBar v-show="!showLyrics" />
-    <SideNav />
+    <SideNav :network-issue="networkIssue" />
     <NavBar ref="navBarRef" />
     <div id="main" ref="mainRef" :style="mainStyle" @scroll="scrollEvent">
       <router-view v-slot="{ Component }">
@@ -56,16 +56,16 @@ import {
   resolveHeartModeSourceSeedId
 } from './utils/heartModeSession'
 import { Track } from '@/types/music'
+import { recordNeteaseFailure, type NeteaseFailureBurst } from './utils/networkQuality'
 
 const { t } = useI18n()
 
 type NetworkIssue = 'offline' | 'netease-unavailable' | null
 const networkIssue = ref<NetworkIssue>(navigator.onLine ? null : 'offline')
 let neteaseRecoveryTimer: number | null = null
+let neteaseFailureBurst: NeteaseFailureBurst = { startedAt: 0, count: 0 }
 const networkStatusText = computed(() =>
-  networkIssue.value === 'offline'
-    ? t('toast.networkOffline')
-    : t('toast.neteaseUnavailable')
+  networkIssue.value === 'offline' ? t('toast.networkOffline') : t('toast.neteaseUnavailable')
 )
 
 const localMusicStore = useLocalMusicStore()
@@ -109,14 +109,16 @@ const setNetworkIssue = (issue: Exclude<NetworkIssue, null>): void => {
   }
   if (networkIssue.value === issue) return
   networkIssue.value = issue
-  showToast(
-    issue === 'offline' ? t('toast.networkOffline') : t('toast.neteaseUnavailable')
-  )
+  showToast(issue === 'offline' ? t('toast.networkOffline') : t('toast.neteaseUnavailable'))
 }
 
-const handleOffline = (): void => setNetworkIssue('offline')
+const handleOffline = (): void => {
+  neteaseFailureBurst = { startedAt: 0, count: 0 }
+  setNetworkIssue('offline')
+}
 
 const handleOnline = (): void => {
+  neteaseFailureBurst = { startedAt: 0, count: 0 }
   const recovered = networkIssue.value !== null
   networkIssue.value = null
   if (recovered) showToast(t('toast.networkRestored'))
@@ -124,18 +126,23 @@ const handleOnline = (): void => {
 }
 
 const handleNeteaseUnavailable = (): void => {
-  if (!navigator.onLine) handleOffline()
-  else setNetworkIssue('netease-unavailable')
+  if (!navigator.onLine) {
+    handleOffline()
+    return
+  }
+  neteaseFailureBurst = recordNeteaseFailure(neteaseFailureBurst, Date.now())
+  if (neteaseFailureBurst.count >= 3) setNetworkIssue('netease-unavailable')
 }
 
 const handleNeteaseAvailable = (): void => {
+  neteaseFailureBurst = { startedAt: 0, count: 0 }
   if (networkIssue.value !== 'netease-unavailable') return
   if (neteaseRecoveryTimer !== null) window.clearTimeout(neteaseRecoveryTimer)
   neteaseRecoveryTimer = window.setTimeout(() => {
     neteaseRecoveryTimer = null
     if (networkIssue.value !== 'netease-unavailable') return
     networkIssue.value = null
-    showToast(t('toast.networkRestored'))
+    showToast(t('toast.neteaseRestored'))
   }, 1500)
 }
 
@@ -371,9 +378,7 @@ const handleChanelEvent = () => {
 
   window.mainApi?.on('download-progress', (_: any, data: ProgressInfo) => {
     if (!isDownloading.value) isDownloading.value = true
-    showToast(
-      t('toast.downloadProgress', { percent: parseFloat(data.percent.toFixed(2)) })
-    )
+    showToast(t('toast.downloadProgress', { percent: parseFloat(data.percent.toFixed(2)) }))
     if (data.percent === 100) isDownloading.value = false
   })
   window.mainApi?.on('update-error', (_: any) => {

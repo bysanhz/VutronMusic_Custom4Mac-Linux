@@ -1,7 +1,7 @@
 import { parentPort as coverPort } from 'node:worker_threads'
 import fs from 'node:fs'
-import sharp from 'sharp'
 import { downloadPublicBuffer } from '../security/workerHttp'
+import { resizeCover } from '../utils/resizeCover'
 
 const MAX_COVER_BYTES = 20 * 1024 * 1024
 const MAX_TASK_ATTEMPTS = 3
@@ -50,9 +50,18 @@ const writeCoverToFile = async (filePath: string, url: string, embedStyle: numbe
   }
 
   const image = await getPicFromApi(url)
-  image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
+  const resized = await resizeCover(image.pic, image.format)
+  image.pic = resized.pic
+  image.format = resized.format
 
-  const extension = image.format.includes('image/png') ? '.png' : '.jpg'
+  const extension =
+    image.format === 'image/png'
+      ? '.png'
+      : image.format === 'image/webp'
+        ? '.webp'
+        : image.format === 'image/avif'
+          ? '.avif'
+          : '.jpg'
   const coverPath = filePath.replace(/\.[^/.]+$/, extension)
   await fs.promises.writeFile(coverPath, image.pic)
 }
@@ -80,7 +89,9 @@ const runEmbedTasks = async () => {
 
         try {
           const image = await getPicFromApi(task.url)
-          image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
+          const resized = await resizeCover(image.pic, image.format)
+          image.pic = resized.pic
+          image.format = resized.format
           for (const writeFunction of task.functions) {
             await writeFunction(filePath, image)
           }

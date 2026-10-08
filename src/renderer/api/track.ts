@@ -108,6 +108,8 @@ export type ScrobbleParams = {
   segmentId?: string
   /** 实际播放记录产生时间（毫秒时间戳）；重试时必须保持不变，避免串到新的一天。 */
   playedAt?: number
+  /** 实际播放片段结束时间；PLD 日志必须晚于 PLV。 */
+  endedAt?: number
   time?: number
   total?: number
   name?: string

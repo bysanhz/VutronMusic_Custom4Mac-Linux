@@ -17,11 +17,7 @@
       class="fallback-track-info"
       :class="{ 'is-marquee': fallbackNeedsMarquee }"
     >
-      <span
-        ref="fallbackTextEl"
-        class="fallback-track-info-text"
-        :style="fallbackTrackInfoStyle"
-      >
+      <span ref="fallbackTextEl" class="fallback-track-info-text" :style="fallbackTrackInfoStyle">
         {{ fallbackTrackText }}
       </span>
     </div>
@@ -58,6 +54,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { useOsdLyricStore } from '../store/osdLyric'
 import LyricLine from './LyricLine.vue'
+import { DeferredTaskScope } from '../utils/deferredTaskScope'
 import { storeToRefs } from 'pinia'
 import { lyricLine, TranslationMode, word } from '@/types/music.d'
 import { useI18n } from 'vue-i18n'
@@ -269,12 +266,21 @@ const isShowingNextGroup = computed(() => {
 })
 
 const clearAnimations = (clearAll = true) => {
+  if (clearAll) animationTasks.cancel()
+  translationTasks.cancel()
   lyricRefs.value.forEach((instance) => {
     instance.clearAnimation(clearAll)
   })
 }
 
+const animationTasks = new DeferredTaskScope()
+const translationTasks = new DeferredTaskScope()
+
 const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
+  const tasks = type === 'all' ? animationTasks : translationTasks
+  if (type === 'all') translationTasks.cancel()
+  const revision = tasks.restart()
+  if (!tasks.isCurrent(revision)) return
   if (!lyricRefs.value?.length) return
 
   const BATCH_SIZE = 3
@@ -292,12 +298,17 @@ const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
     const delayMs = isMini.value ? 0 : Math.floor(diff / BATCH_SIZE) * BATCH_DELAY_MS
 
     if (delayMs > 0) {
-      setTimeout(() => {
-        instance?.createAnimations(type)
-      }, delayMs)
+      tasks.schedule(
+        revision,
+        () => {
+          void instance.createAnimations(type)
+        },
+        delayMs
+      )
     } else {
-      await instance?.createAnimations(type)
+      await instance.createAnimations(type)
     }
+    if (!tasks.isCurrent(revision)) return
 
     if (index === highlightIdx.value) {
       const currentTime = (seek.value + lyricOffset.value) * 1000
@@ -423,7 +434,7 @@ type statusMap = {
   fallbackTrackText: string
 }
 
-window.addEventListener('message', (event: MessageEvent) => {
+const handleStatusMessage = (event: MessageEvent) => {
   if (event.data.type !== 'update-osd-status') return
 
   const data = event.data.data as Partial<statusMap>
@@ -504,7 +515,9 @@ window.addEventListener('message', (event: MessageEvent) => {
      */
     seek.value = data.seek
   }
-})
+}
+
+window.addEventListener('message', handleStatusMessage)
 
 const handleVisebilitiyChange = () => {
   if (!document.hidden) {
@@ -560,7 +573,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  // destroyController(true)
+  animationTasks.dispose()
+  translationTasks.dispose()
+  clearAnimations()
+  window.removeEventListener('message', handleStatusMessage)
   fallbackResizeObserver?.disconnect()
   fallbackResizeObserver = null
   document.removeEventListener('visibilitychange', handleVisebilitiyChange)

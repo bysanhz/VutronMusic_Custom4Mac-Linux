@@ -446,6 +446,18 @@ export const extractRealtimeListenSeconds = (source: any): number | undefined =>
   return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : undefined
 }
 
+/** 月初接口可能仍返回上月报表，不能将它用作本月时长或同步基准。 */
+export const isRealtimeListenReportForMonth = (source: any, monthKey: string): boolean => {
+  if (!/^\d{4}-\d{2}$/.test(monthKey)) return false
+  const start = parseDateLike(source?.data?.startTime)
+  return Boolean(
+    start &&
+      start.getFullYear() === Number(monthKey.slice(0, 4)) &&
+      start.getMonth() + 1 === Number(monthKey.slice(5, 7)) &&
+      start.getDate() === 1
+  )
+}
+
 /**
  * 从累计听歌接口读取总收听时长（秒）。
  */

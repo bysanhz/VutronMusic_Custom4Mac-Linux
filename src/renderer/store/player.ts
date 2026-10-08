@@ -25,11 +25,17 @@ import {
   scrobble,
   type ScrobbleParams
 } from '../api/track'
+import { listenRealtimeReport } from '../api/modern'
+import {
+  extractRealtimeListenSeconds,
+  isRealtimeListenReportForMonth
+} from '../services/neteaseModern'
 import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { extractExpirationFromUrl } from '../utils'
 import { globalLyricOffset, setGlobalLyricOffset } from '../utils/globalLyricOffset'
 import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
+import { getUsableTrackCoverUrl } from '../../shared/trackCover'
 import {
   cancelSleepTimerForTrackChange,
   consumeSleepTimerAtTrackEnd,
@@ -39,15 +45,21 @@ import { markPlaybackEndReason } from '../utils/playbackFeedback'
 import {
   claimPendingNeteaseListenEntries,
   flushNeteaseListenLedger,
+  hasNeteaseListenReportBaseline,
   hasPendingNeteaseListenEntries,
+  localDateKey,
   markNeteaseListenEntryAccepted,
   markNeteaseListenEntryFailed,
   recordNeteaseListenSegment,
+  reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount,
   setProvisionalNeteaseListen,
   type NeteaseListenEntry
 } from '../utils/neteaseListenLedger'
 import { Track, serviceName, lyricLine } from '@/types/music'
+import { PitchProcessor } from '../utils/pitchProcessor'
+import { getBufferedAheadSeconds } from '../utils/audioBufferHealth'
+import { OwnedObjectUrls } from '../utils/ownedObjectUrls'
 
 interface biquadType {
   31: number
@@ -142,6 +154,13 @@ export const usePlayerStore = defineStore(
     const MAX_PLAYBACK_SOURCE_RETRIES = 1
     let playbackSourceRetryTrackId: string | null = null
     let playbackSourceRetryCount = 0
+    const COVER_RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000, 40_000] as const
+    let coverRetryTimer: number | null = null
+    let coverRetryAttempts = 0
+    const clearCoverRetryTimer = () => {
+      if (coverRetryTimer !== null) window.clearTimeout(coverRetryTimer)
+      coverRetryTimer = null
+    }
 
     // 媒体元素有时会保持 paused=false / playing=true，但网络流已经不再推进。
     // 通过独立 watchdog 观察真实 currentTime，避免 UI 处于“假播放”状态。
@@ -160,6 +179,20 @@ export const usePlayerStore = defineStore(
     let playbackStallRecoveryTrackId: string | null = null
     let playbackStallRecoveryCount = 0
     let playbackStallRecoveryAtProgress: number | null = null
+    let pitchProcessor: PitchProcessor | null = null
+    let audioGraphRevision = 0
+    let playbackHealthLastCheckAt = 0
+    let playbackHealthMaxCheckDelayMs = 0
+    let playbackWaitingCount = 0
+    let playbackStalledEventCount = 0
+    const recentMediaEvents: Array<{
+      event: string
+      time: string
+      progress: number
+      bufferedAhead: number
+      readyState: number
+      contextState: string
+    }> = []
 
     const isTrackLoadCurrent = (revision: number, track?: Track | null) => {
       if (revision !== trackLoadRevision) return false
@@ -400,27 +433,10 @@ export const usePlayerStore = defineStore(
     const enableFM = computed(() => settingsStore.misc.lastfm.enable)
 
     watch(
-      () => [audioNodes.audioSource, useBiquad.value, useConvolver.value, usePitch.value],
-      (value) => {
-        if (!value[0]) return
-        audioNodes.audioSource?.disconnect()
-        audioNodes.soundtouch?.disconnect()
-        audioNodes.biquads.get(`hz${biquadParamsKeys[biquadParamsKeys.length - 1]}`!)?.disconnect()
-        audioNodes.masterGain?.disconnect()
-
-        let start = audioNodes.audioSource!
-        const lst: Function[] = []
-        if (value[3]) lst.push(connectToSoundtouch)
-        if (value[1]) lst.push(connectToBiquad)
-        if (value[2]) lst.push(connectToConvolver)
-
-        for (const func of lst) {
-          start = func(start)
-        }
-        start.connect(audioNodes.masterGain!)
-        audioNodes.masterGain!.connect(audioNodes.audioContext!.destination)
-      },
-      { immediate: true }
+      () => [useBiquad.value, useConvolver.value, usePitch.value],
+      () => {
+        void configureAudioGraph()
+      }
     )
 
     const fadeDuration = computed(() => {
@@ -832,6 +848,7 @@ export const usePlayerStore = defineStore(
       await getCurrentTrackInfo(track, revision)
       if (!isTrackLoadCurrent(revision, track)) return
 
+      if (track.type === 'online' && currentTrack.value) track = currentTrack.value
       await updateMediaSessionMetaData(track, revision)
       if (!isTrackLoadCurrent(revision, track)) return
 
@@ -900,7 +917,9 @@ export const usePlayerStore = defineStore(
 
       if (!isTrackLoadCurrent(revision, track)) return
 
-      data = data.filter((l) => !/^作(词|曲)\s*(:|：)\s*无$/.exec(l.lyric.text))
+      data = (Array.isArray(data) ? data : []).filter(
+        (l) => !/^作(词|曲)\s*(:|：)\s*无$/.exec(l.lyric.text)
+      )
       if (data.length) {
         const trackDuration = ~~((track.dt || track.duration || 1000) / 1000)
         data.at(-1)!.end =
@@ -984,6 +1003,8 @@ export const usePlayerStore = defineStore(
     ) => {
       const revision = ++trackLoadRevision
       trackLookupFailureRevision = -1
+      clearCoverRetryTimer()
+      coverRetryAttempts = 0
 
       const retryTrackId = String(trackID)
       if (playbackSourceRetryTrackId !== retryTrackId) {
@@ -1044,6 +1065,12 @@ export const usePlayerStore = defineStore(
       if (pic.value.startsWith('blob:')) URL.revokeObjectURL(pic.value)
       pic.value = new URL('../assets/images/default.jpg', import.meta.url).href
       seek.value = resumePosition
+
+      if (track.type === 'online') {
+        const coverUrl = getUsableTrackCoverUrl(track)
+        if (coverUrl) pic.value = buildNeteaseImageUrl(coverUrl, 512)
+        else scheduleCoverRetry(revision)
+      }
 
       void searchMatchForLocal(track, revision)
 
@@ -1158,6 +1185,36 @@ export const usePlayerStore = defineStore(
     const submitNeteaseListenEntries = async (
       entries: NeteaseListenEntry[]
     ): Promise<number> => {
+      // 新月份首次上报前尽量记录远端基准；否则第一次打开足迹页时，
+      // 报表可能已经包含这些上传，增长量无法再用于核销本地待确认时长。
+      const now = new Date()
+      const monthKey = localDateKey(now.getTime()).slice(0, 7)
+      const periodKey = `month:${monthKey}`
+      const accountId = entries[0]?.accountId
+      if (
+        accountId &&
+        entries.some((entry) => entry.accountId === accountId && entry.dateKey.startsWith(monthKey)) &&
+        !hasNeteaseListenReportBaseline(accountId, periodKey)
+      ) {
+        try {
+          const report = await listenRealtimeReport('month')
+          const remoteSeconds = isRealtimeListenReportForMonth(report, monthKey)
+            ? extractRealtimeListenSeconds(report)
+            : undefined
+          if (remoteSeconds !== undefined) {
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+            reconcileNeteaseListenReport({
+              accountId,
+              periodKey,
+              rangeStart: monthStart,
+              rangeEnd: now.getTime(),
+              remoteSeconds
+            })
+          }
+        } catch (error) {
+          console.warn('[Player] 读取网易云本月时长基准失败：', error)
+        }
+      }
       let submittedCount = 0
       for (const entry of entries) {
         try {
@@ -1165,6 +1222,7 @@ export const usePlayerStore = defineStore(
             ...entry.params,
             segmentId: entry.id,
             playedAt: entry.startedAt,
+            endedAt: entry.endedAt,
             time: entry.seconds,
             allowShort: true,
             allowRepeat: true,
@@ -1575,6 +1633,17 @@ export const usePlayerStore = defineStore(
     const recordPlaybackMediaEvent = (event: string) => {
       playbackHealthLastEvent = event
       playbackHealthLastEventAt = Date.now()
+      if (event === 'waiting') playbackWaitingCount += 1
+      if (event === 'stalled') playbackStalledEventCount += 1
+      recentMediaEvents.push({
+        event,
+        time: new Date(playbackHealthLastEventAt).toISOString(),
+        progress: Number((audioNodes.audio?.currentTime || 0).toFixed(2)),
+        bufferedAhead: Number(getBufferedAheadSeconds(audioNodes.audio).toFixed(2)),
+        readyState: audioNodes.audio?.readyState ?? 0,
+        contextState: audioNodes.audioContext?.state || 'unavailable'
+      })
+      if (recentMediaEvents.length > 20) recentMediaEvents.shift()
     }
 
     const notePlaybackProgress = (currentTime: number, force = false) => {
@@ -1652,6 +1721,15 @@ export const usePlayerStore = defineStore(
     }
 
     const checkPlaybackHealth = () => {
+      const checkedAt = performance.now()
+      if (playbackHealthLastCheckAt > 0 && playing.value) {
+        playbackHealthMaxCheckDelayMs = Math.max(
+          playbackHealthMaxCheckDelayMs,
+          checkedAt - playbackHealthLastCheckAt - PLAYBACK_STALL_CHECK_INTERVAL_MS,
+          0
+        )
+      }
+      playbackHealthLastCheckAt = checkedAt
       const audio = audioNodes.audio
       if (
         !audio ||
@@ -1678,6 +1756,7 @@ export const usePlayerStore = defineStore(
       if (playbackHealthTimer !== null) window.clearInterval(playbackHealthTimer)
       playbackHealthLastProgress = audioNodes.audio?.currentTime || 0
       playbackHealthLastAdvanceAt = Date.now()
+      playbackHealthLastCheckAt = performance.now()
       playbackHealthTimer = window.setInterval(
         checkPlaybackHealth,
         PLAYBACK_STALL_CHECK_INTERVAL_MS
@@ -1949,6 +2028,9 @@ export const usePlayerStore = defineStore(
     }
 
     const destroAudioNode = async () => {
+      audioGraphRevision += 1
+      pitchProcessor?.close()
+      pitchProcessor = null
       if (audioNodes.audio) {
         audioNodes.audio.removeEventListener('timeupdate', _handleTimeUpdate)
         audioNodes.audio.removeEventListener('ended', nextTrackCallback)
@@ -1960,6 +2042,8 @@ export const usePlayerStore = defineStore(
         audioNodes.audio.removeEventListener('seeked', _handleMediaSeeked)
         audioNodes.audio.removeEventListener('error', _handleMediaError)
         audioNodes.audio.pause()
+        audioNodes.audio.removeAttribute('src')
+        audioNodes.audio.load()
 
         audioNodes.audioSource?.disconnect()
         audioNodes.biquads.forEach((filter) => {
@@ -2006,10 +2090,54 @@ export const usePlayerStore = defineStore(
       return audioNodes.soundtouch!
     }
 
+    const configureAudioGraph = async () => {
+      const revision = ++audioGraphRevision
+      const context = audioNodes.audioContext
+      const source = audioNodes.audioSource
+      const masterGain = audioNodes.masterGain
+      if (!context || !source || !masterGain) return
+
+      let soundtouch: AudioWorkletNode | null = null
+      if (usePitch.value && pitchProcessor) {
+        try {
+          soundtouch = await pitchProcessor.get(pitch.value)
+        } catch (error) {
+          console.warn('[Player] 变调模块加载失败，继续原调播放', error)
+          recordPlaybackMediaEvent('pitch-load-error')
+        }
+      } else {
+        pitchProcessor?.release()
+      }
+      // Disabling an effect or destroying the player can supersede an asynchronous load.
+      if (revision !== audioGraphRevision || context !== audioNodes.audioContext) return
+
+      source.disconnect()
+      audioNodes.soundtouch?.disconnect()
+      audioNodes.biquads.get(`hz${biquadParamsKeys.at(-1)}`)?.disconnect()
+      masterGain.disconnect()
+      audioNodes.soundtouch = soundtouch
+      if (soundtouch) {
+        const parameter = soundtouch.parameters.get('pitch')
+        if (parameter) parameter.value = pitch.value
+        soundtouch.onprocessorerror = () => {
+          recordPlaybackMediaEvent('pitch-processor-error')
+          console.warn('[Player] 变调处理器退出，继续原调播放')
+          pitch.value = 1
+        }
+      }
+
+      let start: AudioNode = source
+      if (soundtouch) start = connectToSoundtouch(start)
+      if (useBiquad.value) start = connectToBiquad(start)
+      if (useConvolver.value) start = connectToConvolver(start)
+      start.connect(masterGain)
+      masterGain.connect(context.destination)
+    }
+
     const setupAudioNode = async () => {
       const audio = new Audio()
       audio.crossOrigin = 'anonymous'
-      audio.preload = 'metadata'
+      audio.preload = 'auto'
       audio.preservesPitch = true
       audio.volume = 1
       audio.onended = null
@@ -2027,7 +2155,17 @@ export const usePlayerStore = defineStore(
       audioNodes.audio.addEventListener('seeked', _handleMediaSeeked)
       audioNodes.audio.addEventListener('error', _handleMediaError)
 
-      audioNodes.audioContext = new AudioContext()
+      // Music playback can trade a little output latency for more scheduling headroom.
+      audioNodes.audioContext = new AudioContext({
+        latencyHint: window.env?.isLinux ? 'playback' : 'interactive'
+      })
+      pitchProcessor = new PitchProcessor(
+        audioNodes.audioContext,
+        new URL('../utils/soundtouch-worklet.js', import.meta.url)
+      )
+      audioNodes.audioContext.onstatechange = () => {
+        recordPlaybackMediaEvent(`context:${audioNodes.audioContext?.state}`)
+      }
       audioNodes.audioSource = audioNodes.audioContext.createMediaElementSource(audioNodes.audio)
       await audioNodes.audioContext.suspend()
 
@@ -2069,25 +2207,7 @@ export const usePlayerStore = defineStore(
 
       audioNodes.masterGain.gain.setValueAtTime(0, audioNodes.audioContext.currentTime)
 
-      await audioNodes.audioContext.audioWorklet.addModule(
-        new URL('../utils/soundtouch-worklet.js', import.meta.url)
-      )
-      const soundtouch = new AudioWorkletNode(audioNodes.audioContext, 'soundtouch-processor')
-      audioNodes.soundtouch = soundtouch
-      // @ts-ignore
-      audioNodes.soundtouch.parameters.get('pitch').value = pitch.value
-
-      let start = audioNodes.audioSource
-      const lst: Function[] = []
-      if (usePitch.value) lst.push(connectToSoundtouch)
-      if (useBiquad.value) lst.push(connectToBiquad)
-      if (useConvolver.value) lst.push(connectToConvolver)
-
-      for (const func of lst) {
-        start = func(start)
-      }
-      start.connect(audioNodes.masterGain)
-      audioNodes.masterGain.connect(audioNodes.audioContext!.destination)
+      await configureAudioGraph()
 
       setDevice(outputDevice.value)
     }
@@ -2098,10 +2218,12 @@ export const usePlayerStore = defineStore(
       } else if (track.type === 'stream') {
         return getStreamPic(track, size)!
       } else {
-        const url = track.album?.picUrl || track.al?.picUrl || track.picUrl || ''
+        const url = getUsableTrackCoverUrl(track)
         return buildNeteaseImageUrl(url, size) || 'atom://get-default-pic'
       }
     }
+
+    const mediaArtworkUrls = new OwnedObjectUrls()
 
     const updateMediaSessionMetaData = async (
       track: Track,
@@ -2109,91 +2231,119 @@ export const usePlayerStore = defineStore(
     ) => {
       if ('mediaSession' in navigator === false || !isTrackLoadCurrent(revision, track)) return
 
-      const cover512 = await getPic(track, 512)
-      if (!isTrackLoadCurrent(revision, track)) {
-        if (cover512?.startsWith('blob:')) URL.revokeObjectURL(cover512)
-        return
+      const pendingUrls = new OwnedObjectUrls()
+      const covers: string[] = []
+      const loadCover = async (size: number) => {
+        const url = await getPic(track, size)
+        covers.push(url)
+        pendingUrls.replace(covers)
+        return url
       }
+      try {
+        const cover512 = await loadCover(512)
+        if (!isTrackLoadCurrent(revision, track)) return
+        const artworkSize = window.env?.isWindows ? 2048 : 1024
+        const artworkCover = await loadCover(artworkSize)
+        if (!isTrackLoadCurrent(revision, track)) return
 
-      const cover1024 = await getPic(track, 1024)
-      if (!isTrackLoadCurrent(revision, track)) {
-        if (cover512?.startsWith('blob:')) URL.revokeObjectURL(cover512)
-        if (cover1024?.startsWith('blob:')) URL.revokeObjectURL(cover1024)
-        return
-      }
-
-      let artwork = [
-        {
-          src: cover512,
-          type: 'image/jpg',
-          sizes: '512x512'
-        },
-        {
-          src: cover1024,
-          type: 'image/jpg',
-          sizes: '1024x1024'
+        const artwork = window.env?.isWindows
+          ? [{ src: artworkCover, type: 'image/jpg', sizes: '2048x2048' }]
+          : [
+              { src: cover512, type: 'image/jpg', sizes: '512x512' },
+              { src: artworkCover, type: 'image/jpg', sizes: '1024x1024' }
+            ]
+        const arts = track.artists ?? track.ar
+        const artists = arts.map((a) => a.name)
+        const metadata = {
+          title: track.name,
+          artist: artists.join(','),
+          album: track.album?.name ?? track.al?.name,
+          artwork,
+          length: ~~((track.dt || track.duration || 1000) / 1000),
+          trackId: track.id,
+          url: '/trackid/' + track.id,
+          progress: audioNodes.audio?.currentTime ?? 0,
+          rate: playbackRate.value,
+          asText: lyrics.value.map((lrc) => `${formatTime(lrc.start)}${lrc.lyric.text}`).join('\n'),
+          lyricOffset: lyricOffset.value
         }
-      ]
 
-      if (window.env?.isWindows) {
-        const cover2048 = await getPic(track, 2048)
-        if (!isTrackLoadCurrent(revision, track)) {
-          if (cover512?.startsWith('blob:')) URL.revokeObjectURL(cover512)
-          if (cover1024?.startsWith('blob:')) URL.revokeObjectURL(cover1024)
-          if (cover2048?.startsWith('blob:')) URL.revokeObjectURL(cover2048)
-          return
+        navigator.mediaSession.metadata = null
+        navigator.mediaSession.metadata = new MediaMetadata(metadata)
+        if (pic.value?.startsWith('blob:') && pic.value !== cover512) {
+          URL.revokeObjectURL(pic.value)
         }
-        artwork = [
-          {
-            src: cover2048,
-            type: 'image/jpg',
-            sizes: '2048x2048'
+        pic.value = cover512
+        // The UI owns cover512; the media session owns the larger artwork.
+        mediaArtworkUrls.replace(artworkCover === cover512 ? [] : [artworkCover])
+        covers.length = 0
+        if (window.env?.isLinux) {
+          if (track.type === 'stream') {
+            metadata.artwork.map((art) => {
+              const url = `http://localhost:${window.env?.isDev ? 40001 : 41830}` + art.src
+              art.src = url
+            })
+          } else if (track.type === 'local') {
+            metadata.artwork.map((art) => {
+              const url = `http://localhost:${window.env?.isDev ? 40001 : 41830}/local-asset?id=${track.id}&size=${art.sizes.split('x')[0]}`
+              art.src = url
+            })
           }
-        ]
-      }
-
-      if (pic.value?.startsWith('blob:') && pic.value !== cover512) {
-        URL.revokeObjectURL(pic.value)
-      }
-      pic.value = cover512
-
-      const arts = track.artists ?? track.ar
-      const artists = arts.map((a) => a.name)
-      const metadata = {
-        title: track.name,
-        artist: artists.join(','),
-        album: track.album?.name ?? track.al?.name,
-        artwork,
-        length: ~~((track.dt || track.duration || 1000) / 1000),
-        trackId: track.id,
-        url: '/trackid/' + track.id,
-        progress: audioNodes.audio?.currentTime ?? 0,
-        rate: playbackRate.value,
-        asText: lyrics.value.map((lrc) => `${formatTime(lrc.start)}${lrc.lyric.text}`).join('\n'),
-        lyricOffset: lyricOffset.value
-      }
-
-      if (!isTrackLoadCurrent(revision, track)) return
-
-      navigator.mediaSession.metadata = null
-      navigator.mediaSession.metadata = new MediaMetadata(metadata)
-      if (window.env?.isLinux) {
-        if (track.type === 'stream') {
-          metadata.artwork.map((art) => {
-            const url = `http://localhost:${window.env?.isDev ? 40001 : 41830}` + art.src
-            art.src = url
-          })
-        } else if (track.type === 'local') {
-          metadata.artwork.map((art) => {
-            const url = `http://localhost:${window.env?.isDev ? 40001 : 41830}/local-asset?id=${track.id}&size=${art.sizes.split('x')[0]}`
-            art.src = url
-          })
+          window.mainApi?.send('metadata', metadata)
         }
-        window.mainApi?.send('metadata', metadata)
+      } finally {
+        // Stale requests and failed metadata updates must release every cover they loaded.
+        if (covers.length) pendingUrls.clear()
       }
     }
 
+    const recoverCurrentTrackCover = async (revision: number): Promise<void> => {
+      const track = currentTrack.value
+      if (!track || track.type !== 'online' || !isTrackLoadCurrent(revision, track)) return
+      if (getUsableTrackCoverUrl(track)) return
+
+      coverRetryAttempts += 1
+      try {
+        const detail = await getTrackDetail(String(track.id))
+        if (!isTrackLoadCurrent(revision, track)) return
+        const hydrated = Array.isArray(detail?.songs)
+          ? (detail.songs.find((song: Track) => String(song.id) === String(track.id)) as
+              | Track
+              | undefined)
+          : undefined
+        const coverUrl = getUsableTrackCoverUrl(hydrated)
+        if (coverUrl) {
+          const repairedTrack = {
+            ...currentTrack.value,
+            al: { ...hydrated?.al, ...currentTrack.value?.al, picUrl: coverUrl },
+            album: { ...hydrated?.album, ...currentTrack.value?.album, picUrl: coverUrl },
+            picUrl: coverUrl
+          } as Track
+          currentTrack.value = repairedTrack
+          pic.value = buildNeteaseImageUrl(coverUrl, 512)
+          await updateMediaSessionMetaData(repairedTrack, revision)
+          return
+        }
+      } catch (error) {
+        console.warn('[Player] 补取当前歌曲封面失败：', error)
+      }
+
+      if (isTrackLoadCurrent(revision, track)) scheduleCoverRetry(revision)
+    }
+
+    const scheduleCoverRetry = (revision: number): void => {
+      if (coverRetryTimer !== null || coverRetryAttempts >= COVER_RETRY_DELAYS_MS.length) return
+      coverRetryTimer = window.setTimeout(() => {
+        coverRetryTimer = null
+        void recoverCurrentTrackCover(revision)
+      }, COVER_RETRY_DELAYS_MS[coverRetryAttempts])
+    }
+
     const resetPlayer = (resetBiq = true) => {
+      clearCoverRetryTimer()
+      coverRetryAttempts = 0
+      mediaArtworkUrls.clear()
+      if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
       trackLoadRevision += 1
       list.value = []
       enabled.value = false
@@ -2597,6 +2747,16 @@ export const usePlayerStore = defineStore(
             duration:
               audio && Number.isFinite(audio.duration) ? Number(audio.duration.toFixed(2)) : null,
             bufferedEnd: Number(bufferedEnd.toFixed(2)),
+            bufferedAhead: Number(getBufferedAheadSeconds(audio).toFixed(2)),
+            contextState: audioNodes.audioContext?.state || 'unavailable',
+            sampleRate: audioNodes.audioContext?.sampleRate || 0,
+            baseLatencyMs: Number(((audioNodes.audioContext?.baseLatency || 0) * 1000).toFixed(2)),
+            outputLatencyMs: Number(((audioNodes.audioContext?.outputLatency || 0) * 1000).toFixed(2)),
+            pitchProcessorActive: audioNodes.soundtouch !== null,
+            waitingCount: playbackWaitingCount,
+            stalledEventCount: playbackStalledEventCount,
+            maxWatchdogDelayMs: Math.round(playbackHealthMaxCheckDelayMs),
+            recentEvents: recentMediaEvents.map((event) => ({ ...event })),
             lastEvent: playbackHealthLastEvent,
             lastEventAt: new Date(playbackHealthLastEventAt).toISOString(),
             stalledForMs:
@@ -2723,6 +2883,7 @@ export const usePlayerStore = defineStore(
     })
 
     onBeforeUnmount(() => {
+      clearCoverRetryTimer()
       if (currentTrack.value) {
         void scrobbleNetease(
           currentTrack.value,
@@ -2741,6 +2902,7 @@ export const usePlayerStore = defineStore(
       registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0
       if (pic.value.startsWith('blob:')) URL.revokeObjectURL(pic.value)
+      mediaArtworkUrls.clear()
       destroAudioNode()
     })
 

@@ -168,9 +168,9 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(insights).toContain('const visiblePendingNeteaseListenSeconds = computed(')
     expect(pending).toContain('export const reconcileNeteaseListenReport =')
     expect(insights).toContain('const pendingUnsubmittedSeconds = computed')
-    expect(insights).toContain("t('insights.footprint.pendingSubmitted'")
-    expect(insights).toContain("t('insights.footprint.pendingUnsubmitted'")
-    expect(insights).toContain('class="sync-status-stack"')
+    expect(insights).toContain("t('insights.footprint.pendingSubmittedLabel')")
+    expect(insights).toContain("t('insights.footprint.pendingUnsubmittedLabel')")
+    expect(insights).toContain('class="sync-traffic-light"')
   })
 
   test('keeps normal scrobble diagnostics development-only but preserves failures', () => {
@@ -210,6 +210,7 @@ test.describe('NetEase scrobble lifecycle', () => {
 
   test('uses an app-owned stable route and bundled fallback for scrobble v1', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
+    const player = readSource('src/renderer/store/player.ts')
     const neteaseServer = readSource('src/main/appServer/netease.ts')
     const bundledScrobble = readSource('src/main/appServer/vendor/scrobbleV1.js')
     const bundledNcbl = readSource('src/main/appServer/vendor/ncbl.js')
@@ -224,8 +225,10 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(neteaseServer).toContain("appServerRevision: 'scrobble-v1-route-v3'")
     expect(bundledScrobble).toContain("action: '_plv'")
     expect(bundledScrobble).toContain("action: '_pld'")
-    expect(bundledScrobble).toContain('const requestedPlayedAt = Number(query.playedAt)')
-    expect(bundledScrobble).toContain('const ts = Math.floor(playedAt / 1000)')
+    expect(bundledScrobble).toContain('normalizeNeteaseScrobbleTiming({')
+    expect(bundledScrobble).toContain('startedAt: query.playedAt')
+    expect(bundledScrobble).toContain('endedAt: query.endedAt')
+    expect(player).toContain('endedAt: entry.endedAt')
     expect(bundledScrobble).toContain("RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'")
     expect(bundledScrobble).toContain('deduplicatedSegment: true')
     expect(bundledScrobble).toContain("from './ncbl'")

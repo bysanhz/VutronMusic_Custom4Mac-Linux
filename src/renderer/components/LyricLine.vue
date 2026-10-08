@@ -62,6 +62,19 @@ const scrollAnimations = {
   translation: null as Animation | null
 }
 
+const animationRevisions: Record<lyricType, number> = { lyric: 0, translation: 0 }
+const pendingFrames = new Map<number, () => void>()
+let disposed = false
+
+const nextAnimationFrame = () =>
+  new Promise<void>((resolve) => {
+    const frame = requestAnimationFrame(() => {
+      pendingFrames.delete(frame)
+      resolve()
+    })
+    pendingFrames.set(frame, resolve)
+  })
+
 const translation = computed(() => {
   const modeKey = lyricMap[translationMode.value] as keyof lyricLine
   return props.item[modeKey] as { text: string; info?: word[] } | null
@@ -73,7 +86,7 @@ const translation = computed(() => {
  * @param info 逐字歌词信息
  * @returns 返回每个字的宽度信息
  */
-const measureDom = async (dom: HTMLElement, info: word[]) => {
+const measureDom = async (dom: HTMLElement, info: word[], isCurrent: () => boolean) => {
   const spanC = document.createElement('span')
   spanC.classList.add('measure-span')
   info.forEach((font) => {
@@ -83,12 +96,15 @@ const measureDom = async (dom: HTMLElement, info: word[]) => {
   })
 
   await nextTick()
+  if (!isCurrent() || !dom.isConnected) return null
   dom.appendChild(spanC)
 
-  const spans = spanC.querySelectorAll('span')
-  const result = Array.from(spans).map((span) => span.offsetWidth)
-  dom.removeChild(spanC)
-  return result
+  try {
+    const spans = spanC.querySelectorAll('span')
+    return Array.from(spans).map((span) => span.offsetWidth)
+  } finally {
+    spanC.remove()
+  }
 }
 
 const buildWordKeyFrame = (info: word[], spanWidths: number[]) => {
@@ -233,6 +249,12 @@ const buildScrollAnimation = (
  * @param type all在全新创建时使用，translation在切换翻译模式时使用
  */
 const createAnimations = async (type: 'all' | 'translation' = 'all') => {
+  if (disposed) return
+  // A paused/filled animation stays alive on the document timeline until cancelled.
+  // Always cancel owned animations before replacing their references.
+  clearAnimation(type === 'all')
+  const revisions = { ...animationRevisions }
+  const requestedItem = props.item
   const lst: lyricType[] = []
   if (type === 'all') {
     lst.push('lyric')
@@ -246,11 +268,15 @@ const createAnimations = async (type: 'all' | 'translation' = 'all') => {
 
   for (const l of lst) {
     const item = map[l]
-    if (!item.dom) continue
+    const isCurrent = () =>
+      !disposed && animationRevisions[l] === revisions[l] && props.item === requestedItem
+    if (!item.dom || !isCurrent() || !item.dom.isConnected) continue
     let spanWidths: number[] = []
 
     if (item.info) {
-      spanWidths = await measureDom(item.dom, item.info)
+      const measuredWidths = await measureDom(item.dom, item.info, isCurrent)
+      if (!measuredWidths || !isCurrent()) continue
+      spanWidths = measuredWidths
       animations[l] = buildWordAnimation(item.dom, item.info, spanWidths)
     }
 
@@ -258,7 +284,7 @@ const createAnimations = async (type: 'all' | 'translation' = 'all') => {
       const an = buildScrollAnimation(item.dom, item.info, spanWidths)
       scrollAnimations[l] = an
     }
-    await new Promise(requestAnimationFrame)
+    await nextAnimationFrame()
   }
 }
 
@@ -304,17 +330,26 @@ const adjustCurrentTimeByDelta = (deltaMs: number) => {
 }
 
 const clearAnimation = (clearAll = true) => {
+  animationRevisions.translation += 1
   animations.translation?.cancel()
   animations.translation = null
   scrollAnimations.translation?.cancel()
   scrollAnimations.translation = null
 
   if (clearAll) {
+    animationRevisions.lyric += 1
     animations.lyric?.cancel()
     animations.lyric = null
     scrollAnimations.lyric?.cancel()
     scrollAnimations.lyric = null
   }
+
+  // Resolve cancelled frame waits as well, so async builders can release their closures.
+  for (const [frame, resolve] of pendingFrames) {
+    cancelAnimationFrame(frame)
+    resolve()
+  }
+  pendingFrames.clear()
 }
 
 /**
@@ -350,6 +385,7 @@ const updatePlaybackRate = (rate: number) => {
 }
 
 onBeforeUnmount(() => {
+  disposed = true
   clearAnimation()
 })
 

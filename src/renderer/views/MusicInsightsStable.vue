@@ -34,41 +34,104 @@
           <p>{{ t('insights.footprint.description') }}</p>
           <dl class="sync-status-help">
             <div>
-              <dt>{{ t('insights.footprint.pendingUnsubmittedLabel') }}</dt>
+              <dt
+                ><span class="sync-help-dot red" aria-hidden="true"></span
+                >{{ t('insights.footprint.pendingUnsubmittedLabel') }}</dt
+              >
               <dd>{{ t('insights.footprint.pendingUnsubmittedHelp') }}</dd>
             </div>
             <div>
-              <dt>{{ t('insights.footprint.pendingSubmittedLabel') }}</dt>
+              <dt
+                ><span class="sync-help-dot amber" aria-hidden="true"></span
+                >{{ t('insights.footprint.pendingSubmittedLabel') }}</dt
+              >
               <dd>{{ t('insights.footprint.pendingSubmittedHelp') }}</dd>
             </div>
             <div>
-              <dt>{{ t('insights.footprint.pendingSyncedLabel') }}</dt>
+              <dt
+                ><span class="sync-help-dot green" aria-hidden="true"></span
+                >{{ t('insights.footprint.pendingSyncedLabel') }}</dt
+              >
               <dd>{{ t('insights.footprint.pendingSyncedHelp') }}</dd>
             </div>
           </dl>
         </div>
         <div class="sync-status-panel">
-          <strong class="sync-status-title">{{ t('insights.footprint.syncStatusTitle') }}</strong>
-          <div class="sync-status-stack">
-            <template v-if="visiblePendingNeteaseListenSeconds > 0">
-              <div class="sync-status" :class="{ inactive: pendingUnsubmittedSeconds <= 0 }">
-                {{
-                  t('insights.footprint.pendingUnsubmitted', {
+          <div class="sync-status-heading">
+            <strong class="sync-status-title">{{ t('insights.footprint.syncStatusTitle') }}</strong>
+            <button
+              v-if="accountId !== 'anonymous'"
+              type="button"
+              class="clear-sync-button"
+              :disabled="totalAwaitingSeconds <= 0"
+              :title="totalAwaitingSeconds <= 0 ? t('insights.footprint.clearAcceptedEmpty') : ''"
+              @click="clearAcceptedBacklog"
+            >
+              {{ t('insights.footprint.clearAccepted') }}
+            </button>
+          </div>
+          <div class="sync-traffic-light">
+            <div class="sync-light-row" :class="{ active: totalUnsubmittedSeconds > 0 }">
+              <span class="sync-light red" aria-hidden="true">待发</span>
+              <div class="sync-light-detail">
+                <span class="sync-screen-reader-only">{{
+                  t('insights.footprint.pendingUnsubmittedLabel')
+                }}</span>
+                <strong>{{ formatPendingListenDuration(totalUnsubmittedSeconds) }}</strong>
+                <small v-if="pendingUnsubmittedSeconds > 0">{{
+                  t('insights.footprint.syncTodayDuration', {
                     duration: formatPendingListenDuration(pendingUnsubmittedSeconds)
                   })
-                }}
+                }}</small>
+                <small v-if="earlierPendingNeteaseListenSeconds > 0">{{
+                  t('insights.footprint.syncEarlierDuration', {
+                    duration: formatPendingListenDuration(earlierPendingNeteaseListenSeconds)
+                  })
+                }}</small>
               </div>
-              <div class="sync-status" :class="{ inactive: submittedNeteaseListenSeconds <= 0 }">
-                {{
-                  t('insights.footprint.pendingSubmitted', {
+            </div>
+            <div class="sync-light-row" :class="{ active: totalAwaitingSeconds > 0 }">
+              <span class="sync-light amber" aria-hidden="true">待核</span>
+              <div class="sync-light-detail">
+                <span class="sync-screen-reader-only">{{
+                  t('insights.footprint.pendingSubmittedLabel')
+                }}</span>
+                <strong>{{ formatPendingListenDuration(totalAwaitingSeconds) }}</strong>
+                <small v-if="submittedNeteaseListenSeconds > 0">{{
+                  t('insights.footprint.syncTodayDuration', {
                     duration: formatPendingListenDuration(submittedNeteaseListenSeconds)
                   })
-                }}
+                }}</small>
+                <small v-if="earlierAcceptedNeteaseListenSeconds > 0">{{
+                  t('insights.footprint.syncEarlierDuration', {
+                    duration: formatPendingListenDuration(earlierAcceptedNeteaseListenSeconds)
+                  })
+                }}</small>
               </div>
-            </template>
-            <div v-else class="sync-status synced">
-              {{ t('insights.footprint.pendingSynced') }}
             </div>
+            <div
+              class="sync-light-row"
+              :class="{ active: visiblePendingNeteaseListenSeconds <= 0 }"
+            >
+              <span class="sync-light green" aria-hidden="true">完成</span>
+              <div class="sync-light-detail">
+                <span class="sync-screen-reader-only">{{
+                  t('insights.footprint.pendingSyncedLabel')
+                }}</span>
+                <strong>{{
+                  visiblePendingNeteaseListenSeconds <= 0
+                    ? t('insights.footprint.pendingSynced')
+                    : t('insights.footprint.syncWaiting')
+                }}</strong>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="monthReportAvailable === false && totalAwaitingSeconds > 0"
+            class="sync-report-unavailable"
+            role="status"
+          >
+            {{ t('insights.footprint.reportUnavailable') }}
           </div>
         </div>
       </div>
@@ -367,6 +430,7 @@ import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
+  clearAcceptedNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   localDateKey,
   neteaseListenEntries,
@@ -374,6 +438,7 @@ import {
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount
 } from '../utils/neteaseListenLedger'
+import { splitNeteaseSyncStatusByDay } from '../utils/neteaseSyncStatus'
 import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -391,6 +456,7 @@ import {
   extractTodayListenSeconds,
   extractTodaySongCount,
   extractTotalListenSeconds,
+  isRealtimeListenReportForMonth,
   isSuccessfulResponse
 } from '../services/neteaseModern'
 
@@ -449,6 +515,7 @@ const todayPeriodKey = computed(() => `today:${localDateKey(startOfToday.value)}
 const weekPeriodKey = computed(() => `week:${localDateKey(startOfWeek.value)}`)
 const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).slice(0, 7)}`)
 const totalPeriodKey = 'total'
+const monthReportAvailable = ref<boolean | null>(null)
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
@@ -459,11 +526,8 @@ const ledgerTotals = (start: number, end: number, periodKey: string) => {
 const todayLedger = computed(() =>
   ledgerTotals(startOfToday.value, endOfToday.value, todayPeriodKey.value)
 )
-const weekLedger = computed(() =>
-  ledgerTotals(startOfWeek.value, endOfToday.value, weekPeriodKey.value)
-)
-const monthLedger = computed(() =>
-  ledgerTotals(startOfMonth.value, endOfToday.value, monthPeriodKey.value)
+const earlierMonthLedger = computed(() =>
+  ledgerTotals(startOfMonth.value, startOfToday.value - 1, monthPeriodKey.value)
 )
 const totalLedger = computed(() =>
   ledgerTotals(Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, totalPeriodKey)
@@ -473,14 +537,11 @@ const ledgerUnconfirmedSeconds = (value: {
   accepted: number
   provisional: number
 }) => value.pending + value.accepted + value.provisional
-// 状态栏以 month 实时报表及其逐日明细为准。listen/total 的累计值通常更新更慢，
-// 只用于累计卡片的本机补偿，不能再把已经由实时报表确认的时长显示成“待确认”。
-const visiblePendingNeteaseListenSeconds = computed(() =>
-  Math.max(
-    ledgerUnconfirmedSeconds(todayLedger.value),
-    ledgerUnconfirmedSeconds(weekLedger.value),
-    ledgerUnconfirmedSeconds(monthLedger.value)
-  )
+// 状态栏展示今天和本月此前，避免把整周未确认时长误作今天新增。
+// listen/total 的累计值更新较慢，仅用于后台轮询，不能代替本月状态。
+const visiblePendingNeteaseListenSeconds = computed(
+  () =>
+    ledgerUnconfirmedSeconds(todayLedger.value) + ledgerUnconfirmedSeconds(earlierMonthLedger.value)
 )
 const backgroundPendingNeteaseListenSeconds = computed(() =>
   Math.max(visiblePendingNeteaseListenSeconds.value, ledgerUnconfirmedSeconds(totalLedger.value))
@@ -497,16 +558,38 @@ const displayTodaySeconds = computed(() => footprint.todaySeconds)
 const displayWeekSeconds = computed(() => footprint.weekSeconds)
 const displayMonthSeconds = computed(() => footprint.monthSeconds)
 const displayTotalSeconds = computed(() => footprint.totalSeconds)
-const pendingUnsubmittedSeconds = computed(
-  () => totalLedger.value.pending + totalLedger.value.provisional
+const syncStatus = computed(() =>
+  splitNeteaseSyncStatusByDay(todayLedger.value, earlierMonthLedger.value)
 )
-const submittedNeteaseListenSeconds = computed(() =>
-  Math.max(
-    todayLedger.value.accepted,
-    weekLedger.value.accepted,
-    monthLedger.value.accepted
-  )
+const pendingUnsubmittedSeconds = computed(() => syncStatus.value.todayPending)
+const submittedNeteaseListenSeconds = computed(() => syncStatus.value.todayAccepted)
+const earlierPendingNeteaseListenSeconds = computed(() => syncStatus.value.earlierPending)
+const earlierAcceptedNeteaseListenSeconds = computed(() => syncStatus.value.earlierAccepted)
+const totalUnsubmittedSeconds = computed(
+  () => pendingUnsubmittedSeconds.value + earlierPendingNeteaseListenSeconds.value
 )
+const totalAwaitingSeconds = computed(
+  () => submittedNeteaseListenSeconds.value + earlierAcceptedNeteaseListenSeconds.value
+)
+const clearAcceptedBacklog = (): void => {
+  const acceptedSeconds = totalAwaitingSeconds.value
+  if (acceptedSeconds <= 0 || accountId.value === 'anonymous') return
+  const duration = formatPendingListenDuration(acceptedSeconds)
+  if (!confirm(t('insights.footprint.clearAcceptedConfirm', { duration }))) return
+  const clearedToday = clearAcceptedNeteaseListenEntries({
+    accountId: accountId.value,
+    rangeStart: startOfToday.value,
+    rangeEnd: endOfToday.value,
+    periodKey: todayPeriodKey.value
+  })
+  const clearedEarlier = clearAcceptedNeteaseListenEntries({
+    accountId: accountId.value,
+    rangeStart: startOfMonth.value,
+    rangeEnd: startOfToday.value - 1,
+    periodKey: monthPeriodKey.value
+  })
+  if (clearedToday + clearedEarlier > 0) showToast(t('insights.footprint.clearAcceptedDone'))
+}
 const todayDataConflict = computed(
   () => footprint.todayCount === 0 && Number(footprint.todaySeconds) > 0
 )
@@ -539,9 +622,11 @@ const formatDisplayListenDuration = (seconds?: number): string => {
 
 const PENDING_SYNC_INTERVAL_MS = 10_000
 const REMOTE_SNAPSHOT_INTERVAL_MS = 60_000
+const FAILED_REPORT_RETRY_MS = 60_000
 let footprintSyncInterval: number | null = null
 let footprintRequestInFlight = false
 let footprintSnapshotInFlight = false
+let reportRetryAfter = 0
 
 const selectedCloudSongId = ref('')
 const cloudTrackPickerOpen = ref(false)
@@ -646,17 +731,25 @@ const loadFootprint = async (): Promise<void> => {
       uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),
       uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
     ])
+    const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
+      ? month
+      : undefined
 
     // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
     const nextTodayCount = extractTodaySongCount(today, week)
-    footprint.todayCount = nextTodayCount
-    footprint.todaySeconds = extractTodayListenSeconds(month) ?? extractTodayListenSeconds(week)
+    if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
+    const nextTodaySeconds =
+      extractTodayListenSeconds(currentMonth) ?? extractTodayListenSeconds(week)
+    if (nextTodaySeconds !== undefined) footprint.todaySeconds = nextTodaySeconds
 
     // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
     const nextRemoteWeekSeconds =
-      extractCalendarWeekListenSeconds(month) ?? extractRealtimeListenSeconds(week)
-    footprint.weekSeconds = nextRemoteWeekSeconds
-    footprint.monthSeconds = extractRealtimeListenSeconds(month)
+      extractCalendarWeekListenSeconds(currentMonth) ?? extractRealtimeListenSeconds(week)
+    if (nextRemoteWeekSeconds !== undefined) footprint.weekSeconds = nextRemoteWeekSeconds
+    const nextMonthSeconds = extractRealtimeListenSeconds(currentMonth)
+    monthReportAvailable.value = nextMonthSeconds !== undefined
+    footprint.monthSeconds = nextMonthSeconds
+    reportRetryAfter = !today || !currentMonth ? Date.now() + FAILED_REPORT_RETRY_MS : 0
 
     reconcileNeteaseListenReport({
       accountId: accountId.value,
@@ -665,32 +758,33 @@ const loadFootprint = async (): Promise<void> => {
       rangeEnd: endOfToday.value,
       remoteSeconds: nextRemoteWeekSeconds
     })
-    footprint.totalSeconds = extractTotalListenSeconds(total)
+    const nextTotalSeconds = extractTotalListenSeconds(total)
+    if (nextTotalSeconds !== undefined) footprint.totalSeconds = nextTotalSeconds
 
     reconcileNeteaseListenReport({
       accountId: accountId.value,
       periodKey: todayPeriodKey.value,
       rangeStart: startOfToday.value,
       rangeEnd: endOfToday.value,
-      remoteSeconds: footprint.todaySeconds
+      remoteSeconds: nextTodaySeconds
     })
     reconcileNeteaseListenReport({
       accountId: accountId.value,
       periodKey: monthPeriodKey.value,
       rangeStart: startOfMonth.value,
       rangeEnd: endOfToday.value,
-      remoteSeconds: footprint.monthSeconds
+      remoteSeconds: nextMonthSeconds
     })
     reconcileNeteaseListenReport({
       accountId: accountId.value,
       periodKey: totalPeriodKey,
       rangeStart: Number.NEGATIVE_INFINITY,
       rangeEnd: Number.POSITIVE_INFINITY,
-      remoteSeconds: footprint.totalSeconds
+      remoteSeconds: nextTotalSeconds
     })
 
-    footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week')
-    footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
+    if (weekRecord) footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week')
+    if (allRecord) footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
   } finally {
     footprintRequestInFlight = false
   }
@@ -707,7 +801,7 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setT
  * 这里不请求两份播放排行，只更新今日歌曲数、今日/本周/本月时长及累计时长。
  */
 const refreshPendingRemoteDuration = async (): Promise<void> => {
-  if (footprintSnapshotInFlight) return
+  if (footprintSnapshotInFlight || footprintRequestInFlight || Date.now() < reportRetryAfter) return
   footprintSnapshotInFlight = true
 
   try {
@@ -716,9 +810,13 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
       safeRequest(listenRealtimeReport('month'), '确认听歌时长同步'),
       safeRequest(listenTotal(), '确认累计听歌时长同步')
     ])
+    const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
+      ? month
+      : undefined
 
     const nextTodayCount = extractTodaySongCount(today)
     if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
+    reportRetryAfter = !today || !currentMonth || !total ? Date.now() + FAILED_REPORT_RETRY_MS : 0
 
     const nextTotalSeconds = extractTotalListenSeconds(total)
     if (nextTotalSeconds !== undefined) {
@@ -731,11 +829,16 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         remoteSeconds: nextTotalSeconds
       })
     }
-    if (!month) return
+    if (!currentMonth) {
+      monthReportAvailable.value = false
+      footprint.monthSeconds = undefined
+      return
+    }
 
-    let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(month)
-    const nextMonthSeconds = extractRealtimeListenSeconds(month)
-    const nextTodaySeconds = extractTodayListenSeconds(month)
+    let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth)
+    const nextMonthSeconds = extractRealtimeListenSeconds(currentMonth)
+    monthReportAvailable.value = nextMonthSeconds !== undefined
+    const nextTodaySeconds = extractTodayListenSeconds(currentMonth)
 
     // month 缺逐日明细，或今日专用接口临时不可用时，才补请求 week report。
     // 这样既保留自然周兜底，也能避免今日首数因为单个接口失败长期停留在旧值。
@@ -796,6 +899,10 @@ const refreshFootprintWithConfirmation = async (): Promise<void> => {
   await playerStore.syncCurrentNeteaseListenCheckpoint()
   await loadFootprint()
   if (visiblePendingNeteaseListenSeconds.value <= 0) return
+  if (Date.now() < reportRetryAfter) {
+    showToast(t('insights.footprint.pendingRefreshNotice'))
+    return
+  }
 
   for (const delay of [900, 1800, 3200]) {
     await wait(delay)
@@ -992,10 +1099,7 @@ const startPendingSyncPolling = (): void => {
   }
 
   footprintSyncInterval = window.setInterval(() => {
-    if (
-      activeTab.value !== 'footprint' ||
-      backgroundPendingNeteaseListenSeconds.value <= 0
-    ) {
+    if (activeTab.value !== 'footprint' || backgroundPendingNeteaseListenSeconds.value <= 0) {
       stopPendingSyncPolling()
       return
     }
@@ -1275,13 +1379,16 @@ button:disabled {
 
 .sync-status-panel {
   display: grid;
+  align-content: start;
   gap: 8px;
   box-sizing: border-box;
   min-width: 0;
   padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-body-bg));
+  background: color-mix(in srgb, var(--color-body-bg) 70%, transparent);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
 
 .sync-status-title {
@@ -1289,46 +1396,155 @@ button:disabled {
   font-size: 13px;
 }
 
-.sync-status-stack {
-  display: grid;
-  gap: 6px;
-}
-
-.sync-status {
+.sync-status-heading {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 34px;
-  padding: 7px 11px;
-  border-radius: 999px;
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.sync-traffic-light {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--color-body-bg) 50%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.sync-light-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 1px 4px;
+  border-radius: 12px;
+}
+
+.sync-light-row.active {
+  background: color-mix(in srgb, var(--color-body-bg) 38%, transparent);
+}
+
+.sync-light {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 5px rgb(0 0 0 / 22%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.58;
+  transition:
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sync-light.red,
+.sync-help-dot.red {
+  background: #dc2626;
+}
+
+.sync-light.amber,
+.sync-help-dot.amber {
+  background: #facc15;
+}
+
+.sync-light.amber {
+  color: #3f2b00;
+}
+
+.sync-light.green,
+.sync-help-dot.green {
+  background: #16a34a;
+}
+
+.sync-light-row.active .sync-light {
+  box-shadow:
+    inset 0 1px 3px rgb(255 255 255 / 22%),
+    0 0 0 3px rgb(255 255 255 / 58%);
+  opacity: 1;
+}
+
+.sync-light-detail {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.sync-light-detail strong {
   font-size: 12px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+}
+
+.sync-light-detail small {
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sync-screen-reader-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  text-align: center;
-  text-overflow: ellipsis;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
-.sync-status.synced {
-  color: #16803c;
-  background: color-mix(in srgb, #22c55e 12%, var(--color-body-bg));
+.sync-light-row:not(.active) .sync-light-detail {
+  opacity: 0.55;
 }
 
-.sync-status.inactive {
+.clear-sync-button {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, #b45309 28%, transparent);
+  border-radius: 9px;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 7%, transparent);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.sync-report-unavailable {
+  color: #b45309;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.clear-sync-button:hover,
+.clear-sync-button:focus-visible {
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+}
+
+.clear-sync-button:disabled {
+  cursor: default;
   opacity: 0.48;
+}
+
+.clear-sync-button:disabled:hover {
+  background: color-mix(in srgb, #f59e0b 7%, transparent);
 }
 
 .sync-status-help {
   display: grid;
-  gap: 5px;
+  gap: 0;
   max-width: 680px;
   margin: 12px 0 0;
-  padding: 10px 12px;
+  padding: 4px 12px;
   border-radius: 12px;
   color: var(--color-text);
   background: color-mix(in srgb, var(--color-primary) 5%, transparent);
@@ -1338,18 +1554,34 @@ button:disabled {
 
 .sync-status-help > div {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 5px;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.sync-status-help > div + div {
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
 .sync-status-help dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
+}
+
+.sync-help-dot {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
 .sync-status-help dd {
   min-width: 0;
   margin: 0;
-  opacity: 0.62;
+  opacity: 0.76;
 }
 
 .metric-grid:not(.compact) .metric-card:nth-child(4) strong {
@@ -1961,7 +2193,7 @@ input {
   }
 
   .footprint-head {
-    grid-template-columns: minmax(0, 7fr) minmax(210px, 3fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
 

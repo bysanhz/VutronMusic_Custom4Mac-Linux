@@ -13,6 +13,7 @@ import {
   doUpload
 } from './ncbl'
 import store from '../../store'
+import { normalizeNeteaseScrobbleTiming } from '../../../shared/scrobbleTiming'
 
 const RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'
 const MAX_RECEIPTS = 2000
@@ -36,7 +37,12 @@ const scrobbleV1 = async (query) => {
     }
   }
 
-  const totalTime = Number(query.total) || playTime
+  const timing = normalizeNeteaseScrobbleTiming({
+    playedSeconds: playTime,
+    totalSeconds: Number(query.total),
+    startedAt: query.playedAt,
+    endedAt: query.endedAt
+  })
   const sourceId = String(query.sourceid || query.sourceId || '')
   const sourceName = query.source || 'list'
   const segmentId = String(query.segmentId || '').trim()
@@ -69,7 +75,7 @@ const scrobbleV1 = async (query) => {
     bitrate: Number(query.bitrate) || 320,
     level: query.level || 'exhigh',
     vip: query.vip === 'true' || query.vip === true,
-    time: totalTime
+    time: timing.totalSeconds
   }
   const source = {
     id: sourceId || String(songId),
@@ -79,25 +85,17 @@ const scrobbleV1 = async (query) => {
 
   const metaJson = buildMetaJson(ctx)
   const cookieStr = buildCookieStr(ctx)
-  /*
-   * 持久化队列可能隔天才重试。记录时间必须使用原播放/入队时间，否则网易云会把
-   * 昨天的失败记录算到今天。限制到最近 30 天并禁止未来时间，避免异常参数污染记录。
-   */
-  const now = Date.now()
-  const requestedPlayedAt = Number(query.playedAt)
-  const normalizedPlayedAt =
-    requestedPlayedAt > 0 && requestedPlayedAt < 10_000_000_000
-      ? requestedPlayedAt * 1000
-      : requestedPlayedAt
-  const playedAt = Number.isFinite(normalizedPlayedAt)
-    ? Math.min(now, Math.max(now - 30 * 24 * 60 * 60 * 1000, normalizedPlayedAt))
-    : now
-  const ts = Math.floor(playedAt / 1000)
-  const played = Math.min(playTime, totalTime)
-
-  const plvBody = buildRecords([{ time: ts, action: '_plv', data: buildPlv(ctx, song, source) }])
+  // 上传回执只证明日志文件被接收。PLV/PLD 要使用实际起止时间和整数秒数，
+  // 否则报表可能一直不增加，即使上传接口返回 200。
+  const plvBody = buildRecords([
+    { time: timing.startedAtSeconds, action: '_plv', data: buildPlv(ctx, song, source) }
+  ])
   const pldBody = buildRecords([
-    { time: ts, action: '_pld', data: buildPld(ctx, song, source, played) }
+    {
+      time: timing.endedAtSeconds,
+      action: '_pld',
+      data: buildPld(ctx, song, source, timing.playedSeconds)
+    }
   ])
 
   try {

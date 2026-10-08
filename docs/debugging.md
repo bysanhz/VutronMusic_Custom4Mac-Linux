@@ -24,7 +24,9 @@ rm -rf node_modules/.vite dist
 yarn dev 2>&1 | tee ~/Desktop/vutron-dev.log
 ```
 
-开发环境在 macOS/Linux 默认使用软件渲染，以避开部分 Chromium SharedImage 合成问题。
+macOS 开发环境默认使用软件渲染；Linux 默认保留硬件加速。遇到 Chromium SharedImage 合成问题时可显式切换软件渲染。
+
+Linux 声音断续的排查步骤及诊断字段见 [Linux 播放卡顿排查](linux-audio-stuttering.md)。
 
 ## 2. 图形模式对照
 

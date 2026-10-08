@@ -20,12 +20,7 @@ const baseConfig = {
   ],
   // =========== newADD end ========
   asar: true,
-  asarUnpack: [
-    '**/node_modules/sharp/**/*',
-    '**/node_modules/@img/**/*',
-    'dist/main/workers/*.js',
-    '**/node_modules/taglib-wasm/**/*'
-  ],
+  asarUnpack: ['dist/main/workers/*.js', '**/node_modules/taglib-wasm/**/*'],
   extends: null,
   artifactName: '${productName}-${version}_${os}_${arch}.${ext}',
   directories: {

@@ -56,7 +56,9 @@ test.describe('player track-state race guards', () => {
     expect(player).toContain('let trackLookupFailureRevision = -1')
     expect(player).toContain('for (let attempt = 0; attempt < 2; attempt += 1)')
     expect(player).toContain('if (response.status === 404) return undefined')
-    expect(player).toContain("showToast('歌曲信息获取失败，未跳过当前歌曲，请稍后重试')")
+    expect(player).toContain("showToast(t('toast.trackInfoFailed'))")
+    const messages = JSON.parse(readSource('src/renderer/locales/zh-hans.json'))
+    expect(messages.toast.trackInfoFailed).toBe('歌曲信息获取失败，未跳过当前歌曲，请稍后重试')
     expect(player).toContain('trackLookupFailureRevision === trackLoadRevision')
   })
 

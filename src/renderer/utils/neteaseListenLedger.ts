@@ -149,6 +149,9 @@ let remoteBaselines = state.remoteBaselines
 let lastPersistAt = 0
 let legacyMigrationAttempted = false
 
+export const hasNeteaseListenReportBaseline = (accountId: unknown, periodKey: string): boolean =>
+  Number.isFinite(Number(remoteBaselines[`${normalizeAccountId(accountId)}:${periodKey}`]))
+
 const pruneEntries = (entries: NeteaseListenEntry[]): NeteaseListenEntry[] => {
   const cutoff = Date.now() - CONFIRMED_RETENTION_MS
   return entries
@@ -397,6 +400,28 @@ export const markNeteaseListenEntryFailed = (entryId: string, error: unknown): v
 const overlapsRange = (entry: { startedAt: number; endedAt: number }, start: number, end: number) =>
   Math.max(entry.endedAt, entry.startedAt + 1) > start && entry.startedAt <= end
 
+/** Discard accepted local backlog without touching unsent, provisional or other-account listens. */
+export const clearAcceptedNeteaseListenEntries = (options: {
+  accountId: unknown
+  rangeStart: number
+  rangeEnd: number
+  periodKey: string
+}): number => {
+  const accountId = normalizeAccountId(options.accountId)
+  let cleared = 0
+  neteaseListenEntries.value = neteaseListenEntries.value.filter((entry) => {
+    const selected =
+      entry.accountId === accountId &&
+      entry.status === 'accepted' &&
+      overlapsRange(entry, options.rangeStart, options.rangeEnd) &&
+      entry.seconds > (Number(entry.confirmedByPeriod?.[options.periodKey]) || 0)
+    if (selected) cleared += 1
+    return !selected
+  })
+  if (cleared > 0) flushNeteaseListenLedger(true)
+  return cleared
+}
+
 const secondsInsideRange = (
   segment: { startedAt: number; endedAt: number; seconds: number },
   start: number,
@@ -458,9 +483,10 @@ export const reconcileNeteaseListenReport = (options: {
   const baselineKey = `${accountId}:${options.periodKey}`
   const previous = Number(remoteBaselines[baselineKey])
   let growth = Number.isFinite(previous) ? Math.max(0, remoteSeconds - previous) : 0
+  const entries = [...neteaseListenEntries.value]
+  let changed = false
 
   if (growth > 0) {
-    const entries = [...neteaseListenEntries.value]
     for (let index = 0; index < entries.length && growth > 0; index += 1) {
       const entry = entries[index]
       if (
@@ -486,9 +512,47 @@ export const reconcileNeteaseListenReport = (options: {
         },
         updatedAt: Date.now()
       }
+      changed = true
     }
-    neteaseListenEntries.value = entries
   }
+
+  // 逐日明细已确认的片段也属于本月及累计。月报总量可能因网易云重新计算而下降，
+  // 不能让这些片段永远留在“本月待确认”；同时补齐旧账本里的逐日确认。
+  const dayKey = options.periodKey.startsWith('today:') ? options.periodKey.slice(6) : ''
+  const month = options.periodKey.startsWith('month:')
+    ? options.periodKey.slice(6)
+    : /^\d{4}-\d{2}-\d{2}$/.test(dayKey)
+      ? dayKey.slice(0, 7)
+      : ''
+  if (/^\d{4}-\d{2}$/.test(month)) {
+    const monthKey = `month:${month}`
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index]
+      if (
+        entry.accountId !== accountId ||
+        entry.status !== 'accepted' ||
+        !entry.dateKey.startsWith(month)
+      ) {
+        continue
+      }
+      const dailyConfirmed = Number(entry.confirmedByPeriod[`today:${entry.dateKey}`]) || 0
+      if (dailyConfirmed <= 0) continue
+      const monthConfirmed = Number(entry.confirmedByPeriod[monthKey]) || 0
+      const totalConfirmed = Number(entry.confirmedByPeriod.total) || 0
+      if (dailyConfirmed <= monthConfirmed && dailyConfirmed <= totalConfirmed) continue
+      entries[index] = {
+        ...entry,
+        confirmedByPeriod: {
+          ...entry.confirmedByPeriod,
+          [monthKey]: Math.max(monthConfirmed, dailyConfirmed),
+          total: Math.max(totalConfirmed, dailyConfirmed)
+        },
+        updatedAt: Date.now()
+      }
+      changed = true
+    }
+  }
+  if (changed) neteaseListenEntries.value = entries
 
   // 同一周期内的报表应当单调增长。接口偶发返回 0 或旧缓存时不回退基线，
   // 否则下一次恢复正常会被误判为一大段“新增远端时长”。

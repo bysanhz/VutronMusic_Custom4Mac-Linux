@@ -1,9 +1,9 @@
 import { parentPort as cachePort } from 'node:worker_threads'
 import fs from 'node:fs'
 import { extname, join } from 'node:path'
-import sharp from 'sharp'
 import { fileTypeFromBuffer } from 'file-type'
 import { downloadPublicBuffer } from '../security/workerHttp'
+import { resizeCover } from '../utils/resizeCover'
 
 const MAX_AUDIO_CACHE_BYTES = 1536 * 1024 * 1024
 const MAX_COVER_BYTES = 20 * 1024 * 1024
@@ -22,7 +22,10 @@ const SAFE_AUDIO_EXTENSIONS = new Set([
 ])
 
 const normalizeContentType = (value: string) =>
-  String(value || 'application/octet-stream').split(';')[0].trim().toLowerCase()
+  String(value || 'application/octet-stream')
+    .split(';')[0]
+    .trim()
+    .toLowerCase()
 
 const looksLikeTextPayload = (buffer: Buffer) => {
   const prefix = buffer.subarray(0, Math.min(buffer.length, 512)).toString('utf8').trimStart()
@@ -48,9 +51,7 @@ const validateAudioPayload = async (buffer: Buffer, contentType: string) => {
     normalizedType === 'application/xml' ||
     looksLikeTextPayload(buffer)
   ) {
-    throw new Error(
-      `音频缓存收到非音频响应: content-type=${normalizedType}, size=${buffer.length}`
-    )
+    throw new Error(`音频缓存收到非音频响应: content-type=${normalizedType}, size=${buffer.length}`)
   }
 
   const detected = await fileTypeFromBuffer(buffer)
@@ -67,9 +68,7 @@ const validateAudioPayload = async (buffer: Buffer, contentType: string) => {
     normalizedType === 'application/octet-stream'
 
   if (!detected && !declaredAudio) {
-    throw new Error(
-      `无法确认缓存响应为音频: content-type=${normalizedType}, size=${buffer.length}`
-    )
+    throw new Error(`无法确认缓存响应为音频: content-type=${normalizedType}, size=${buffer.length}`)
   }
 
   return detected?.mime || normalizedType
@@ -134,11 +133,11 @@ const updateMetadata = async (audioBuffer: Buffer, track: Record<string, any>) =
   if (!coverUrl) return modifiedTagBuffer
 
   const image = await getPic(coverUrl)
-  image.pic = await sharp(image.pic).resize(512, 512, { fit: 'cover' }).toBuffer()
+  const resized = await resizeCover(image.pic, image.format)
 
   return await replacePictureByType(modifiedTagBuffer, {
-    mimeType: image.format,
-    data: image.pic,
+    mimeType: resized.format,
+    data: resized.pic,
     type: 3
   })
 }

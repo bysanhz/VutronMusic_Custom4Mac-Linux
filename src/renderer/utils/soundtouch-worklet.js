@@ -7,6 +7,7 @@
 /* eslint-disable no-unused-expressions */
 /* eslint-disable no-return-assign */
 /* eslint-disable no-sequences */
+/* global sampleRate */
 /*
  * SoundTouch Audio Worklet v0.2.1 AudioWorklet using the
  * SoundTouch audio processing library
@@ -1309,7 +1310,13 @@ const SoundTouchWorklet = (function (_AudioWorkletProcesso) {
     _this = _callSuper(this, SoundTouchWorklet)
     _this.bufferSize = 128
     _this._samples = new Float32Array(_this.bufferSize * 2)
+    _this._processedSamples = new Float32Array(_this.bufferSize * 2)
+    _this._disposed = false
+    _this.port.onmessage = (event) => {
+      if (event.data?.type === 'dispose') _this._disposed = true
+    }
     _this._pipe = new SoundTouch()
+    _this._pipe.stretch.setParameters(sampleRate, 0, 0, DEFAULT_OVERLAP_MS)
     return _this
   }
   _inherits(SoundTouchWorklet, _AudioWorkletProcesso)
@@ -1320,11 +1327,16 @@ const SoundTouchWorklet = (function (_AudioWorkletProcesso) {
         key: 'process',
         value: function process(inputs, outputs, parameters) {
           let _parameters$rate$, _parameters$tempo$, _parameters$pitch$, _parameters$pitchSemi
-          if (!inputs[0].length) return true
+          if (this._disposed) return false
+          if (!inputs[0]?.length) return true
           const leftInput = inputs[0][0]
           const rightInput = inputs[0].length > 1 ? inputs[0][1] : inputs[0][0]
           const leftOutput = outputs[0][0]
           const rightOutput = outputs[0].length > 1 ? outputs[0][1] : outputs[0][0]
+          if (this._samples.length !== leftInput.length * 2) {
+            this._samples = new Float32Array(leftInput.length * 2)
+            this._processedSamples = new Float32Array(leftInput.length * 2)
+          }
           const samples = this._samples
           if (!leftOutput || !leftOutput.length) return false
           const rate =
@@ -1353,8 +1365,12 @@ const SoundTouchWorklet = (function (_AudioWorkletProcesso) {
           }
           this._pipe.inputBuffer.putSamples(samples, 0, leftInput.length)
           this._pipe.process()
-          const processedSamples = new Float32Array(leftInput.length * 2)
-          this._pipe.outputBuffer.receiveSamples(processedSamples, leftOutput.length)
+          const processedSamples = this._processedSamples
+          processedSamples.fill(0)
+          this._pipe.outputBuffer.receiveSamples(
+            processedSamples,
+            Math.min(leftOutput.length, this._pipe.outputBuffer.frameCount)
+          )
           for (let _i = 0; _i < leftInput.length; _i++) {
             leftOutput[_i] = processedSamples[_i * 2]
             rightOutput[_i] = processedSamples[_i * 2 + 1]

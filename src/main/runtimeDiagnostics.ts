@@ -1,11 +1,10 @@
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, webContents } from 'electron'
 import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
 const APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
-const IS_DEV_ENV = process.env.NODE_ENV === 'development'
 
 const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
@@ -33,11 +32,34 @@ const installRuntimeDiagnostics = (): void => {
         chrome: process.versions.chrome,
         node: process.versions.node,
         locale: app.getLocale(),
-        hardwareAccelerationDisabled:
-          process.env.VUTRON_DISABLE_HARDWARE_ACCELERATION === '1' ||
-          (IS_DEV_ENV && process.env.VUTRON_ENABLE_HARDWARE_ACCELERATION !== '1')
+        hardwareAccelerationDisabled: app.commandLine.hasSwitch('vutron-software-rendering')
       },
-      gpu: gpuStatus
+      gpu: gpuStatus,
+      systemMemory: {
+        totalMiB: Math.round(os.totalmem() / 1024 / 1024),
+        freeMiB: Math.round(os.freemem() / 1024 / 1024)
+      },
+      processes: app.isReady()
+        ? app.getAppMetrics().map((metric) => {
+            const contents = webContents
+              .getAllWebContents()
+              .find((contents) => contents.getOSProcessId() === metric.pid)
+            const url = contents?.getURL() || ''
+            return {
+              pid: metric.pid,
+              type: metric.type,
+              role: url.startsWith('devtools:')
+                ? 'devtools'
+                : url.includes('/osdlyric.html')
+                  ? 'desktop-lyrics'
+                  : contents
+                    ? 'main-window'
+                    : metric.name || metric.serviceName || metric.type,
+              cpuPercent: Number(metric.cpu.percentCPUUsage.toFixed(2)),
+              workingSetMiB: Number((metric.memory.workingSetSize / 1024).toFixed(2))
+            }
+          })
+        : []
     }
   })
 

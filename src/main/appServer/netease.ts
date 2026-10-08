@@ -8,6 +8,9 @@ import { normalizeNeteaseAssetUrls } from '../../shared/neteaseAssetUrl'
 import bundledScrobbleV1Api from './vendor/scrobbleV1'
 import https from 'node:https'
 import tls from 'node:tls'
+import { summarizeNeteaseFailure } from '../utils/neteaseFailure'
+import { getDevSystemProxy, withDevSystemProxy } from './devSystemProxy'
+import Constants from '../utils/Constants'
 
 const configureSystemTrustedCAs = () => {
   const getCACertificates = (tls as any).getCACertificates as
@@ -59,6 +62,28 @@ const isCloudRequestTimeout = (name: string, error: any): boolean => {
 }
 
 async function netease(fastify: FastifyInstance) {
+  const devSystemProxy = Constants.IS_DEV_ENV
+    ? getDevSystemProxy(process.env.HTTPS_PROXY || process.env.https_proxy)
+    : ''
+  if (devSystemProxy) log.info('[Netease] 开发环境读取请求使用进程系统代理')
+  // The API package logs entire Axios failures, including the MUSIC_U cookie in
+  // request config. Its request module holds this logger object by reference.
+  try {
+    const upstreamLogger = require('@neteasecloudmusicapienhanced/api/util/logger')
+    if (upstreamLogger && !upstreamLogger.__vutronRedactedErrors) {
+      const originalError = upstreamLogger.error.bind(upstreamLogger)
+      upstreamLogger.error = (message: unknown, ...args: unknown[]) => {
+        if (message && typeof message === 'object' && 'body' in message && 'status' in message) {
+          originalError('网易云上游请求失败', summarizeNeteaseFailure(message))
+          return
+        }
+        originalError(message, ...args)
+      }
+      upstreamLogger.__vutronRedactedErrors = true
+    }
+  } catch {
+    log.warn('[Netease] 上游日志格式已变化，将仅对应用日志做脱敏')
+  }
   const NeteaseCloudMusicApi = require('@neteasecloudmusicapienhanced/api')
   const getHandler = (name: string, neteaseApi: (params: any) => any) => {
     return async (
@@ -68,7 +93,7 @@ async function netease(fastify: FastifyInstance) {
       try {
         const { ...params } = req.query
         if (!params.cookie) params.cookie = (req as any).cookies
-        const result = await neteaseApi(params)
+        const result = await neteaseApi(withDevSystemProxy(params, devSystemProxy))
         result.body = normalizeNeteaseAssetUrls(
           await handleNeteaseResult(name as CacheAPIs, result?.body)
         )
@@ -93,7 +118,7 @@ async function netease(fastify: FastifyInstance) {
           })
         }
 
-        log.error(`Netease API Error: ${name}`, error)
+        log.error(`Netease API Error: ${name}`, summarizeNeteaseFailure(error))
         if ([400, 301, 250].includes(error.status)) {
           return reply.status(error.status).send(error.body)
         }
@@ -169,9 +194,7 @@ async function netease(fastify: FastifyInstance) {
     packageLoadError: packageScrobbleV1LoadError || undefined
   }))
 
-  log.info(
-    `[Netease] 已注册稳定听歌上报路由 ${stableScrobbleV1Url} (${stableScrobbleV1Source})`
-  )
+  log.info(`[Netease] 已注册稳定听歌上报路由 ${stableScrobbleV1Url} (${stableScrobbleV1Source})`)
 
   fastify.get('/netease', () => 'NeteaseCloudMusicApi')
 }

@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import {
   extractCalendarWeekListenSeconds,
   extractTodayListenSeconds,
-  extractTodaySongCount
+  extractTodaySongCount,
+  isRealtimeListenReportForMonth
 } from '../src/renderer/services/neteaseModern'
 
 const makeReport = () => ({
@@ -55,5 +56,11 @@ test.describe('NetEase listening duration extraction', () => {
     const week = { code: 200, data: { weekTodayListenBlock: { songCount: 5 } } }
 
     expect(extractTodaySongCount(undefined, week)).toBe(5)
+  })
+
+  test('rejects a previous-month report during month rollover', () => {
+    expect(isRealtimeListenReportForMonth(makeReport(), '2026-09')).toBe(true)
+    expect(isRealtimeListenReportForMonth(makeReport(), '2026-10')).toBe(false)
+    expect(isRealtimeListenReportForMonth({ data: {} }, '2026-09')).toBe(false)
   })
 })

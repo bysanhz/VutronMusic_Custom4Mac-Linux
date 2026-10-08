@@ -115,6 +115,23 @@ declare global {
         networkState: number
         duration: number | null
         bufferedEnd: number
+        bufferedAhead: number
+        contextState: string
+        sampleRate: number
+        baseLatencyMs: number
+        outputLatencyMs: number
+        pitchProcessorActive: boolean
+        waitingCount: number
+        stalledEventCount: number
+        maxWatchdogDelayMs: number
+        recentEvents: Array<{
+          event: string
+          time: string
+          progress: number
+          bufferedAhead: number
+          readyState: number
+          contextState: string
+        }>
         lastEvent: string
         lastEventAt: string
         stalledForMs: number

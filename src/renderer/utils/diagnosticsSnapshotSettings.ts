@@ -75,11 +75,23 @@ const collectRendererDiagnostics = () => {
   const osd = readJsonRecord('osdLyric')
   const settings = readJsonRecord('settings')
   const queueSnapshots = readJsonArray('vutronmusic-queue-snapshots-v1')
+  const memory = (
+    performance as Performance & {
+      memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number }
+    }
+  ).memory
 
   return {
     capturedAt: new Date().toISOString(),
     location: location.href,
     language: settings?.general?.language || document.documentElement.lang || '',
+    jsHeap: memory
+      ? {
+          usedMiB: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+          allocatedMiB: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+          limitMiB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
+        }
+      : null,
     playback: {
       trackId: player.currentTrack?.id ?? null,
       trackName: player.currentTrack?.name ?? '',

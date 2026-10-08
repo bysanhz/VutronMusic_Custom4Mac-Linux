@@ -7,7 +7,8 @@ import {
   protocol,
   screen,
   MessageChannelMain,
-  powerMonitor
+  powerMonitor,
+  nativeImage
 } from 'electron'
 import fs from 'fs'
 import Constants from './utils/Constants'
@@ -24,7 +25,6 @@ import IPCs from './IPCs'
 import fastifyStatic from '@fastify/static'
 import path from 'path'
 import cache from './cache'
-import sharp from 'sharp'
 import {
   getPic,
   getPicFromApi,
@@ -42,6 +42,7 @@ import log from './log'
 import { lyricLine } from '@/types/music'
 import { buildProxyUrl } from '../shared/proxySettings'
 import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
+import { getUsableTrackCoverUrl } from '../shared/trackCover'
 
 const CLOSE_DIALOG_TEXT = {
   zh: {
@@ -732,7 +733,11 @@ class BackGround {
 
         switch (type) {
           case 'pic':
-            const size = Number(searchParams.get('size'))
+            const requestedSize = Number(searchParams.get('size'))
+            const size =
+              Number.isFinite(requestedSize) && requestedSize > 0
+                ? Math.min(1024, Math.floor(requestedSize))
+                : 512
             ids = searchParams.get('id')
             res = cache.get(CacheAPIs.Track, { ids })
 
@@ -745,8 +750,26 @@ class BackGround {
 
             const result = await getPic(track)
             let pic = result.pic
-            pic = await sharp(pic).resize(size, size, { fit: 'cover' }).toBuffer()
-            const format = result.format
+            let format = result.format
+            const image = nativeImage.createFromBuffer(pic)
+            if (!image.isEmpty()) {
+              const { width, height } = image.getSize()
+              const side = Math.min(width, height)
+              const square = image.crop({
+                x: Math.floor((width - side) / 2),
+                y: Math.floor((height - side) / 2),
+                width: side,
+                height: side
+              })
+              const scaled = square.resize({ width: size, height: size, quality: 'good' })
+              if (format.includes('jpeg') || format.includes('jpg')) {
+                pic = scaled.toJPEG(85)
+                format = 'image/jpeg'
+              } else {
+                pic = scaled.toPNG()
+                format = 'image/png'
+              }
+            }
 
             return new Response(new Uint8Array(pic), { headers: { 'Content-Type': format } })
 
@@ -798,19 +821,23 @@ class BackGround {
               res = cache.get(CacheAPIs.Track, { ids })
               if (res) {
                 let track = res.songs[0]
-                const hasCover = Boolean(
-                  track?.al?.picUrl || track?.album?.picUrl || track?.picUrl
-                )
+                const hasCover = Boolean(getUsableTrackCoverUrl(track))
 
                 if (track?.type !== 'local' && !hasCover) {
                   const detail = await getTrackDetail(ids).catch(() => null)
                   const hydrated = detail?.songs?.[0]
                   if (hydrated) {
+                    const coverUrl = getUsableTrackCoverUrl(hydrated)
                     track = {
                       ...hydrated,
                       ...track,
-                      al: track?.al?.picUrl ? track.al : hydrated.al,
-                      album: track?.album?.picUrl ? track.album : hydrated.album,
+                      al: coverUrl
+                        ? { ...hydrated.al, ...track.al, picUrl: coverUrl }
+                        : track.al || hydrated.al,
+                      album: coverUrl
+                        ? { ...hydrated.album, ...track.album, picUrl: coverUrl }
+                        : track.album || hydrated.album,
+                      picUrl: coverUrl || track.picUrl || hydrated.picUrl,
                       ar: Array.isArray(track?.ar) && track.ar.length ? track.ar : hydrated.ar,
                       artists:
                         Array.isArray(track?.artists) && track.artists.length
@@ -977,10 +1004,7 @@ class BackGround {
 
           return response
         } catch (error) {
-          if (
-            request.signal?.aborted ||
-            (error instanceof Error && error.name === 'AbortError')
-          ) {
+          if (request.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
             return new Response(null, {
               status: 499,
               statusText: 'Client Closed Request'
@@ -1146,10 +1170,13 @@ class BackGround {
 
     this.win.on('resize', () => {
       if (resizeTimeout) clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        resizeTimeout = null
-        persistWindowBounds()
-      }, Constants.IS_LINUX ? 280 : 180)
+      resizeTimeout = setTimeout(
+        () => {
+          resizeTimeout = null
+          persistWindowBounds()
+        },
+        Constants.IS_LINUX ? 280 : 180
+      )
     })
 
     let moveTimeout: ReturnType<typeof setTimeout> | null = null
@@ -1157,10 +1184,13 @@ class BackGround {
       if (moveTimeout) {
         clearTimeout(moveTimeout)
       }
-      moveTimeout = setTimeout(() => {
-        moveTimeout = null
-        persistWindowBounds()
-      }, Constants.IS_LINUX ? 320 : 500)
+      moveTimeout = setTimeout(
+        () => {
+          moveTimeout = null
+          persistWindowBounds()
+        },
+        Constants.IS_LINUX ? 320 : 500
+      )
     })
 
     this.win.on('closed', () => {

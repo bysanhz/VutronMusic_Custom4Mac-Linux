@@ -2,19 +2,13 @@
   <transition name="slide-fade">
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
-        <button-icon
-          :title="t('lyricPage.advance')"
-          @click="setOffset(+0.5, $event)"
-        >
+        <button-icon :title="t('lyricPage.advance')" @click="setOffset(+0.5, $event)">
           <svg-icon icon-class="back5s" />
         </button-icon>
         <button-icon class="recovery" :title="offset" @click="setOffset(0)">
           <svg-icon icon-class="recovery" />
         </button-icon>
-        <button-icon
-          :title="t('lyricPage.delay')"
-          @click="setOffset(-0.5, $event)"
-        >
+        <button-icon :title="t('lyricPage.delay')" @click="setOffset(-0.5, $event)">
           <svg-icon icon-class="forward5s" />
         </button-icon>
       </div>
@@ -56,6 +50,7 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricLine from './LyricLine.vue'
+import { DeferredTaskScope } from '../utils/deferredTaskScope'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -150,7 +145,14 @@ const setOffset = (offset: number, event?: MouseEvent) => {
 }
 // =========== newADD end ========
 
+const animationTasks = new DeferredTaskScope()
+const translationTasks = new DeferredTaskScope()
+
 const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
+  const tasks = type === 'all' ? animationTasks : translationTasks
+  if (type === 'all') translationTasks.cancel()
+  const revision = tasks.restart()
+  if (!tasks.isCurrent(revision)) return
   if (!lyricRefs.value?.length) return
 
   const BATCH_SIZE = 3
@@ -166,15 +168,21 @@ const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
     const delayMs = Math.floor(diff / BATCH_SIZE) * BATCH_DELAY_MS
 
     if (delayMs > 0) {
-      setTimeout(() => {
-        instance?.createAnimations(type)
-      }, delayMs)
+      tasks.schedule(
+        revision,
+        () => {
+          void instance.createAnimations(type)
+        },
+        delayMs
+      )
     } else {
       await instance.createAnimations(type)
     }
+    if (!tasks.isCurrent(revision)) return
 
     if (index === highlight.value) {
       await nextTick()
+      if (!tasks.isCurrent(revision)) return
       const currentTime = (seek.value + lyricOffset.value) * 1000
       instance.updateCurrentTime(currentTime)
       let op: 'play' | 'pause' | 'finish' | 'reset' = playing.value ? 'play' : 'pause'
@@ -185,6 +193,8 @@ const scheduleAnimation = async (type: 'all' | 'translation' = 'all') => {
 }
 
 const clearAnimations = (clearAll = true) => {
+  if (clearAll) animationTasks.cancel()
+  translationTasks.cancel()
   lyricRefs.value.forEach((instance) => {
     instance.clearAnimation(clearAll)
   })
@@ -299,6 +309,9 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  animationTasks.dispose()
+  translationTasks.dispose()
+  clearTimeout(scrollingTimer)
   clearAnimations()
   lyricRefs.value = []
 })

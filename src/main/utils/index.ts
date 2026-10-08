@@ -15,6 +15,7 @@ import log from '../log'
 import { Worker } from 'worker_threads'
 import { TrackInfoOrder, lyricLine } from '@/types/music'
 import { getNeteaseImageCandidateUrls } from '../../shared/neteaseAssetUrl'
+import { isNeteaseTransportFailure, summarizeNeteaseFailure } from './neteaseFailure'
 
 export const isFileExist = (file: string) => {
   return fs.existsSync(file)
@@ -657,7 +658,12 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
         level: item.level || level
       }
     } catch (error) {
-      log.warn(`[NetEase] ${level} 音质获取失败，尝试较低音质`, error)
+      const failure = summarizeNeteaseFailure(error)
+      if (isNeteaseTransportFailure(failure)) {
+        log.warn(`[NetEase] ${level} 音源请求失败，停止音质降级并尝试备用音源`, failure)
+        break
+      }
+      log.warn(`[NetEase] ${level} 音质获取失败，尝试较低音质`, failure)
     }
   }
 
