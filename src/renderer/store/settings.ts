@@ -45,6 +45,7 @@ export const useSettingsStore = defineStore(
     })
     const general = reactive({
       language: 'zh',
+      updateChannel: 'stable' as 'stable' | 'beta',
       subTitleDefault: true,
       showTrackTimeOrID: 'time',
       musicQuality: 'exhigh' as string | number,
@@ -219,6 +220,13 @@ export const useSettingsStore = defineStore(
       () => general.language,
       (newValue) => {
         window.mainApi?.send('setStoreSettings', { lang: newValue })
+      }
+    )
+
+    watch(
+      () => general.updateChannel,
+      (value) => {
+        window.mainApi?.send('setStoreSettings', { updateChannel: value })
       }
     )
 

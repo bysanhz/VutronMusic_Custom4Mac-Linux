@@ -9,7 +9,7 @@ import store from './store'
 const RELEASE_OWNER = 'bysanhz'
 const RELEASE_REPOSITORY = 'VutronMusic_Custom4Mac-Linux'
 const RELEASE_PAGE_URL = `https://github.com/${RELEASE_OWNER}/${RELEASE_REPOSITORY}/releases`
-const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPOSITORY}/releases?per_page=10`
+const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPOSITORY}/releases?per_page=30`
 
 let nativeUpdaterConfigured = false
 
@@ -149,11 +149,30 @@ const checkGitHubRelease = async () => {
   }
 
   const releases = (await response.json()) as Array<Record<string, any>>
-  const latestRelease = releases.find((release) => !release.draft && !release.prerelease)
+  const installedVersion = normalizeVersion(app.getVersion())
+  // Beta builds always stay on the preview channel; stable installs only see
+  // prereleases when the user explicitly opts in from Settings.
+  const receiveBetas =
+    String(store.get('settings.updateChannel') || '') === 'beta' ||
+    /-(?:alpha|beta|rc)(?:\.|$)/i.test(installedVersion)
+  const candidates = releases
+    .filter((release) => !release.draft && (receiveBetas || !release.prerelease))
+    .filter((release) =>
+      /^v?\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/i.test(
+        String(release.tag_name || '')
+      )
+    )
+    .sort((first, second) =>
+      compareVersions(
+        normalizeVersion(second.tag_name),
+        normalizeVersion(first.tag_name)
+      )
+    )
+  const latestRelease = candidates[0]
   const version = normalizeVersion(latestRelease?.tag_name || latestRelease?.name)
 
   return {
-    isUpdateAvailable: compareVersions(version, normalizeVersion(app.getVersion())) > 0,
+    isUpdateAvailable: Boolean(latestRelease) && compareVersions(version, installedVersion) > 0,
     updateInfo: {
       version,
       releaseName: latestRelease?.name || `VutronMusic ${version}`,
@@ -164,6 +183,8 @@ const checkGitHubRelease = async () => {
       sha512: ''
     },
     manualDownload: true,
+    updateChannel: receiveBetas ? 'beta' : 'stable',
+    prerelease: Boolean(latestRelease?.prerelease),
     releaseUrl: latestRelease?.html_url || RELEASE_PAGE_URL,
     installFormat: Constants.IS_DEV_ENV
       ? 'development'

@@ -76,6 +76,7 @@ const store = new Store<TypeElectronStore>({
     settings: {
       innerFirst: false,
       lang: 'zh',
+      updateChannel: 'stable',
       enableTrayMenu: false,
       closeAppOption: 'ask',
       useCustomTitlebar: false,
