@@ -21,7 +21,7 @@
       <div class="play-bar" :class="{ hover: hoverParent }">
         <div class="player-progress-bar">
           <div class="time">{{ formatTime(position) || '0:00' }}</div>
-          <div class="slider">
+          <div class="slider" @wheel="adjustSeekOnWheel">
             <vue-slider
               v-model="position"
               :min="0"
@@ -88,6 +88,7 @@
           <button-icon class="button" :prevent-blur="true" @click="showContextMenu">
             <SvgIcon icon-class="options" />
           </button-icon>
+          <PlaybackSpeedButton />
         </div>
         <div class="player-progress-bar">
           <div class="time"
@@ -102,6 +103,7 @@
               :duration="0.5"
               :dot-size="12"
               :height="4"
+              :wheel-step="0.05"
               :use-keyboard="false"
               :drag-on-click="false"
               :tooltip-formatter="Math.round(volume * 100).toString()"
@@ -156,6 +158,8 @@ import { usePlayerThemeStore } from '../store/playerTheme'
 import { storeToRefs } from 'pinia'
 import { gsap } from 'gsap'
 import VueSlider from './VueSlider.vue'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
+import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricPage from './LyricPage.vue'
@@ -370,6 +374,13 @@ const position = computed({
     seek.value = line?.start ?? value
   }
 })
+
+const adjustSeekOnWheel = (event: WheelEvent) => {
+  if (currentTrackDuration.value <= 0) return
+  const direction = wheelDirection(event)
+  if (direction === 0) return
+  position.value = steppedRangeValue(position.value, 0, currentTrackDuration.value, 5, direction)
+}
 
 const heartDisabled = computed(() => {
   return currentTrack.value?.type === 'local' && !currentTrack.value?.matched
@@ -1017,6 +1028,23 @@ $mid: math.ceil(math.div($count, 2));
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 10px;
+
+    :deep(.button-icon) {
+      width: 36px;
+      height: 36px;
+      margin: 0;
+      padding: 0;
+    }
+
+    :deep(.playback-speed-button) {
+      opacity: 0.5;
+
+      &.is-adjusted,
+      &:hover {
+        opacity: 0.88;
+      }
+    }
 
     .button-icon.active {
       opacity: 0.5;
@@ -1031,10 +1059,9 @@ $mid: math.ceil(math.div($count, 2));
     .middle {
       display: flex;
       align-items: center;
+      gap: 10px;
 
       button {
-        margin: 0 0.6vw;
-
         &:hover {
           background: var(--color-secondary-bg-for-transparent);
           opacity: 0.88;

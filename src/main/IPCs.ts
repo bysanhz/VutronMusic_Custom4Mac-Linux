@@ -478,7 +478,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
       const track = songs[i]
       try {
         fs.accessSync(track.filePath, fs.constants.F_OK)
-      } catch (e) {
+      } catch {
         deletedTracks.push(track.id)
       }
     }
@@ -840,7 +840,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
       if (fs.existsSync(name)) {
         fs.unlinkSync(name)
       }
-    } catch (error) {}
+    } catch {}
   })
 
   ipcMain.handle('get-cache-path', () => {

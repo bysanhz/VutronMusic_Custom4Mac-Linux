@@ -161,6 +161,92 @@ test('uses daily report confirmation for the month even when the month total dro
   ).toBe(0)
 })
 
+test('confirms a closed day from a near-equal daily total when the month baseline fell', () => {
+  const accountId = 'closed-day-probe'
+  const dayStart = new Date(2026, 9, 9).getTime()
+  const dayEnd = new Date(2026, 9, 10).getTime() - 1
+  const monthStart = new Date(2026, 9, 1).getTime()
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'oct-9-session',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 16_252_000,
+    seconds: 16_252,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+
+  // The old month baseline can exceed a subsequently recalculated report.
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'month:2026-10',
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 185_520
+  })
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'today:2026-10-09',
+    rangeStart: dayStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 12_900,
+    finalizedDay: true
+  })
+  expect(
+    getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, 'month:2026-10').accepted
+  ).toBeGreaterThan(0)
+
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'month:2026-10',
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 137_220
+  })
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'today:2026-10-09',
+    rangeStart: dayStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 16_140,
+    finalizedDay: true
+  })
+
+  expect(
+    getNeteaseListenLedgerTotals(accountId, dayStart, dayEnd, 'today:2026-10-09').accepted
+  ).toBe(0)
+  expect(
+    getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, 'month:2026-10').accepted
+  ).toBe(0)
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, 'total').accepted).toBe(0)
+})
+
+test('does not infer confirmation from a substantially different closed-day total', () => {
+  const accountId = 'unmatched-day-probe'
+  const dayStart = new Date(2026, 9, 9).getTime()
+  const dayEnd = new Date(2026, 9, 10).getTime() - 1
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'unmatched-session',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 3_600_000,
+    seconds: 3_600,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'today:2026-10-09',
+    rangeStart: dayStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 1_800,
+    finalizedDay: true
+  })
+  expect(
+    getNeteaseListenLedgerTotals(accountId, dayStart, dayEnd, 'today:2026-10-09').accepted
+  ).toBe(3_600)
+})
+
 test('clears only this account’s accepted backlog and records fresh listening afterward', () => {
   const monthStart = new Date(2026, 8, 1, 0, 0, 0).getTime()
   const todayStart = new Date(2026, 8, 30, 0, 0, 0).getTime()

@@ -22,6 +22,7 @@
         }"
         :height="2"
         :dot-size="10"
+        :wheel-step="5"
         @update:hover-position="handleHover"
       />
     </div>
@@ -82,6 +83,7 @@
             @click.stop="show = !show"
             ><svg-icon icon-class="osd-lyrics"
           /></button-icon>
+          <PlaybackSpeedButton />
         </div>
         <div class="blank"></div>
       </div>
@@ -141,6 +143,7 @@
           </div>
           <button-icon
             :title="volume === 0 ? $t('player.unmute') : $t('player.mute')"
+            :class="{ active: volume === 0 }"
             @click.stop="toggleMute"
             ><svg-icon v-show="volume > 0.5" icon-class="volume" />
             <svg-icon v-show="volume === 0" icon-class="volume-mute" />
@@ -150,7 +153,6 @@
         <button-icon
           class="lyrics-button"
           :title="t('playerBar.lyrics')"
-          style="margin-left: 12px"
           @click.stop="showLyrics = !showLyrics"
           ><svg-icon icon-class="arrow-up"
         /></button-icon>
@@ -162,6 +164,7 @@
 <script setup lang="ts">
 import SliderVue from 'vue-3-slider-component'
 import VueSlider from './VueSlider.vue'
+import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useDataStore } from '../store/data'
@@ -175,6 +178,7 @@ import SvgIcon from './SvgIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -290,9 +294,9 @@ const goToList = () => {
 }
 
 const updateVolume = (e: WheelEvent) => {
-  e.preventDefault()
-  const delta = e.deltaY < 0 ? 0.02 : -0.02
-  volume.value = Math.min(Math.max(volume.value + delta, 0), 1)
+  const direction = wheelDirection(e)
+  if (direction === 0) return
+  volume.value = steppedRangeValue(volume.value, 0, 1, 0.02, direction)
 }
 
 const toggleMute = () => {
@@ -351,7 +355,9 @@ watch(showLyrics, (value) => {
   height: 64px;
   border-top: 1px solid var(--color-border);
   backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
   background-color: var(--color-navbar-bg);
+  box-shadow: 0 -5px 22px rgb(0 0 0 / 4%);
   z-index: 20;
 }
 :deep(.progress-bar) {
@@ -399,11 +405,11 @@ watch(showLyrics, (value) => {
     display: flex;
     align-items: center;
     img {
-      border-radius: 5px;
+      border-radius: 8px;
       height: 46px;
       width: 46px;
       object-fit: cover;
-      box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.16);
+      box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
       cursor: pointer;
     }
     .track-info {
@@ -453,9 +459,16 @@ watch(showLyrics, (value) => {
       padding: 0 8px;
 
       .play {
+        background: transparent;
+
+        &:hover {
+          background: transparent;
+        }
+
         .svg-icon {
           width: 24px;
           height: 24px;
+          color: var(--color-primary);
         }
       }
     }

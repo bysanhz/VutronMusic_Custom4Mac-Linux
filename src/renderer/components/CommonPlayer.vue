@@ -66,7 +66,7 @@
           </div>
           <div class="progress-bar">
             <div class="time">{{ formatTime(position) || '0:00' }}</div>
-            <div class="slider">
+            <div class="slider" @wheel="adjustSeekOnWheel">
               <vue-slider
                 v-model="position"
                 :min="0"
@@ -124,6 +124,7 @@
               @click="shuffle = !shuffle"
               ><svg-icon icon-class="shuffle"
             /></button-icon>
+            <PlaybackSpeedButton />
           </div>
           <div class="progress-bar">
             <div class="time"
@@ -137,6 +138,7 @@
                 :max="1"
                 :dot-size="12"
                 :height="4"
+                :wheel-step="0.05"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
                 :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
                 tooltip="none"
@@ -210,6 +212,8 @@ import { useRouter } from 'vue-router'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import VueSlider from './VueSlider.vue'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
+import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
 import LyricPage from './LyricPage.vue'
 import Comment from './CommentPage.vue'
 import { usePlayerStore } from '../store/player'
@@ -337,6 +341,13 @@ const position = computed({
     seek.value = line?.start ?? value
   }
 })
+
+const adjustSeekOnWheel = (event: WheelEvent) => {
+  if (currentTrackDuration.value <= 0) return
+  const direction = wheelDirection(event)
+  if (direction === 0) return
+  position.value = steppedRangeValue(position.value, 0, currentTrackDuration.value, 5, direction)
+}
 
 const idx = ref(tags.value.indexOf(nTranslationMode.value))
 const hover = ref(false)
@@ -605,8 +616,25 @@ onBeforeUnmount(() => {
         justify-content: center;
         margin: 1.9vh 0 1.1vh 0;
         align-items: center;
+        gap: 10px;
         --media-control-icon-size: 18px;
         --media-control-primary-icon-size: 20px;
+
+        :deep(.button-icon) {
+          width: 36px;
+          height: 36px;
+          margin: 0;
+          padding: 0;
+        }
+
+        :deep(.playback-speed-button) {
+          opacity: 0.38;
+
+          &.is-adjusted,
+          &:hover {
+            opacity: 0.88;
+          }
+        }
 
         .svg-icon {
           opacity: 0.38;
@@ -619,13 +647,10 @@ onBeforeUnmount(() => {
         }
 
         .middle {
-          padding: 0 2.2vw;
+          padding: 0;
           display: flex;
           align-items: center;
-
-          button {
-            margin: 0 0.1vw;
-          }
+          gap: 10px;
 
           button#play .svg-icon {
             height: var(--media-control-primary-icon-size);

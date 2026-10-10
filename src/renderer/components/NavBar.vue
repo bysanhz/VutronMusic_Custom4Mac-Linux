@@ -209,7 +209,9 @@ nav {
   height: 64px;
   padding: 0 30px 0 0;
   box-sizing: content-box;
+  border-bottom: 1px solid var(--color-border);
   backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   background-color: var(--color-navbar-bg);
   z-index: 10;
   -webkit-app-region: drag;
@@ -236,17 +238,23 @@ nav.has-custom-titlebar {
     padding: 8px 10px;
     cursor: pointer;
     margin: 0 5px;
-    border-radius: 8px;
+    border-radius: 9px;
     white-space: nowrap;
     font-size: 16px;
     font-weight: 600;
+    color: var(--color-secondary);
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease;
     -webkit-app-region: no-drag;
     &:hover {
-      color: var(--color-primary);
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--color-text) 6%, transparent);
     }
   }
   .active {
     color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   }
 }
 

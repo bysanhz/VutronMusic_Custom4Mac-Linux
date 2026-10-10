@@ -232,6 +232,7 @@
                     step="1"
                     :value="control.value"
                     @input="updateProfileCore(control.key, $event)"
+                    @wheel="adjustProfileCoreOnWheel(control.key, $event)"
                   />
                   <small class="profile-control-hint">{{ control.hint }}</small>
                 </label>
@@ -348,6 +349,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
@@ -834,6 +836,13 @@ const profileCoreControls = computed<
 
 const updateProfileCore = (field: HeartModeCoreField, event: Event) => {
   const value = Number((event.target as HTMLInputElement).value)
+  updateHeartModeProfile({ mode: 'custom', [field]: value })
+}
+
+const adjustProfileCoreOnWheel = (field: HeartModeCoreField, event: WheelEvent) => {
+  const direction = wheelDirection(event)
+  if (direction === 0) return
+  const value = steppedRangeValue(heartModeProfile.value[field], 0, 100, 1, direction)
   updateHeartModeProfile({ mode: 'custom', [field]: value })
 }
 

@@ -476,6 +476,8 @@ export const reconcileNeteaseListenReport = (options: {
   rangeStart: number
   rangeEnd: number
   remoteSeconds?: number
+  /** Only set for a day that has ended in the local time zone. */
+  finalizedDay?: boolean
 }): void => {
   const remoteSeconds = Number(options.remoteSeconds)
   if (!Number.isFinite(remoteSeconds) || remoteSeconds < 0) return
@@ -516,9 +518,36 @@ export const reconcileNeteaseListenReport = (options: {
     }
   }
 
+  const dayKey = options.periodKey.startsWith('today:') ? options.periodKey.slice(6) : ''
+  if (options.finalizedDay && /^\d{4}-\d{2}-\d{2}$/.test(dayKey) && remoteSeconds > 0) {
+    const acceptedForDay = entries.filter(
+      (entry) =>
+        entry.accountId === accountId && entry.status === 'accepted' && entry.dateKey === dayKey
+    )
+    const acceptedIds = new Set(acceptedForDay.map((entry) => entry.id))
+    const localSeconds = acceptedForDay.reduce((total, entry) => total + entry.seconds, 0)
+    // A first successful read may arrive after the uploads and therefore have no usable
+    // growth baseline. For a closed day, a near-equal absolute daily total is additional
+    // evidence that those uploads reached the report. Allow at most two minutes for the
+    // report's minute precision; never infer a match from a substantially different day.
+    const roundingAllowance = Math.min(120, localSeconds * 0.02)
+    if (localSeconds > 0 && Math.abs(remoteSeconds - localSeconds) <= roundingAllowance) {
+      for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index]
+        if (!acceptedIds.has(entry.id)) continue
+        if ((Number(entry.confirmedByPeriod[options.periodKey]) || 0) >= entry.seconds) continue
+        entries[index] = {
+          ...entry,
+          confirmedByPeriod: { ...entry.confirmedByPeriod, [options.periodKey]: entry.seconds },
+          updatedAt: Date.now()
+        }
+        changed = true
+      }
+    }
+  }
+
   // 逐日明细已确认的片段也属于本月及累计。月报总量可能因网易云重新计算而下降，
   // 不能让这些片段永远留在“本月待确认”；同时补齐旧账本里的逐日确认。
-  const dayKey = options.periodKey.startsWith('today:') ? options.periodKey.slice(6) : ''
   const month = options.periodKey.startsWith('month:')
     ? options.periodKey.slice(6)
     : /^\d{4}-\d{2}-\d{2}$/.test(dayKey)
@@ -552,15 +581,14 @@ export const reconcileNeteaseListenReport = (options: {
       changed = true
     }
   }
-  if (changed) neteaseListenEntries.value = entries
-
   // 同一周期内的报表应当单调增长。接口偶发返回 0 或旧缓存时不回退基线，
   // 否则下一次恢复正常会被误判为一大段“新增远端时长”。
-  remoteBaselines = {
-    ...remoteBaselines,
-    [baselineKey]: Number.isFinite(previous) ? Math.max(previous, remoteSeconds) : remoteSeconds
+  const nextBaseline = Number.isFinite(previous) ? Math.max(previous, remoteSeconds) : remoteSeconds
+  if (changed) neteaseListenEntries.value = entries
+  if (changed || nextBaseline !== previous) {
+    remoteBaselines = { ...remoteBaselines, [baselineKey]: nextBaseline }
+    flushNeteaseListenLedger(true)
   }
-  flushNeteaseListenLedger(true)
 }
 
 export const hasPendingNeteaseListenEntries = (accountId: unknown): boolean => {

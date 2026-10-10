@@ -415,6 +415,8 @@
     "getFMOverCount": "取得私人FM時重試次數過多，請手動切換下一首",
     "converlution": {
       "title": "環境混響音效",
+      "scene": "音效場景",
+      "off": "關閉混響",
       "mainGain": "原始音訊增益",
       "sendGain": "環境音效增益",
       "bright_hall": "大廳",
@@ -435,6 +437,9 @@
     },
     "frequad": {
       "title": "等化器設定",
+      "presets": "預設",
+      "custom": "自訂",
+      "wheelHint": "游標停留時可用滾輪微調",
       "reset": "重設",
       "newPreset": "新預設…",
       "classical": "古典",
@@ -445,7 +450,23 @@
       "slow": "慢歌",
       "soft": "柔和",
       "subwoofer": "重低音",
-      "vocal": "人聲"
+      "vocal": "人聲",
+      "guide": {
+        "title": "各頻段怎麼調",
+        "intro": "以下是頻段附近的常見聽感，並非樂器的專屬頻率；建議每次小幅調整並對比原聲。",
+        "bands": {
+          "hz31": "極低的下潛；大鼓、合成低音。",
+          "hz62": "低頻重量；大鼓與貝斯。",
+          "hz125": "低音音高與厚度；貝斯、男聲。",
+          "hz250": "溫暖與混濁感；男聲、吉他、鋼琴。",
+          "hz500": "中低頻主體；人聲、吉他、鋼琴。",
+          "hz1000": "中頻輪廓；人聲與樂器的主體。",
+          "hz2000": "清晰度與敲擊感；人聲、吉他、小鼓。",
+          "hz4000": "存在感與銳度；人聲子音、吉他。",
+          "hz8000": "明亮感與齒音；鈸片、人聲。",
+          "hz16000": "空氣感與尾音；鈸片和空間餘韻。"
+        }
+      }
     },
     "fade": {
       "fadeDuration": "音訊淡入淡出時長（秒）",
@@ -837,7 +858,7 @@
       "minimize": "顯示/隱藏播放器"
     },
     "misc": {
-      "enableAmuseServer": "啟用 6K Amuse Youtube Music 信息源兼容伺服器",
+      "enableAmuseServer": "啟用 6K Amuse YouTube Music 相容服務",
       "enableDiscordRichPresence": "啟用 Discord Rich Presence",
       "FmStatusConnected": "已連線至 Last.fm（{username}）",
       "connectToFM": "連線至 Last.fm",

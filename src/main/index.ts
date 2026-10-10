@@ -43,6 +43,7 @@ import { lyricLine } from '@/types/music'
 import { buildProxyUrl } from '../shared/proxySettings'
 import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 import { getUsableTrackCoverUrl } from '../shared/trackCover'
+import { sanitizeWindowScaleBaseline } from './windowScaleBaseline'
 
 const CLOSE_DIALOG_TEXT = {
   zh: {
@@ -190,11 +191,15 @@ class BackGround {
   }
 
   async createMainWindow() {
+    const mainBaseline = sanitizeWindowScaleBaseline(
+      'main',
+      store.get('settings.windowScaleBaseline')
+    )
     const option = {
       title: Constants.APP_NAME,
       show: false,
-      width: (store.get('window.width') as number) || 1080,
-      height: (store.get('window.height') as number) || 720,
+      width: (store.get('window.width') as number) || mainBaseline.minWidth,
+      height: (store.get('window.height') as number) || mainBaseline.minHeight,
       x: undefined,
       y: undefined,
       minWidth: 10,
@@ -266,6 +271,11 @@ class BackGround {
   async createOSDWindow(type: string) {
     this.osdMode = type
     store.set('osdWin.type', type)
+    const osdTarget = type === 'small' ? 'osd-small' : 'osd-normal'
+    const osdBaseline = sanitizeWindowScaleBaseline(
+      osdTarget,
+      store.get(type === 'small' ? 'osdWin.scaleBaselineSmall' : 'osdWin.scaleBaselineNormal')
+    )
     const option = {
       title: '桌面歌词',
       show: false,
@@ -280,15 +290,15 @@ class BackGround {
       // =========== newADD end ========
       width:
         type === 'small'
-          ? ((store.get('osdWin.width') || 700) as number)
-          : ((store.get('osdWin.width2') || 500) as number),
+          ? ((store.get('osdWin.width') || osdBaseline.minWidth) as number)
+          : ((store.get('osdWin.width2') || osdBaseline.minWidth) as number),
       height:
         type === 'small'
-          ? ((store.get('osdWin.height') || 50) as number)
-          : ((store.get('osdWin.height2') || 600) as number),
-      minHeight: type === 'small' ? 30 : 400,
+          ? ((store.get('osdWin.height') || osdBaseline.minHeight) as number)
+          : ((store.get('osdWin.height2') || osdBaseline.minHeight) as number),
+      minHeight: osdBaseline.minHeight,
       // maxHeight: type === 'small' ? 220 : undefined,
-      minWidth: type === 'small' ? 100 : 30,
+      minWidth: osdBaseline.minWidth,
       maxWidth: type === 'small' ? undefined : undefined,
       useContentSize: true,
       x: undefined,

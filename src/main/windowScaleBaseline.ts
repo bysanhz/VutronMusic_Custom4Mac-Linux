@@ -11,14 +11,14 @@ export type WindowScaleBaseline = {
 
 export const DEFAULT_WINDOW_SCALE_BASELINES: Record<WindowScaleTarget, WindowScaleBaseline> = {
   main: {
-    minWidth: 810,
-    minHeight: 540,
-    baseFontSize: 12
+    minWidth: 560,
+    minHeight: 380,
+    baseFontSize: 10
   },
   'osd-small': {
-    minWidth: 420,
-    minHeight: 50,
-    baseFontSize: 12
+    minWidth: 210,
+    minHeight: 35,
+    baseFontSize: 8
   },
   'osd-normal': {
     minWidth: 360,

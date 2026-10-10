@@ -71,17 +71,17 @@ export const WINDOW_SCALE_BASELINE_KEYS: Record<
 
 export const DEFAULT_WINDOW_SCALE_BASELINES: Record<WindowScaleTarget, WindowScaleBaseline> = {
   main: {
-    minWidth: 810,
-    minHeight: 540,
-    baseFontSize: 12,
-    miniControlBaseSize: 12,
+    minWidth: 560,
+    minHeight: 380,
+    baseFontSize: 10,
+    miniControlBaseSize: 10,
     cornerRadius: 8
   },
   'osd-small': {
-    minWidth: 420,
-    minHeight: 50,
-    baseFontSize: 12,
-    miniControlBaseSize: 12,
+    minWidth: 210,
+    minHeight: 35,
+    baseFontSize: 8,
+    miniControlBaseSize: 7.5,
     cornerRadius: 12
   },
   'osd-normal': {

@@ -168,7 +168,10 @@
                 <div class="theme-color-item" :style="{ backgroundColor: color.color }"></div>
                 {{ $t(`settings.theme.${color.name}`) }}
               </div>
-              <div class="color theme-color custom-theme-color" @click.capture="applyCustomizeColor">
+              <div
+                class="color theme-color custom-theme-color"
+                @click.capture="applyCustomizeColor"
+              >
                 <div v-show="customizeColor.selected" class="selected-icon"></div>
                 <pick-colors
                   v-model:value="customizeColor.color"
@@ -2074,7 +2077,9 @@ onBeforeUnmount(() => {
   }
 
   .left {
-    padding-right: 6vw;
+    min-width: 0;
+    flex: 1;
+    padding-right: clamp(12px, 2vw, 24px);
   }
   .info-order {
     margin-top: 12px;

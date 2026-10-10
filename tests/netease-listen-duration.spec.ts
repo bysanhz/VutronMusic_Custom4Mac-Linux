@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   extractCalendarWeekListenSeconds,
+  extractDailyListenSeconds,
   extractTodayListenSeconds,
   extractTodaySongCount,
   isRealtimeListenReportForMonth
@@ -42,6 +43,13 @@ test.describe('NetEase listening duration extraction', () => {
     expect(extractTodayListenSeconds(report, sunday)).not.toBe(
       extractCalendarWeekListenSeconds(report, sunday)
     )
+  })
+
+  test('retains dated daily totals for confirmation after midnight', () => {
+    expect(extractDailyListenSeconds(makeReport())).toContainEqual({
+      dateKey: '2026-09-19',
+      seconds: 25 * 60
+    })
   })
 
   test('does not let a stale week report override an explicitly empty today response', () => {

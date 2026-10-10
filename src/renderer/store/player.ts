@@ -367,11 +367,15 @@ export const usePlayerStore = defineStore(
     })
 
     watch(pitch, (value) => {
+      if (value !== 1) {
+        pitch.value = 1
+        return
+      }
       nextTick(() => {
         // @ts-ignore
         if (audioNodes.soundtouch) audioNodes.soundtouch.parameters.get('pitch').value = value
       })
-    })
+    }, { immediate: true })
 
     const seek = computed({
       get() {
@@ -475,7 +479,7 @@ export const usePlayerStore = defineStore(
       get: () => backRate.value,
       set: (value) => {
         backRate.value = value
-        audioNodes.audio!.playbackRate = value
+        if (audioNodes.audio) audioNodes.audio.playbackRate = value
       }
     })
 
@@ -2968,7 +2972,7 @@ export const usePlayerStore = defineStore(
   },
   {
     persist: {
-      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset']
+      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset', 'pitch']
     }
   }
 )

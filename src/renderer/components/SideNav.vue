@@ -327,8 +327,12 @@ const isCurrentRoute = (path: string): boolean => {
   user-select: none;
   -webkit-app-region: drag;
   z-index: 15;
-  background-color: var(--color-secondary-bg);
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-secondary-bg) 88%, transparent);
+  backdrop-filter: saturate(150%) blur(18px);
+  -webkit-backdrop-filter: saturate(150%) blur(18px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 7%);
+  border-radius: 16px;
   transform: translate(0, -50%);
   .history-navigation {
     width: 60px;
@@ -351,8 +355,12 @@ const isCurrentRoute = (path: string): boolean => {
     font-weight: 700;
     text-decoration: none;
     border-radius: 8px;
-    background-color: var(--color-secondary-bg);
-    transition: all 0.3s ease-in;
+    background: transparent;
+    color: var(--color-secondary);
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.18s ease;
     -webkit-user-drag: none;
     position: relative;
     .svg-icon {
@@ -365,9 +373,9 @@ const isCurrentRoute = (path: string): boolean => {
       height: 26px;
     }
     &:hover {
-      background: var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary) 11%, transparent);
       .icon {
-        color: white;
+        color: var(--color-primary);
       }
     }
     &:active {
@@ -381,14 +389,14 @@ const isCurrentRoute = (path: string): boolean => {
     top: 50%;
     left: calc(100% + 0px);
     border: 5px solid transparent;
-    border-right-color: rgb(from var(--color-primary) r g b / 82%);
+    border-right-color: var(--color-secondary-bg);
     transform: translateY(-50%);
     z-index: 1;
   }
   button::after {
     content: attr(data-tip);
-    background-color: rgb(from var(--color-primary) r g b / 88%);
-    color: white;
+    background-color: var(--color-secondary-bg);
+    color: var(--color-text);
     position: absolute;
     top: 50%;
     left: calc(100% + 8px);
@@ -446,11 +454,10 @@ const isCurrentRoute = (path: string): boolean => {
   }
 
   button.active {
-    background: var(--color-primary);
-    color: white;
-    transition: background 0.2s ease-in;
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
     .icon {
-      color: white;
+      color: var(--color-primary);
     }
   }
 
@@ -507,8 +514,10 @@ const isCurrentRoute = (path: string): boolean => {
     width: 250px;
     padding: 15px;
     border: 1px solid var(--color-border);
-    border-radius: 12px;
-    background: var(--color-secondary-bg);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--color-body-bg) 88%, transparent);
+    backdrop-filter: saturate(150%) blur(20px);
+    -webkit-backdrop-filter: saturate(150%) blur(20px);
     box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
     color: var(--color-text);
     font-size: 13px;

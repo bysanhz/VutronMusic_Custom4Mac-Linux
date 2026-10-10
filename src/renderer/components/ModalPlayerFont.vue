@@ -148,7 +148,10 @@
             <div v-for="list in settingList" :key="list.name" class="settings-list">
               <span>{{ list.name }}</span>
               <template v-if="list.type === 'slide' && region">
-                <div class="slider">
+                <div
+                  class="slider"
+                  @wheel="adjustRegionOnWheel($event, list.key, list.min, list.max)"
+                >
                   <VueSlider
                     v-model="region[list.key]"
                     :min="list.min"
@@ -193,6 +196,7 @@ import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerThemeStore } from '../store/playerTheme'
 import VueSlider from 'vue-3-slider-component'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import CustomSelect from './CustomSelect.vue'
 import { useI18n } from 'vue-i18n'
 
@@ -389,6 +393,13 @@ const settingList = computed(() => [
   { name: t('playerFont.lyricRight'), key: 'right', type: 'slide', dw: 'vw', min: 0, max: 50 }
 ])
 
+const adjustRegionOnWheel = (event: WheelEvent, key: string, min: number, max: number) => {
+  if (!region.value || !(key in region.value)) return
+  const direction = wheelDirection(event)
+  if (direction === 0) return
+  region.value[key] = steppedRangeValue(region.value[key], min, max, 0.5, direction)
+}
+
 const contentStyle = computed(() => {
   const type = activeTheme.value.theme.activeLayout
   if (type !== 'Creative') return {}
@@ -446,11 +457,11 @@ onMounted(() => {
 .region-setting {
   border-top: 1px solid rgba(128, 128, 128, 0.18);
   margin-top: 10px;
-  padding-top: 14px;
+  padding-top: 10px;
 
   .title {
-    font-size: 20px;
-    margin-bottom: 16px;
+    font-size: 16px;
+    margin-bottom: 8px;
   }
 
   .button {
@@ -481,19 +492,21 @@ onMounted(() => {
     gap: 4px 20px;
 
     .settings-list {
-      display: flex;
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) 42px 20px;
       align-items: center;
-      justify-content: space-between;
+      gap: 4px;
       padding: 2px 0;
 
       .slider {
-        width: 55%;
-        padding: 0 10px;
-        transition: all 0.3s ease;
+        width: 100%;
+        min-width: 0;
+        padding: 0 4px;
         box-sizing: border-box;
       }
       input[type='number'] {
-        width: 50px;
+        width: 42px;
+        min-width: 0;
         box-sizing: border-box;
         background: var(--color-secondary-bg-for-transparent);
         background-color: transparent;
@@ -504,14 +517,12 @@ onMounted(() => {
         text-align: right;
       }
       span {
-        font-size: 15px;
+        font-size: 13px;
         opacity: 0.78;
-        width: 70px;
-        text-align: center;
+        text-align: left;
 
         &.dw {
-          width: unset;
-          margin-left: -20px;
+          text-align: right;
         }
       }
     }
@@ -522,7 +533,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 
   .left .title {
     font-size: 16px;
@@ -614,7 +625,16 @@ onMounted(() => {
 }
 
 :deep(.content) {
-  overflow: unset;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-secondary) transparent;
+}
+
+@media (max-width: 700px) {
+  .region-setting .list-container {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .preview {

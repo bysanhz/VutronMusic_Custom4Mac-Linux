@@ -8,6 +8,7 @@
     @mouseenter="(e) => handleMounse(e, 'enter')"
     @mousemove="(e) => handleMounse(e, 'move')"
     @mouseleave="(e) => handleMounse(e, 'leave')"
+    @wheel="handleWheel"
   >
     <div class="vue-slider-rail" :style="railStyle" tabindex="-1">
       <div class="vue-slider-process" :style="processStyle"></div>
@@ -30,6 +31,7 @@
 
 <script setup lang="ts">
 import { computed, useTemplateRef, ref, toRefs } from 'vue'
+import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 
 type Value = number | string
 
@@ -59,6 +61,7 @@ const props = withDefaults(
     dotSize: number
     min: number
     max: number
+    wheelStep?: number
     direction?: Direction
     marks?: number[] | Record<number, MarksOption> // 进度条上需要标记的点
     railStyle: Style
@@ -85,6 +88,7 @@ const props = withDefaults(
     stepStyle: undefined,
     tooltipStyle: undefined,
     min: 0,
+    wheelStep: 0,
     tooltipPos: 'none',
     tooltip: '',
     marks: undefined,
@@ -267,6 +271,14 @@ const getPosition = (event: MouseEvent) => {
 const handleClick = (event: MouseEvent) => {
   const result = getPosition(event)
   $emit('update:modelValue', result.time)
+}
+
+const handleWheel = (event: WheelEvent) => {
+  if (props.wheelStep <= 0) return
+  const direction = wheelDirection(event)
+  if (direction === 0) return
+  const next = steppedRangeValue(modelValue.value, props.min, props.max, props.wheelStep, direction)
+  if (next !== modelValue.value) $emit('update:modelValue', next)
 }
 
 let lastMoveTime = 0

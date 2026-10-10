@@ -57,8 +57,6 @@
   </div>
   <div>
     <ConvolverModal />
-    <PitchModal />
-    <PlaybackModal />
     <SleepTimerModal />
     <TrackLyricOffsetModal />
     <PlaybackHistoryModal />
@@ -74,10 +72,6 @@
         @click="addTrackToPlaylist"
         >{{ $t('player.addToPlaylist') }}</div
       >
-      <div class="item" @click="setPlaybackRateModal = true">{{
-        $t('contextMenu.playBackSpeed')
-      }}</div>
-      <div class="item" @click="setPitchModal = true">{{ $t('contextMenu.pitch') }}</div>
       <div class="item" @click="setConvolverModal = true">{{ $t('contextMenu.setConvolver') }}</div>
       <div class="item" @click="trackLyricOffsetModalVisible = true">
         {{ toolMenuText.trackLyricOffset }}
@@ -102,8 +96,6 @@
 <script setup lang="ts">
 import ContextMenu from '../components/ContextMenu.vue'
 import ConvolverModal from '../components/ModalConvolver.vue'
-import PlaybackModal from '../components/ModalPlayback.vue'
-import PitchModal from '../components/ModalPitch.vue'
 import SleepTimerModal from '../components/ModalSleepTimer.vue'
 import TrackLyricOffsetModal from '../components/ModalTrackLyricOffset.vue'
 import PlaybackHistoryModal from '../components/ModalPlaybackHistory.vue'
@@ -142,9 +134,7 @@ const {
   showLyrics,
   setThemeModal,
   setConvolverModal,
-  setPitchModal,
   setFontModal,
-  setPlaybackRateModal,
   backgroundModal,
   setSaveThemeModal,
   addTrackToPlaylistModal

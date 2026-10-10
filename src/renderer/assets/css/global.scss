@@ -1,11 +1,11 @@
 :root,
 [data-theme='light'] {
-  --color-body-bg: #ffffff;
-  --color-text: #000000;
+  --color-body-bg: #fbfbfd;
+  --color-text: #1d1d1f;
   --bg-alpha: 10%;
-  --color-secondary: #7a7a7b;
+  --color-secondary: #6e6e73;
   --color-secondary-bg: #f5f5f7;
-  --color-navbar-bg: rgba(255, 255, 255, 0.86);
+  --color-navbar-bg: rgba(251, 251, 253, 0.88);
   --color-primary-bg-for-transparent: rgba(189, 207, 255, 0.28);
   --color-secondary-bg-for-transparent: rgba(180, 180, 180, 0.4);
   --html-overflow-y: overlay;
@@ -13,33 +13,35 @@
   --color-full-text-unplay: rgba(0, 0, 0, 0.48);
   --color-wbw-text: rgba(0, 0, 0, 0.75);
   --color-wbw-text-played: rgba(0, 0, 0, 0.95);
-  --color-border: rgba(0, 0, 0, 0.2);
+  --color-border: rgba(29, 29, 31, 0.12);
 }
 
 [data-theme='dark'] {
-  --color-body-bg: #222222;
-  --color-text: #ffffff;
+  --color-body-bg: #1c1c1e;
+  --color-text: #f5f5f7;
   --bg-alpha: 15%;
-  --color-secondary: #7a7a7b;
-  --color-secondary-bg: #323232;
-  --color-navbar-bg: rgba(34, 34, 34, 0.86);
+  --color-secondary: #a1a1a6;
+  --color-secondary-bg: #2c2c2e;
+  --color-navbar-bg: rgba(28, 28, 30, 0.88);
   --color-primary-bg-for-transparent: rgba(255, 255, 255, 0.12);
   --color-secondary-bg-for-transparent: rgba(255, 255, 255, 0.08);
   --color-wbw-text-unplay: rgba(255, 255, 255, 0.28);
   --color-full-text-unplay: rgba(255, 255, 255, 0.48);
   --color-wbw-text: rgba(255, 255, 255, 0.75);
   --color-wbw-text-played: rgba(255, 255, 255, 0.95);
-  --color-border: rgba(255, 255, 255, 0.2);
+  --color-border: rgba(245, 245, 247, 0.14);
 }
 
 #app,
 input {
   font-family:
-    'Barlow',
-    ui-sans-serif,
-    system-ui,
     -apple-system,
     BlinkMacSystemFont,
+    'SF Pro Text',
+    'PingFang SC',
+    ui-sans-serif,
+    system-ui,
+    'Barlow',
     Helvetica Neue,
     PingFang SC,
     Microsoft YaHei,
@@ -403,6 +405,10 @@ a {
 /* 底部播放器 */
 #app .player {
   height: var(--responsive-player-height) !important;
+  --player-center-slot: clamp(24px, 3.4vw, 38px);
+  --player-center-gap: clamp(1px, 0.55vw, 6px);
+  --player-control-icon: clamp(14px, 1.8vw, 18px);
+  --player-center-icon: clamp(16px, 2.1vw, 22px);
 
   .controls {
     padding: 0 clamp(12px, 4vw, 44px) !important;
@@ -424,21 +430,84 @@ a {
   }
 
   .button-icon .svg-icon {
-    width: var(--responsive-control-icon) !important;
-    height: var(--responsive-control-icon) !important;
+    width: var(--player-control-icon) !important;
+    height: var(--player-control-icon) !important;
   }
 
   .middle .container {
-    padding: 0 clamp(3px, 0.8vw, 8px) !important;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(6, var(--player-center-slot));
+    gap: var(--player-center-gap);
+    padding: 0 !important;
+  }
+
+  .middle .container > .button-icon {
+    box-sizing: border-box;
+    width: var(--player-center-slot);
+    height: var(--player-center-slot);
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .middle .container > .playback-speed-button {
+    display: grid;
+    place-items: center;
+    position: relative;
+    left: 6px;
+
+    &.medium-rate {
+      left: 13px;
+    }
+
+    &.wide-rate {
+      left: 17px;
+    }
+  }
+
+  .middle .container > .playback-speed-button .speed-label {
+    transform: translate(-1px, 1px);
+  }
+
+  .middle .container .button-icon .svg-icon {
+    width: var(--player-center-icon) !important;
+    height: var(--player-center-icon) !important;
   }
 
   .middle .container .play .svg-icon {
-    width: var(--responsive-play-icon) !important;
-    height: var(--responsive-play-icon) !important;
+    width: clamp(14px, 1.7vw, 18px) !important;
+    height: clamp(14px, 1.7vw, 18px) !important;
+  }
+
+  .right {
+    display: grid;
+    grid-template-columns: repeat(5, var(--player-center-slot));
+    gap: var(--player-center-gap);
+    align-items: center;
+  }
+
+  .right > .button-icon,
+  .right .volume,
+  .right .volume > .button-icon {
+    box-sizing: border-box;
+    width: var(--player-center-slot);
+    height: var(--player-center-slot);
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .right .volume {
+    display: grid;
+    place-items: center;
   }
 
   .lyrics-button {
-    margin-left: clamp(5px, 1.2vw, 12px) !important;
+    margin-left: 0 !important;
+  }
+
+  .controls .button-icon:is(.active, :active):not(.disabled) .svg-icon,
+  .controls .playback-speed-button:is(.is-adjusted, :active) {
+    color: var(--color-primary) !important;
   }
 
   .volume-slider {

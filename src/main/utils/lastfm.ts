@@ -47,7 +47,7 @@ const netGet = (
         }
         try {
           resolve(JSON.parse(raw))
-        } catch (e) {
+        } catch {
           reject(new Error('Failed to parse Last.fm response'))
         }
       })

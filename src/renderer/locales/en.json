@@ -415,6 +415,8 @@
     "getFMOverCount": "Too many retries for Personal FM; switch manually.",
     "converlution": {
       "title": "Convolution Reverb Effects",
+      "scene": "Reverb scene",
+      "off": "Turn off reverb",
       "mainGain": "Dry Gain",
       "sendGain": "Wet Gain",
       "bright_hall": "Bright Hall",
@@ -435,6 +437,9 @@
     },
     "frequad": {
       "title": "Equalizer Settings",
+      "presets": "Presets",
+      "custom": "Custom",
+      "wheelHint": "Scroll while hovering to fine-tune",
       "reset": "Reset",
       "newPreset": "New preset…",
       "classical": "Classical",
@@ -445,7 +450,23 @@
       "slow": "Slow",
       "soft": "Soft",
       "subwoofer": "Subwoofer",
-      "vocal": "Vocal"
+      "vocal": "Vocal",
+      "guide": {
+        "title": "What each band affects",
+        "intro": "Typical sounds near each band, not frequencies exclusive to an instrument. Make small changes and compare with the original.",
+        "bands": {
+          "hz31": "Deep sub-bass; kick and synth bass.",
+          "hz62": "Bass weight; kick and bass guitar.",
+          "hz125": "Bass pitch and body; bass and low vocals.",
+          "hz250": "Warmth or muddiness; vocals, guitar, piano.",
+          "hz500": "Low-mid body; vocals, guitar, piano.",
+          "hz1000": "Midrange outline; vocals and instruments.",
+          "hz2000": "Clarity and attack; vocals, guitar, snare.",
+          "hz4000": "Presence and edge; consonants and guitar.",
+          "hz8000": "Brightness and sibilance; cymbals, vocals.",
+          "hz16000": "Air and decay; cymbals and room ambience."
+        }
+      }
     },
     "fade": {
       "fadeDuration": "Audio Fade In/Out Duration (seconds)",
@@ -837,7 +858,7 @@
       "minimize": "Show/Hide Player"
     },
     "misc": {
-      "enableAmuseServer": "Enable 6K Amuse Youtube Music Source Compatibility Server",
+      "enableAmuseServer": "Enable 6K Amuse YouTube Music compatibility service",
       "enableDiscordRichPresence": "Enable Discord Rich Presence",
       "FmStatusConnected": "Connected to Last.fm ({username})",
       "connectToFM": "Connect to Last.fm",

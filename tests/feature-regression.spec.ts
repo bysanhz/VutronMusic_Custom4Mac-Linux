@@ -922,18 +922,19 @@ test.describe('desktop feature integration', () => {
     expect(contextMenu).toContain('if (shouldToggleClosed) return')
   })
 
-  test('keeps speed and pitch presets separated from the fine-adjust sliders', () => {
-    const playback = readSource('src/renderer/components/ModalPlayback.vue')
-    const pitch = readSource('src/renderer/components/ModalPitch.vue')
+  test('uses one shared speed button across player layouts without the removed pitch dialog', () => {
+    const speed = readSource('src/renderer/components/PlaybackSpeedButton.vue')
+    const playerBar = readSource('src/renderer/components/PlayerBar.vue')
+    const commonPlayer = readSource('src/renderer/components/CommonPlayer.vue')
+    const creativePlayer = readSource('src/renderer/components/CreativePlayer.vue')
 
-    expect(playback).toContain("$t('player.playbackRateModal.title')")
-    expect(playback).toContain("$t('player.playbackRateModal.current')")
-    expect(playback).toContain('class="preset-grid"')
-    expect(playback).toContain('playbackRatePresets')
-    expect(playback).not.toContain(':marks="marks"')
-    expect(pitch).toContain('class="preset-grid"')
-    expect(pitch).toContain('pitchPresets')
-    expect(pitch).not.toContain(':marks="marks"')
+    expect(speed).toContain('const rates = [0.5, 0.75, 1, 1.25, 1.5, 2]')
+    expect(speed).toContain('playbackRate.value = rates.find(')
+    for (const layout of [playerBar, commonPlayer, creativePlayer]) {
+      expect(layout).toContain('<PlaybackSpeedButton />')
+      expect(layout).not.toContain('<ModalPitch')
+      expect(layout).not.toContain('<ModalPlayback')
+    }
   })
 
   test('keeps Classic cover, lyrics and lyric timing tools visually aligned', () => {
@@ -1308,8 +1309,7 @@ test.describe('desktop feature integration', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
     const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
     const select = readSource('src/renderer/components/CustomSelect.vue')
-    const playback = readSource('src/renderer/components/ModalPlayback.vue')
-    const pitch = readSource('src/renderer/components/ModalPitch.vue')
+    const playbackSpeed = readSource('src/renderer/components/PlaybackSpeedButton.vue')
     const diagnostics = readSource('src/renderer/components/LatestVersion.vue')
     const compact = readSource('src/renderer/components/CompactCoverControls.vue')
 
@@ -1321,8 +1321,7 @@ test.describe('desktop feature integration', () => {
     expect(shared).toContain('refreshInjectedControlsForLanguage')
     expect(select).toContain("t('common.selectPlaceholder')")
     expect(select).toContain("t('common.searchPlaceholder')")
-    expect(playback).toContain("$t('player.playbackRateModal.title')")
-    expect(pitch).toContain("$t('player.pitchModal.title')")
+    expect(playbackSpeed).toContain("$t('contextMenu.playBackSpeed')")
     expect(diagnostics).toContain('settings.update.diagnostics.title')
     expect(compact).toContain('computed(() => TEXTS[resolveFeatureLanguage()])')
   })

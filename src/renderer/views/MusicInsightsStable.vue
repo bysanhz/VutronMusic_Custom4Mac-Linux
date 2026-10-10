@@ -451,6 +451,7 @@ import {
 import {
   deepFindValue,
   extractCalendarWeekListenSeconds,
+  extractDailyListenSeconds,
   extractUserPlayRecord,
   extractRealtimeListenSeconds,
   extractTodayListenSeconds,
@@ -717,6 +718,31 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
   }
 }
 
+const reconcileEarlierDaysFromMonthReport = (report: any): void => {
+  if (!report) return
+  const monthKey = monthPeriodKey.value.slice(6)
+  const todayKey = localDateKey(clockNow.value)
+  for (const { dateKey, seconds } of extractDailyListenSeconds(report)) {
+    if (!dateKey.startsWith(monthKey) || dateKey >= todayKey) continue
+    if (
+      !neteaseListenEntries.value.some(
+        (entry) => entry.accountId === accountId.value && entry.dateKey === dateKey
+      )
+    ) {
+      continue
+    }
+    const [year, month, day] = dateKey.split('-').map(Number)
+    reconcileNeteaseListenReport({
+      accountId: accountId.value,
+      periodKey: `today:${dateKey}`,
+      rangeStart: new Date(year, month - 1, day).getTime(),
+      rangeEnd: new Date(year, month - 1, day + 1).getTime() - 1,
+      remoteSeconds: seconds,
+      finalizedDay: true
+    })
+  }
+}
+
 const loadFootprint = async (): Promise<void> => {
   if (footprintRequestInFlight) return
   footprintRequestInFlight = true
@@ -775,6 +801,7 @@ const loadFootprint = async (): Promise<void> => {
       rangeEnd: endOfToday.value,
       remoteSeconds: nextMonthSeconds
     })
+    reconcileEarlierDaysFromMonthReport(currentMonth)
     reconcileNeteaseListenReport({
       accountId: accountId.value,
       periodKey: totalPeriodKey,
@@ -873,6 +900,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         remoteSeconds: nextMonthSeconds
       })
     }
+    reconcileEarlierDaysFromMonthReport(currentMonth)
     if (nextTodaySeconds !== undefined) {
       footprint.todaySeconds = nextTodaySeconds
       reconcileNeteaseListenReport({

@@ -63,8 +63,8 @@ export interface TypeElectronStore {
 const store = new Store<TypeElectronStore>({
   defaults: {
     window: {
-      width: 1080,
-      height: 720
+      width: getDefaultWindowScaleBaseline('main').minWidth,
+      height: getDefaultWindowScaleBaseline('main').minHeight
     },
     osdWin: {
       type: 'small',

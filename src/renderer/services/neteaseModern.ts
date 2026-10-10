@@ -396,6 +396,26 @@ export const extractTodayListenSeconds = (source: any, now = new Date()): number
   return Number.isFinite(duration) && duration >= 0 ? duration * 60 : undefined
 }
 
+/** Read each dated row so yesterday's delayed report can still confirm yesterday's uploads. */
+export const extractDailyListenSeconds = (
+  source: any
+): Array<{ dateKey: string; seconds: number }> => {
+  const details = source?.data?.listenTimeDistributionBlock?.durationDetails
+  if (!Array.isArray(details)) return []
+
+  return details.flatMap((item: any, index: number) => {
+    const date = getDurationDetailDate(item, source, index)
+    const minutes = Number(item?.duration)
+    if (!date || !Number.isFinite(minutes) || minutes < 0) return []
+    const dateKey = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')
+    ].join('-')
+    return [{ dateKey, seconds: minutes * 60 }]
+  })
+}
+
 /**
  * 按用户通常理解的“周一 00:00 → 今天”计算本周音乐时长。
  *

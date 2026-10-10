@@ -1,5 +1,10 @@
 <template>
-  <BaseModal :title="t('backgroundSettings.title')" :show="show" :show-footer="false" :close-fn="close">
+  <BaseModal
+    :title="t('backgroundSettings.title')"
+    :show="show"
+    :show-footer="false"
+    :close-fn="close"
+  >
     <template #default>
       <div class="item">
         <div class="left">
@@ -32,7 +37,9 @@
           <div class="right">
             <template v-if="activeBG.type === 'lottie'">
               <button @click="activeBG.src = 'snow'">{{ t('backgroundSettings.snow') }}</button>
-              <button @click="activeBG.src = 'sunshine'">{{ t('backgroundSettings.sunshine') }}</button>
+              <button @click="activeBG.src = 'sunshine'">{{
+                t('backgroundSettings.sunshine')
+              }}</button>
             </template>
             <button v-if="activeBG.type !== 'api'" @click="selectSource">{{
               $t('settings.lyric.browse')
@@ -93,11 +100,9 @@
             <CustomSelect v-model="updateColor" direction="up" :options="colorOptions" />
           </div>
         </div>
-        <div class="item">
-          <div class="left" :style="{ paddingRight: 0 }">
-            <div class="title" :style="{ width: '80px' }">{{
-              $t('settings.lyric.backgroundBlur')
-            }}</div>
+        <div class="item range-setting">
+          <div class="left">
+            <div class="title">{{ $t('settings.lyric.backgroundBlur') }}</div>
           </div>
           <div class="slider">
             <VueSlider
@@ -106,21 +111,24 @@
               :max="100"
               :height="2"
               :dot-size="12"
+              :wheel-step="1"
               :process-style="{ background: 'var(--color-primary)' }"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
             />
           </div>
-          <input v-model="activeBG.blur" class="slider-span" type="number" :min="0" :max="100" />
-          <span class="dw">px</span>
-          <span
-            class="button"
-            style="margin: 0"
+          <label class="range-value">
+            <input v-model.number="activeBG.blur" type="number" :min="0" :max="100" />
+            <span>px</span>
+          </label>
+          <button
+            type="button"
+            class="range-reset"
             @click="activeBG.blur = activeBG.type === 'lottie' ? 0 : 50"
-            >{{ $t('player.frequad.reset') }}</span
+            >{{ $t('player.frequad.reset') }}</button
           >
         </div>
-        <div class="item">
-          <div class="left" :style="{ paddingRight: 0 }">
+        <div class="item range-setting">
+          <div class="left">
             <div class="title">{{ $t('settings.lyric.backgroundOpacity') }}</div>
           </div>
           <div class="slider">
@@ -130,17 +138,20 @@
               :max="100"
               :height="2"
               :dot-size="12"
+              :wheel-step="1"
               :process-style="{ background: 'var(--color-primary)' }"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
             />
           </div>
-          <input v-model="activeBG.opacity" class="slider-span" type="number" :min="0" :max="100" />
-          <span class="dw">%</span>
-          <span
-            class="button"
-            style="margin: 0"
+          <label class="range-value">
+            <input v-model.number="activeBG.opacity" type="number" :min="0" :max="100" />
+            <span>%</span>
+          </label>
+          <button
+            type="button"
+            class="range-reset"
             @click="activeBG.opacity = activeBG.type === 'lottie' ? 100 : 60"
-            >{{ $t('player.frequad.reset') }}</span
+            >{{ $t('player.frequad.reset') }}</button
           >
         </div>
       </template>
@@ -310,33 +321,62 @@ const close = () => {
   .slider {
     width: 60%;
   }
+}
 
-  span.button {
-    display: inline-block;
-    background: var(--color-secondary-bg-for-transparent);
-    padding: 4px 10px;
-    font-size: 13px;
-    border-radius: 4px;
-    &:hover {
-      cursor: pointer;
+.item.range-setting {
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr) 64px 52px;
+  gap: 8px;
+
+  .left {
+    padding-right: 0;
+
+    .title {
+      font-size: 14px;
     }
   }
 
-  input[type='number'].slider-span {
-    width: 40px;
-    box-sizing: border-box;
-    background: var(--color-secondary-bg-for-transparent);
-    background-color: transparent;
-    color: var(--color-text);
-    font-size: 16px;
-    border: none;
-    border-radius: 4px;
-    text-align: right;
+  .slider {
+    width: 100%;
+    min-width: 0;
   }
 
-  span.dw {
-    width: unset;
-    margin-left: -20px;
+  .range-value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    white-space: nowrap;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+
+    input {
+      width: 39px;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--color-text);
+      font: inherit;
+      text-align: right;
+    }
+  }
+
+  .range-reset {
+    padding: 5px 7px;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 600px) {
+  .item.range-setting {
+    grid-template-columns: minmax(0, 1fr) 64px 52px;
+
+    .slider {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
   }
 }
 
