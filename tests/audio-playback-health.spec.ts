@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import { PitchProcessor } from '../src/renderer/utils/pitchProcessor'
 import { getBufferedAheadSeconds } from '../src/renderer/utils/audioBufferHealth'
 
-test('keeps routine Linux progress updates distinct from explicit MPRIS seeks', () => {
+test('separates ordinary MPRIS progress from explicit seeks', () => {
   const player = readFileSync(resolve('src/renderer/store/player.ts'), 'utf8')
   const mpris = readFileSync(resolve('src/main/mpris.ts'), 'utf8')
   const ipcs = readFileSync(resolve('src/main/IPCs.ts'), 'utf8')
@@ -18,7 +18,7 @@ test('keeps routine Linux progress updates distinct from explicit MPRIS seeks', 
   expect(ipcs).toContain('mpris?.setPosition({ progress: value')
 })
 
-test('batches listening ledger writes and captures bounded audio-health events', () => {
+test('batches listening writes and logs audio health events', () => {
   const player = readFileSync(resolve('src/renderer/store/player.ts'), 'utf8')
   const main = readFileSync(resolve('src/main/IPCs.ts'), 'utf8')
   const preload = readFileSync(resolve('src/preload/index.ts'), 'utf8')
@@ -26,7 +26,8 @@ test('batches listening ledger writes and captures bounded audio-health events',
   expect(player).toContain('uncommittedSeconds >= minimumSeconds')
   expect(player).toContain("sendAudioHealthEvent('waiting')")
   expect(player).toContain("sendAudioHealthEvent('stalled')")
-  expect(player).toContain("sendAudioHealthEvent('main-thread-delay', extraDelay)")
+  const loopDelayEvent = "sendAudioHealthEvent('main-thread-delay', extraDelay)"
+  expect(player).toContain(loopDelayEvent)
   expect(player).toContain('rendererLoopMaxDelayMs')
   expect(main).toContain("ipcMain.on('audio-health-event'")
   expect(main).toContain("log.warn('[AudioHealth]'")
