@@ -44,6 +44,11 @@ jobs:
         if: ${{ always() }}
         run: yarn run vue:type-check
 
+      - name: Verify audio playback, MPRIS and listening ledger
+        if: ${{ always() }}
+        run: >-
+          yarn playwright test tests/audio-playback-health.spec.ts tests/netease-listen-ledger.spec.ts tests/player-track-state-race.spec.ts
+
       - name: Run security and feature regression tests
         if: ${{ always() }}
         run: >-
