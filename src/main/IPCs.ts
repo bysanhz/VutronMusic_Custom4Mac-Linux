@@ -132,8 +132,11 @@ function initWindowIpcMain(win: BrowserWindow): void {
     audioLogLastAt.set(kind, now)
     const safeNumber = (value: unknown, limit = 1_000_000) => {
       const numeric = Number(value)
-      return Number.isFinite(numeric) ? Math.min(limit, Math.max(0, numeric)) : 0
+      if (!Number.isFinite(numeric)) return 0
+      return Math.min(limit, Math.max(0, numeric))
     }
+    const contextState = String(data.contextState)
+    const validContextStates = new Set(['running', 'suspended', 'closed'])
     log.warn('[AudioHealth]', {
       kind,
       trackId: Math.floor(safeNumber(data.trackId)),
@@ -144,9 +147,7 @@ function initWindowIpcMain(win: BrowserWindow): void {
       bufferedAhead: safeNumber(data.bufferedAhead, 3600),
       readyState: safeNumber(data.readyState, 4),
       networkState: safeNumber(data.networkState, 3),
-      contextState: ['running', 'suspended', 'closed'].includes(String(data.contextState))
-        ? data.contextState
-        : 'unknown',
+      contextState: validContextStates.has(contextState) ? contextState : 'unknown',
       rendererDelayMs: safeNumber(data.delayMs, 60_000),
       visible: data.visible === true
     })
