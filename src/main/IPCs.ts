@@ -937,7 +937,7 @@ async function initMprisIpcMain(win: BrowserWindow, mpris: MprisImpl): Promise<v
       } else if (key === 'isPersonalFM') {
         mpris?.setPersonalFM(value)
       } else if (key === 'progress') {
-        mpris?.setPosition({ progress: value })
+        mpris?.setPosition({ progress: value, seeked: data.seeked === true })
       } else if (key === 'rate') {
         mpris?.setRate({ rate: value })
       }
