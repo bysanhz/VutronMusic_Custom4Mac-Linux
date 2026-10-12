@@ -27,9 +27,8 @@ class Mpris implements MprisImpl {
   // MPRIS Position is a read-only clock. Seeked must only be emitted for
   // explicit discontinuities, not for normal timeupdate samples.
   private estimatedPositionSeconds(): number {
-    const elapsed = this.isPlaying
-      ? Math.max(0, Date.now() - this.positionSampledAt) / 1000 * this.currentRate
-      : 0
+    const elapsedMs = Math.max(0, Date.now() - this.positionSampledAt)
+    const elapsed = this.isPlaying ? (elapsedMs / 1000) * this.currentRate : 0
     return Math.max(0, this.positionSeconds + elapsed)
   }
 
@@ -46,7 +45,8 @@ class Mpris implements MprisImpl {
       identity: 'VutronMusic'
     })
     this._win = win
-    this._player.getPosition = () => Math.round(this.estimatedPositionSeconds() * 1_000_000)
+    this._player.getPosition = () =>
+      Math.round(this.estimatedPositionSeconds() * 1_000_000)
     this._handleEvent()
   }
 
