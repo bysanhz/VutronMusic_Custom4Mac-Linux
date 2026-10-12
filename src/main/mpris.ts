@@ -10,7 +10,7 @@ export interface MprisImpl {
   setRepeatMode: (repeat: string) => void
   setShuffleMode: (isShuffle: boolean) => void
   setMetadata: (metadata: any) => void
-  setPosition: (data: { progress: number }) => void
+  setPosition: (data: { progress: number; seeked?: boolean }) => void
   setRate: (rdata: { rate: number }) => void
   setPersonalFM: (value: boolean) => void
 }
@@ -19,6 +19,26 @@ class Mpris implements MprisImpl {
   private _player: any
   private _win: BrowserWindow
   private Player: any
+  private positionSeconds = 0
+  private positionSampledAt = Date.now()
+  private currentRate = 1
+  private isPlaying = false
+
+  // MPRIS Position is a read-only clock. Seeked must only be emitted for
+  // explicit discontinuities, not for normal timeupdate samples.
+  private estimatedPositionSeconds(): number {
+    const elapsed = this.isPlaying
+      ? Math.max(0, Date.now() - this.positionSampledAt) / 1000 * this.currentRate
+      : 0
+    return Math.max(0, this.positionSeconds + elapsed)
+  }
+
+  private samplePosition(progress: number): void {
+    if (!Number.isFinite(progress) || progress < 0) return
+    this.positionSeconds = progress
+    this.positionSampledAt = Date.now()
+  }
+
   constructor(win: BrowserWindow) {
     this.Player = require('@jellybrick/mpris-service')
     this._player = new this.Player({
@@ -26,6 +46,7 @@ class Mpris implements MprisImpl {
       identity: 'VutronMusic'
     })
     this._win = win
+    this._player.getPosition = () => Math.round(this.estimatedPositionSeconds() * 1_000_000)
     this._handleEvent()
   }
 
@@ -49,6 +70,8 @@ class Mpris implements MprisImpl {
   }
 
   setPlayState(isPlaying: boolean) {
+    this.samplePosition(this.estimatedPositionSeconds())
+    this.isPlaying = isPlaying
     this._player.playbackStatus = isPlaying
       ? this.Player.PLAYBACK_STATUS_PLAYING
       : this.Player.PLAYBACK_STATUS_PAUSED
@@ -86,9 +109,9 @@ class Mpris implements MprisImpl {
       'xesam:asText': metadata.asText,
       'xesam:lyricOffset': metadata.lyricOffset
     }
-    this._player.rate = metadata.rate
-    this._player.seeked(metadata.progress * 1000 * 1000)
-    this._player.getPosition = () => metadata.progress * 1000 * 1000
+    this.currentRate = Number(metadata.rate) || 1
+    this._player.rate = this.currentRate
+    this.samplePosition(Number(metadata.progress) || 0)
   }
 
   setPersonalFM(value: boolean) {
@@ -96,13 +119,17 @@ class Mpris implements MprisImpl {
   }
 
   setRate(data: { rate: number }) {
-    this._player.rate = data.rate
+    this.samplePosition(this.estimatedPositionSeconds())
+    this.currentRate = Number(data.rate) || 1
+    this._player.rate = this.currentRate
   }
 
-  setPosition(data: { progress: number }) {
-    this._player.seeked(data.progress * 1000 * 1000)
-    this._player.getPosition = () => data.progress * 1000 * 1000
-    this._player.position = data.progress * 1000 * 1000
+  setPosition(data: { progress: number; seeked?: boolean }) {
+    if (!Number.isFinite(data.progress) || data.progress < 0) return
+    this.samplePosition(data.progress)
+    if (data.seeked) {
+      this._player.seeked(Math.round(data.progress * 1_000_000))
+    }
   }
 }
 
