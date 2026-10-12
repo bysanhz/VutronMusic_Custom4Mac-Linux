@@ -5,6 +5,34 @@ import vm from 'node:vm'
 import { PitchProcessor } from '../src/renderer/utils/pitchProcessor'
 import { getBufferedAheadSeconds } from '../src/renderer/utils/audioBufferHealth'
 
+test('keeps routine Linux progress updates distinct from explicit MPRIS seeks', () => {
+  const player = readFileSync(resolve('src/renderer/store/player.ts'), 'utf8')
+  const mpris = readFileSync(resolve('src/main/mpris.ts'), 'utf8')
+  const ipcs = readFileSync(resolve('src/main/IPCs.ts'), 'utf8')
+
+  expect(player).toContain('const MPRIS_PROGRESS_UPDATE_INTERVAL_MS = 1_000')
+  expect(player).toContain("{ progress: value, seeked: true }")
+  expect(mpris).toContain('private estimatedPositionSeconds()')
+  expect(mpris).toContain('if (data.seeked)')
+  expect(mpris).not.toContain('this._player.position =')
+  expect(ipcs).toContain('mpris?.setPosition({ progress: value')
+})
+
+test('batches listening ledger writes and captures bounded audio-health events', () => {
+  const player = readFileSync(resolve('src/renderer/store/player.ts'), 'utf8')
+  const main = readFileSync(resolve('src/main/IPCs.ts'), 'utf8')
+  const preload = readFileSync(resolve('src/preload/index.ts'), 'utf8')
+
+  expect(player).toContain('uncommittedSeconds >= minimumSeconds')
+  expect(player).toContain("sendAudioHealthEvent('waiting')")
+  expect(player).toContain("sendAudioHealthEvent('stalled')")
+  expect(player).toContain("sendAudioHealthEvent('main-thread-delay', extraDelay)")
+  expect(player).toContain('rendererLoopMaxDelayMs')
+  expect(main).toContain("ipcMain.on('audio-health-event'")
+  expect(main).toContain("log.warn('[AudioHealth]'")
+  expect(preload).toContain("'audio-health-event'")
+})
+
 test('reports only contiguous audio ahead of the playhead after a seek', () => {
   const buffered = {
     length: 2,
