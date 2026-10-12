@@ -84,3 +84,26 @@ yarn dev
 原始采样、构建日志及隔离实验结果暂存于 `/tmp/vutron-audio-investigation-20260929`；内存复现和后续验证在 `/tmp/vutron-memory-investigation-20260929`。这些目录不是长期保存位置。持久回归测试为 `tests/player-memory-resources.spec.ts`，可使用 `yarn playwright test tests/player-memory-resources.spec.ts --workers=1` 运行；无显示环境时使用项目已有的 `xvfb-run` 方式。
 
 参考：[AudioContext latencyHint](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/AudioContext)、[AudioWorklet 生命周期](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_AudioWorklet)、[Electron 进程指标](https://www.electronjs.org/docs/latest/api/app#appgetappmetrics)、[Node 原生 fetch dispatcher](https://nodejs.org/docs/latest/api/globals.html#custom-dispatcher)。
+
+## 2026-10-12：间歇性短卡顿的减负与落盘诊断
+
+这次复核覆盖最新版播放器、MPRIS、听歌账本、音效节点、音源代理、歌词调度、媒体事件和既有回归测试。当前没有用户机器卡顿瞬间的录音或指标，下面属于**已确认的代码问题修复和取证增强**，而非宣称已在实机证明全部音频卡顿消失。
+
+1. **Linux MPRIS**：先前每个 `timeupdate` 都发送 `updatePlayerState.progress`，随后 `mpris.setPosition()` 无条件广播 `Seeked` 并写入位置属性。现在普通进度 IPC 最多每 1 秒一次，MPRIS 使用由最近采样进度、播放状态及倍率外推的位置时钟；只有主动拖动进度条等真实跳转才发出 `Seeked`。
+2. **网易云听歌账本**：先前单曲累计 30 秒后几乎每 1 秒更新一次响应式账本记录，`localStorage` 定时同步序列化，可能占用 Renderer 主线程。现在只有未提交时长再次累计到门槛才进行周期结算；暂停、自然结束、切歌和手动同步仍沿用已有强制结算路径。未提交时长继续在内存中实时计算，不影响用户看到的暂存数据。
+3. **异常事件落盘**：Renderer 将已播放歌曲的 `waiting`、`stalled`、媒体错误、恢复动作、意外音频上下文暂停、明显的 Renderer 定时器延迟传入主进程。主进程做事件类型白名单、来源窗口校验、数字范围约束和 8 秒/类型去重，将 `[AudioHealth]` 写入既有 `main.log`。没有持续的每帧日志，不保存 Cookie、歌曲公网 URL 或本地文件路径。
+4. **短时间阻塞指标**：新增 250ms 轻量定时器探针；实际调度比预期晚 200ms 及以上时累计 `rendererLoopDelayCount` 和 `rendererLoopMaxDelayMs`。这只是 **JS 定时器调度延迟的间接证据**，不能证明音频实时线程自身卡顿，也不能单独区分 GC、后台节流和系统调度。
+
+### 下次出现卡顿时提供什么
+
+在用户截图展示的现有 VutronMusic 日志文件夹中打开 **`main.log`**，查找卡顿当地时间前后约两分钟的 `[AudioHealth]` 行，同时立即从设置页复制“一键诊断快照”。最好正常播放时也留一份作为基准。**不需要上传整个用户数据目录**；日志中其他行可能有鉴权或本地目录信息，分享前请先检查并隐去敏感内容。
+
+| 现象 | 下一步方向 |
+| --- | --- |
+| `waiting` / `stalled` 且 `bufferedAhead` 接近 0 | 主进程音源代理、Range、CDN 或本地媒体缓冲链 |
+| `rendererLoopDelayCount` 上升，`bufferedAhead` 仍充足 | JS 主线程同步阻塞、GC、后台调度；结合进程内存与 CPU 指标 |
+| `context-suspended`，且用户没有暂停 | AudioContext / 音频设备状态变化 |
+| 无 `[AudioHealth]`、媒体缓冲充足、进度持续正常，但仍听到断声 | 优先采集 PulseAudio/PipeWire、设备输出和音频实时线程调度指标；本探针不能证明没有音频断续 |
+| `recovery`，`stallCount` 增长 | 原有 12 秒 watchdog 已触发，区别于较短的一次性断续 |
+
+修改过播放器主进程和 preload，必须**完整退出应用再重新启动**，仅靠 Vite 热更新不能代表新的 MPRIS 与日志处理已生效。
