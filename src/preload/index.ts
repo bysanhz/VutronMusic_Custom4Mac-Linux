@@ -18,6 +18,7 @@ const mainAvailChannels: string[] = [
   'updateTouchBarLyric',
   'showWindow',
   'updatePlayerState',
+  'audio-health-event',
   'setStoreSettings',
   'preview-window-scale-baseline',
   'finish-window-scale-calibration',
