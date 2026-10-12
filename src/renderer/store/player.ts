@@ -166,6 +166,14 @@ export const usePlayerStore = defineStore(
 
     // 媒体元素有时会保持 paused=false / playing=true，但网络流已经不再推进。
     // 通过独立 watchdog 观察真实 currentTime，避免 UI 处于“假播放”状态。
+    const RENDERER_LOOP_PROBE_INTERVAL_MS = 250
+    const RENDERER_LOOP_DELAY_THRESHOLD_MS = 200
+    let rendererLoopTimer: number | null = null
+    let rendererLoopLastTick = 0
+    let rendererLoopDelayCount = 0
+    let rendererLoopMaxDelayMs = 0
+    const audioHealthLogLastAt = new Map<string, number>()
+
     const PLAYBACK_STALL_CHECK_INTERVAL_MS = 2_000
     const PLAYBACK_STALL_TIMEOUT_MS = 12_000
     const PLAYBACK_PROGRESS_EPSILON_SECONDS = 0.15
@@ -1636,6 +1644,34 @@ export const usePlayerStore = defineStore(
       void _playNextTrack(isPersonalFM.value)
     }
 
+    const sendAudioHealthEvent = (kind: string, delayMs = 0) => {
+      const audio = audioNodes.audio
+      const track = currentTrack.value
+      if (!audio || !track) return
+      if (!(playing.value && !audio.paused) && kind !== 'media-error' && kind !== 'recovery') {
+        return
+      }
+      // Skip normal initial buffering. Only log interruption candidates while
+      // a song is already underway, without flooding main.log.
+      if ((kind === 'waiting' || kind === 'stalled') && audio.currentTime < 2) return
+      const now = Date.now()
+      if (now - (audioHealthLogLastAt.get(kind) || 0) < 8_000) return
+      audioHealthLogLastAt.set(kind, now)
+
+      window.mainApi?.send('audio-health-event', {
+        kind,
+        trackId: Number(track.id) || 0,
+        source: track.type,
+        progress: Number(audio.currentTime.toFixed(2)),
+        bufferedAhead: Number(getBufferedAheadSeconds(audio).toFixed(2)),
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        contextState: audioNodes.audioContext?.state || 'unavailable',
+        delayMs: Math.round(delayMs),
+        visible: document.visibilityState === 'visible'
+      })
+    }
+
     const recordPlaybackMediaEvent = (event: string) => {
       playbackHealthLastEvent = event
       playbackHealthLastEventAt = Date.now()
@@ -1687,6 +1723,7 @@ export const usePlayerStore = defineStore(
 
       playbackHealthStallCount += 1
       recordPlaybackMediaEvent(`recovery:${reason}`)
+      sendAudioHealthEvent('recovery')
 
       if (playbackStallRecoveryCount >= MAX_PLAYBACK_STALL_RECOVERIES) {
         console.warn('[Player] 播放停滞恢复次数已用尽，切换下一首', {
@@ -1760,6 +1797,7 @@ export const usePlayerStore = defineStore(
 
     const startPlaybackHealthWatchdog = () => {
       if (playbackHealthTimer !== null) window.clearInterval(playbackHealthTimer)
+      if (rendererLoopTimer !== null) window.clearInterval(rendererLoopTimer)
       playbackHealthLastProgress = audioNodes.audio?.currentTime || 0
       playbackHealthLastAdvanceAt = Date.now()
       playbackHealthLastCheckAt = performance.now()
@@ -1767,12 +1805,29 @@ export const usePlayerStore = defineStore(
         checkPlaybackHealth,
         PLAYBACK_STALL_CHECK_INTERVAL_MS
       )
+
+      rendererLoopLastTick = performance.now()
+      rendererLoopTimer = window.setInterval(() => {
+        const now = performance.now()
+        const extraDelay = Math.max(0, now - rendererLoopLastTick - RENDERER_LOOP_PROBE_INTERVAL_MS)
+        rendererLoopLastTick = now
+        if (!playing.value || audioNodes.audio?.paused) return
+        if (extraDelay < RENDERER_LOOP_DELAY_THRESHOLD_MS) return
+
+        rendererLoopDelayCount += 1
+        rendererLoopMaxDelayMs = Math.max(rendererLoopMaxDelayMs, extraDelay)
+        sendAudioHealthEvent('main-thread-delay', extraDelay)
+      }, RENDERER_LOOP_PROBE_INTERVAL_MS)
     }
 
     const stopPlaybackHealthWatchdog = () => {
       if (playbackHealthTimer !== null) {
         window.clearInterval(playbackHealthTimer)
         playbackHealthTimer = null
+      }
+      if (rendererLoopTimer !== null) {
+        window.clearInterval(rendererLoopTimer)
+        rendererLoopTimer = null
       }
     }
 
@@ -1793,8 +1848,14 @@ export const usePlayerStore = defineStore(
       playing.value = false
     }
 
-    const _handleMediaWaiting = () => recordPlaybackMediaEvent('waiting')
-    const _handleMediaStalled = () => recordPlaybackMediaEvent('stalled')
+    const _handleMediaWaiting = () => {
+      recordPlaybackMediaEvent('waiting')
+      sendAudioHealthEvent('waiting')
+    }
+    const _handleMediaStalled = () => {
+      recordPlaybackMediaEvent('stalled')
+      sendAudioHealthEvent('stalled')
+    }
     const _handleMediaSeeked = () => {
       recordPlaybackMediaEvent('seeked')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
@@ -1809,6 +1870,7 @@ export const usePlayerStore = defineStore(
         ? `code=${mediaError.code}, message=${mediaError.message || 'unknown'}`
         : 'unknown media error'
       recordPlaybackMediaEvent(`error:${detail}`)
+      sendAudioHealthEvent('media-error')
 
       if (!audio.paused || playing.value) {
         void recoverStalledPlayback(`media-error-${detail}`)
@@ -2186,6 +2248,9 @@ export const usePlayerStore = defineStore(
       )
       audioNodes.audioContext.onstatechange = () => {
         recordPlaybackMediaEvent(`context:${audioNodes.audioContext?.state}`)
+        if (playing.value && audioNodes.audioContext?.state === 'suspended') {
+          sendAudioHealthEvent('context-suspended')
+        }
       }
       audioNodes.audioSource = audioNodes.audioContext.createMediaElementSource(audioNodes.audio)
       await audioNodes.audioContext.suspend()
@@ -2777,6 +2842,8 @@ export const usePlayerStore = defineStore(
             waitingCount: playbackWaitingCount,
             stalledEventCount: playbackStalledEventCount,
             maxWatchdogDelayMs: Math.round(playbackHealthMaxCheckDelayMs),
+            rendererLoopDelayCount,
+            rendererLoopMaxDelayMs: Math.round(rendererLoopMaxDelayMs),
             recentEvents: recentMediaEvents.map((event) => ({ ...event })),
             lastEvent: playbackHealthLastEvent,
             lastEventAt: new Date(playbackHealthLastEventAt).toISOString(),
