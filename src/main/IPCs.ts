@@ -108,6 +108,50 @@ async function exitAsk(event: IpcMainEvent, win: BrowserWindow) {
 }
 
 function initWindowIpcMain(win: BrowserWindow): void {
+  // Persist only bounded, non-sensitive audio-health evidence to main.log.
+  // The renderer sends events on state changes or exceptional scheduler delays,
+  // never on every audio frame or ordinary progress tick.
+  const audioLogLastAt = new Map<string, number>()
+  const allowedAudioEvents = new Set([
+    'waiting',
+    'stalled',
+    'media-error',
+    'recovery',
+    'main-thread-delay',
+    'context-suspended'
+  ])
+  ipcMain.on('audio-health-event', (event: IpcMainEvent, payload: unknown) => {
+    if (win.isDestroyed() || event.sender.id !== win.webContents.id) return
+    if (!payload || typeof payload !== 'object') return
+    const data = payload as Record<string, unknown>
+    const kind = typeof data.kind === 'string' ? data.kind : ''
+    if (!allowedAudioEvents.has(kind)) return
+
+    const now = Date.now()
+    if (now - (audioLogLastAt.get(kind) || 0) < 8_000) return
+    audioLogLastAt.set(kind, now)
+    const safeNumber = (value: unknown, limit = 1_000_000) => {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) ? Math.min(limit, Math.max(0, numeric)) : 0
+    }
+    log.warn('[AudioHealth]', {
+      kind,
+      trackId: Math.floor(safeNumber(data.trackId)),
+      source: ['online', 'local', 'stream'].includes(String(data.source))
+        ? data.source
+        : 'unknown',
+      progress: safeNumber(data.progress),
+      bufferedAhead: safeNumber(data.bufferedAhead, 3600),
+      readyState: safeNumber(data.readyState, 4),
+      networkState: safeNumber(data.networkState, 3),
+      contextState: ['running', 'suspended', 'closed'].includes(String(data.contextState))
+        ? data.contextState
+        : 'unknown',
+      rendererDelayMs: safeNumber(data.delayMs, 60_000),
+      visible: data.visible === true
+    })
+  })
+
   ipcMain.on('minimize', () => {
     win.minimize()
   })
