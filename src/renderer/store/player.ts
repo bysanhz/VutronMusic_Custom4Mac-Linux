@@ -148,6 +148,8 @@ export const usePlayerStore = defineStore(
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
     const MIN_NETEASE_CHECKPOINT_SECONDS = 30
     const NETEASE_RETRY_POLL_MS = 30_000
+    const MPRIS_PROGRESS_UPDATE_INTERVAL_MS = 1_000
+    let lastMprisProgressUpdateAt = 0
 
     // 同一首歌曲的远程音源只自动刷新一次。
     // 第二次仍无法播放时直接切歌，避免 CORS/坏音源导致 replaceCurrentTrack 无限递归。
@@ -389,7 +391,7 @@ export const usePlayerStore = defineStore(
         lastUpdateTime = value
         currentIndex.value = getLyricIndex(lyrics.value, 0, 1)
         if (window.env?.isLinux) {
-          window.mainApi?.send('updatePlayerState', { progress: value })
+          window.mainApi?.send('updatePlayerState', { progress: value, seeked: true })
         }
         if (osdLyricStore.show) {
           window.mainApi?.sendMessage({
@@ -2009,7 +2011,15 @@ export const usePlayerStore = defineStore(
             Math.floor((currentTrack.value?.dt || currentTrack.value?.duration || 0) / 1000)
           )
           const minimumSeconds = Math.min(MIN_NETEASE_CHECKPOINT_SECONDS, trackDuration)
-          if (neteaseSessionListenedSeconds >= minimumSeconds) {
+          // Preserve the full played-time total, but avoid a reactive ledger
+          // rewrite (and synchronous localStorage flush) on every second after
+          // the initial listening threshold.
+          const uncommittedSeconds =
+            neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
+          if (
+            neteaseSessionListenedSeconds >= minimumSeconds &&
+            uncommittedSeconds >= minimumSeconds
+          ) {
             commitNeteaseSessionProgress(currentTrack.value!)
           } else {
             setProvisionalNeteaseListen({
@@ -2026,8 +2036,15 @@ export const usePlayerStore = defineStore(
         lastUpdateTime = currentTime
       }
 
+      // Linux MPRIS clients can extrapolate their position between samples.
+      // Keep routine state IPC to at most once a second; explicit seeks use
+      // the seek setter and are forwarded immediately.
       if (window.env?.isLinux) {
-        window.mainApi?.send('updatePlayerState', { progress: currentTime })
+        const now = performance.now()
+        if (now - lastMprisProgressUpdateAt >= MPRIS_PROGRESS_UPDATE_INTERVAL_MS) {
+          lastMprisProgressUpdateAt = now
+          window.mainApi?.send('updatePlayerState', { progress: currentTime })
+        }
       }
     }
 
