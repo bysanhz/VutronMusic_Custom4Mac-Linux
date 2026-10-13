@@ -153,6 +153,33 @@ function initWindowIpcMain(win: BrowserWindow): void {
     })
   })
 
+  let lastListenSyncLogAt = 0
+  ipcMain.on('listen-sync-health', (event: IpcMainEvent, payload: unknown) => {
+    if (win.isDestroyed() || event.sender.id !== win.webContents.id) return
+    if (!payload || typeof payload !== 'object') return
+
+    const now = Date.now()
+    if (now - lastListenSyncLogAt < 5 * 60_000) return
+    const data = payload as Record<string, unknown>
+    const safeNumber = (value: unknown, max = 1_000_000) => {
+      const number = Number(value)
+      return Number.isFinite(number) ? Math.max(0, Math.min(max, number)) : 0
+    }
+    if (safeNumber(data.oldestAcceptedAgeMinutes) < 10) return
+
+    lastListenSyncLogAt = now
+    log.warn('[ListenSync] 已接收的听歌片段仍待远端报表确认', {
+      acceptedSeconds: safeNumber(data.acceptedSeconds),
+      acceptedEntries: safeNumber(data.acceptedEntries, 2000),
+      pendingSeconds: safeNumber(data.pendingSeconds),
+      failedPendingEntries: safeNumber(data.failedPendingEntries, 2000),
+      oldestAcceptedAgeMinutes: safeNumber(data.oldestAcceptedAgeMinutes, 1_000_000),
+      monthReportAvailable: data.monthReportAvailable === true,
+      monthReportSeconds:
+        data.monthReportSeconds === null ? null : safeNumber(data.monthReportSeconds)
+    })
+  })
+
   ipcMain.on('minimize', () => {
     win.minimize()
   })
