@@ -139,7 +139,9 @@ function initWindowIpcMain(win: BrowserWindow): void {
     const validContextStates = new Set(['running', 'suspended', 'closed'])
     log.warn('[AudioHealth]', {
       kind,
-      trackId: Math.floor(safeNumber(data.trackId)),
+      // NetEase IDs commonly exceed one million; preserve the actual
+      // numeric track ID while still bounding untrusted renderer IPC data.
+      trackId: Math.floor(safeNumber(data.trackId, Number.MAX_SAFE_INTEGER)),
       source: ['online', 'local', 'stream'].includes(String(data.source))
         ? data.source
         : 'unknown',
