@@ -13,10 +13,12 @@ test('shows the existing diagnostics action in both General and Software Update'
     settings.indexOf('key="update"')
   )
   expect(diagnostics).toContain("const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'")
-  expect(diagnostics).toContain("const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'")
+  expect(diagnostics).toContain(
+    "const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'"
+  )
   expect(diagnostics).toContain('mountControl(CONTROL_ID, generalAnchor')
   expect(diagnostics).toContain('mountControl(UPDATE_CONTROL_ID, updateAnchor)')
-  expect(diagnostics).toContain('anchor.insertAdjacentElement(\'afterend\', item)')
+  expect(diagnostics).toContain("anchor.insertAdjacentElement('afterend', item)")
 })
 
 test('both actions share a fresh and localized diagnostics snapshot', () => {
