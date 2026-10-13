@@ -17,6 +17,7 @@ import {
 } from './neteaseListenLedger'
 
 const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
+const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'
 const MAX_RECENT_ERRORS = 20
 
 const recentErrors: Array<{ time: string; message: string }> = []
@@ -153,15 +154,19 @@ const formatDiagnostics = (main: Record<string, any>, renderer: Record<string, a
   ].join('\n')
 }
 
-const ensureControl = (): boolean => {
-  const anchor =
-    document.getElementById('vutronmusic-settings-backup-setting') ||
-    document.querySelector<HTMLElement>('.settings-container .item:last-of-type')
+/** Mount the same snapshot action in each settings section, without duplicating its logic. */
+const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
   if (!anchor?.parentElement) return false
-  if (document.getElementById(CONTROL_ID)) return true
+  const existing = document.getElementById(id)
+  if (existing) {
+    if (existing.previousElementSibling !== anchor) {
+      anchor.insertAdjacentElement('afterend', existing)
+    }
+    return true
+  }
 
   const text = TEXTS[resolveFeatureLanguage()]
-  const item = createV327SettingsItem(CONTROL_ID, text.title, text.description)
+  const item = createV327SettingsItem(id, text.title, text.description)
   const controls = item.querySelector<HTMLElement>('.vutronmusic-v327-controls')!
   const button = document.createElement('button')
   const status = document.createElement('div')
@@ -190,6 +195,17 @@ const ensureControl = (): boolean => {
   controls.append(button, status)
   anchor.insertAdjacentElement('afterend', item)
   return true
+}
+
+const ensureControl = (): boolean => {
+  const generalAnchor =
+    document.getElementById('vutronmusic-settings-backup-setting') ||
+    document.querySelector<HTMLElement>('.settings-container .item:last-of-type')
+  const mountedGeneral = mountControl(CONTROL_ID, generalAnchor as HTMLElement | null)
+  const updateAnchor = document.getElementById('vutronmusic-update-diagnostics-anchor')
+  // The software update tab exists only in Electron.
+  const mountedUpdate = updateAnchor ? mountControl(UPDATE_CONTROL_ID, updateAnchor) : true
+  return mountedGeneral && mountedUpdate
 }
 
 observeV327SettingsControl(ensureControl)
