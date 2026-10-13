@@ -607,6 +607,62 @@ export const reconcileNeteaseListenReport = (options: {
   }
 }
 
+/**
+ * Diagnostic-only summary for the current month. Avoids account IDs, song
+ * titles, source URLs, auth headers and locally stored error strings.
+ *
+ * The API receipt ("accepted") is distinct from a verified remote report.
+ * Do not infer remote confirmation from the age of an accepted entry.
+ */
+export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
+  const accountId = normalizeAccountId(accountIdValue)
+  const now = Date.now()
+  const today = localDateKey(now)
+  const month = today.slice(0, 7)
+  let pendingSeconds = 0
+  let acceptedSeconds = 0
+  let pendingEntries = 0
+  let acceptedEntries = 0
+  let failedEntries = 0
+  let oldestAcceptedAt = now
+
+  for (const entry of neteaseListenEntries.value) {
+    if (entry.accountId !== accountId || !entry.dateKey.startsWith(month)) continue
+    const periodKey =
+      entry.dateKey === today ? `today:${today}` : `month:${month}`
+    const confirmed = Number(entry.confirmedByPeriod?.[periodKey]) || 0
+    const remaining = Math.max(0, entry.seconds - confirmed)
+    if (remaining <= 0) continue
+    if (entry.status === 'accepted') {
+      acceptedSeconds += remaining
+      acceptedEntries += 1
+      oldestAcceptedAt = Math.min(oldestAcceptedAt, entry.acceptedAt || entry.endedAt)
+    } else {
+      pendingSeconds += remaining
+      pendingEntries += 1
+      if (entry.attempts > 0) failedEntries += 1
+    }
+  }
+
+  const monthBaseline = Number(remoteBaselines[`${accountId}:month:${month}`])
+  const todayBaseline = Number(remoteBaselines[`${accountId}:today:${today}`])
+  const provisional =
+    provisionalNeteaseListen.value.accountId === accountId
+      ? provisionalNeteaseListen.value.seconds
+      : 0
+  return {
+    pendingEntries,
+    pendingSeconds: Math.round(pendingSeconds + provisional),
+    acceptedEntries,
+    acceptedSeconds: Math.round(acceptedSeconds),
+    failedPendingEntries: failedEntries,
+    oldestAcceptedAgeMinutes:
+      acceptedEntries > 0 ? Math.floor(Math.max(0, now - oldestAcceptedAt) / 60_000) : 0,
+    monthBaselineSeconds: Number.isFinite(monthBaseline) ? monthBaseline : null,
+    todayBaselineSeconds: Number.isFinite(todayBaseline) ? todayBaseline : null
+  }
+}
+
 export const hasPendingNeteaseListenEntries = (accountId: unknown): boolean => {
   const normalized = normalizeAccountId(accountId)
   return neteaseListenEntries.value.some(
