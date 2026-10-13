@@ -11,6 +11,10 @@ import {
   sleepTimerRemainingSeconds
 } from './sleepTimerSettings'
 import { playbackStartGuardActive, playbackStartReason } from './playbackStartGuard'
+import {
+  activeNeteaseListenAccountId,
+  getNeteaseListenSyncDiagnostics
+} from './neteaseListenLedger'
 
 const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
 const MAX_RECENT_ERRORS = 20
@@ -127,6 +131,7 @@ const collectRendererDiagnostics = () => {
       cachePath: redactPath(settings?.autoCacheTrack?.cachePath)
     },
     queueSnapshotCount: queueSnapshots.length,
+    listenSync: getNeteaseListenSyncDiagnostics(activeNeteaseListenAccountId.value),
     recentErrors
   }
 }
