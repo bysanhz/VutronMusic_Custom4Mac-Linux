@@ -432,6 +432,7 @@ import { useNormalStateStore } from '../store/state'
 import {
   clearAcceptedNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
+  getNeteaseListenSyncDiagnostics,
   localDateKey,
   neteaseListenEntries,
   provisionalNeteaseListen,
@@ -718,6 +719,27 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
   }
 }
 
+// A successful PLV/PLD upload receipt does not establish that NetEase's
+// minute-granularity reports have ingested the corresponding playback duration.
+// Persist a small summary when the accepted backlog has aged for 10+ minutes,
+// so a later main.log can distinguish an upstream reporting delay from a local
+// reconciliation error. No account ID or private source URL is logged.
+let lastListenSyncHealthAt = 0
+const reportListenSyncHealth = (monthReportSeconds?: number): void => {
+  if (accountId.value === 'anonymous') return
+  const now = Date.now()
+  if (now - lastListenSyncHealthAt < 60_000) return
+
+  const diagnosis = getNeteaseListenSyncDiagnostics(accountId.value)
+  if (diagnosis.acceptedSeconds <= 0 || diagnosis.oldestAcceptedAgeMinutes < 10) return
+  lastListenSyncHealthAt = now
+  window.mainApi?.send('listen-sync-health', {
+    ...diagnosis,
+    monthReportAvailable: monthReportAvailable.value === true,
+    monthReportSeconds: monthReportSeconds ?? null
+  })
+}
+
 const reconcileEarlierDaysFromMonthReport = (report: any): void => {
   if (!report) return
   const monthKey = monthPeriodKey.value.slice(6)
@@ -810,6 +832,8 @@ const loadFootprint = async (): Promise<void> => {
       remoteSeconds: nextTotalSeconds
     })
 
+    reportListenSyncHealth(nextMonthSeconds)
+
     if (weekRecord) footprint.weekTracks = extractUserPlayRecord(weekRecord, 'week')
     if (allRecord) footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
   } finally {
@@ -859,6 +883,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
     if (!currentMonth) {
       monthReportAvailable.value = false
       footprint.monthSeconds = undefined
+      reportListenSyncHealth()
       return
     }
 
@@ -911,6 +936,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         remoteSeconds: nextTodaySeconds
       })
     }
+    reportListenSyncHealth(nextMonthSeconds)
   } finally {
     footprintSnapshotInFlight = false
   }
