@@ -546,8 +546,14 @@ export const reconcileNeteaseListenReport = (options: {
     }
   }
 
-  // 逐日明细已确认的片段也属于本月及累计。月报总量可能因网易云重新计算而下降，
-  // 不能让这些片段永远留在“本月待确认”；同时补齐旧账本里的逐日确认。
+  // The day and month cards describe the same uploaded segments. Previously,
+  // confirmation flowed only day -> month. If the month report advanced while
+  // durationDetails for today remained stale, an accepted segment would stay
+  // amber forever in the UI despite a month-period confirmation.
+  //
+  // Only propagate evidence for the same segment between its OWN day and month
+  // (and the total view); never use an unrelated aggregate or a receipt alone
+  // to mark an upload confirmed. This also repairs older persisted ledgers.
   const month = options.periodKey.startsWith('month:')
     ? options.periodKey.slice(6)
     : /^\d{4}-\d{2}-\d{2}$/.test(dayKey)
@@ -564,17 +570,27 @@ export const reconcileNeteaseListenReport = (options: {
       ) {
         continue
       }
-      const dailyConfirmed = Number(entry.confirmedByPeriod[`today:${entry.dateKey}`]) || 0
-      if (dailyConfirmed <= 0) continue
+
+      const todayKey = `today:${entry.dateKey}`
+      const dailyConfirmed = Number(entry.confirmedByPeriod[todayKey]) || 0
       const monthConfirmed = Number(entry.confirmedByPeriod[monthKey]) || 0
       const totalConfirmed = Number(entry.confirmedByPeriod.total) || 0
-      if (dailyConfirmed <= monthConfirmed && dailyConfirmed <= totalConfirmed) continue
+      const corroborated = Math.min(entry.seconds, Math.max(dailyConfirmed, monthConfirmed))
+      if (
+        corroborated <= dailyConfirmed &&
+        corroborated <= monthConfirmed &&
+        corroborated <= totalConfirmed
+      ) {
+        continue
+      }
+
       entries[index] = {
         ...entry,
         confirmedByPeriod: {
           ...entry.confirmedByPeriod,
-          [monthKey]: Math.max(monthConfirmed, dailyConfirmed),
-          total: Math.max(totalConfirmed, dailyConfirmed)
+          [todayKey]: Math.max(dailyConfirmed, corroborated),
+          [monthKey]: Math.max(monthConfirmed, corroborated),
+          total: Math.max(totalConfirmed, corroborated)
         },
         updatedAt: Date.now()
       }
