@@ -161,6 +161,112 @@ test('uses daily report confirmation for the month even when the month total dro
   ).toBe(0)
 })
 
+test('uses a month-report confirmation for the same segment when todays details lag', () => {
+  const accountId = 'month-ahead-of-today'
+  const dayStart = new Date(2026, 9, 13).getTime()
+  const dayEnd = new Date(2026, 9, 14).getTime() - 1
+  const monthStart = new Date(2026, 9, 1).getTime()
+  const periodKey = 'month:2026-10'
+  const dayKey = 'today:2026-10-13'
+
+  // Sample the remote baseline BEFORE the upload.
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey,
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 3600
+  })
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'month-report-ahead',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 180_000,
+    seconds: 120,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+
+  // Today's durationDetails has not advanced; only the month total has.
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: dayKey,
+    rangeStart: dayStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 600
+  })
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey,
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 3720
+  })
+
+  expect(getNeteaseListenLedgerTotals(accountId, dayStart, dayEnd, dayKey).accepted).toBe(0)
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, periodKey).accepted).toBe(0)
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, 'total').accepted).toBe(0)
+})
+
+test('repairs legacy month-confirmed ledger entries without creating new confirmation', () => {
+  const accountId = 'legacy-month-confirmed'
+  const dayStart = new Date(2026, 9, 13).getTime()
+  const dayEnd = new Date(2026, 9, 14).getTime() - 1
+  const monthStart = new Date(2026, 9, 1).getTime()
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'old-record',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 150_000,
+    seconds: 90,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+  neteaseListenEntries.value = neteaseListenEntries.value.map((item) =>
+    item.id === entry.id
+      ? { ...item, confirmedByPeriod: { 'month:2026-10': 90 } }
+      : item
+  )
+
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: 'month:2026-10',
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 4000
+  })
+
+  expect(
+    getNeteaseListenLedgerTotals(accountId, dayStart, dayEnd, 'today:2026-10-13').accepted
+  ).toBe(0)
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, 'total').accepted).toBe(0)
+
+  const unconfirmed = recordNeteaseListenSegment({
+    accountId: 'no-growth-should-not-confirm',
+    sessionId: 'no-growth',
+    startedAt: dayStart + 180_000,
+    endedAt: dayStart + 270_000,
+    seconds: 90,
+    params
+  })[0]
+  markNeteaseListenEntryAccepted(unconfirmed.id)
+  reconcileNeteaseListenReport({
+    accountId: 'no-growth-should-not-confirm',
+    periodKey: 'month:2026-10',
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 5000
+  })
+  expect(
+    getNeteaseListenLedgerTotals(
+      'no-growth-should-not-confirm',
+      dayStart,
+      dayEnd,
+      'today:2026-10-13'
+    ).accepted
+  ).toBe(90)
+})
+
 test('confirms a closed day from a near-equal daily total when the month baseline fell', () => {
   const accountId = 'closed-day-probe'
   const dayStart = new Date(2026, 9, 9).getTime()
