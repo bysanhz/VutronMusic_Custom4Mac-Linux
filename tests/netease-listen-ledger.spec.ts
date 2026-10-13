@@ -3,6 +3,7 @@ import {
   clearAcceptedNeteaseListenEntries,
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
+  getNeteaseListenSyncDiagnostics,
   hasNeteaseListenReportBaseline,
   markNeteaseListenEntryAccepted,
   markNeteaseListenEntryFailed,
@@ -265,6 +266,31 @@ test('repairs legacy month-confirmed ledger entries without creating new confirm
       'today:2026-10-13'
     ).accepted
   ).toBe(90)
+})
+
+test('diagnoses aged upload receipts without pretending the remote report confirmed them', () => {
+  const accountId = 'aged-accepted-receipt'
+  const now = new Date()
+  const start = new Date(now)
+  start.setHours(0, 1, 0, 0)
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'unconfirmed-receipt',
+    startedAt: start.getTime(),
+    endedAt: start.getTime() + 90_000,
+    seconds: 90,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+  neteaseListenEntries.value = neteaseListenEntries.value.map((item) =>
+    item.id === entry.id ? { ...item, acceptedAt: Date.now() - 15 * 60_000 } : item
+  )
+  const diagnostic = getNeteaseListenSyncDiagnostics(accountId)
+  expect(diagnostic.acceptedSeconds).toBe(90)
+  expect(diagnostic.acceptedEntries).toBe(1)
+  expect(diagnostic.oldestAcceptedAgeMinutes).toBeGreaterThanOrEqual(14)
+  expect(JSON.stringify(diagnostic)).not.toContain(accountId)
+  expect(JSON.stringify(diagnostic)).not.toContain('Test Track')
 })
 
 test('confirms a closed day from a near-equal daily total when the month baseline fell', () => {
