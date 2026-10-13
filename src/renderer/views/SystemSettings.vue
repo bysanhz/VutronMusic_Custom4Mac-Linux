@@ -1112,7 +1112,7 @@
               >
             </div>
           </div>
-          <div class="item">
+          <div id="vutronmusic-update-diagnostics-anchor" class="item">
             <div class="left">
               <div class="title">{{
                 $t('settings.update.latestVersion') +
