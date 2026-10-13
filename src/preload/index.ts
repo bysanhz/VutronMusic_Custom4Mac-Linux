@@ -19,6 +19,7 @@ const mainAvailChannels: string[] = [
   'showWindow',
   'updatePlayerState',
   'audio-health-event',
+  'listen-sync-health',
   'setStoreSettings',
   'preview-window-scale-baseline',
   'finish-window-scale-calibration',
