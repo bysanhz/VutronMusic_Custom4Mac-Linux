@@ -3,6 +3,7 @@ import {
   clearAcceptedNeteaseListenEntries,
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
+  getNeteaseHistoricalReplayPreview,
   getNeteaseListenSyncDiagnostics,
   getNeteaseListenReportStatus,
   hasNeteaseListenReportBaseline,
@@ -12,6 +13,7 @@ import {
   neteaseListenEntries,
   reconcileNeteaseListenReport,
   recordNeteaseListenSegment,
+  stageNeteaseHistoricalReplay,
   setProvisionalNeteaseListen,
   splitNeteaseListenSegmentByLocalDay
 } from '../src/renderer/utils/neteaseListenLedger'
@@ -679,4 +681,55 @@ test('retains a month report baseline for uploads made after the first report', 
   })
 
   expect(hasNeteaseListenReportBaseline(accountId, periodKey)).toBe(true)
+})
+
+test('historical manual replay is explicit, account-isolated and at most once', () => {
+  const now = new Date(2026, 9, 14, 12, 0, 0).getTime()
+  const yesterday = new Date(2026, 9, 13, 10, 0, 0).getTime()
+  const add = (accountId: string, sessionId: string, startedAt: number) => {
+    const [entry] = recordNeteaseListenSegment({
+      accountId,
+      sessionId,
+      startedAt,
+      endedAt: startedAt + 120_000,
+      seconds: 120,
+      params
+    })
+    markNeteaseListenEntryAccepted(entry.id)
+    return entry.id
+  }
+  const historicalId = add('account-a', 'old-accepted', yesterday)
+  add('account-a', 'today-accepted', now - 120_000)
+  add('account-b', 'other-account', yesterday)
+  const alreadyConfirmedId = add('account-a', 'already-confirmed', yesterday + 300_000)
+
+  neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => ({
+    ...entry,
+    acceptedAt: now - 2 * 60 * 60_000,
+    confirmedByPeriod:
+      entry.id === alreadyConfirmedId ? { 'today:2026-10-13': 120 } : entry.confirmedByPeriod
+  }))
+
+  expect(getNeteaseHistoricalReplayPreview('account-a', now)).toEqual({
+    count: 1,
+    seconds: 120
+  })
+  const [stagedId] = stageNeteaseHistoricalReplay('account-a', now)
+  expect(stagedId).toBe(historicalId)
+  const staged = neteaseListenEntries.value.find((entry) => entry.id === historicalId)!
+  expect(staged.status).toBe('pending')
+  expect(staged.manualReplayCount).toBe(1)
+  expect(staged.params.segmentId).toMatch(new RegExp(`^replay:${historicalId}:`))
+  expect(staged.params.segmentId).not.toBe(historicalId)
+
+  expect(stageNeteaseHistoricalReplay('account-a', now)).toEqual([])
+  expect(getNeteaseHistoricalReplayPreview('account-a', now).count).toBe(0)
+  expect(
+    claimPendingNeteaseListenEntries({ accountId: 'account-a', entryIds: [historicalId] }).map(
+      (entry) => entry.id
+    )
+  ).toEqual([historicalId])
+  expect(neteaseListenEntries.value.find((entry) => entry.id === alreadyConfirmedId)?.status).toBe(
+    'accepted'
+  )
 })
