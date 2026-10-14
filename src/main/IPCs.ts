@@ -178,7 +178,10 @@ function initWindowIpcMain(win: BrowserWindow): void {
       oldestAcceptedAgeMinutes: safeNumber(data.oldestAcceptedAgeMinutes, 1_000_000),
       monthReportAvailable: data.monthReportAvailable === true,
       monthReportSeconds:
-        data.monthReportSeconds === null ? null : safeNumber(data.monthReportSeconds)
+        data.monthReportSeconds === null ? null : safeNumber(data.monthReportSeconds),
+      monthBaselineSeconds:
+        data.monthBaselineSeconds === null ? null : safeNumber(data.monthBaselineSeconds),
+      monthReportRegressionSeconds: safeNumber(data.monthReportRegressionSeconds)
     })
   })
 
