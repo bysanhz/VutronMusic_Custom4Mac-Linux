@@ -52,6 +52,7 @@ import {
   markNeteaseListenEntryFailed,
   stageNeteaseHistoricalReplay,
   recordNeteaseListenSegment,
+  recoverNeteaseListenLedgerBackup,
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount,
   setProvisionalNeteaseListen,
@@ -148,6 +149,7 @@ export const usePlayerStore = defineStore(
     let neteaseRetryTimer: number | null = null
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
     const MIN_NETEASE_CHECKPOINT_SECONDS = 30
+    const NETEASE_LOCAL_CHECKPOINT_SECONDS = 5
     const NETEASE_RETRY_POLL_MS = 30_000
     const MPRIS_PROGRESS_UPDATE_INTERVAL_MS = 1_000
     let lastMprisProgressUpdateAt = 0
@@ -1255,7 +1257,13 @@ export const usePlayerStore = defineStore(
             continue
           }
 
-          markNeteaseListenEntryAccepted(entry.id)
+          markNeteaseListenEntryAccepted(entry.id, {
+            transport: 'ncbl-plv-pld',
+            acknowledgedAt: Date.now(),
+            plvReceived: true,
+            pldReceived: true,
+            deduplicated: result?.deduplicatedSegment === true
+          })
           submittedCount += 1
           window.dispatchEvent(
             new CustomEvent('vutronmusic-netease-scrobble', {
@@ -2096,8 +2104,10 @@ export const usePlayerStore = defineStore(
             neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
           if (
             neteaseSessionListenedSeconds >= minimumSeconds &&
-            uncommittedSeconds >= minimumSeconds
+            uncommittedSeconds >= NETEASE_LOCAL_CHECKPOINT_SECONDS
           ) {
+            // Commit every five seconds after the initial valid-play threshold.
+            // Networking remains session-based; this only narrows crash loss.
             commitNeteaseSessionProgress(currentTrack.value!)
           } else {
             setProvisionalNeteaseListen({
@@ -2928,6 +2938,8 @@ export const usePlayerStore = defineStore(
     )
 
     onMounted(async () => {
+      // Restore the independent disk mirror BEFORE sending any pending records.
+      await recoverNeteaseListenLedgerBackup()
       await Promise.all([fetchLocalMusic(), fetchStreamMusic()])
       await nextTick()
       await setupAudioNode()
@@ -2938,6 +2950,8 @@ export const usePlayerStore = defineStore(
       initMediaSession()
       retryPendingNeteaseListen()
       window.addEventListener('online', retryPendingNeteaseListen)
+      window.addEventListener('pagehide', persistCurrentNeteaseListenOnExit)
+      window.addEventListener('beforeunload', persistCurrentNeteaseListenOnExit)
       neteaseRetryTimer = window.setInterval(
         retryPendingNeteaseListen,
         NETEASE_RETRY_POLL_MS
@@ -2986,6 +3000,18 @@ export const usePlayerStore = defineStore(
       }
     })
 
+    /**
+     * BrowserWindow teardown does not guarantee Vue's onBeforeUnmount hook.
+     * Make the last local commit synchronous; do not start new network I/O
+     * during page unload. The recovered outbox is retried after restart.
+     */
+    const persistCurrentNeteaseListenOnExit = (): void => {
+      if (currentTrack.value) {
+        commitNeteaseSessionProgress(currentTrack.value)
+      }
+      flushNeteaseListenLedger(true)
+    }
+
     onBeforeUnmount(() => {
       clearCoverRetryTimer()
       if (currentTrack.value) {
@@ -2997,6 +3023,8 @@ export const usePlayerStore = defineStore(
       // scrobbleNetease 会在首个 await 前把有效 session 写入账本；必须随后强制落盘。
       flushNeteaseListenLedger(true)
       window.removeEventListener('online', retryPendingNeteaseListen)
+      window.removeEventListener('pagehide', persistCurrentNeteaseListenOnExit)
+      window.removeEventListener('beforeunload', persistCurrentNeteaseListenOnExit)
       if (neteaseRetryTimer !== null) {
         window.clearInterval(neteaseRetryTimer)
         neteaseRetryTimer = null
