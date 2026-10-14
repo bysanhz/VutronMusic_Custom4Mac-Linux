@@ -19,6 +19,8 @@ export type NeteaseListenEntry = {
   createdAt: number
   updatedAt: number
   acceptedAt?: number
+  /** Explicit, at-most-once historical resend; network retries retain its token. */
+  manualReplayCount?: number
   attempts: number
   nextRetryAt: number
   lastError?: string
@@ -111,7 +113,16 @@ const sanitizeEntry = (value: any): NeteaseListenEntry | null => {
     confirmedByPeriod,
     confirmedSeconds,
     status,
-    params: { ...value.params, time: seconds, segmentId: String(value.id) },
+    params: {
+      ...value.params,
+      time: seconds,
+      segmentId:
+        Number(value.manualReplayCount) === 1 &&
+        typeof value.params.segmentId === 'string' &&
+        value.params.segmentId.startsWith(`replay:${value.id}:`)
+          ? value.params.segmentId
+          : String(value.id)
+    },
     createdAt: Number(value.createdAt) || startedAt,
     updatedAt: Number(value.updatedAt) || endedAt,
     attempts: Math.max(0, Number(value.attempts) || 0),
@@ -356,15 +367,18 @@ export const claimPendingNeteaseListenEntries = (options: {
   accountId: unknown
   sessionId?: string
   excludeSessionId?: string
+  entryIds?: string[]
   force?: boolean
 }): NeteaseListenEntry[] => {
   const accountId = normalizeAccountId(options.accountId)
   const now = Date.now()
   const claimed: NeteaseListenEntry[] = []
+  const selectedIds = options.entryIds ? new Set(options.entryIds) : null
   neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => {
     const eligible =
       entry.accountId === accountId &&
       entry.status === 'pending' &&
+      (!selectedIds || selectedIds.has(entry.id)) &&
       (!options.sessionId || entry.sessionId === options.sessionId) &&
       (!options.excludeSessionId || entry.sessionId !== options.excludeSessionId) &&
       (options.force || entry.nextRetryAt <= now)
@@ -428,6 +442,77 @@ export const clearAcceptedNeteaseListenEntries = (options: {
   })
   if (cleared > 0) flushNeteaseListenLedger(true)
   return cleared
+}
+
+/**
+ * Only a deliberate user action can stage a historical replay. A PLV/PLD
+ * upload receipt is NOT proof that NetEase counted the duration: replay may
+ * double-count it. Never pick the current day, another account, previously
+ * confirmed segments, or a segment already replayed once.
+ */
+const replayableAcceptedEntries = (accountId: unknown, now: number): NeteaseListenEntry[] => {
+  const normalized = normalizeAccountId(accountId)
+  const today = localDateKey(now)
+  const month = today.slice(0, 7)
+  return neteaseListenEntries.value.filter((entry) => {
+    if (
+      entry.accountId !== normalized ||
+      entry.status !== 'accepted' ||
+      !entry.dateKey.startsWith(month) ||
+      entry.dateKey >= today ||
+      (entry.manualReplayCount || 0) > 0 ||
+      now - (entry.acceptedAt || entry.updatedAt) < 60 * 60_000
+    ) {
+      return false
+    }
+    const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
+    const monthConfirmed = Number(entry.confirmedByPeriod?.[`month:${month}`]) || 0
+    return Math.max(dayConfirmed, monthConfirmed) < entry.seconds
+  })
+}
+
+export const getNeteaseHistoricalReplayPreview = (accountId: unknown, now = Date.now()) => {
+  const entries = replayableAcceptedEntries(accountId, now)
+  return {
+    count: entries.length,
+    seconds: Math.round(
+      entries.reduce((sum, entry) => {
+        const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
+        const monthConfirmed = Number(entry.confirmedByPeriod?.[`month:${entry.dateKey.slice(0, 7)}`]) || 0
+        return sum + Math.max(0, entry.seconds - Math.max(dayConfirmed, monthConfirmed))
+      }, 0)
+    )
+  }
+}
+
+/**
+ * Re-use historical timestamps but issue a new upload id so that the server's
+ * persisted receipt does not short-circuit the real upload. Persist BEFORE
+ * networking. Normal pending retry will re-use this same token after failures.
+ */
+export const stageNeteaseHistoricalReplay = (
+  accountId: unknown,
+  now = Date.now()
+): string[] => {
+  const candidates = replayableAcceptedEntries(accountId, now)
+  if (!candidates.length) return []
+  const candidateIds = new Set(candidates.map((entry) => entry.id))
+  neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => {
+    if (!candidateIds.has(entry.id)) return entry
+    return {
+      ...entry,
+      status: 'pending' as const,
+      manualReplayCount: 1,
+      params: { ...entry.params, segmentId: `replay:${entry.id}:${createId()}` },
+      acceptedAt: undefined,
+      attempts: 0,
+      nextRetryAt: 0,
+      updatedAt: now,
+      lastError: undefined
+    }
+  })
+  flushNeteaseListenLedger(true)
+  return candidates.map((entry) => entry.id)
 }
 
 const secondsInsideRange = (
