@@ -2,6 +2,7 @@ import { app, ipcMain, webContents } from 'electron'
 import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
+import store from './store'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
 const APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
@@ -60,6 +61,33 @@ const installRuntimeDiagnostics = (): void => {
             }
           })
         : []
+    }
+  })
+
+  // Keep an independent disk mirror: Chromium localStorage has a small quota
+  // and is not sufficient as the only archive for unverified cloud uploads.
+  // Only the main player window may overwrite this backup.
+  ipcMain.handle('get-listen-ledger-backup', (event) => {
+    if (!event.sender.getURL().includes('index.html')) return null
+    return store.get('netease.listenLedgerBackupV1') ?? null
+  })
+
+  ipcMain.on('listen-ledger-snapshot', (event, value: unknown) => {
+    if (!event.sender.getURL().includes('index.html')) return
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return
+    const snapshot = value as Record<string, unknown>
+    if (!Array.isArray(snapshot.entries)) return
+    if (!snapshot.remoteBaselines || typeof snapshot.remoteBaselines !== 'object') return
+    if (!snapshot.remoteObservations || typeof snapshot.remoteObservations !== 'object') return
+    try {
+      const serialized = JSON.stringify(snapshot)
+      if (serialized.length > 40 * 1024 * 1024) {
+        console.warn('[ListenSync] 账本磁盘备份超过容量保护阈值')
+        return
+      }
+      store.set('netease.listenLedgerBackupV1', snapshot)
+    } catch (error) {
+      console.warn('[ListenSync] 写入磁盘账本备份失败：', error)
     }
   })
 
