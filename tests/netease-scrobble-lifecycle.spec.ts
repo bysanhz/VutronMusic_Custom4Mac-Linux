@@ -54,7 +54,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('neteaseSessionListenedSeconds += delta')
     expect(player).toContain('neteaseSessionListenedSeconds >= minimumSeconds')
     expect(player).toContain('setProvisionalNeteaseListen(')
-    expect(player).toContain('markNeteaseListenEntryAccepted(entry.id)')
+    expect(player).toContain('markNeteaseListenEntryAccepted(entry.id, {')
     expect(player).toContain('flushNeteaseListenLedger(true)')
     expect(player.lastIndexOf('flushNeteaseListenLedger(true)')).toBeGreaterThan(
       player.lastIndexOf('void scrobbleNetease(')
