@@ -807,6 +807,12 @@ const loadFootprint = async (): Promise<void> => {
     const nextTodaySeconds =
       extractTodayListenSeconds(currentMonth) ?? extractTodayListenSeconds(week)
     if (nextTodaySeconds !== undefined) footprint.todaySeconds = nextTodaySeconds
+    // Inferred index-based dates are display compatibility only, never
+    // evidence to confirm uploads for a particular calendar day.
+    const currentDate = new Date(clockNow.value)
+    const confirmedTodaySeconds =
+      extractTodayListenSeconds(currentMonth, currentDate, true) ??
+      extractTodayListenSeconds(week, currentDate, true)
 
     // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
     const nextRemoteWeekSeconds =
@@ -832,7 +838,7 @@ const loadFootprint = async (): Promise<void> => {
       periodKey: todayPeriodKey.value,
       rangeStart: startOfToday.value,
       rangeEnd: endOfToday.value,
-      remoteSeconds: nextTodaySeconds
+      remoteSeconds: confirmedTodaySeconds
     })
     reconcileNeteaseListenReport({
       accountId: accountId.value,
@@ -909,6 +915,11 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
     const nextMonthSeconds = extractRealtimeListenSeconds(currentMonth)
     monthReportAvailable.value = nextMonthSeconds !== undefined
     const nextTodaySeconds = extractTodayListenSeconds(currentMonth)
+    const confirmedTodaySeconds = extractTodayListenSeconds(
+      currentMonth,
+      new Date(clockNow.value),
+      true
+    )
 
     // month 缺逐日明细，或今日专用接口临时不可用时，才补请求 week report。
     // 这样既保留自然周兜底，也能避免今日首数因为单个接口失败长期停留在旧值。
@@ -951,7 +962,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         periodKey: todayPeriodKey.value,
         rangeStart: startOfToday.value,
         rangeEnd: endOfToday.value,
-        remoteSeconds: nextTodaySeconds
+        remoteSeconds: confirmedTodaySeconds
       })
     }
     reportListenSyncHealth(nextMonthSeconds)
