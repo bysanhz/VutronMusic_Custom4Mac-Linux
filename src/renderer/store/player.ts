@@ -1150,12 +1150,15 @@ export const usePlayerStore = defineStore(
 
     const commitNeteaseSessionProgress = (
       track: Track,
-      { force = false }: { force?: boolean } = {}
+      { force = false, allowPreviousAccount = false }: {
+        force?: boolean
+        allowPreviousAccount?: boolean
+      } = {}
     ): number => {
       if (!shouldTrackNeteaseListenTime(track)) return 0
       if (
         neteaseSessionAccountId === 'anonymous' ||
-        neteaseSessionAccountId !== currentNeteaseAccountId()
+        (!allowPreviousAccount && neteaseSessionAccountId !== currentNeteaseAccountId())
       ) {
         return 0
       }
@@ -2920,6 +2923,11 @@ export const usePlayerStore = defineStore(
         const nextAccountId = String(userId || 'anonymous')
         const previousAccountId = String(previousUserId || 'anonymous')
         if (nextAccountId !== previousAccountId) {
+          // Preserve already eligible old-account playback locally BEFORE
+          // resetting the session. Never upload it with the new account cookie.
+          if (currentTrack.value && neteaseSessionAccountId === previousAccountId) {
+            commitNeteaseSessionProgress(currentTrack.value, { allowPreviousAccount: true })
+          }
           // Cookie 已经随账号切换，不能再把旧会话提交到新账号。已落账片段保留在旧账号
           // 的独立队列中；当前歌曲从切换时刻开始建立一个全新的账号会话。
           neteaseSessionListenedSeconds = 0
