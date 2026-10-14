@@ -52,6 +52,32 @@ test.describe('NetEase listening duration extraction', () => {
     })
   })
 
+  test('refuses inferred dates when confirming NetEase daily reports', () => {
+    const report = {
+      data: {
+        startTime: new Date(2026, 9, 1).getTime(),
+        listenTimeDistributionBlock: {
+          durationDetails: [
+            { period: '2026-10-13', duration: 84 },
+            { duration: 166 },
+            { date: '2026-10-14', duration: 12 }
+          ]
+        }
+      }
+    }
+
+    // The legacy display fallback may use startTime + row index.
+    // It must never turn an undated row into confirmation for October 2.
+    expect(extractDailyListenSeconds(report)).toContainEqual({
+      dateKey: '2026-10-02',
+      seconds: 166 * 60
+    })
+    expect(extractDailyListenSeconds(report, true)).toEqual([
+      { dateKey: '2026-10-13', seconds: 84 * 60 },
+      { dateKey: '2026-10-14', seconds: 12 * 60 }
+    ])
+  })
+
   test('does not let a stale week report override an explicitly empty today response', () => {
     const today = { code: 200, data: { songDTOs: [] } }
     const week = { code: 200, data: { weekTodayListenBlock: { songCount: 5 } } }
