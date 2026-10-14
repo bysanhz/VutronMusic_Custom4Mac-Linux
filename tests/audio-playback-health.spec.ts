@@ -23,7 +23,7 @@ test('batches listening writes and logs audio health events', () => {
   const main = readFileSync(resolve('src/main/IPCs.ts'), 'utf8')
   const preload = readFileSync(resolve('src/preload/index.ts'), 'utf8')
 
-  expect(player).toContain('uncommittedSeconds >= minimumSeconds')
+  expect(player).toContain('uncommittedSeconds >= NETEASE_LOCAL_CHECKPOINT_SECONDS')
   expect(player).toContain("sendAudioHealthEvent('waiting')")
   expect(player).toContain("sendAudioHealthEvent('stalled')")
   const loopDelayEvent = "sendAudioHealthEvent('main-thread-delay', extraDelay)"
