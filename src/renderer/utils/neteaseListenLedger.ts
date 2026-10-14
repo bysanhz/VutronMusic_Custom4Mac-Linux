@@ -254,6 +254,7 @@ export const recoverNeteaseListenLedgerBackup = async (): Promise<void> => {
     })
     backupStatusListenerInstalled = true
   }
+  let backupReadFailed = false
   try {
     const backup = await (typeof window !== 'undefined'
       ? window.mainApi?.invoke('get-listen-ledger-backup')
@@ -298,12 +299,15 @@ export const recoverNeteaseListenLedgerBackup = async (): Promise<void> => {
       localStorageCorrupted = false
     }
   } catch (error) {
+    backupReadFailed = true
     persistenceFailures += 1
     lastPersistenceFailureAt = Date.now()
     console.warn('[NetEaseListenLedger] 恢复磁盘账本备份失败：', error)
   } finally {
-    backupReady = true
-    if (!localStorageCorrupted) flushNeteaseListenLedger(true)
+    // Never overwrite a backup we could not read or a damaged local ledger
+    // for which no valid backup was found. Both sources remain recoverable.
+    backupReady = !backupReadFailed && !localStorageCorrupted
+    if (backupReady) flushNeteaseListenLedger(true)
   }
 }
 
