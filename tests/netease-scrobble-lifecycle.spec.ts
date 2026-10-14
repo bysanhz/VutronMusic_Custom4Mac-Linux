@@ -28,6 +28,16 @@ test('documents crash-safe checkpoints, non-destructive retention and upload evi
   expect(server).toContain('plvPreviouslyAcknowledged')
 })
 
+test('account switching commits the previous session without uploading under the next cookie', () => {
+  const player = readSource('src/renderer/store/player.ts')
+  expect(player).toContain('allowPreviousAccount = false')
+  expect(player).toContain("neteaseSessionAccountId === previousAccountId")
+  expect(player).toContain(
+    'commitNeteaseSessionProgress(currentTrack.value, { allowPreviousAccount: true })'
+  )
+  expect(player).toContain("const nextAccountId = String(userId || 'anonymous')")
+})
+
 test.describe('NetEase scrobble lifecycle', () => {
   test('wires player playback into the NetEase scrobble API', () => {
     const player = readSource('src/renderer/store/player.ts')
