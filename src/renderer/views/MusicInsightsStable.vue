@@ -761,7 +761,8 @@ const reconcileEarlierDaysFromMonthReport = (report: any): void => {
   if (!report) return
   const monthKey = monthPeriodKey.value.slice(6)
   const todayKey = localDateKey(clockNow.value)
-  for (const { dateKey, seconds } of extractDailyListenSeconds(report)) {
+  // Only explicitly dated rows can provide evidence for a particular closed day.
+  for (const { dateKey, seconds } of extractDailyListenSeconds(report, true)) {
     if (!dateKey.startsWith(monthKey) || dateKey >= todayKey) continue
     if (
       !neteaseListenEntries.value.some(
