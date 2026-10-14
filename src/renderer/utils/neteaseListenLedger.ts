@@ -467,10 +467,10 @@ const replayableAcceptedEntries = (accountId: unknown, now: number): NeteaseList
     }
     const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
     const monthConfirmed = Number(entry.confirmedByPeriod?.[`month:${month}`]) || 0
-    const totalConfirmed = Number(entry.confirmedByPeriod?.total) || 0
-    // Do not replay the full segment if ANY duration was already credited.
-    // Replaying only the remainder would need different event boundaries.
-    return Math.max(dayConfirmed, monthConfirmed, totalConfirmed) === 0
+    // A legacy 'total' credit is aggregate-only evidence. It cannot identify
+    // this song or day and must not silently suppress an explicit replay.
+    // Day/month partial credit still prevents resending the whole segment.
+    return Math.max(dayConfirmed, monthConfirmed) === 0
   })
 }
 
@@ -507,6 +507,8 @@ export const getNeteaseHistoricalReplayDiagnostics = (
     eligibleEntries: 0,
     eligibleSeconds: 0,
     partiallyConfirmedEntries: 0,
+    aggregateOnlyEntries: 0,
+    aggregateOnlySeconds: 0,
     alreadyReplayedEntries: 0,
     tooRecentEntries: 0
   }
@@ -527,26 +529,30 @@ export const getNeteaseHistoricalReplayDiagnostics = (
     summary.awaitingEntries += 1
     summary.awaitingSeconds += remaining
 
+    const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
+    const totalConfirmed = Number(entry.confirmedByPeriod?.total) || 0
     if (eligibleIds.has(entry.id)) {
       summary.eligibleEntries += 1
       summary.eligibleSeconds += remaining
+      if (totalConfirmed > 0 && dayConfirmed === 0 && monthConfirmed === 0) {
+        // Subset of eligible: a previous total-only guess is NOT song-level proof.
+        summary.aggregateOnlyEntries += 1
+        summary.aggregateOnlySeconds += remaining
+      }
     } else if ((entry.manualReplayCount || 0) > 0) {
       summary.alreadyReplayedEntries += 1
+    } else if (Math.max(dayConfirmed, monthConfirmed) > 0) {
+      summary.partiallyConfirmedEntries += 1
     } else {
-      const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
-      const totalConfirmed = Number(entry.confirmedByPeriod?.total) || 0
-      if (Math.max(dayConfirmed, monthConfirmed, totalConfirmed) > 0) {
-        summary.partiallyConfirmedEntries += 1
-      } else {
-        summary.tooRecentEntries += 1
-      }
+      summary.tooRecentEntries += 1
     }
   }
 
   return {
     ...summary,
     awaitingSeconds: Math.round(summary.awaitingSeconds),
-    eligibleSeconds: Math.round(summary.eligibleSeconds)
+    eligibleSeconds: Math.round(summary.eligibleSeconds),
+    aggregateOnlySeconds: Math.round(summary.aggregateOnlySeconds)
   }
 }
 
@@ -642,7 +648,15 @@ export const reconcileNeteaseListenReport = (options: {
   const accountId = normalizeAccountId(options.accountId)
   const baselineKey = `${accountId}:${options.periodKey}`
   const previous = Number(remoteBaselines[baselineKey])
-  let growth = Number.isFinite(previous) ? Math.max(0, remoteSeconds - previous) : 0
+  // listen/total spans every device and day. Its growth cannot be assigned to
+  // arbitrary local segments. Keep the report high-water mark for diagnostics
+  // but only day/month period reports may contribute per-entry credit.
+  let growth =
+    options.periodKey === 'total'
+      ? 0
+      : Number.isFinite(previous)
+        ? Math.max(0, remoteSeconds - previous)
+        : 0
   const entries = [...neteaseListenEntries.value]
   let changed = false
 
