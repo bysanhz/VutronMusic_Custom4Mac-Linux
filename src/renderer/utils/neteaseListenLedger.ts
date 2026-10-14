@@ -669,6 +669,10 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
   let acceptedEntries = 0
   let failedEntries = 0
   let oldestAcceptedAt = now
+  const acceptedByDay = new Map<
+    string,
+    { entries: number; seconds: number; oldestAcceptedAt: number }
+  >()
 
   for (const entry of neteaseListenEntries.value) {
     if (entry.accountId !== accountId || !entry.dateKey.startsWith(month)) continue
@@ -680,7 +684,17 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     if (entry.status === 'accepted') {
       acceptedSeconds += remaining
       acceptedEntries += 1
-      oldestAcceptedAt = Math.min(oldestAcceptedAt, entry.acceptedAt || entry.endedAt)
+      const acceptedAt = entry.acceptedAt || entry.endedAt
+      oldestAcceptedAt = Math.min(oldestAcceptedAt, acceptedAt)
+      const day = acceptedByDay.get(entry.dateKey) || {
+        entries: 0,
+        seconds: 0,
+        oldestAcceptedAt: now
+      }
+      day.entries += 1
+      day.seconds += remaining
+      day.oldestAcceptedAt = Math.min(day.oldestAcceptedAt, acceptedAt)
+      acceptedByDay.set(entry.dateKey, day)
     } else {
       pendingSeconds += remaining
       pendingEntries += 1
@@ -690,6 +704,27 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
 
   const monthReport = getNeteaseListenReportStatus(accountId, `month:${month}`)
   const todayReport = getNeteaseListenReportStatus(accountId, `today:${today}`)
+  // Daily report evidence is much more informative than a fluctuating monthly
+  // aggregate. Export only bounded per-day totals, not individual song details
+  // or account identifiers.
+  const acceptedDayReports = Array.from(acceptedByDay.entries())
+    .sort(([left], [right]) => right.localeCompare(left))
+    .slice(0, 14)
+    .map(([dateKey, day]) => {
+      const report = getNeteaseListenReportStatus(accountId, `today:${dateKey}`)
+      return {
+        date: dateKey,
+        acceptedEntries: day.entries,
+        acceptedSeconds: Math.round(day.seconds),
+        oldestAcceptedAgeMinutes: Math.floor(
+          Math.max(0, now - day.oldestAcceptedAt) / 60_000
+        ),
+        dayReportBaselineSeconds: report.highWaterSeconds,
+        dayReportLatestSeconds: report.latestReportedSeconds,
+        dayReportRegressionSeconds: report.regressionSeconds,
+        dayReportObservedAt: report.lastObservedAt
+      }
+    })
   const provisional =
     provisionalNeteaseListen.value.accountId === accountId
       ? provisionalNeteaseListen.value.seconds
@@ -707,7 +742,8 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     monthLatestReportedSeconds: monthReport.latestReportedSeconds,
     monthReportRegressionSeconds: monthReport.regressionSeconds,
     monthReportObservedAt: monthReport.lastObservedAt,
-    todayLatestReportedSeconds: todayReport.latestReportedSeconds
+    todayLatestReportedSeconds: todayReport.latestReportedSeconds,
+    acceptedDayReports
   }
 }
 
