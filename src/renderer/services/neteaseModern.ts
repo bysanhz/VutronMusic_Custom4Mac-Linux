@@ -346,7 +346,12 @@ const reportReferenceDate = (source: any): Date => {
   return end ?? new Date()
 }
 
-const getDurationDetailDate = (item: any, source: any, index: number): Date | null => {
+const getDurationDetailDate = (
+  item: any,
+  source: any,
+  index: number,
+  requireExplicitDate = false
+): Date | null => {
   if (!item || typeof item !== 'object') return null
 
   const reference = reportReferenceDate(source)
@@ -365,7 +370,11 @@ const getDurationDetailDate = (item: any, source: any, index: number): Date | nu
     if (parsed) return parsed
   }
 
-  // 兼容极少数没有 period 的旧响应：按报告 startTime + 数组索引恢复日期。
+  // Never use an inferred array index to confirm remote credit for a specific
+  // day. Sparse or reordered durationDetails would attribute the wrong date.
+  if (requireExplicitDate) return null
+
+  // For display compatibility only: legacy reports without any row date.
   const reportStart = parseDateLike(source?.data?.startTime)
   if (reportStart) {
     const derived = new Date(reportStart)
@@ -398,13 +407,14 @@ export const extractTodayListenSeconds = (source: any, now = new Date()): number
 
 /** Read each dated row so yesterday's delayed report can still confirm yesterday's uploads. */
 export const extractDailyListenSeconds = (
-  source: any
+  source: any,
+  requireExplicitDate = false
 ): Array<{ dateKey: string; seconds: number }> => {
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details)) return []
 
   return details.flatMap((item: any, index: number) => {
-    const date = getDurationDetailDate(item, source, index)
+    const date = getDurationDetailDate(item, source, index, requireExplicitDate)
     const minutes = Number(item?.duration)
     if (!date || !Number.isFinite(minutes) || minutes < 0) return []
     const dateKey = [
