@@ -1004,6 +1004,7 @@
       "pendingSubmitted": "Today awaiting confirmation +{duration}",
       "earlierPending": "This month before today: to submit +{duration}",
       "earlierSubmitted": "This month before today: submitted, awaiting confirmation +{duration}",
+      "historicalReplayDiagnostics": "Historical replay: {awaiting} awaiting, {eligible} eligible; {credited} with partial period credit, {retried} replayed already, {recent} less than one hour old.",
       "historicalReplayButton": "Retry past unverified uploads ({count})",
       "historicalReplayConfirm": "Re-upload {count} historical segments ({duration})? NetEase already accepted their upload receipts but its duration report has not verified them. Replaying may double-count time, or may still be ignored. Each segment can be manually replayed only once. This cannot be undone.",
       "historicalReplayDone": "Attempted to re-upload {count} historical segments. NetEase report confirmation is still required.",
