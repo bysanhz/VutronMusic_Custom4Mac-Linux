@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   clearAcceptedNeteaseListenEntries,
   claimPendingNeteaseListenEntries,
@@ -704,6 +706,7 @@ test('historical manual replay is explicit, account-isolated and at most once', 
   add('account-b', 'other-account', yesterday)
   const alreadyConfirmedId = add('account-a', 'already-confirmed', yesterday + 300_000)
   const partiallyConfirmedId = add('account-a', 'partially-confirmed', yesterday + 600_000)
+  const totalOnlyId = add('account-a', 'total-only', yesterday + 900_000)
 
   neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => ({
     ...entry,
@@ -713,15 +716,18 @@ test('historical manual replay is explicit, account-isolated and at most once', 
         ? { 'today:2026-10-13': 120 }
         : entry.id === partiallyConfirmedId
           ? { 'today:2026-10-13': 30 }
-          : entry.confirmedByPeriod
+          : entry.id === totalOnlyId
+            ? { total: 60 }
+            : entry.confirmedByPeriod
   }))
 
   expect(getNeteaseHistoricalReplayPreview('account-a', now)).toEqual({
-    count: 1,
-    seconds: 120
+    count: 2,
+    seconds: 240
   })
-  const [stagedId] = stageNeteaseHistoricalReplay('account-a', now)
-  expect(stagedId).toBe(historicalId)
+  expect(getNeteaseHistoricalReplayDiagnostics('account-a', now).aggregateOnlyEntries).toBe(1)
+  const stagedIds = stageNeteaseHistoricalReplay('account-a', now)
+  expect(stagedIds).toEqual([historicalId, totalOnlyId])
   const staged = neteaseListenEntries.value.find((entry) => entry.id === historicalId)!
   expect(staged.status).toBe('pending')
   expect(staged.manualReplayCount).toBe(1)
@@ -757,6 +763,7 @@ test('diagnoses hidden replay action without changing the unverified month backl
   }
   const eligible = record('eligible', yesterday)
   const partiallyCredited = record('partial', yesterday + 180_000)
+  const aggregateOnly = record('total-only', yesterday + 270_000)
   const previouslyReplayed = record('replayed', yesterday + 360_000)
   const tooRecent = record('recent', yesterday + 540_000)
   record('excluded-current-day', now - 120_000)
@@ -767,22 +774,26 @@ test('diagnoses hidden replay action without changing the unverified month backl
     manualReplayCount: entry.id === previouslyReplayed ? 1 : undefined,
     confirmedByPeriod:
       entry.id === partiallyCredited
-        ? { total: 30 }
-        : entry.confirmedByPeriod
+        ? { 'today:2026-10-13': 30 }
+        : entry.id === aggregateOnly
+          ? { total: 30 }
+          : entry.confirmedByPeriod
   }))
 
   expect(getNeteaseHistoricalReplayDiagnostics('diagnosis-account', now)).toEqual({
-    awaitingEntries: 4,
-    awaitingSeconds: 480,
-    eligibleEntries: 1,
-    eligibleSeconds: 120,
+    awaitingEntries: 5,
+    awaitingSeconds: 600,
+    eligibleEntries: 2,
+    eligibleSeconds: 240,
     partiallyConfirmedEntries: 1,
+    aggregateOnlyEntries: 1,
+    aggregateOnlySeconds: 120,
     alreadyReplayedEntries: 1,
     tooRecentEntries: 1
   })
   expect(getNeteaseHistoricalReplayPreview('diagnosis-account', now)).toEqual({
-    count: 1,
-    seconds: 120
+    count: 2,
+    seconds: 240
   })
   expect(neteaseListenEntries.value.find((entry) => entry.id === eligible)?.status).toBe('accepted')
   expect(
@@ -792,5 +803,60 @@ test('diagnoses hidden replay action without changing the unverified month backl
       new Date(2026, 9, 14).getTime() - 1,
       'month:2026-10'
     ).accepted
-  ).toBe(480)
+  ).toBe(600)
+})
+
+test('global total report growth is not evidence of song-level remote credit', () => {
+  const accountId = 'aggregate-is-not-song-confirmation'
+  const dayStart = new Date(2026, 9, 13).getTime()
+  const dayEnd = new Date(2026, 9, 14).getTime() - 1
+  const now = new Date(2026, 9, 14, 12, 0, 0).getTime()
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'historic-session',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 180_000,
+    seconds: 120,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+  neteaseListenEntries.value = neteaseListenEntries.value.map((item) =>
+    item.id === entry.id ? { ...item, acceptedAt: now - 2 * 60 * 60_000 } : item
+  )
+
+  const reconcileTotal = (remoteSeconds: number) =>
+    reconcileNeteaseListenReport({
+      accountId,
+      periodKey: 'total',
+      rangeStart: Number.NEGATIVE_INFINITY,
+      rangeEnd: Number.POSITIVE_INFINITY,
+      remoteSeconds
+    })
+  reconcileTotal(100_000)
+  reconcileTotal(101_000)
+
+  const stored = neteaseListenEntries.value.find((item) => item.id === entry.id)!
+  expect(stored.confirmedByPeriod.total).toBeUndefined()
+  expect(
+    getNeteaseListenLedgerTotals(accountId, dayStart, dayEnd, 'month:2026-10').accepted
+  ).toBe(120)
+  expect(getNeteaseHistoricalReplayPreview(accountId, now)).toEqual({ count: 1, seconds: 120 })
+
+  // Historical ledgers may already contain invalid per-segment 'total' credits.
+  // Preserve them for audit; do not mistake them for day/month verification.
+  neteaseListenEntries.value = neteaseListenEntries.value.map((item) =>
+    item.id === entry.id ? { ...item, confirmedByPeriod: { total: 60 } } : item
+  )
+  const diagnosis = getNeteaseHistoricalReplayDiagnostics(accountId, now)
+  expect(diagnosis.aggregateOnlyEntries).toBe(1)
+  expect(diagnosis.eligibleEntries).toBe(1)
+  expect(diagnosis.partiallyConfirmedEntries).toBe(0)
+  expect(neteaseListenEntries.value.find((item) => item.id === entry.id)?.status).toBe('accepted')
+})
+
+test('historical replay UI requires extra consent for ambiguous total-only history', () => {
+  const source = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
+  expect(source).toContain('historicalReplayAggregateWarning')
+  expect(source).toContain('aggregateOnly > 0')
+  expect(source).toContain('@click="replayHistoricalAccepted"')
 })
