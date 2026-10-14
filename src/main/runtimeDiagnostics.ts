@@ -74,20 +74,38 @@ const installRuntimeDiagnostics = (): void => {
 
   ipcMain.on('listen-ledger-snapshot', (event, value: unknown) => {
     if (!event.sender.getURL().includes('index.html')) return
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return
+    const acknowledge = (ok: boolean): void => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('listen-ledger-backup-status', { ok })
+      }
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      acknowledge(false)
+      return
+    }
     const snapshot = value as Record<string, unknown>
-    if (!Array.isArray(snapshot.entries)) return
-    if (!snapshot.remoteBaselines || typeof snapshot.remoteBaselines !== 'object') return
-    if (!snapshot.remoteObservations || typeof snapshot.remoteObservations !== 'object') return
+    if (
+      !Array.isArray(snapshot.entries) ||
+      !snapshot.remoteBaselines ||
+      typeof snapshot.remoteBaselines !== 'object' ||
+      !snapshot.remoteObservations ||
+      typeof snapshot.remoteObservations !== 'object'
+    ) {
+      acknowledge(false)
+      return
+    }
     try {
       const serialized = JSON.stringify(snapshot)
       if (serialized.length > 40 * 1024 * 1024) {
         console.warn('[ListenSync] 账本磁盘备份超过容量保护阈值')
+        acknowledge(false)
         return
       }
       store.set('netease.listenLedgerBackupV1', snapshot)
+      acknowledge(true)
     } catch (error) {
       console.warn('[ListenSync] 写入磁盘账本备份失败：', error)
+      acknowledge(false)
     }
   })
 
