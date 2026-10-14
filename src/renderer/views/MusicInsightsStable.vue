@@ -84,6 +84,7 @@
               awaiting: historicalReplayDiagnostics.awaitingEntries,
               eligible: historicalReplayDiagnostics.eligibleEntries,
               credited: historicalReplayDiagnostics.partiallyConfirmedEntries,
+              aggregate: historicalReplayDiagnostics.aggregateOnlyEntries,
               retried: historicalReplayDiagnostics.alreadyReplayedEntries,
               recent: historicalReplayDiagnostics.tooRecentEntries
             }) }}
@@ -625,6 +626,15 @@ const replayHistoricalAccepted = async (): Promise<void> => {
         duration: formatPendingListenDuration(preview.seconds)
       })
     )
+  ) {
+    return
+  }
+  // Historical total-only attribution may have come from another device.
+  // Keep this an explicitly accepted risk, never an automatic resend.
+  const aggregateOnly = historicalReplayDiagnostics.value.aggregateOnlyEntries
+  if (
+    aggregateOnly > 0 &&
+    !confirm(t('insights.footprint.historicalReplayAggregateWarning', { count: aggregateOnly }))
   ) {
     return
   }
