@@ -70,6 +70,15 @@
               {{ t('insights.footprint.clearAccepted') }}
             </button>
           </div>
+          <button
+            v-if="historicalReplayPreview.count > 0"
+            type="button"
+            class="clear-sync-button historical-replay-button"
+            :disabled="historicalReplayBusy"
+            @click="replayHistoricalAccepted"
+          >
+            {{ t('insights.footprint.historicalReplayButton', { count: historicalReplayPreview.count }) }}
+          </button>
           <div class="sync-traffic-light">
             <div class="sync-light-row" :class="{ active: totalUnsubmittedSeconds > 0 }">
               <span class="sync-light red" aria-hidden="true">待发</span>
@@ -443,6 +452,7 @@ import { useNormalStateStore } from '../store/state'
 import {
   clearAcceptedNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
+  getNeteaseHistoricalReplayPreview,
   getNeteaseListenSyncDiagnostics,
   getNeteaseListenReportStatus,
   localDateKey,
@@ -586,6 +596,36 @@ const totalUnsubmittedSeconds = computed(
 const totalAwaitingSeconds = computed(
   () => submittedNeteaseListenSeconds.value + earlierAcceptedNeteaseListenSeconds.value
 )
+const historicalReplayBusy = ref(false)
+const historicalReplayPreview = computed(() => {
+  void neteaseListenEntries.value
+  return getNeteaseHistoricalReplayPreview(accountId.value, clockNow.value)
+})
+const replayHistoricalAccepted = async (): Promise<void> => {
+  if (historicalReplayBusy.value || historicalReplayPreview.value.count <= 0) return
+  const preview = historicalReplayPreview.value
+  if (
+    !confirm(
+      t('insights.footprint.historicalReplayConfirm', {
+        count: preview.count,
+        duration: formatPendingListenDuration(preview.seconds)
+      })
+    )
+  ) {
+    return
+  }
+  historicalReplayBusy.value = true
+  try {
+    const submitted = await playerStore.replayHistoricalNeteaseListens()
+    showToast(t('insights.footprint.historicalReplayDone', { count: submitted }))
+    await loadFootprint()
+  } catch (error) {
+    console.warn('[MusicInsights] 手动补报历史片段失败：', error)
+    showToast(t('insights.footprint.historicalReplayFailed'))
+  } finally {
+    historicalReplayBusy.value = false
+  }
+}
 const clearAcceptedBacklog = (): void => {
   const acceptedSeconds = totalAwaitingSeconds.value
   if (acceptedSeconds <= 0 || accountId.value === 'anonymous') return
@@ -1484,6 +1524,12 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 5px;
+}
+
+.historical-replay-button {
+  width: 100%;
+  text-align: center;
+  white-space: normal;
 }
 
 .sync-traffic-light {
