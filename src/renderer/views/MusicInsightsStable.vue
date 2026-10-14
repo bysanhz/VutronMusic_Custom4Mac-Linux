@@ -133,6 +133,17 @@
           >
             {{ t('insights.footprint.reportUnavailable') }}
           </div>
+          <div
+            v-if="monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0"
+            class="sync-report-unavailable"
+            role="status"
+          >
+            {{
+              t('insights.footprint.reportRegressed', {
+                duration: formatPendingListenDuration(monthReportRegressionSeconds)
+              })
+            }}
+          </div>
         </div>
       </div>
 
@@ -433,6 +444,7 @@ import {
   clearAcceptedNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   getNeteaseListenSyncDiagnostics,
+  getNeteaseListenReportStatus,
   localDateKey,
   neteaseListenEntries,
   provisionalNeteaseListen,
@@ -518,6 +530,7 @@ const weekPeriodKey = computed(() => `week:${localDateKey(startOfWeek.value)}`)
 const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).slice(0, 7)}`)
 const totalPeriodKey = 'total'
 const monthReportAvailable = ref<boolean | null>(null)
+const monthReportRegressionSeconds = ref(0)
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
@@ -730,13 +743,17 @@ const reportListenSyncHealth = (monthReportSeconds?: number): void => {
   const now = Date.now()
   if (now - lastListenSyncHealthAt < 60_000) return
 
+  const monthStatus = getNeteaseListenReportStatus(accountId.value, monthPeriodKey.value)
+  monthReportRegressionSeconds.value = monthStatus.regressionSeconds
   const diagnosis = getNeteaseListenSyncDiagnostics(accountId.value)
   if (diagnosis.acceptedSeconds <= 0 || diagnosis.oldestAcceptedAgeMinutes < 10) return
   lastListenSyncHealthAt = now
   window.mainApi?.send('listen-sync-health', {
     ...diagnosis,
     monthReportAvailable: monthReportAvailable.value === true,
-    monthReportSeconds: monthReportSeconds ?? null
+    monthReportSeconds: monthReportSeconds ?? null,
+    monthReportRegressionSeconds: diagnosis.monthReportRegressionSeconds,
+    monthBaselineSeconds: diagnosis.monthBaselineSeconds
   })
 }
 
