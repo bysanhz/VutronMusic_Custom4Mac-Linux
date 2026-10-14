@@ -17,6 +17,15 @@ import { normalizeNeteaseScrobbleTiming } from '../../../shared/scrobbleTiming'
 
 const RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'
 const MAX_RECEIPTS = 2000
+// A PLV receipt can be persisted even when its matching PLD fails.
+// Retrying PLD then reuses the original segment ID without duplicating PLV.
+const PLV_PROGRESS_KEY = 'netease.scrobbleSegmentPlvReceipts'
+
+const readPlvProgress = () => {
+  const value = store.get(PLV_PROGRESS_KEY)
+  return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : []
+}
+
 
 const readReceipts = () => {
   const value = store.get(RECEIPTS_KEY)
@@ -99,16 +108,26 @@ const scrobbleV1 = async (query) => {
   ])
 
   try {
-    const plv = await doUpload(ctx, metaJson, plvBody, cookieStr, 'PLV')
-    if (!plv.success) {
-      const rateMsg = plv.respBody?.data?.rate != null ? ` (rate=${plv.respBody.data.rate})` : ''
-      return {
-        status: 200,
-        body: {
-          code: plv.respBody?.code || -1,
-          msg: `PLV 上报失败${rateMsg}`,
-          details: plv.respBody
+    const plvPreviouslyAcknowledged = Boolean(
+      segmentId && readPlvProgress().includes(segmentId)
+    )
+    let plv = null
+    if (!plvPreviouslyAcknowledged) {
+      plv = await doUpload(ctx, metaJson, plvBody, cookieStr, 'PLV')
+      if (!plv.success) {
+        const rateMsg = plv.respBody?.data?.rate != null ? ` (rate=${plv.respBody.data.rate})` : ''
+        return {
+          status: 200,
+          body: {
+            code: plv.respBody?.code || -1,
+            msg: `PLV 上报失败${rateMsg}`,
+            details: plv.respBody
+          }
         }
+      }
+      if (segmentId) {
+        const progress = [...new Set([...readPlvProgress(), segmentId])].slice(-MAX_RECEIPTS)
+        store.set(PLV_PROGRESS_KEY, progress)
       }
     }
 
@@ -119,7 +138,10 @@ const scrobbleV1 = async (query) => {
         body: {
           code: pld.respBody?.code || -1,
           msg: 'PLV 成功但 PLD 失败',
-          details: { plv: plv.respBody, pld: pld.respBody }
+          details: {
+            plv: plvPreviouslyAcknowledged ? 'PLV 已接收，未重复上报' : plv?.respBody,
+            pld: pld.respBody
+          }
         }
       }
     }
@@ -127,6 +149,10 @@ const scrobbleV1 = async (query) => {
     if (segmentId) {
       const receipts = [...new Set([...readReceipts(), segmentId])].slice(-MAX_RECEIPTS)
       store.set(RECEIPTS_KEY, receipts)
+      store.set(
+        PLV_PROGRESS_KEY,
+        readPlvProgress().filter((id) => id !== segmentId)
+      )
     }
 
     return {
@@ -135,7 +161,9 @@ const scrobbleV1 = async (query) => {
         code: 200,
         data: 'scrobble_v1 上报成功',
         details: {
-          plv: { fileName: plv.fileName, payloadSize: plv.payload.length },
+          plv: plvPreviouslyAcknowledged
+            ? { alreadyAcknowledged: true }
+            : { fileName: plv.fileName, payloadSize: plv.payload.length },
           pld: { fileName: pld.fileName, payloadSize: pld.payload.length }
         }
       }
