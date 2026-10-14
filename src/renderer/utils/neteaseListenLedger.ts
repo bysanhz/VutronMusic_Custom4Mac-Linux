@@ -202,10 +202,22 @@ export const flushNeteaseListenLedger = (force = false): void => {
     remoteBaselines,
     remoteObservations
   }
+  // Vue ref() wraps entries in reactive Proxies. Electron IPC rejects Proxies
+  // (DataCloneError), while JSON serialization unwraps them to plain values.
+  // Serialize once for both localStorage and the main-process mirror.
+  let serialized: string
+  try {
+    serialized = JSON.stringify(snapshot)
+  } catch (error) {
+    persistenceFailures += 1
+    lastPersistenceFailureAt = now
+    console.warn('[NetEaseListenLedger] 序列化本机听歌账本失败：', error)
+    return
+  }
   let persisted = false
   if (canWriteLocalStorage() && !localStorageCorrupted) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+      localStorage.setItem(STORAGE_KEY, serialized)
       persisted = true
     } catch (error) {
       persistenceFailures += 1
@@ -217,7 +229,7 @@ export const flushNeteaseListenLedger = (force = false): void => {
   // The first read from this mirror MUST complete before it may be overwritten.
   if (backupReady && typeof window !== 'undefined' && window.mainApi?.send) {
     try {
-      window.mainApi.send('listen-ledger-snapshot', snapshot)
+      window.mainApi.send('listen-ledger-snapshot', JSON.parse(serialized) as LedgerState)
       persisted = true
     } catch (error) {
       persistenceFailures += 1
