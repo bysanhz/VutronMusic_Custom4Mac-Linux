@@ -6,6 +6,7 @@ import {
   getNeteaseListenSyncDiagnostics,
   getNeteaseListenReportStatus,
   hasNeteaseListenReportBaseline,
+  localDateKey,
   markNeteaseListenEntryAccepted,
   markNeteaseListenEntryFailed,
   neteaseListenEntries,
@@ -292,6 +293,47 @@ test('diagnoses aged upload receipts without pretending the remote report confir
   expect(diagnostic.oldestAcceptedAgeMinutes).toBeGreaterThanOrEqual(14)
   expect(JSON.stringify(diagnostic)).not.toContain(accountId)
   expect(JSON.stringify(diagnostic)).not.toContain('Test Track')
+})
+
+test('includes daily report context for each unverified day without exposing account or track', () => {
+  const accountId = 'diagnostic-per-day-audit'
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const dateKey = localDateKey(start)
+  const rangeStart = start.getTime()
+  const rangeEnd = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1).getTime() - 1
+
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: `today:${dateKey}`,
+    rangeStart,
+    rangeEnd,
+    remoteSeconds: 3600
+  })
+
+  const [entry] = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'audit-one-day',
+    startedAt: rangeStart + 60_000,
+    endedAt: rangeStart + 150_000,
+    seconds: 90,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id)
+
+  const diagnostic = getNeteaseListenSyncDiagnostics(accountId)
+  expect(diagnostic.acceptedDayReports).toHaveLength(1)
+  expect(diagnostic.acceptedDayReports[0]).toMatchObject({
+    date: dateKey,
+    acceptedEntries: 1,
+    acceptedSeconds: 90,
+    dayReportBaselineSeconds: 3600,
+    dayReportLatestSeconds: 3600,
+    dayReportRegressionSeconds: 0
+  })
+  expect(JSON.stringify(diagnostic)).not.toContain(accountId)
+  expect(JSON.stringify(diagnostic)).not.toContain('Test Track')
+  expect(JSON.stringify(diagnostic)).not.toContain('Test Artist')
 })
 
 test('reports a falling monthly read without falsely confirming uploaded listening', () => {
