@@ -912,8 +912,8 @@ test('merges the disk mirror with local entries without losing either or replayi
       {
         ...local,
         status: 'accepted',
-        acceptedAt: now - 30_000,
-        updatedAt: now - 30_000
+        acceptedAt: now + 30_000,
+        updatedAt: now + 30_000
       }
     ],
     remoteBaselines: {},
