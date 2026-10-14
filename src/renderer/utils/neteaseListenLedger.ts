@@ -24,9 +24,12 @@ export type NeteaseListenEntry = {
   lastError?: string
 }
 
+type ReportObservation = { seconds: number; observedAt: number }
+
 type LedgerState = {
   entries: NeteaseListenEntry[]
   remoteBaselines: Record<string, number>
+  remoteObservations: Record<string, ReportObservation>
 }
 
 export type RecordSegmentInput = {
@@ -117,7 +120,7 @@ const sanitizeEntry = (value: any): NeteaseListenEntry | null => {
 }
 
 const readState = (): LedgerState => {
-  if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {} }
+  if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {} }
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     return {
@@ -127,10 +130,14 @@ const readState = (): LedgerState => {
       remoteBaselines:
         stored.remoteBaselines && typeof stored.remoteBaselines === 'object'
           ? stored.remoteBaselines
+          : {},
+      remoteObservations:
+        stored.remoteObservations && typeof stored.remoteObservations === 'object'
+          ? stored.remoteObservations
           : {}
     } as LedgerState
   } catch {
-    return { entries: [], remoteBaselines: {} }
+    return { entries: [], remoteBaselines: {}, remoteObservations: {} }
   }
 }
 
@@ -146,6 +153,7 @@ export const provisionalNeteaseListen = ref({
 })
 
 let remoteBaselines = state.remoteBaselines
+let remoteObservations = state.remoteObservations
 let lastPersistAt = 0
 let legacyMigrationAttempted = false
 
@@ -167,7 +175,7 @@ export const flushNeteaseListenLedger = (force = false): void => {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ entries: neteaseListenEntries.value, remoteBaselines })
+      JSON.stringify({ entries: neteaseListenEntries.value, remoteBaselines, remoteObservations })
     )
     lastPersistAt = now
   } catch (error) {
@@ -603,7 +611,43 @@ export const reconcileNeteaseListenReport = (options: {
   if (changed) neteaseListenEntries.value = entries
   if (changed || nextBaseline !== previous) {
     remoteBaselines = { ...remoteBaselines, [baselineKey]: nextBaseline }
+  }
+  // Record the latest VALID server reading independently of the historical
+  // high-water mark. A stale/corrected report can move backwards: that is a
+  // reconciliation warning, not evidence to mark local listens as confirmed.
+  const observed = remoteObservations[baselineKey]
+  const now = Date.now()
+  const observationChanged =
+    !observed || observed.seconds !== remoteSeconds || now - observed.observedAt >= 5 * 60_000
+  if (observationChanged) {
+    remoteObservations = {
+      ...remoteObservations,
+      [baselineKey]: { seconds: remoteSeconds, observedAt: now }
+    }
+  }
+  if (changed || nextBaseline !== previous || observationChanged) {
     flushNeteaseListenLedger(true)
+  }
+}
+
+/**
+ * Report readings and optimistic confirmation baselines are intentionally
+ * separate. Never decrement the high-water mark on a transient server rollback,
+ * since its rebound could otherwise falsely clear accepted upload receipts.
+ */
+export const getNeteaseListenReportStatus = (accountIdValue: unknown, periodKey: string) => {
+  const key = `${normalizeAccountId(accountIdValue)}:${periodKey}`
+  const observed = remoteObservations[key]
+  const highWater = Number(remoteBaselines[key])
+  const latest = Number(observed?.seconds)
+  return {
+    highWaterSeconds: Number.isFinite(highWater) ? highWater : null,
+    latestReportedSeconds: observed && Number.isFinite(latest) ? latest : null,
+    lastObservedAt: observed?.observedAt || null,
+    regressionSeconds:
+      observed && Number.isFinite(highWater) && Number.isFinite(latest)
+        ? Math.max(0, highWater - latest)
+        : 0
   }
 }
 
@@ -644,8 +688,8 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     }
   }
 
-  const monthBaseline = Number(remoteBaselines[`${accountId}:month:${month}`])
-  const todayBaseline = Number(remoteBaselines[`${accountId}:today:${today}`])
+  const monthReport = getNeteaseListenReportStatus(accountId, `month:${month}`)
+  const todayReport = getNeteaseListenReportStatus(accountId, `today:${today}`)
   const provisional =
     provisionalNeteaseListen.value.accountId === accountId
       ? provisionalNeteaseListen.value.seconds
@@ -658,8 +702,12 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     failedPendingEntries: failedEntries,
     oldestAcceptedAgeMinutes:
       acceptedEntries > 0 ? Math.floor(Math.max(0, now - oldestAcceptedAt) / 60_000) : 0,
-    monthBaselineSeconds: Number.isFinite(monthBaseline) ? monthBaseline : null,
-    todayBaselineSeconds: Number.isFinite(todayBaseline) ? todayBaseline : null
+    monthBaselineSeconds: monthReport.highWaterSeconds,
+    todayBaselineSeconds: todayReport.highWaterSeconds,
+    monthLatestReportedSeconds: monthReport.latestReportedSeconds,
+    monthReportRegressionSeconds: monthReport.regressionSeconds,
+    monthReportObservedAt: monthReport.lastObservedAt,
+    todayLatestReportedSeconds: todayReport.latestReportedSeconds
   }
 }
 
