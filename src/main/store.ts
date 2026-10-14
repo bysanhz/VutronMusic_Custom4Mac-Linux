@@ -9,6 +9,8 @@ import {
 } from './windowScaleBaseline'
 
 export interface TypeElectronStore {
+  /** Renderer listening-ledger disk mirror; never exposed in diagnostics. */
+  netease?: { listenLedgerBackupV1?: unknown }
   window: {
     width: number
     height: number
