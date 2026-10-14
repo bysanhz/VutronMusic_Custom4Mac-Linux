@@ -489,6 +489,68 @@ export const getNeteaseHistoricalReplayPreview = (accountId: unknown, now = Date
 }
 
 /**
+ * Diagnose WHY an accepted historical segment is not eligible for a deliberate
+ * replay. The UI's month waiting total and replay eligibility have deliberately
+ * different rules; expose that distinction without any song/account identifiers.
+ */
+export const getNeteaseHistoricalReplayDiagnostics = (
+  accountId: unknown,
+  now = Date.now()
+) => {
+  const normalized = normalizeAccountId(accountId)
+  const today = localDateKey(now)
+  const month = today.slice(0, 7)
+  const eligibleIds = new Set(replayableAcceptedEntries(accountId, now).map((entry) => entry.id))
+  const summary = {
+    awaitingEntries: 0,
+    awaitingSeconds: 0,
+    eligibleEntries: 0,
+    eligibleSeconds: 0,
+    partiallyConfirmedEntries: 0,
+    alreadyReplayedEntries: 0,
+    tooRecentEntries: 0
+  }
+
+  for (const entry of neteaseListenEntries.value) {
+    if (
+      entry.accountId !== normalized ||
+      entry.status !== 'accepted' ||
+      !entry.dateKey.startsWith(month) ||
+      entry.dateKey >= today
+    ) {
+      continue
+    }
+    const monthConfirmed = Number(entry.confirmedByPeriod?.[`month:${month}`]) || 0
+    const remaining = Math.max(0, entry.seconds - monthConfirmed)
+    if (remaining <= 0) continue
+
+    summary.awaitingEntries += 1
+    summary.awaitingSeconds += remaining
+
+    if (eligibleIds.has(entry.id)) {
+      summary.eligibleEntries += 1
+      summary.eligibleSeconds += remaining
+    } else if ((entry.manualReplayCount || 0) > 0) {
+      summary.alreadyReplayedEntries += 1
+    } else {
+      const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
+      const totalConfirmed = Number(entry.confirmedByPeriod?.total) || 0
+      if (Math.max(dayConfirmed, monthConfirmed, totalConfirmed) > 0) {
+        summary.partiallyConfirmedEntries += 1
+      } else {
+        summary.tooRecentEntries += 1
+      }
+    }
+  }
+
+  return {
+    ...summary,
+    awaitingSeconds: Math.round(summary.awaitingSeconds),
+    eligibleSeconds: Math.round(summary.eligibleSeconds)
+  }
+}
+
+/**
  * Re-use historical timestamps but issue a new upload id so that the server's
  * persisted receipt does not short-circuit the real upload. Persist BEFORE
  * networking. Normal pending retry will re-use this same token after failures.
@@ -831,7 +893,8 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     monthReportRegressionSeconds: monthReport.regressionSeconds,
     monthReportObservedAt: monthReport.lastObservedAt,
     todayLatestReportedSeconds: todayReport.latestReportedSeconds,
-    acceptedDayReports
+    acceptedDayReports,
+    historicalReplay: getNeteaseHistoricalReplayDiagnostics(accountId, now)
   }
 }
 
