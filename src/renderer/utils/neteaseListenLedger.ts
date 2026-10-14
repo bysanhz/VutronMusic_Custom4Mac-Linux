@@ -19,6 +19,14 @@ export type NeteaseListenEntry = {
   createdAt: number
   updatedAt: number
   acceptedAt?: number
+  /** Transport receipt only; not a per-song NetEase accounting confirmation. */
+  uploadEvidence?: {
+    transport: 'ncbl-plv-pld'
+    acknowledgedAt: number
+    plvReceived: boolean
+    pldReceived: boolean
+    deduplicated: boolean
+  }
   /** Explicit, at-most-once historical resend; network retries retain its token. */
   manualReplayCount?: number
   attempts: number
@@ -45,8 +53,7 @@ export type RecordSegmentInput = {
 
 const STORAGE_KEY = 'vutronmusic-netease-listen-ledger-v3'
 const LEGACY_OUTBOX_KEY = 'vutronmusic-netease-scrobble-outbox-v1'
-const MAX_ENTRIES = 2000
-const CONFIRMED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+// Never truncate or age out unverified records. User removal is explicit only.
 const PERSIST_INTERVAL_MS = 5000
 const MIN_RETRY_MS = 15_000
 const MAX_RETRY_MS = 30 * 60_000
@@ -130,13 +137,19 @@ const sanitizeEntry = (value: any): NeteaseListenEntry | null => {
   }
 }
 
+let localStorageCorrupted = false
+let persistenceFailures = 0
+let lastPersistenceFailureAt = 0
+let backupReady = false
+let backupRecoveryEntries = 0
+
 const readState = (): LedgerState => {
   if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {} }
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     return {
       entries: Array.isArray(stored.entries)
-        ? stored.entries.map(sanitizeEntry).filter(Boolean).slice(-MAX_ENTRIES)
+        ? stored.entries.map(sanitizeEntry).filter(Boolean)
         : [],
       remoteBaselines:
         stored.remoteBaselines && typeof stored.remoteBaselines === 'object'
@@ -148,6 +161,7 @@ const readState = (): LedgerState => {
           : {}
     } as LedgerState
   } catch {
+    localStorageCorrupted = true
     return { entries: [], remoteBaselines: {}, remoteObservations: {} }
   }
 }
@@ -171,26 +185,108 @@ let legacyMigrationAttempted = false
 export const hasNeteaseListenReportBaseline = (accountId: unknown, periodKey: string): boolean =>
   Number.isFinite(Number(remoteBaselines[`${normalizeAccountId(accountId)}:${periodKey}`]))
 
-const pruneEntries = (entries: NeteaseListenEntry[]): NeteaseListenEntry[] => {
-  const cutoff = Date.now() - CONFIRMED_RETENTION_MS
-  return entries
-    .filter((entry) => entry.status !== 'accepted' || entry.updatedAt >= cutoff)
-    .slice(-MAX_ENTRIES)
-}
+/**
+ * Keep every unresolved entry, including historical upload receipts. Neither
+ * aggregate report matching nor elapsed time is a per-song cloud acknowledgement.
+ */
+const pruneEntries = (entries: NeteaseListenEntry[]): NeteaseListenEntry[] => entries
 
 export const flushNeteaseListenLedger = (force = false): void => {
-  if (!canWriteLocalStorage()) return
   const now = Date.now()
   if (!force && now - lastPersistAt < PERSIST_INTERVAL_MS) return
   neteaseListenEntries.value = pruneEntries(neteaseListenEntries.value)
+  const snapshot: LedgerState = {
+    entries: neteaseListenEntries.value,
+    remoteBaselines,
+    remoteObservations
+  }
+  let persisted = false
+  if (canWriteLocalStorage() && !localStorageCorrupted) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+      persisted = true
+    } catch (error) {
+      persistenceFailures += 1
+      lastPersistenceFailureAt = now
+      console.warn('[NetEaseListenLedger] 保存本机听歌账本失败：', error)
+    }
+  }
+  // The main-process disk mirror is independent of Chromium localStorage quota.
+  // The first read from this mirror MUST complete before it may be overwritten.
+  if (backupReady && typeof window !== 'undefined' && window.mainApi?.send) {
+    try {
+      window.mainApi.send('listen-ledger-snapshot', snapshot)
+      persisted = true
+    } catch (error) {
+      persistenceFailures += 1
+      lastPersistenceFailureAt = now
+      console.warn('[NetEaseListenLedger] 发送账本备份失败：', error)
+    }
+  }
+  if (!persisted && !localStorageCorrupted && !canWriteLocalStorage()) {
+    persistenceFailures += 1
+    lastPersistenceFailureAt = now
+  }
+  if (persisted) lastPersistAt = now
+}
+
+/**
+ * Recover from the main-process disk mirror before starting playback or retries.
+ * Merge by stable segment IDs; never replace a newer local entry with an older
+ * backup or lose unique pending/accepted entries from either store.
+ */
+export const recoverNeteaseListenLedgerBackup = async (): Promise<void> => {
+  if (backupReady) return
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ entries: neteaseListenEntries.value, remoteBaselines, remoteObservations })
-    )
-    lastPersistAt = now
+    const backup = await (typeof window !== 'undefined'
+      ? window.mainApi?.invoke('get-listen-ledger-backup')
+      : Promise.resolve(null))
+    if (backup && typeof backup === 'object' && Array.isArray(backup.entries)) {
+      const merged = new Map(neteaseListenEntries.value.map((entry) => [entry.id, entry]))
+      for (const raw of backup.entries) {
+        const entry = sanitizeEntry(raw)
+        if (!entry) continue
+        const existing = merged.get(entry.id)
+        if (!existing || entry.updatedAt > existing.updatedAt) {
+          merged.set(entry.id, entry)
+          if (!existing) backupRecoveryEntries += 1
+        }
+      }
+      neteaseListenEntries.value = [...merged.values()]
+      if (backup.remoteBaselines && typeof backup.remoteBaselines === 'object') {
+        const restored = backup.remoteBaselines as Record<string, number>
+        for (const [key, value] of Object.entries(restored)) {
+          if (!Number.isFinite(Number(value))) continue
+          const previous = Number(remoteBaselines[key])
+          remoteBaselines[key] = Number.isFinite(previous)
+            ? Math.max(previous, Number(value))
+            : Number(value)
+        }
+      }
+      if (backup.remoteObservations && typeof backup.remoteObservations === 'object') {
+        const restored = backup.remoteObservations as Record<string, ReportObservation>
+        for (const [key, value] of Object.entries(restored)) {
+          if (
+            !Number.isFinite(Number(value?.seconds)) ||
+            !Number.isFinite(Number(value?.observedAt))
+          ) {
+            continue
+          }
+          if (Number(value.observedAt) > Number(remoteObservations[key]?.observedAt || 0)) {
+            remoteObservations[key] = value
+          }
+        }
+      }
+      // A validated backup can recover a damaged localStorage snapshot.
+      localStorageCorrupted = false
+    }
   } catch (error) {
-    console.warn('[NetEaseListenLedger] 保存本机听歌账本失败：', error)
+    persistenceFailures += 1
+    lastPersistenceFailureAt = Date.now()
+    console.warn('[NetEaseListenLedger] 恢复磁盘账本备份失败：', error)
+  } finally {
+    backupReady = true
+    if (!localStorageCorrupted) flushNeteaseListenLedger(true)
   }
 }
 
@@ -359,7 +455,8 @@ export const recordNeteaseListenSegment = (input: RecordSegmentInput): NeteaseLi
   }
 
   neteaseListenEntries.value = entries
-  flushNeteaseListenLedger()
+  // Durable sync commit at every valid checkpoint; never defer the first write.
+  flushNeteaseListenLedger(true)
   return recorded
 }
 
@@ -391,11 +488,21 @@ export const claimPendingNeteaseListenEntries = (options: {
   return claimed
 }
 
-export const markNeteaseListenEntryAccepted = (entryId: string): void => {
+export const markNeteaseListenEntryAccepted = (
+  entryId: string,
+  evidence?: NeteaseListenEntry['uploadEvidence']
+): void => {
   const now = Date.now()
   neteaseListenEntries.value = neteaseListenEntries.value.map((entry) =>
     entry.id === entryId
-      ? { ...entry, status: 'accepted', acceptedAt: now, updatedAt: now, lastError: undefined }
+      ? {
+          ...entry,
+          status: 'accepted',
+          acceptedAt: now,
+          updatedAt: now,
+          uploadEvidence: evidence ?? entry.uploadEvidence,
+          lastError: undefined
+        }
       : entry
   )
   flushNeteaseListenLedger(true)
@@ -908,7 +1015,24 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     monthReportObservedAt: monthReport.lastObservedAt,
     todayLatestReportedSeconds: todayReport.latestReportedSeconds,
     acceptedDayReports,
-    historicalReplay: getNeteaseHistoricalReplayDiagnostics(accountId, now)
+    historicalReplay: getNeteaseHistoricalReplayDiagnostics(accountId, now),
+    persistence: {
+      backupReady,
+      backupRecoveryEntries,
+      localStorageCorrupted,
+      persistenceFailures,
+      lastPersistenceFailureAt,
+      retainedUnverifiedEntries: neteaseListenEntries.value.filter(
+        (entry) => entry.accountId === accountId && entry.status === 'accepted'
+      ).length
+    },
+    receiptEvidenceEntries: neteaseListenEntries.value.filter(
+      (entry) =>
+        entry.accountId === accountId &&
+        entry.status === 'accepted' &&
+        entry.uploadEvidence?.plvReceived &&
+        entry.uploadEvidence?.pldReceived
+    ).length
   }
 }
 
