@@ -50,6 +50,7 @@ import {
   localDateKey,
   markNeteaseListenEntryAccepted,
   markNeteaseListenEntryFailed,
+  stageNeteaseHistoricalReplay,
   recordNeteaseListenSegment,
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount,
@@ -1234,7 +1235,7 @@ export const usePlayerStore = defineStore(
         try {
           const result = await scrobble({
             ...entry.params,
-            segmentId: entry.id,
+            segmentId: entry.params.segmentId || entry.id,
             playedAt: entry.startedAt,
             endedAt: entry.endedAt,
             time: entry.seconds,
@@ -1277,6 +1278,7 @@ export const usePlayerStore = defineStore(
     const queueNeteaseListenSubmission = (options: {
       sessionId?: string
       excludeSessionId?: string
+      entryIds?: string[]
       force?: boolean
       accountId?: string
     }): Promise<number> => {
@@ -1284,6 +1286,7 @@ export const usePlayerStore = defineStore(
         accountId: options.accountId || currentNeteaseAccountId(),
         sessionId: options.sessionId,
         excludeSessionId: options.excludeSessionId,
+        entryIds: options.entryIds,
         force: options.force
       })
       if (!entries.length) return Promise.resolve(0)
@@ -1297,6 +1300,19 @@ export const usePlayerStore = defineStore(
         () => undefined
       )
       return queued
+    }
+
+    /**
+     * A one-time manual recovery for previously accepted-but-unverified days.
+     * The UI must show an explicit duplicate-count warning and confirmation.
+     * This routine never runs on startup, refresh, or a normal track change.
+     */
+    const replayHistoricalNeteaseListens = async (): Promise<number> => {
+      const accountId = currentNeteaseAccountId()
+      if (accountId === 'anonymous') return 0
+      const entryIds = stageNeteaseHistoricalReplay(accountId)
+      if (!entryIds.length) return 0
+      return queueNeteaseListenSubmission({ accountId, entryIds })
     }
 
     const scrobbleNetease = async (
@@ -3036,6 +3052,7 @@ export const usePlayerStore = defineStore(
       playlistSource,
       fadeDuration,
       syncCurrentNeteaseListenCheckpoint,
+      replayHistoricalNeteaseListens,
       setConvolver,
       setGlobalLyricOffset,
       replacePlaylist,
