@@ -702,12 +702,17 @@ test('historical manual replay is explicit, account-isolated and at most once', 
   add('account-a', 'today-accepted', now - 120_000)
   add('account-b', 'other-account', yesterday)
   const alreadyConfirmedId = add('account-a', 'already-confirmed', yesterday + 300_000)
+  const partiallyConfirmedId = add('account-a', 'partially-confirmed', yesterday + 600_000)
 
   neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => ({
     ...entry,
     acceptedAt: now - 2 * 60 * 60_000,
     confirmedByPeriod:
-      entry.id === alreadyConfirmedId ? { 'today:2026-10-13': 120 } : entry.confirmedByPeriod
+      entry.id === alreadyConfirmedId
+        ? { 'today:2026-10-13': 120 }
+        : entry.id === partiallyConfirmedId
+          ? { 'today:2026-10-13': 30 }
+          : entry.confirmedByPeriod
   }))
 
   expect(getNeteaseHistoricalReplayPreview('account-a', now)).toEqual({
