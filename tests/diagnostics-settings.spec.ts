@@ -51,6 +51,8 @@ test('diagnostics report storage failures and transport receipts without credent
   const source = readSource('src/renderer/utils/neteaseListenLedger.ts')
   expect(source).toContain('persistenceFailures')
   expect(source).toContain('backupRecoveryEntries')
+  expect(source).toContain("window.mainApi.on('listen-ledger-backup-status'")
+  expect(source).toContain('lastBackupAcknowledgedAt')
   expect(source).toContain('receiptEvidenceEntries')
   expect(source).not.toContain("lastError: entry.lastError")
 })
