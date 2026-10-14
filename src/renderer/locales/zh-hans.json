@@ -1039,7 +1039,8 @@
       "durationDaysHours": "{days}天 {hours}小时",
       "durationHoursMinutes": "{hours}小时 {minutes}分",
       "durationMinutes": "{minutes}分",
-      "todayMetric": "今日 · 歌曲数"
+      "todayMetric": "今日 · 歌曲数",
+      "reportRegressed": "网易云本月报表比之前的有效读数回退了 {duration}。为避免把旧报表的反弹误当成新增听歌时长，当前不会据此核销待核记录。上传回执不等于云端统计确认，请保留记录并观察后续报表。"
     },
     "style": {
       "title": "曲风漫游 2.0",
