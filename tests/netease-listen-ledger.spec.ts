@@ -4,6 +4,7 @@ import {
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   getNeteaseHistoricalReplayPreview,
+  getNeteaseHistoricalReplayDiagnostics,
   getNeteaseListenSyncDiagnostics,
   getNeteaseListenReportStatus,
   hasNeteaseListenReportBaseline,
@@ -737,4 +738,59 @@ test('historical manual replay is explicit, account-isolated and at most once', 
   expect(neteaseListenEntries.value.find((entry) => entry.id === alreadyConfirmedId)?.status).toBe(
     'accepted'
   )
+})
+
+test('diagnoses hidden replay action without changing the unverified month backlog', () => {
+  const now = new Date(2026, 9, 14, 12, 0, 0).getTime()
+  const yesterday = new Date(2026, 9, 13, 10, 0, 0).getTime()
+  const record = (sessionId: string, start: number) => {
+    const [entry] = recordNeteaseListenSegment({
+      accountId: 'diagnosis-account',
+      sessionId,
+      startedAt: start,
+      endedAt: start + 120_000,
+      seconds: 120,
+      params
+    })
+    markNeteaseListenEntryAccepted(entry.id)
+    return entry.id
+  }
+  const eligible = record('eligible', yesterday)
+  const partiallyCredited = record('partial', yesterday + 180_000)
+  const previouslyReplayed = record('replayed', yesterday + 360_000)
+  const tooRecent = record('recent', yesterday + 540_000)
+  record('excluded-current-day', now - 120_000)
+
+  neteaseListenEntries.value = neteaseListenEntries.value.map((entry) => ({
+    ...entry,
+    acceptedAt: entry.id === tooRecent ? now - 10 * 60_000 : now - 2 * 60 * 60_000,
+    manualReplayCount: entry.id === previouslyReplayed ? 1 : undefined,
+    confirmedByPeriod:
+      entry.id === partiallyCredited
+        ? { total: 30 }
+        : entry.confirmedByPeriod
+  }))
+
+  expect(getNeteaseHistoricalReplayDiagnostics('diagnosis-account', now)).toEqual({
+    awaitingEntries: 4,
+    awaitingSeconds: 480,
+    eligibleEntries: 1,
+    eligibleSeconds: 120,
+    partiallyConfirmedEntries: 1,
+    alreadyReplayedEntries: 1,
+    tooRecentEntries: 1
+  })
+  expect(getNeteaseHistoricalReplayPreview('diagnosis-account', now)).toEqual({
+    count: 1,
+    seconds: 120
+  })
+  expect(neteaseListenEntries.value.find((entry) => entry.id === eligible)?.status).toBe('accepted')
+  expect(
+    getNeteaseListenLedgerTotals(
+      'diagnosis-account',
+      new Date(2026, 9, 1).getTime(),
+      new Date(2026, 9, 14).getTime() - 1,
+      'month:2026-10'
+    ).accepted
+  ).toBe(480)
 })
