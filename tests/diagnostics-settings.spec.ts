@@ -30,6 +30,17 @@ test('both actions share a fresh and localized diagnostics snapshot', () => {
   expect(source).toContain('getNeteaseListenSyncDiagnostics(activeNeteaseListenAccountId.value)')
 })
 
+test('diagnoses the active upload route without exporting authentication details', () => {
+  const diagnostics = readSource('src/renderer/utils/diagnosticsSnapshotSettings.ts')
+  const server = readSource('src/main/appServer/netease.ts')
+
+  expect(diagnostics).toContain("request({ url: '/runtime-info', method: 'get', timeout: 4000 })")
+  expect(diagnostics).toContain('stableScrobbleV1Source')
+  expect(diagnostics).toContain('getNeteaseScrobbleRuntimeDiagnostics()')
+  expect(diagnostics).not.toContain('info.packageLoadError')
+  expect(server).toContain("fastify.get('/netease/runtime-info'")
+})
+
 test('audio health logs retain full NetEase song IDs', () => {
   const ipcs = readSource('src/main/IPCs.ts')
   expect(ipcs).toContain('safeNumber(data.trackId, Number.MAX_SAFE_INTEGER)')
