@@ -740,11 +740,11 @@ const safeRequest = async <T,>(request: Promise<T> | T, label: string): Promise<
 let lastListenSyncHealthAt = 0
 const reportListenSyncHealth = (monthReportSeconds?: number): void => {
   if (accountId.value === 'anonymous') return
+  const monthStatus = getNeteaseListenReportStatus(accountId.value, monthPeriodKey.value)
+  monthReportRegressionSeconds.value = monthStatus.regressionSeconds
   const now = Date.now()
   if (now - lastListenSyncHealthAt < 60_000) return
 
-  const monthStatus = getNeteaseListenReportStatus(accountId.value, monthPeriodKey.value)
-  monthReportRegressionSeconds.value = monthStatus.regressionSeconds
   const diagnosis = getNeteaseListenSyncDiagnostics(accountId.value)
   if (diagnosis.acceptedSeconds <= 0 || diagnosis.oldestAcceptedAgeMinutes < 10) return
   lastListenSyncHealthAt = now
