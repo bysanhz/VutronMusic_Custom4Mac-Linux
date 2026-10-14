@@ -46,3 +46,11 @@ test('audio health logs retain full NetEase song IDs', () => {
   expect(ipcs).toContain('safeNumber(data.trackId, Number.MAX_SAFE_INTEGER)')
   expect(ipcs).not.toContain('trackId: Math.floor(safeNumber(data.trackId)),')
 })
+
+test('diagnostics report storage failures and transport receipts without credentials', () => {
+  const source = readSource('src/renderer/utils/neteaseListenLedger.ts')
+  expect(source).toContain('persistenceFailures')
+  expect(source).toContain('backupRecoveryEntries')
+  expect(source).toContain('receiptEvidenceEntries')
+  expect(source).not.toContain("lastError: entry.lastError")
+})
