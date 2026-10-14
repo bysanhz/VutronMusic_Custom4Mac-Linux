@@ -964,3 +964,49 @@ test('captured transport evidence never masquerades as a confirmed day report', 
   expect(persisted.confirmedByPeriod).toEqual({})
   expect(getNeteaseListenSyncDiagnostics('receipt-not-credit').receiptEvidenceEntries).toBe(1)
 })
+
+test('flushes Vue reactive entries through a structured-clone-safe Electron IPC snapshot', async () => {
+  const originalWindow = (globalThis as any).window
+  const delivered: unknown[] = []
+  ;(globalThis as any).window = {
+    mainApi: {
+      on: () => undefined,
+      invoke: async () => ({ entries: [], remoteBaselines: {}, remoteObservations: {} }),
+      send: (channel: string, snapshot: unknown) => {
+        if (channel !== 'listen-ledger-snapshot') return
+        // Electron IPC uses structured cloning. Vue's original proxy array
+        // cannot be cloned; this mock fails identically if a proxy leaks.
+        delivered.push(structuredClone(snapshot))
+      }
+    }
+  }
+
+  try {
+    await recoverNeteaseListenLedgerBackup()
+    const startedAt = Date.now() - 120_000
+    const [entry] = recordNeteaseListenSegment({
+      accountId: 'ipc-clone-account',
+      sessionId: 'ipc-clone-session',
+      startedAt,
+      endedAt: startedAt + 90_000,
+      seconds: 90,
+      params
+    })
+    expect(() => structuredClone(neteaseListenEntries.value)).toThrow()
+    flushNeteaseListenLedger(true)
+
+    const latest = delivered.at(-1) as {
+      entries: Array<{ id: string; status: string; seconds: number }>
+      remoteBaselines: Record<string, number>
+      remoteObservations: Record<string, unknown>
+    }
+    expect(latest.entries.find((item) => item.id === entry.id)).toMatchObject({
+      id: entry.id,
+      status: 'pending',
+      seconds: 90
+    })
+    expect(Array.isArray(latest.entries)).toBe(true)
+  } finally {
+    ;(globalThis as any).window = originalWindow
+  }
+})
