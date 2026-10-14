@@ -38,6 +38,13 @@ test('account switching commits the previous session without uploading under the
   expect(player).toContain("const nextAccountId = String(userId || 'anonymous')")
 })
 
+test('does not overwrite an unreadable or unrecovered corrupt ledger backup', () => {
+  const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
+  expect(ledger).toContain('backupReady = !backupReadFailed && !localStorageCorrupted')
+  expect(ledger).toContain('if (backupReady) flushNeteaseListenLedger(true)')
+  expect(ledger).toContain('lastBackupAcknowledgedAt')
+})
+
 test.describe('NetEase scrobble lifecycle', () => {
   test('wires player playback into the NetEase scrobble API', () => {
     const player = readSource('src/renderer/store/player.ts')
