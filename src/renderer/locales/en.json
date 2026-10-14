@@ -1039,7 +1039,8 @@
       "durationDaysHours": "{days}d {hours}h",
       "durationHoursMinutes": "{hours}h {minutes}m",
       "durationMinutes": "{minutes}m",
-      "todayMetric": "Today · Track Count"
+      "todayMetric": "Today · Track Count",
+      "reportRegressed": "NetEase's monthly report is {duration} below its earlier valid reading. To avoid mistaking a stale report rebound for newly credited listening, these uploads remain unverified. An upload receipt does not prove the server counted the time."
     },
     "style": {
       "title": "Style Explorer 2.0",
