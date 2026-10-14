@@ -51,7 +51,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain('neteaseScrobbleQueue = queued.then(')
     expect(player).toContain('sourceid: resolveNeteaseScrobbleSourceID(track)')
     expect(player).toContain('source: playlistSource.value.type')
-    expect(player).toContain('segmentId: entry.id')
+    expect(player).toContain('segmentId: entry.params.segmentId || entry.id')
     expect(trackApi.indexOf("url: '/scrobble-v1'")).toBeLessThan(
       trackApi.indexOf("url: '/scrobble'")
     )
@@ -257,4 +257,18 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(feedback).not.toContain('reportNeteasePlayback')
     expect(player).toContain('const submitNeteaseListenEntries = async')
   })
+})
+
+test('never replays historical accepted receipts automatically', () => {
+  const player = readSource('src/renderer/store/player.ts')
+  const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
+  const ui = readSource('src/renderer/views/MusicInsightsStable.vue')
+
+  expect(player).toContain('const replayHistoricalNeteaseListens = async')
+  expect(player).toContain('stageNeteaseHistoricalReplay(accountId)')
+  expect(player).toContain('entryIds: options.entryIds')
+  expect(ledger).toContain('manualReplayCount: 1')
+  expect(ledger).toContain('segmentId: `replay:${entry.id}:${createId()}`')
+  expect(ui).toContain('historicalReplayConfirm')
+  expect(ui).toContain('@click="replayHistoricalAccepted"')
 })
