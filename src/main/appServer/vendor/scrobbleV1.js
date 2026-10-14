@@ -14,6 +14,7 @@ import {
 } from './ncbl'
 import store from '../../store'
 import { normalizeNeteaseScrobbleTiming } from '../../../shared/scrobbleTiming'
+import { uploadScrobbleStages } from '../../../shared/neteaseScrobbleStages'
 
 const RECEIPTS_KEY = 'netease.scrobbleSegmentReceipts'
 const MAX_RECEIPTS = 2000
@@ -108,39 +109,36 @@ const scrobbleV1 = async (query) => {
   ])
 
   try {
-    const plvPreviouslyAcknowledged = Boolean(
-      segmentId && readPlvProgress().includes(segmentId)
-    )
-    let plv = null
-    if (!plvPreviouslyAcknowledged) {
-      plv = await doUpload(ctx, metaJson, plvBody, cookieStr, 'PLV')
-      if (!plv.success) {
-        const rateMsg = plv.respBody?.data?.rate != null ? ` (rate=${plv.respBody.data.rate})` : ''
-        return {
-          status: 200,
-          body: {
-            code: plv.respBody?.code || -1,
-            msg: `PLV 上报失败${rateMsg}`,
-            details: plv.respBody
-          }
-        }
-      }
-      if (segmentId) {
+    const { plv, pld, plvPreviouslyAcknowledged, failedStage } = await uploadScrobbleStages({
+      segmentId,
+      hasPlvReceipt: () => readPlvProgress().includes(segmentId),
+      recordPlvReceipt: () => {
         const progress = [...new Set([...readPlvProgress(), segmentId])].slice(-MAX_RECEIPTS)
         store.set(PLV_PROGRESS_KEY, progress)
-      }
-    }
-
-    const pld = await doUpload(ctx, metaJson, pldBody, cookieStr, 'PLD')
-    if (!pld.success) {
+      },
+      uploadPlv: () => doUpload(ctx, metaJson, plvBody, cookieStr, 'PLV'),
+      uploadPld: () => doUpload(ctx, metaJson, pldBody, cookieStr, 'PLD')
+    })
+    if (failedStage === 'plv') {
+      const rateMsg = plv?.respBody?.data?.rate != null ? ` (rate=${plv.respBody.data.rate})` : ''
       return {
         status: 200,
         body: {
-          code: pld.respBody?.code || -1,
+          code: plv?.respBody?.code || -1,
+          msg: `PLV 上报失败${rateMsg}`,
+          details: plv?.respBody
+        }
+      }
+    }
+    if (failedStage === 'pld') {
+      return {
+        status: 200,
+        body: {
+          code: pld?.respBody?.code || -1,
           msg: 'PLV 成功但 PLD 失败',
           details: {
             plv: plvPreviouslyAcknowledged ? 'PLV 已接收，未重复上报' : plv?.respBody,
-            pld: pld.respBody
+            pld: pld?.respBody
           }
         }
       }
