@@ -4,6 +4,7 @@ import {
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   getNeteaseListenSyncDiagnostics,
+  getNeteaseListenReportStatus,
   hasNeteaseListenReportBaseline,
   markNeteaseListenEntryAccepted,
   markNeteaseListenEntryFailed,
@@ -291,6 +292,57 @@ test('diagnoses aged upload receipts without pretending the remote report confir
   expect(diagnostic.oldestAcceptedAgeMinutes).toBeGreaterThanOrEqual(14)
   expect(JSON.stringify(diagnostic)).not.toContain(accountId)
   expect(JSON.stringify(diagnostic)).not.toContain('Test Track')
+})
+
+test('reports a falling monthly read without falsely confirming uploaded listening', () => {
+  const accountId = 'monthly-rollback-observation'
+  const month = 'month:2026-10'
+  const monthStart = new Date(2026, 9, 1).getTime()
+  const dayStart = new Date(2026, 9, 13).getTime()
+  const dayEnd = new Date(2026, 9, 14).getTime() - 1
+  const record = recordNeteaseListenSegment({
+    accountId,
+    sessionId: 'unverifiable-month',
+    startedAt: dayStart + 60_000,
+    endedAt: dayStart + 1_640_000,
+    seconds: 1580,
+    params
+  })[0]
+  markNeteaseListenEntryAccepted(record.id)
+
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: month,
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 185_520
+  })
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: month,
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 181_320
+  })
+
+  expect(getNeteaseListenReportStatus(accountId, month)).toMatchObject({
+    highWaterSeconds: 185_520,
+    latestReportedSeconds: 181_320,
+    regressionSeconds: 4200
+  })
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, month).accepted).toBe(1580)
+  // Rebounding to the old high-water is not positive evidence.
+  reconcileNeteaseListenReport({
+    accountId,
+    periodKey: month,
+    rangeStart: monthStart,
+    rangeEnd: dayEnd,
+    remoteSeconds: 185_520
+  })
+  expect(getNeteaseListenLedgerTotals(accountId, monthStart, dayEnd, month).accepted).toBe(1580)
+  const diagnosis = getNeteaseListenReportStatus(accountId, month)
+  expect(diagnosis.regressionSeconds).toBe(0)
+  expect(JSON.stringify(diagnosis)).not.toContain(accountId)
 })
 
 test('confirms a closed day from a near-equal daily total when the month baseline fell', () => {
