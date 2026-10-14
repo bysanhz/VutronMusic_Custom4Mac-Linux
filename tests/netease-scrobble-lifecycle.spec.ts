@@ -5,6 +5,29 @@ import { resolve } from 'node:path'
 const readSource = (relativePath: string): string =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf-8')
 
+test('documents crash-safe checkpoints, non-destructive retention and upload evidence', () => {
+  const player = readSource('src/renderer/store/player.ts')
+  const ledger = readSource('src/renderer/utils/neteaseListenLedger.ts')
+  const main = readSource('src/main/runtimeDiagnostics.ts')
+  const preload = readSource('src/preload/index.ts')
+  const server = readSource('src/main/appServer/vendor/scrobbleV1.js')
+
+  expect(player).toContain('NETEASE_LOCAL_CHECKPOINT_SECONDS = 5')
+  expect(player).toContain("window.addEventListener('pagehide', persistCurrentNeteaseListenOnExit)")
+  expect(player).toContain("window.addEventListener('beforeunload', persistCurrentNeteaseListenOnExit)")
+  expect(player).toContain('await recoverNeteaseListenLedgerBackup()')
+  expect(player).toContain("transport: 'ncbl-plv-pld'")
+  expect(ledger).toContain('flushNeteaseListenLedger(true)\n  return recorded')
+  expect(ledger).not.toContain('slice(-MAX_ENTRIES)')
+  expect(ledger).not.toContain('entry.updatedAt >= cutoff')
+  expect(preload).toContain("'get-listen-ledger-backup'")
+  expect(preload).toContain("'listen-ledger-snapshot'")
+  expect(main).toContain("ipcMain.on('listen-ledger-snapshot'")
+  expect(main).toContain("ipcMain.handle('get-listen-ledger-backup'")
+  expect(server).toContain('PLV_PROGRESS_KEY')
+  expect(server).toContain('plvPreviouslyAcknowledged')
+})
+
 test.describe('NetEase scrobble lifecycle', () => {
   test('wires player playback into the NetEase scrobble API', () => {
     const player = readSource('src/renderer/store/player.ts')
