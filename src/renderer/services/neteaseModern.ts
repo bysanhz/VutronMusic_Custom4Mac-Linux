@@ -392,12 +392,16 @@ const getDurationDetailDate = (
  * 因而经常匹配不到“今天”，直接退化成 details 最后一项；周边界时会把周期值
  * 误当作今日值。现在优先按 period/日期精确匹配。
  */
-export const extractTodayListenSeconds = (source: any, now = new Date()): number | undefined => {
+export const extractTodayListenSeconds = (
+  source: any,
+  now = new Date(),
+  requireExplicitDate = false
+): number | undefined => {
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details) || !details.length) return undefined
 
   const today = details.find((item: any, index: number) => {
-    const date = getDurationDetailDate(item, source, index)
+    const date = getDurationDetailDate(item, source, index, requireExplicitDate)
     return date ? isSameLocalDay(date, now) : false
   })
 
