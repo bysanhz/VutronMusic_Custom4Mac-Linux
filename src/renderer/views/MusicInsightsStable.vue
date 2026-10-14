@@ -79,6 +79,15 @@
           >
             {{ t('insights.footprint.historicalReplayButton', { count: historicalReplayPreview.count }) }}
           </button>
+          <p v-if="historicalReplayDiagnostics.awaitingEntries > 0" class="historical-replay-diagnostics">
+            {{ t('insights.footprint.historicalReplayDiagnostics', {
+              awaiting: historicalReplayDiagnostics.awaitingEntries,
+              eligible: historicalReplayDiagnostics.eligibleEntries,
+              credited: historicalReplayDiagnostics.partiallyConfirmedEntries,
+              retried: historicalReplayDiagnostics.alreadyReplayedEntries,
+              recent: historicalReplayDiagnostics.tooRecentEntries
+            }) }}
+          </p>
           <div class="sync-traffic-light">
             <div class="sync-light-row" :class="{ active: totalUnsubmittedSeconds > 0 }">
               <span class="sync-light red" aria-hidden="true">待发</span>
@@ -453,6 +462,7 @@ import {
   clearAcceptedNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   getNeteaseHistoricalReplayPreview,
+  getNeteaseHistoricalReplayDiagnostics,
   getNeteaseListenSyncDiagnostics,
   getNeteaseListenReportStatus,
   localDateKey,
@@ -600,6 +610,10 @@ const historicalReplayBusy = ref(false)
 const historicalReplayPreview = computed(() => {
   void neteaseListenEntries.value
   return getNeteaseHistoricalReplayPreview(accountId.value, clockNow.value)
+})
+const historicalReplayDiagnostics = computed(() => {
+  void neteaseListenEntries.value
+  return getNeteaseHistoricalReplayDiagnostics(accountId.value, clockNow.value)
 })
 const replayHistoricalAccepted = async (): Promise<void> => {
   if (historicalReplayBusy.value || historicalReplayPreview.value.count <= 0) return
@@ -1524,6 +1538,14 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 5px;
+}
+
+.historical-replay-diagnostics {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+  opacity: 0.74;
 }
 
 .historical-replay-button {
