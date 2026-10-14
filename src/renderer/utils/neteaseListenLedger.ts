@@ -467,7 +467,10 @@ const replayableAcceptedEntries = (accountId: unknown, now: number): NeteaseList
     }
     const dayConfirmed = Number(entry.confirmedByPeriod?.[`today:${entry.dateKey}`]) || 0
     const monthConfirmed = Number(entry.confirmedByPeriod?.[`month:${month}`]) || 0
-    return Math.max(dayConfirmed, monthConfirmed) < entry.seconds
+    const totalConfirmed = Number(entry.confirmedByPeriod?.total) || 0
+    // Do not replay the full segment if ANY duration was already credited.
+    // Replaying only the remainder would need different event boundaries.
+    return Math.max(dayConfirmed, monthConfirmed, totalConfirmed) === 0
   })
 }
 
