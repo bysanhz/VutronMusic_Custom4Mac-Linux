@@ -5,6 +5,8 @@ import {
   clearAcceptedNeteaseListenEntries,
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
+  flushNeteaseListenLedger,
+  recoverNeteaseListenLedgerBackup,
   getNeteaseHistoricalReplayPreview,
   getNeteaseHistoricalReplayDiagnostics,
   getNeteaseListenSyncDiagnostics,
@@ -859,4 +861,106 @@ test('historical replay UI requires extra consent for ambiguous total-only histo
   expect(source).toContain('historicalReplayAggregateWarning')
   expect(source).toContain('aggregateOnly > 0')
   expect(source).toContain('@click="replayHistoricalAccepted"')
+})
+
+test('old unverified receipts and oversized pending outboxes are never silently pruned', () => {
+  const oldStart = new Date(2026, 7, 1, 10, 0, 0).getTime()
+  const [created] = recordNeteaseListenSegment({
+    accountId: 'retain-account',
+    sessionId: 'historical',
+    startedAt: oldStart,
+    endedAt: oldStart + 120_000,
+    seconds: 120,
+    params
+  })
+  markNeteaseListenEntryAccepted(created.id)
+  const accepted = neteaseListenEntries.value.find((entry) => entry.id === created.id)!
+  neteaseListenEntries.value = Array.from({ length: 2105 }, (_, index) => ({
+    ...accepted,
+    id: `old-receipt-${index}`,
+    params: { ...accepted.params, segmentId: `old-receipt-${index}` },
+    updatedAt: oldStart,
+    acceptedAt: oldStart,
+    confirmedByPeriod: {}
+  }))
+  flushNeteaseListenLedger(true)
+  expect(neteaseListenEntries.value).toHaveLength(2105)
+  expect(neteaseListenEntries.value.every((entry) => entry.status === 'accepted')).toBe(true)
+})
+
+test('merges the disk mirror with local entries without losing either or replaying uploads', async () => {
+  const now = Date.now()
+  const [local] = recordNeteaseListenSegment({
+    accountId: 'recovery-account',
+    sessionId: 'local',
+    startedAt: now - 360_000,
+    endedAt: now - 240_000,
+    seconds: 120,
+    params
+  })
+  const backup = {
+    entries: [
+      {
+        ...local,
+        id: 'disk-only-segment',
+        sessionId: 'disk',
+        params: { ...local.params, segmentId: 'disk-only-segment' },
+        status: 'accepted',
+        acceptedAt: now - 60_000,
+        updatedAt: now - 60_000
+      },
+      {
+        ...local,
+        status: 'accepted',
+        acceptedAt: now - 30_000,
+        updatedAt: now - 30_000
+      }
+    ],
+    remoteBaselines: {},
+    remoteObservations: {}
+  }
+  const originalWindow = (globalThis as any).window
+  const sent: any[] = []
+  ;(globalThis as any).window = {
+    mainApi: {
+      invoke: async (channel: string) =>
+        channel === 'get-listen-ledger-backup' ? backup : null,
+      send: (channel: string, payload: unknown) => sent.push({ channel, payload })
+    }
+  }
+
+  try {
+    await recoverNeteaseListenLedgerBackup()
+    const recovered = neteaseListenEntries.value
+    expect(recovered).toHaveLength(2)
+    expect(recovered.find((entry) => entry.id === 'disk-only-segment')?.status).toBe('accepted')
+    expect(recovered.find((entry) => entry.id === local.id)?.status).toBe('accepted')
+    expect(sent.some((item) => item.channel === 'listen-ledger-snapshot')).toBe(true)
+  } finally {
+    ;(globalThis as any).window = originalWindow
+  }
+})
+
+test('captured transport evidence never masquerades as a confirmed day report', () => {
+  const startedAt = new Date(2026, 9, 13, 10, 0, 0).getTime()
+  const [entry] = recordNeteaseListenSegment({
+    accountId: 'receipt-not-credit',
+    sessionId: 'receipt-only',
+    startedAt,
+    endedAt: startedAt + 120_000,
+    seconds: 120,
+    params
+  })
+  markNeteaseListenEntryAccepted(entry.id, {
+    transport: 'ncbl-plv-pld',
+    acknowledgedAt: Date.now(),
+    plvReceived: true,
+    pldReceived: true,
+    deduplicated: false
+  })
+  const persisted = neteaseListenEntries.value.find((item) => item.id === entry.id)!
+  expect(persisted.status).toBe('accepted')
+  expect(persisted.uploadEvidence?.pldReceived).toBe(true)
+  expect(persisted.confirmedByPeriod).toEqual({})
+  expect(getNeteaseListenSyncDiagnostics('receipt-not-credit').receiptEvidenceEntries).toBe(1)
 })
