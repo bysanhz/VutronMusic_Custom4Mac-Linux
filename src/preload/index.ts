@@ -78,6 +78,7 @@ const mainAvailChannels: string[] = [
   'quit-application'
 ]
 const rendererAvailChannels: string[] = [
+  'listen-ledger-backup-status',
   'msgHandleScanLocalMusic',
   'msgHandleScanLocalMusicError',
   'scanLocalMusicDone',
