@@ -1039,7 +1039,8 @@
       "durationDaysHours": "{days}天 {hours}小時",
       "durationHoursMinutes": "{hours}小時 {minutes}分",
       "durationMinutes": "{minutes}分",
-      "todayMetric": "今日 · 歌曲數"
+      "todayMetric": "今日 · 歌曲數",
+      "reportRegressed": "網易雲本月報表比之前的有效讀數回退了 {duration}。為避免將舊報表反彈誤當成新增收聽時長，目前不會據此核銷待核記錄。上傳回執不等於雲端統計確認，請保留記錄並觀察後續報表。"
     },
     "style": {
       "title": "曲風漫遊 2.0",
