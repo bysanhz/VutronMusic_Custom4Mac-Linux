@@ -76,6 +76,9 @@ test.describe('NetEase listening duration extraction', () => {
       { dateKey: '2026-10-13', seconds: 84 * 60 },
       { dateKey: '2026-10-14', seconds: 12 * 60 }
     ])
+    expect(extractTodayListenSeconds(report, new Date(2026, 9, 2))).toBe(166 * 60)
+    expect(extractTodayListenSeconds(report, new Date(2026, 9, 2), true)).toBeUndefined()
+    expect(extractTodayListenSeconds(report, new Date(2026, 9, 13), true)).toBe(84 * 60)
   })
 
   test('does not let a stale week report override an explicitly empty today response', () => {
