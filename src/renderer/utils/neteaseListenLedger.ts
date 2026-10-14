@@ -142,6 +142,8 @@ let persistenceFailures = 0
 let lastPersistenceFailureAt = 0
 let backupReady = false
 let backupRecoveryEntries = 0
+let backupStatusListenerInstalled = false
+let lastBackupAcknowledgedAt = 0
 
 const readState = (): LedgerState => {
   if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {} }
@@ -237,6 +239,21 @@ export const flushNeteaseListenLedger = (force = false): void => {
  */
 export const recoverNeteaseListenLedgerBackup = async (): Promise<void> => {
   if (backupReady) return
+  if (
+    !backupStatusListenerInstalled &&
+    typeof window !== 'undefined' &&
+    window.mainApi?.on
+  ) {
+    window.mainApi.on('listen-ledger-backup-status', (_event, response: { ok?: boolean }) => {
+      if (response?.ok === true) {
+        lastBackupAcknowledgedAt = Date.now()
+      } else {
+        persistenceFailures += 1
+        lastPersistenceFailureAt = Date.now()
+      }
+    })
+    backupStatusListenerInstalled = true
+  }
   try {
     const backup = await (typeof window !== 'undefined'
       ? window.mainApi?.invoke('get-listen-ledger-backup')
@@ -1019,6 +1036,7 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     persistence: {
       backupReady,
       backupRecoveryEntries,
+      lastBackupAcknowledgedAt,
       localStorageCorrupted,
       persistenceFailures,
       lastPersistenceFailureAt,
