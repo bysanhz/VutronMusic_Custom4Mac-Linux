@@ -47,7 +47,7 @@ jobs:
       - name: Verify audio playback, MPRIS and listening ledger
         if: ${{ always() }}
         run: >-
-          yarn playwright test tests/audio-playback-health.spec.ts tests/netease-listen-ledger.spec.ts tests/player-track-state-race.spec.ts tests/diagnostics-settings.spec.ts
+          yarn playwright test tests/audio-playback-health.spec.ts tests/netease-listen-ledger.spec.ts tests/player-track-state-race.spec.ts tests/diagnostics-settings.spec.ts tests/netease-listen-duration.spec.ts
 
       - name: Run security and feature regression tests
         if: ${{ always() }}
