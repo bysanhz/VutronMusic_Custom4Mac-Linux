@@ -15,6 +15,7 @@ import {
   activeNeteaseListenAccountId,
   getNeteaseListenSyncDiagnostics
 } from './neteaseListenLedger'
+import request from './request'
 
 const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
 const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'
@@ -137,6 +138,23 @@ const collectRendererDiagnostics = () => {
   }
 }
 
+/**
+ * Inspect the exact NetEase scrobble implementation used by this running app.
+ * A successful upload receipt does not mean its duration is in the remote report.
+ * Keep the snapshot free of cookies, account IDs and raw error messages.
+ */
+const getNeteaseScrobbleRuntimeDiagnostics = async () => {
+  const info = await request({ url: '/runtime-info', method: 'get', timeout: 4000 })
+  if (Number(info?.code) !== 200) return { available: false }
+
+  return {
+    available: info.stableScrobbleV1Available === true,
+    appServerRevision:
+      typeof info.appServerRevision === 'string' ? info.appServerRevision : '',
+    source: typeof info.stableScrobbleV1Source === 'string' ? info.stableScrobbleV1Source : ''
+  }
+}
+
 const formatDiagnostics = (main: Record<string, any>, renderer: Record<string, any>): string => {
   const sanitizedMain = {
     ...main,
@@ -180,8 +198,14 @@ const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
     button.disabled = true
     status.textContent = ''
     try {
-      const main = (await window.mainApi?.invoke('get-runtime-diagnostics')) || {}
-      const output = formatDiagnostics(main, collectRendererDiagnostics())
+      const [main, neteaseScrobble] = await Promise.all([
+        window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({}),
+        getNeteaseScrobbleRuntimeDiagnostics()
+      ])
+      const output = formatDiagnostics(main, {
+        ...collectRendererDiagnostics(),
+        neteaseScrobble
+      })
       await navigator.clipboard.writeText(output)
       status.textContent = text.copied
     } catch (error) {
