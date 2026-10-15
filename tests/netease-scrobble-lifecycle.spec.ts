@@ -128,11 +128,10 @@ test.describe('NetEase scrobble lifecycle', () => {
   test('filters accidental short plays before writing NetEase history', () => {
     const trackApi = readSource('src/renderer/api/track.ts')
 
-    expect(trackApi).toContain('const MIN_NETEASE_SCROBBLE_SECONDS = 30')
-    expect(trackApi).toContain('const getMinimumScrobbleSeconds =')
-    expect(trackApi).toContain(
-      'return Math.min(MIN_NETEASE_SCROBBLE_SECONDS, Math.max(1, Math.floor(totalSeconds)))'
-    )
+    const threshold = readSource('src/shared/neteaseListenThreshold.ts')
+    expect(threshold).toContain('MIN_NETEASE_LISTEN_SECONDS = 15')
+    expect(trackApi).toContain('getMinimumNeteaseListenSeconds(params.total)')
+    expect(threshold).toContain('Math.min(MIN_NETEASE_LISTEN_SECONDS, Math.max(1, Math.floor(duration)))')
     expect(trackApi).toContain('!params.allowShort && listenedSeconds < minimumSeconds')
     expect(trackApi).toContain("reason: 'short-playback'")
     expect(trackApi).toContain(
@@ -146,10 +145,12 @@ test.describe('NetEase scrobble lifecycle', () => {
     const insights = readSource('src/renderer/views/MusicInsightsStable.vue')
     const trackApi = readSource('src/renderer/api/track.ts')
 
-    expect(player).toContain('const MIN_NETEASE_CHECKPOINT_SECONDS = 30')
+    expect(player).toContain('getMinimumNeteaseListenSeconds(trackDuration)')
+    expect(player).toContain('if (listenedSeconds < minimumSeconds) return 0')
     expect(player).toContain('const syncCurrentNeteaseListenCheckpoint = async')
     expect(player).toContain('checkpoint = false')
-    expect(player).toContain('commitNeteaseSessionProgress(track, {')
+    expect(player).toContain('commitNeteaseSessionProgress(track)')
+    expect(player).not.toContain('force: completed || checkpoint')
     expect(player).toContain('sessionId: neteaseSessionId')
     expect(player).toContain('time: entry.seconds')
     expect(player).toContain('requireDurationAware: true')
