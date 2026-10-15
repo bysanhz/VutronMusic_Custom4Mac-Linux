@@ -1022,8 +1022,6 @@
       "syncWaiting": "還有時長待處理",
       "syncTodayDuration": "今日 +{duration}",
       "syncEarlierDuration": "1日至昨天 +{duration}",
-      "provisionalListenLabel": "本機暫存累計：{duration}",
-      "provisionalListenHelp": "一般歌曲累計達到 {threshold} 秒後才進入「待發」。跨日繼續播放仍保留實際日期；未達門檻的試聽在關閉程式後不會保留。",
       "pendingUnsubmittedLabel": "待發",
       "pendingUnsubmittedHelp": "本機已記錄，尚未提交網易雲。",
       "pendingSubmittedLabel": "待核",
@@ -1048,7 +1046,8 @@
       "durationHoursMinutes": "{hours}小時 {minutes}分",
       "durationMinutes": "{minutes}分",
       "todayMetric": "今日 · 歌曲數",
-      "reportRegressed": "網易雲本月報表比之前的有效讀數回退了 {duration}。為避免將舊報表反彈誤當成新增收聽時長，目前不會據此核銷待核記錄。上傳回執不等於雲端統計確認，請保留記錄並觀察後續報表。"
+      "reportDiagnosticLabel": "雲端月報讀數差異 · 查看詳情",
+      "reportRegressed": "網易雲本月報表目前比先前最高讀數低 {duration}。這可能與報表快取、統計口徑或歷史資料修正有關，無法據此判定本次歌曲上傳失敗。為避免舊報表回升造成錯誤核銷，程式仍保留歷史基線與待核記錄。"
     },
     "style": {
       "title": "曲風漫遊 2.0",
