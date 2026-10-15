@@ -62,6 +62,7 @@ import { Track, serviceName, lyricLine } from '@/types/music'
 import { PitchProcessor } from '../utils/pitchProcessor'
 import { getBufferedAheadSeconds } from '../utils/audioBufferHealth'
 import { OwnedObjectUrls } from '../utils/ownedObjectUrls'
+import { createNeteasePauseUploadScheduler } from '../../shared/neteasePauseUpload'
 
 interface biquadType {
   31: number
@@ -150,6 +151,7 @@ export const usePlayerStore = defineStore(
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
     const MIN_NETEASE_CHECKPOINT_SECONDS = 30
     const NETEASE_LOCAL_CHECKPOINT_SECONDS = 5
+    const NETEASE_PAUSE_UPLOAD_DELAY_MS = 1500
     const NETEASE_RETRY_POLL_MS = 30_000
     const MPRIS_PROGRESS_UPDATE_INTERVAL_MS = 1_000
     let lastMprisProgressUpdateAt = 0
@@ -1035,9 +1037,13 @@ export const usePlayerStore = defineStore(
       }
 
       cancelSleepTimerForTrackChange(trackID)
-      if (autoPlay && currentTrack.value?.name) {
-        scrobbleFM(currentTrack.value, seek.value)
-        void scrobbleNetease(currentTrack.value, seek.value)
+      if (currentTrack.value?.name) {
+        if (autoPlay) scrobbleFM(currentTrack.value, seek.value)
+        // A user can switch tracks without auto-play. The old paused session
+        // still has a durable pending outbox and must not wait for another song.
+        if (autoPlay || String(currentTrack.value.id) !== String(trackID)) {
+          void scrobbleNetease(currentTrack.value, seek.value)
+        }
       }
 
       let track: Track | undefined
@@ -1314,6 +1320,28 @@ export const usePlayerStore = defineStore(
     }
 
     /**
+     * Send a valid paused listening session shortly after playback actually
+     * stops. Fast pause/resume gestures cancel the timer; a pending ledger
+     * entry remains durable regardless of whether this timer fires.
+     */
+    const neteasePauseUpload = createNeteasePauseUploadScheduler({
+      delayMs: NETEASE_PAUSE_UPLOAD_DELAY_MS,
+      isStillPaused: ({ sessionId, accountId, trackId }) =>
+        neteaseSessionId === sessionId &&
+        neteaseSessionAccountId === accountId &&
+        currentNeteaseAccountId() === accountId &&
+        String(currentTrack.value?.id) === trackId &&
+        audioNodes.audio?.paused === true &&
+        audioNodes.audio?.ended !== true &&
+        playing.value === false,
+      submit: ({ sessionId, accountId }) => {
+        void queueNeteaseListenSubmission({ sessionId, accountId }).catch((error) => {
+          console.warn('[Player] 暂停后提交网易云听歌片段失败：', error)
+        })
+      }
+    })
+
+    /**
      * A one-time manual recovery for previously accepted-but-unverified days.
      * The UI must show an explicit duplicate-count warning and confirmation.
      * This routine never runs on startup, refresh, or a normal track change.
@@ -1348,7 +1376,12 @@ export const usePlayerStore = defineStore(
       // 当前歌曲的 pending 条目是正在增长的草稿，应等到自然结束或切歌时再一次提交。
       // 定时器只重试以前歌曲遗留的失败条目，避免重新产生每分钟一个回执。
       return queueNeteaseListenSubmission({
-        excludeSessionId: neteaseSessionId || undefined,
+        // Only the actively playing song is a growing draft. A paused
+        // current-session outbox is eligible for ordinary backoff retries.
+        excludeSessionId:
+          audioNodes.audio && !audioNodes.audio.paused && !audioNodes.audio.ended
+            ? neteaseSessionId || undefined
+            : undefined,
         force: false
       })
     }
@@ -1605,6 +1638,7 @@ export const usePlayerStore = defineStore(
     }
 
     const nextTrackCallback = () => {
+      neteasePauseUpload.cancel()
       markPlaybackEndReason('natural-end')
       const endedTrack = currentTrack.value
       if (endedTrack) {
@@ -1859,12 +1893,14 @@ export const usePlayerStore = defineStore(
     }
 
     const _handleMediaPlay = () => {
+      neteasePauseUpload.cancel()
       recordPlaybackMediaEvent('play')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
       playing.value = true
     }
 
     const _handleMediaPlaying = () => {
+      neteasePauseUpload.cancel()
       recordPlaybackMediaEvent('playing')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
       playing.value = true
@@ -1873,6 +1909,16 @@ export const usePlayerStore = defineStore(
     const _handleMediaPause = () => {
       recordPlaybackMediaEvent('pause')
       playing.value = false
+      const track = currentTrack.value
+      if (!track || audioNodes.audio?.ended || !shouldTrackNeteaseListenTime(track)) return
+      // Flush the real playback slices before the debounce delay; never derive
+      // their date from the later network request or from the next track.
+      commitNeteaseSessionProgress(track)
+      neteasePauseUpload.schedule({
+        sessionId: neteaseSessionId,
+        accountId: neteaseSessionAccountId,
+        trackId: String(track.id)
+      })
     }
 
     const _handleMediaWaiting = () => {
@@ -2923,6 +2969,7 @@ export const usePlayerStore = defineStore(
         const nextAccountId = String(userId || 'anonymous')
         const previousAccountId = String(previousUserId || 'anonymous')
         if (nextAccountId !== previousAccountId) {
+          neteasePauseUpload.cancel()
           // Preserve already eligible old-account playback locally BEFORE
           // resetting the session. Never upload it with the new account cookie.
           if (currentTrack.value && neteaseSessionAccountId === previousAccountId) {
@@ -3021,6 +3068,7 @@ export const usePlayerStore = defineStore(
     }
 
     onBeforeUnmount(() => {
+      neteasePauseUpload.cancel()
       clearCoverRetryTimer()
       if (currentTrack.value) {
         void scrobbleNetease(
