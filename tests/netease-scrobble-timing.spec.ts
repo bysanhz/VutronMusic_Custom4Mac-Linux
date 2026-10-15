@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { uploadScrobbleStages } from '../src/shared/neteaseScrobbleStages'
 import { normalizeNeteaseScrobbleTiming } from '../src/shared/scrobbleTiming'
 import { createNeteasePauseUploadScheduler } from '../src/shared/neteasePauseUpload'
+import { getMinimumNeteaseListenSeconds, MIN_NETEASE_LISTEN_SECONDS } from '../src/shared/neteaseListenThreshold'
 import {
   claimPendingNeteaseListenEntries,
   markNeteaseListenEntryAccepted,
@@ -277,4 +278,32 @@ test('original PLV/PLD referral timestamps are passed through without rewriting 
   expect(ncbl).toContain('buildPld = (ctx, song, source, played, eventTimeMs = Date.now())')
   expect(handler).toContain('buildPlv(ctx, song, source, timing.startedAtSeconds * 1000)')
   expect(handler).toContain('buildPld(ctx, song, source, timing.playedSeconds, timing.endedAtSeconds * 1000)')
+})
+
+test('VutronMusic requires 15 seconds for ordinary tracks and a full short track', () => {
+  expect(MIN_NETEASE_LISTEN_SECONDS).toBe(15)
+  expect(getMinimumNeteaseListenSeconds(240)).toBe(15)
+  expect(getMinimumNeteaseListenSeconds(10)).toBe(10)
+  expect(getMinimumNeteaseListenSeconds(undefined)).toBe(15)
+
+  const source = readFileSync(resolve(process.cwd(), 'src/renderer/store/player.ts'), 'utf8')
+  const api = readFileSync(resolve(process.cwd(), 'src/renderer/api/track.ts'), 'utf8')
+  expect(source).toContain('getMinimumNeteaseListenSeconds(trackDuration)')
+  expect(source).toContain('if (listenedSeconds < minimumSeconds) return 0')
+  // A manual refresh or natural end must not force a ten-second preview into
+  // the durable outbox when a regular track requires fifteen seconds.
+  expect(source).not.toContain('force: completed || checkpoint')
+  expect(source).not.toContain('MIN_NETEASE_CHECKPOINT_SECONDS = 30')
+  expect(api).toContain('getMinimumNeteaseListenSeconds(params.total)')
+  expect(api).not.toContain('MIN_NETEASE_SCROBBLE_SECONDS = 30')
+})
+
+test('short listens are displayed as a separate local draft, never as ready-to-send', () => {
+  const page = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
+  const status = readFileSync(resolve(process.cwd(), 'src/renderer/utils/neteaseSyncStatus.ts'), 'utf8')
+  expect(page).toContain('provisionalListenLabel')
+  expect(page).toContain('provisionalListenHelp')
+  expect(page).toContain('totalLedger.value.provisional')
+  expect(status).toContain('todayPending: today.pending')
+  expect(status).toContain('todayProvisional: today.provisional')
 })
