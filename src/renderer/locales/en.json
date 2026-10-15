@@ -1022,6 +1022,8 @@
       "syncWaiting": "Listening time still pending",
       "syncTodayDuration": "Today +{duration}",
       "syncEarlierDuration": "1st–yesterday +{duration}",
+      "provisionalListenLabel": "Local listening draft: {duration}",
+      "provisionalListenHelp": "Regular tracks enter To send after {threshold}s of listening. Resuming across midnight preserves the original dates; unfinished short listens are not retained after app restart.",
       "pendingUnsubmittedLabel": "To send",
       "pendingUnsubmittedHelp": "Recorded locally, not yet sent to NetEase.",
       "pendingSubmittedLabel": "Awaiting",
