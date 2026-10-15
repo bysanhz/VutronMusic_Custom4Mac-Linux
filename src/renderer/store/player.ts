@@ -63,6 +63,7 @@ import { PitchProcessor } from '../utils/pitchProcessor'
 import { getBufferedAheadSeconds } from '../utils/audioBufferHealth'
 import { OwnedObjectUrls } from '../utils/ownedObjectUrls'
 import { createNeteasePauseUploadScheduler } from '../../shared/neteasePauseUpload'
+import { getMinimumNeteaseListenSeconds } from '../../shared/neteaseListenThreshold'
 
 interface biquadType {
   31: number
@@ -149,7 +150,6 @@ export const usePlayerStore = defineStore(
     let neteaseScrobbleQueue: Promise<void> = Promise.resolve()
     let neteaseRetryTimer: number | null = null
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
-    const MIN_NETEASE_CHECKPOINT_SECONDS = 30
     const NETEASE_LOCAL_CHECKPOINT_SECONDS = 5
     const NETEASE_PAUSE_UPLOAD_DELAY_MS = 1500
     const NETEASE_RETRY_POLL_MS = 30_000
@@ -1156,8 +1156,7 @@ export const usePlayerStore = defineStore(
 
     const commitNeteaseSessionProgress = (
       track: Track,
-      { force = false, allowPreviousAccount = false }: {
-        force?: boolean
+      { allowPreviousAccount = false }: {
         allowPreviousAccount?: boolean
       } = {}
     ): number => {
@@ -1172,9 +1171,11 @@ export const usePlayerStore = defineStore(
         1,
         Math.floor((track.dt || track.duration || 0) / 1000)
       )
-      const minimumSeconds = Math.min(MIN_NETEASE_CHECKPOINT_SECONDS, trackDuration)
+      const minimumSeconds = getMinimumNeteaseListenSeconds(trackDuration)
       const listenedSeconds = Math.max(0, neteaseSessionListenedSeconds)
-      if (!force && listenedSeconds < minimumSeconds) return 0
+      // No manual refresh, natural-end or track-switch path may bypass the
+      // VutronMusic threshold. Short tracks qualify after their full length.
+      if (listenedSeconds < minimumSeconds) return 0
 
       const delta = Math.max(0, listenedSeconds - neteaseSessionCommittedSeconds)
       const params = buildNeteaseScrobbleParams(track)
@@ -1361,9 +1362,7 @@ export const usePlayerStore = defineStore(
       checkpoint = false
     ): Promise<boolean> => {
       if (track.type === 'stream' || (track.type === 'local' && !track.matched)) return false
-      const committed = commitNeteaseSessionProgress(track, {
-        force: completed || checkpoint
-      })
+      const committed = commitNeteaseSessionProgress(track)
       const submitted = await queueNeteaseListenSubmission({
         sessionId: neteaseSessionId,
         force: checkpoint,
@@ -2145,7 +2144,7 @@ export const usePlayerStore = defineStore(
             1,
             Math.floor((currentTrack.value?.dt || currentTrack.value?.duration || 0) / 1000)
           )
-          const minimumSeconds = Math.min(MIN_NETEASE_CHECKPOINT_SECONDS, trackDuration)
+          const minimumSeconds = getMinimumNeteaseListenSeconds(trackDuration)
           // Preserve the full played-time total, but avoid a reactive ledger
           // rewrite (and synchronous localStorage flush) on every second after
           // the initial listening threshold.
