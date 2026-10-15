@@ -1358,7 +1358,7 @@ export const usePlayerStore = defineStore(
     const scrobbleNetease = async (
       track: Track,
       _time: number,
-      completed = false,
+      _completed = false,
       checkpoint = false
     ): Promise<boolean> => {
       if (track.type === 'stream' || (track.type === 'local' && !track.matched)) return false
