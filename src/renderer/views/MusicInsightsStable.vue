@@ -145,6 +145,18 @@
               </div>
             </div>
           </div>
+          <div v-if="provisionalSeconds > 0" class="sync-provisional-info" role="status">
+            <strong>{{
+              t('insights.footprint.provisionalListenLabel', {
+                duration: formatPendingListenDuration(provisionalSeconds)
+              })
+            }}</strong>
+            <small>{{
+              t('insights.footprint.provisionalListenHelp', {
+                threshold: MIN_NETEASE_LISTEN_SECONDS
+              })
+            }}</small>
+          </div>
           <div
             v-if="monthReportAvailable === false && totalAwaitingSeconds > 0"
             class="sync-report-unavailable"
@@ -473,6 +485,7 @@ import {
   setActiveNeteaseListenAccount
 } from '../utils/neteaseListenLedger'
 import { splitNeteaseSyncStatusByDay } from '../utils/neteaseSyncStatus'
+import { MIN_NETEASE_LISTEN_SECONDS } from '../../shared/neteaseListenThreshold'
 import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -601,6 +614,9 @@ const pendingUnsubmittedSeconds = computed(() => syncStatus.value.todayPending)
 const submittedNeteaseListenSeconds = computed(() => syncStatus.value.todayAccepted)
 const earlierPendingNeteaseListenSeconds = computed(() => syncStatus.value.earlierPending)
 const earlierAcceptedNeteaseListenSeconds = computed(() => syncStatus.value.earlierAccepted)
+// A paused, sub-threshold session can span a month boundary; use the
+// account-wide provisional total so it remains visible on the new day.
+const provisionalSeconds = computed(() => totalLedger.value.provisional)
 const totalUnsubmittedSeconds = computed(
   () => pendingUnsubmittedSeconds.value + earlierPendingNeteaseListenSeconds.value
 )
@@ -1562,6 +1578,20 @@ button:disabled {
   width: 100%;
   text-align: center;
   white-space: normal;
+}
+
+.sync-provisional-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-secondary-bg, rgba(128, 128, 128, 0.07));
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sync-provisional-info small {
+  color: var(--color-text-secondary, #777);
 }
 
 .sync-traffic-light {
