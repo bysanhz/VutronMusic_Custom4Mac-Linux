@@ -1,11 +1,17 @@
 type LedgerTotals = { pending: number; accepted: number; provisional: number }
 
-/** The two inputs are disjoint date ranges, not balances from different report periods. */
+/**
+ * Pending is durable and upload-eligible; provisional is in-memory playback
+ * that has not qualified for the session's minimum listening threshold.
+ * Keep them separate to avoid falsely promising that 10s is ready to send.
+ */
 export const splitNeteaseSyncStatusByDay = (today: LedgerTotals, earlier: LedgerTotals) => {
   return {
-    todayPending: today.pending + today.provisional,
+    todayPending: today.pending,
     todayAccepted: today.accepted,
-    earlierPending: earlier.pending + earlier.provisional,
-    earlierAccepted: earlier.accepted
+    todayProvisional: today.provisional,
+    earlierPending: earlier.pending,
+    earlierAccepted: earlier.accepted,
+    earlierProvisional: earlier.provisional
   }
 }
