@@ -2163,7 +2163,10 @@ export const usePlayerStore = defineStore(
               startedAt: neteaseSessionStartedAt,
               endedAt: now,
               seconds: neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds,
-              segments: neteaseSessionSlices
+              // Count the 1-4s live remainder only after the full session qualifies.
+              // The durable disk checkpoint stays at five-second intervals.
+              segments: neteaseSessionSlices,
+              eligible: neteaseSessionListenedSeconds >= minimumSeconds
             })
           }
         }

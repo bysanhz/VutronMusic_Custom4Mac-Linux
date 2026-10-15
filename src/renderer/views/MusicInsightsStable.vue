@@ -55,6 +55,22 @@
               <dd>{{ t('insights.footprint.pendingSyncedHelp') }}</dd>
             </div>
           </dl>
+          <div class="listen-threshold-setting">
+            <label for="netease-listen-threshold">{{ t('insights.footprint.thresholdLabel') }}</label>
+            <div class="listen-threshold-controls">
+              <input
+                id="netease-listen-threshold"
+                type="number"
+                min="1"
+                max="120"
+                step="1"
+                :value="listenThresholdSeconds"
+                @change="updateListenThreshold"
+              />
+              <span>{{ t('insights.footprint.thresholdUnit') }}</span>
+            </div>
+            <small>{{ t('insights.footprint.thresholdHelp', { seconds: listenThresholdSeconds }) }}</small>
+          </div>
         </div>
         <div class="sync-status-panel">
           <div class="sync-status-heading">
@@ -63,8 +79,8 @@
               v-if="accountId !== 'anonymous'"
               type="button"
               class="clear-sync-button"
-              :disabled="totalAwaitingSeconds <= 0"
-              :title="totalAwaitingSeconds <= 0 ? t('insights.footprint.clearAcceptedEmpty') : ''"
+              :disabled="totalAwaitingSeconds <= 0 && monthReportRegressionSeconds < 120"
+              :title="totalAwaitingSeconds <= 0 && monthReportRegressionSeconds < 120 ? t('insights.footprint.clearAcceptedEmpty') : ''"
               @click="clearAcceptedBacklog"
             >
               {{ t('insights.footprint.clearAccepted') }}
@@ -461,6 +477,7 @@ import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import {
   clearAcceptedNeteaseListenEntries,
+  dismissNeteaseListenReportRegression,
   getNeteaseListenLedgerTotals,
   getNeteaseHistoricalReplayPreview,
   getNeteaseHistoricalReplayDiagnostics,
@@ -468,10 +485,15 @@ import {
   getNeteaseListenReportStatus,
   localDateKey,
   neteaseListenEntries,
+  provisionalNeteaseListen,
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount
 } from '../utils/neteaseListenLedger'
 import { splitNeteaseSyncStatusByDay } from '../utils/neteaseSyncStatus'
+import {
+  getConfiguredNeteaseListenSeconds,
+  setConfiguredNeteaseListenSeconds
+} from '../../shared/neteaseListenThreshold'
 import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -522,6 +544,12 @@ const footprint = reactive<{
 }>({ weekTracks: [], allTracks: [] })
 const footprintRankMode = ref<'week' | 'all'>('week')
 const clockNow = ref(Date.now())
+const listenThresholdSeconds = ref(getConfiguredNeteaseListenSeconds())
+const updateListenThreshold = (event: Event): void => {
+  const input = event.target as HTMLInputElement
+  listenThresholdSeconds.value = setConfiguredNeteaseListenSeconds(Number(input.value))
+  input.value = String(listenThresholdSeconds.value)
+}
 const accountId = computed(() => String(user.value.userId || 'anonymous'))
 
 const startOfToday = computed(() => {
@@ -563,8 +591,8 @@ const todayLedger = computed(() =>
 const earlierMonthLedger = computed(() =>
   ledgerTotals(startOfMonth.value, startOfToday.value - 1, monthPeriodKey.value)
 )
-const ledgerUnconfirmedSeconds = (value: { pending: number; accepted: number }) =>
-  value.pending + value.accepted
+const ledgerUnconfirmedSeconds = (value: { pending: number; accepted: number; provisional: number }) =>
+  value.pending + value.accepted + (provisionalNeteaseListen.value.eligible ? value.provisional : 0)
 // 状态栏展示今天和本月此前，避免把整周未确认时长误作今天新增。
 // listen/total 的累计值更新较慢，仅用于后台轮询，不能代替本月状态。
 const visiblePendingNeteaseListenSeconds = computed(
@@ -596,9 +624,16 @@ const displayTodaySeconds = computed(() => footprint.todaySeconds)
 const displayWeekSeconds = computed(() => footprint.weekSeconds)
 const displayMonthSeconds = computed(() => footprint.monthSeconds)
 const displayTotalSeconds = computed(() => footprint.totalSeconds)
-const syncStatus = computed(() =>
-  splitNeteaseSyncStatusByDay(todayLedger.value, earlierMonthLedger.value)
-)
+const syncStatus = computed(() => {
+  const status = splitNeteaseSyncStatusByDay(todayLedger.value, earlierMonthLedger.value)
+  // The eligible in-memory remainder is already part of the same recording session.
+  // On checkpoint it is replaced by a persisted entry, never added twice.
+  if (provisionalNeteaseListen.value.eligible) {
+    status.todayPending += status.todayProvisional
+    status.earlierPending += status.earlierProvisional
+  }
+  return status
+})
 const pendingUnsubmittedSeconds = computed(() => syncStatus.value.todayPending)
 const submittedNeteaseListenSeconds = computed(() => syncStatus.value.todayAccepted)
 const earlierPendingNeteaseListenSeconds = computed(() => syncStatus.value.earlierPending)
@@ -654,7 +689,9 @@ const replayHistoricalAccepted = async (): Promise<void> => {
 }
 const clearAcceptedBacklog = (): void => {
   const acceptedSeconds = totalAwaitingSeconds.value
-  if (acceptedSeconds <= 0 || accountId.value === 'anonymous') return
+  const canDismissReport =
+    monthReportAvailable.value === true && monthReportRegressionSeconds.value >= 120
+  if ((acceptedSeconds <= 0 && !canDismissReport) || accountId.value === 'anonymous') return
   const duration = formatPendingListenDuration(acceptedSeconds)
   if (!confirm(t('insights.footprint.clearAcceptedConfirm', { duration }))) return
   const clearedToday = clearAcceptedNeteaseListenEntries({
@@ -669,7 +706,15 @@ const clearAcceptedBacklog = (): void => {
     rangeEnd: startOfToday.value - 1,
     periodKey: monthPeriodKey.value
   })
-  if (clearedToday + clearedEarlier > 0) showToast(t('insights.footprint.clearAcceptedDone'))
+  // Keep the high-water baseline: resetting it could falsely confirm uploads
+  // after NetEase's stale report returns to its former value.
+  const dismissed =
+    canDismissReport &&
+    dismissNeteaseListenReportRegression(accountId.value, monthPeriodKey.value)
+  if (dismissed) monthReportRegressionSeconds.value = 0
+  if (clearedToday + clearedEarlier > 0 || dismissed) {
+    showToast(t('insights.footprint.clearAcceptedDone'))
+  }
 }
 const todayDataConflict = computed(
   () => footprint.todayCount === 0 && Number(footprint.todaySeconds) > 0
@@ -807,7 +852,7 @@ let lastListenSyncHealthAt = 0
 const reportListenSyncHealth = (monthReportSeconds?: number): void => {
   if (accountId.value === 'anonymous') return
   const monthStatus = getNeteaseListenReportStatus(accountId.value, monthPeriodKey.value)
-  monthReportRegressionSeconds.value = monthStatus.regressionSeconds
+  monthReportRegressionSeconds.value = monthStatus.regressionDismissed ? 0 : monthStatus.regressionSeconds
   const now = Date.now()
   if (now - lastListenSyncHealthAt < 60_000) return
 
@@ -1725,6 +1770,52 @@ button:disabled {
 
 .clear-sync-button:disabled:hover {
   background: color-mix(in srgb, #f59e0b 7%, transparent);
+}
+
+.listen-threshold-setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  margin-top: 12px;
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.listen-threshold-setting label {
+  font-weight: 700;
+}
+
+.listen-threshold-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.listen-threshold-controls input {
+  box-sizing: border-box;
+  width: 64px;
+  min-height: 29px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+  border-radius: 8px;
+  background: var(--color-body-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.listen-threshold-controls input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.listen-threshold-setting small {
+  flex-basis: 100%;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.7;
 }
 
 .sync-status-help {

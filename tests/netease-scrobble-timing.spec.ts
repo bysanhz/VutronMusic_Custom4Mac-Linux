@@ -4,7 +4,13 @@ import { resolve } from 'node:path'
 import { uploadScrobbleStages } from '../src/shared/neteaseScrobbleStages'
 import { normalizeNeteaseScrobbleTiming } from '../src/shared/scrobbleTiming'
 import { createNeteasePauseUploadScheduler } from '../src/shared/neteasePauseUpload'
-import { getMinimumNeteaseListenSeconds, MIN_NETEASE_LISTEN_SECONDS } from '../src/shared/neteaseListenThreshold'
+import {
+  getMinimumNeteaseListenSeconds,
+  MIN_NETEASE_LISTEN_SECONDS,
+  MAX_NETEASE_LISTEN_SECONDS,
+  getConfiguredNeteaseListenSeconds,
+  setConfiguredNeteaseListenSeconds
+} from '../src/shared/neteaseListenThreshold'
 import {
   claimPendingNeteaseListenEntries,
   markNeteaseListenEntryAccepted,
@@ -305,6 +311,9 @@ test('short listens remain internal and never appear as an upload-ready UI statu
   expect(page).not.toContain('provisionalListenHelp')
   expect(page).not.toContain('sync-provisional-info')
   expect(page).toContain('value.pending + value.accepted')
+  expect(page).toContain('provisionalNeteaseListen.value.eligible')
+  expect(page).toContain('status.todayPending += status.todayProvisional')
+  expect(page).toContain('status.earlierPending += status.earlierProvisional')
   expect(status).toContain('todayPending: today.pending')
   // Internal cross-day attribution and threshold computation remain intact.
   expect(status).toContain('todayProvisional: today.provisional')
@@ -321,4 +330,29 @@ test('monthly report regression stays accessible without repeated orange warning
   expect(page).not.toContain('monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0')
   expect(page).toContain('monthReportRegressionSeconds')
   expect(page).toContain("t('insights.footprint.reportRegressed'")
+})
+
+test('the configured threshold is validated, stored and shared by playback and scrobble', () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const storage = new Map<string, string>()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => { storage.set(key, value) }
+    }
+  })
+  try {
+    expect(MAX_NETEASE_LISTEN_SECONDS).toBe(120)
+    expect(getConfiguredNeteaseListenSeconds()).toBe(15)
+    expect(setConfiguredNeteaseListenSeconds(8)).toBe(8)
+    expect(getMinimumNeteaseListenSeconds(240)).toBe(8)
+    expect(getMinimumNeteaseListenSeconds(3)).toBe(3)
+    expect(setConfiguredNeteaseListenSeconds(0)).toBe(15)
+    expect(setConfiguredNeteaseListenSeconds(121)).toBe(15)
+    expect(getConfiguredNeteaseListenSeconds()).toBe(15)
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'localStorage', previous)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
 })

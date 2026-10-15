@@ -40,6 +40,8 @@ type LedgerState = {
   entries: NeteaseListenEntry[]
   remoteBaselines: Record<string, number>
   remoteObservations: Record<string, ReportObservation>
+  /** Report-high-water marks through which the user has dismissed the warning. */
+  dismissedReportBaselines: Record<string, number>
 }
 
 export type RecordSegmentInput = {
@@ -146,7 +148,7 @@ let backupStatusListenerInstalled = false
 let lastBackupAcknowledgedAt = 0
 
 const readState = (): LedgerState => {
-  if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {} }
+  if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {}, dismissedReportBaselines: {} }
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     return {
@@ -160,11 +162,15 @@ const readState = (): LedgerState => {
       remoteObservations:
         stored.remoteObservations && typeof stored.remoteObservations === 'object'
           ? stored.remoteObservations
+          : {},
+      dismissedReportBaselines:
+        stored.dismissedReportBaselines && typeof stored.dismissedReportBaselines === 'object'
+          ? stored.dismissedReportBaselines
           : {}
     } as LedgerState
   } catch {
     localStorageCorrupted = true
-    return { entries: [], remoteBaselines: {}, remoteObservations: {} }
+    return { entries: [], remoteBaselines: {}, remoteObservations: {}, dismissedReportBaselines: {} }
   }
 }
 
@@ -176,11 +182,13 @@ export const provisionalNeteaseListen = ref({
   startedAt: 0,
   endedAt: 0,
   seconds: 0,
-  segments: [] as Array<{ startedAt: number; endedAt: number; seconds: number }>
+  segments: [] as Array<{ startedAt: number; endedAt: number; seconds: number }>,
+  eligible: false
 })
 
 let remoteBaselines = state.remoteBaselines
 let remoteObservations = state.remoteObservations
+let dismissedReportBaselines = state.dismissedReportBaselines
 let lastPersistAt = 0
 let legacyMigrationAttempted = false
 
@@ -200,7 +208,8 @@ export const flushNeteaseListenLedger = (force = false): void => {
   const snapshot: LedgerState = {
     entries: neteaseListenEntries.value,
     remoteBaselines,
-    remoteObservations
+    remoteObservations,
+    dismissedReportBaselines
   }
   // Vue ref() wraps entries in reactive Proxies. Electron IPC rejects Proxies
   // (DataCloneError), while JSON serialization unwraps them to plain values.
@@ -307,6 +316,16 @@ export const recoverNeteaseListenLedgerBackup = async (): Promise<void> => {
           }
         }
       }
+      if (backup.dismissedReportBaselines && typeof backup.dismissedReportBaselines === 'object') {
+        for (const [key, value] of Object.entries(backup.dismissedReportBaselines as Record<string, number>)) {
+          const acknowledged = Number(value)
+          if (!Number.isFinite(acknowledged) || acknowledged < 0) continue
+          dismissedReportBaselines[key] = Math.max(
+            Number(dismissedReportBaselines[key]) || 0,
+            acknowledged
+          )
+        }
+      }
       // A validated backup can recover a damaged localStorage snapshot.
       localStorageCorrupted = false
     }
@@ -381,6 +400,7 @@ export const setProvisionalNeteaseListen = (input?: {
   endedAt: number
   seconds: number
   segments?: Array<{ startedAt: number; endedAt: number; seconds: number }>
+  eligible?: boolean
 }): void => {
   if (!input || !Number.isFinite(input.seconds) || input.seconds <= 0) {
     provisionalNeteaseListen.value = {
@@ -388,7 +408,8 @@ export const setProvisionalNeteaseListen = (input?: {
       startedAt: 0,
       endedAt: 0,
       seconds: 0,
-      segments: []
+      segments: [],
+      eligible: false
     }
     return
   }
@@ -397,7 +418,8 @@ export const setProvisionalNeteaseListen = (input?: {
     startedAt: input.startedAt,
     endedAt: Math.max(input.startedAt, input.endedAt),
     seconds: Math.max(0, input.seconds),
-    segments: Array.isArray(input.segments) ? input.segments : []
+    segments: Array.isArray(input.segments) ? input.segments : [],
+    eligible: input.eligible === true
   }
 }
 
@@ -949,15 +971,35 @@ export const getNeteaseListenReportStatus = (accountIdValue: unknown, periodKey:
   const observed = remoteObservations[key]
   const highWater = Number(remoteBaselines[key])
   const latest = Number(observed?.seconds)
+  const regressionSeconds =
+    observed && Number.isFinite(highWater) && Number.isFinite(latest)
+      ? Math.max(0, highWater - latest)
+      : 0
+  const dismissedThrough = Number(dismissedReportBaselines[key])
   return {
     highWaterSeconds: Number.isFinite(highWater) ? highWater : null,
     latestReportedSeconds: observed && Number.isFinite(latest) ? latest : null,
     lastObservedAt: observed?.observedAt || null,
-    regressionSeconds:
-      observed && Number.isFinite(highWater) && Number.isFinite(latest)
-        ? Math.max(0, highWater - latest)
-        : 0
+    regressionSeconds,
+    regressionDismissed:
+      regressionSeconds > 0 && Number.isFinite(dismissedThrough) && dismissedThrough >= highWater
   }
+}
+
+/** Hide the current month's discrepancy without lowering the reconciliation baseline. */
+export const dismissNeteaseListenReportRegression = (
+  accountIdValue: unknown,
+  periodKey: string
+): boolean => {
+  const status = getNeteaseListenReportStatus(accountIdValue, periodKey)
+  if (status.regressionSeconds <= 0 || status.highWaterSeconds === null) return false
+  const key = `${normalizeAccountId(accountIdValue)}:${periodKey}`
+  dismissedReportBaselines = {
+    ...dismissedReportBaselines,
+    [key]: status.highWaterSeconds
+  }
+  flushNeteaseListenLedger(true)
+  return true
 }
 
 /**

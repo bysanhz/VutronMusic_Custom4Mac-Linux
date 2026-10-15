@@ -131,7 +131,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     const threshold = readSource('src/shared/neteaseListenThreshold.ts')
     expect(threshold).toContain('MIN_NETEASE_LISTEN_SECONDS = 15')
     expect(trackApi).toContain('getMinimumNeteaseListenSeconds(params.total)')
-    expect(threshold).toContain('Math.min(MIN_NETEASE_LISTEN_SECONDS, Math.max(1, Math.floor(duration)))')
+    expect(threshold).toContain('Math.min(threshold, Math.max(1, Math.floor(duration)))')
     expect(trackApi).toContain('!params.allowShort && listenedSeconds < minimumSeconds')
     expect(trackApi).toContain("reason: 'short-playback'")
     expect(trackApi).toContain(

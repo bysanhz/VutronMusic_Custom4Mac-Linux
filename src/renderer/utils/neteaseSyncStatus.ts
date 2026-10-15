@@ -1,9 +1,11 @@
 type LedgerTotals = { pending: number; accepted: number; provisional: number }
 
 /**
- * Pending is durable and upload-eligible; provisional is in-memory playback
- * that has not qualified for the session's minimum listening threshold.
- * Keep them separate to avoid falsely promising that 10s is ready to send.
+ * Pending is durable and upload-eligible; provisional is the in-memory
+ * uncommitted remainder. Its eligibility is tracked separately: before the
+ * effective-listening threshold it must not be presented as ready to send.
+ * After qualification, the UI may display that remainder alongside pending
+ * without changing the five-second persistence cadence.
  */
 export const splitNeteaseSyncStatusByDay = (today: LedgerTotals, earlier: LedgerTotals) => {
   return {

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   clearAcceptedNeteaseListenEntries,
+  dismissNeteaseListenReportRegression,
   claimPendingNeteaseListenEntries,
   getNeteaseListenLedgerTotals,
   flushNeteaseListenLedger,
@@ -1127,4 +1128,34 @@ test('after resuming across midnight to 15 seconds, segments retain their real d
   expect(second[0].dateKey).toBe('2026-10-15')
   expect(second[0].seconds).toBe(5)
   expect(second[0].id).not.toBe(first[0].id)
+})
+
+test('dismissing a month discrepancy retains safe high-water reconciliation', () => {
+  const accountId = 'report-dismissal-isolated'
+  const periodKey = 'month:2026-12'
+  const rangeStart = new Date(2026, 11, 1).getTime()
+  const rangeEnd = new Date(2026, 11, 31, 23, 59, 59, 999).getTime()
+  const observe = (remoteSeconds: number) =>
+    reconcileNeteaseListenReport({
+      accountId, periodKey, rangeStart, rangeEnd, remoteSeconds
+    })
+
+  observe(900)
+  observe(700)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    highWaterSeconds: 900, regressionSeconds: 200, regressionDismissed: false
+  })
+  expect(dismissNeteaseListenReportRegression(accountId, periodKey)).toBe(true)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    highWaterSeconds: 900, regressionSeconds: 200, regressionDismissed: true
+  })
+  // A rebound to 900 is not new upload evidence.
+  observe(900)
+  expect(getNeteaseListenReportStatus(accountId, periodKey).highWaterSeconds).toBe(900)
+  // A new high-water mark means that a later regression must be shown again.
+  observe(1000)
+  observe(800)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    highWaterSeconds: 1000, regressionSeconds: 200, regressionDismissed: false
+  })
 })
