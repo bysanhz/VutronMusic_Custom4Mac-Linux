@@ -1,5 +1,6 @@
 import { lyricLine } from '@/types/music'
 import request from '../utils/request'
+import { getMinimumNeteaseListenSeconds } from '../../shared/neteaseListenThreshold'
 
 const isSuccessfulResponse = (result: any) =>
   Boolean(result) && (result.code === undefined || Number(result.code) === 200)
@@ -125,7 +126,6 @@ export type ScrobbleParams = {
 }
 
 const SCROBBLE_DEDUP_WINDOW_MS = 10_000
-const MIN_NETEASE_SCROBBLE_SECONDS = 30
 const scrobbleInFlight = new Map<string, Promise<any>>()
 const lastSuccessfulScrobbleAt = new Map<string, number>()
 
@@ -140,17 +140,10 @@ const debugScrobble = (...args: any[]) => {
 /**
  * VutronMusic 侧的短播放保护。
  *
- * 普通歌曲至少实际播放 30 秒才写入网易云听歌记录；不足 30 秒的短曲必须完整
- * 播放才计入。该规则用于避免快速切歌、误触下一首等行为污染“听歌足迹”。
+ * 普通歌曲至少实际播放 15 秒才写入网易云听歌记录；短于 15 秒
+ * 的歌曲须完整播放。该门槛是 VutronMusic 的本地产品规则，
+ * 不是已验证的网易云服务端最低计时要求。
  */
-const getMinimumScrobbleSeconds = (total?: number): number => {
-  const totalSeconds = Number(total)
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-    return MIN_NETEASE_SCROBBLE_SECONDS
-  }
-
-  return Math.min(MIN_NETEASE_SCROBBLE_SECONDS, Math.max(1, Math.floor(totalSeconds)))
-}
 
 /**
  * 执行一次真正的网易云听歌上报。
@@ -261,7 +254,7 @@ const performScrobble = async (params: ScrobbleParams) => {
  * `sourceid` 必须是数值 ID；每日推荐等页面可能把 `/daily/songs` 这样的路由字符串
  * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
  *
- * 快速切歌不会直接污染网易云听歌足迹：普通歌曲至少播放 30 秒；不足 30 秒的
+ * 快速切歌不会直接污染网易云听歌足迹：普通歌曲至少播放 15 秒；不足 15 秒的
  * 短曲要求完整播放。随后再执行并发与 10 秒窗口去重，避免 ended/next 等异步
  * 回调在切歌边界向网易云重复提交同一段播放记录。
  */
@@ -269,7 +262,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
   const trackId = Number(params.id)
   const deduplicationKey = params.segmentId || `track:${trackId}`
   const listenedSeconds = Number(params.time)
-  const minimumSeconds = getMinimumScrobbleSeconds(params.total)
+  const minimumSeconds = getMinimumNeteaseListenSeconds(params.total)
 
   if (
     !Number.isFinite(listenedSeconds) ||
