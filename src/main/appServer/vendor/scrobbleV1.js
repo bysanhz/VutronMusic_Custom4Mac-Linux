@@ -98,13 +98,13 @@ const scrobbleV1 = async (query) => {
   // 上传回执只证明日志文件被接收。PLV/PLD 要使用实际起止时间和整数秒数，
   // 否则报表可能一直不增加，即使上传接口返回 200。
   const plvBody = buildRecords([
-    { time: timing.startedAtSeconds, action: '_plv', data: buildPlv(ctx, song, source) }
+    { time: timing.startedAtSeconds, action: '_plv', data: buildPlv(ctx, song, source, timing.startedAtSeconds * 1000) }
   ])
   const pldBody = buildRecords([
     {
       time: timing.endedAtSeconds,
       action: '_pld',
-      data: buildPld(ctx, song, source, timing.playedSeconds)
+      data: buildPld(ctx, song, source, timing.playedSeconds, timing.endedAtSeconds * 1000)
     }
   ])
 
