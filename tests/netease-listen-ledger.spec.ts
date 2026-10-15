@@ -1010,3 +1010,46 @@ test('flushes Vue reactive entries through a structured-clone-safe Electron IPC 
     ;(globalThis as any).window = originalWindow
   }
 })
+
+test('resumed playback never mutates a partially attempted PLV/PLD upload', () => {
+  const accountId = 'pause-resume-immutable'
+  const sessionId = 'pause-resume-session'
+  const startedAt = new Date(2026, 9, 14, 22, 0, 0).getTime()
+  const old = recordNeteaseListenSegment({
+    accountId,
+    sessionId,
+    startedAt,
+    endedAt: startedAt + 53_000,
+    seconds: 53,
+    params
+  })
+  expect(old).toHaveLength(1)
+  const [claimed] = claimPendingNeteaseListenEntries({ accountId, sessionId, force: true })
+  expect(claimed.id).toBe(old[0].id)
+  // PLV can be acknowledged even if PLD fails. A later playback must not
+  // change the original request under the same segment ID.
+  markNeteaseListenEntryFailed(claimed.id, 'test PLD upload failure')
+  const extra = recordNeteaseListenSegment({
+    accountId,
+    sessionId,
+    startedAt: startedAt + 120_000,
+    endedAt: startedAt + 155_000,
+    seconds: 35,
+    params
+  })
+  expect(extra).toHaveLength(1)
+  expect(extra[0].id).not.toBe(claimed.id)
+
+  const historical = neteaseListenEntries.value.find((item) => item.id === claimed.id)!
+  expect(historical.seconds).toBe(53)
+  expect(historical.startedAt).toBe(startedAt)
+  expect(historical.endedAt).toBe(startedAt + 53_000)
+  expect(historical.params.segmentId).toBe(claimed.id)
+  expect(historical.attempts).toBe(1)
+
+  const subsequent = neteaseListenEntries.value.find((item) => item.id === extra[0].id)!
+  expect(subsequent.seconds).toBe(35)
+  expect(subsequent.dateKey).toBe('2026-10-14')
+  expect(subsequent.params.segmentId).toBe(extra[0].id)
+})
+
