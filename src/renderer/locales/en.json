@@ -1022,8 +1022,6 @@
       "syncWaiting": "Listening time still pending",
       "syncTodayDuration": "Today +{duration}",
       "syncEarlierDuration": "1st–yesterday +{duration}",
-      "provisionalListenLabel": "Local listening draft: {duration}",
-      "provisionalListenHelp": "Regular tracks enter To send after {threshold}s of listening. Resuming across midnight preserves the original dates; unfinished short listens are not retained after app restart.",
       "pendingUnsubmittedLabel": "To send",
       "pendingUnsubmittedHelp": "Recorded locally, not yet sent to NetEase.",
       "pendingSubmittedLabel": "Awaiting",
@@ -1048,7 +1046,8 @@
       "durationHoursMinutes": "{hours}h {minutes}m",
       "durationMinutes": "{minutes}m",
       "todayMetric": "Today · Track Count",
-      "reportRegressed": "NetEase's monthly report is {duration} below its earlier valid reading. To avoid mistaking a stale report rebound for newly credited listening, these uploads remain unverified. An upload receipt does not prove the server counted the time."
+      "reportDiagnosticLabel": "Monthly report differs · Details",
+      "reportRegressed": "The latest NetEase monthly report is {duration} below its previous high-water reading. Cache differences or historical corrections may explain this; it does not prove that a recent upload failed. The app retains the previous baseline and unverified receipts to prevent incorrect reconciliation."
     },
     "style": {
       "title": "Style Explorer 2.0",
