@@ -298,12 +298,27 @@ test('VutronMusic requires 15 seconds for ordinary tracks and a full short track
   expect(api).not.toContain('MIN_NETEASE_SCROBBLE_SECONDS = 30')
 })
 
-test('short listens are displayed as a separate local draft, never as ready-to-send', () => {
+test('short listens remain internal and never appear as an upload-ready UI status', () => {
   const page = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
   const status = readFileSync(resolve(process.cwd(), 'src/renderer/utils/neteaseSyncStatus.ts'), 'utf8')
-  expect(page).toContain('provisionalListenLabel')
-  expect(page).toContain('provisionalListenHelp')
-  expect(page).toContain('totalLedger.value.provisional')
+  expect(page).not.toContain('provisionalListenLabel')
+  expect(page).not.toContain('provisionalListenHelp')
+  expect(page).not.toContain('sync-provisional-info')
+  expect(page).toContain('value.pending + value.accepted')
   expect(status).toContain('todayPending: today.pending')
+  // Internal cross-day attribution and threshold computation remain intact.
   expect(status).toContain('todayProvisional: today.provisional')
+})
+
+test('monthly report regression stays accessible without repeated orange warnings', () => {
+  const page = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
+  expect(page).toContain('<details')
+  expect(page).toContain('class="sync-report-diagnostics"')
+  expect(page).toContain('<summary>{{ t(\'insights.footprint.reportDiagnosticLabel\') }}</summary>')
+  expect(page).toContain(
+    'monthReportAvailable === true && monthReportRegressionSeconds >= 120'
+  )
+  expect(page).not.toContain('monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0')
+  expect(page).toContain('monthReportRegressionSeconds')
+  expect(page).toContain("t('insights.footprint.reportRegressed'")
 })
