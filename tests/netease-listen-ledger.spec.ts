@@ -105,8 +105,10 @@ test('does not label an earlier day of accepted listening as newly accumulated t
   expect(splitNeteaseSyncStatusByDay(today, earlier)).toEqual({
     todayPending: 11,
     todayAccepted: 0,
+    todayProvisional: 0,
     earlierPending: 0,
-    earlierAccepted: 7_951
+    earlierAccepted: 7_951,
+    earlierProvisional: 0
   })
 })
 
@@ -1053,3 +1055,76 @@ test('resumed playback never mutates a partially attempted PLV/PLD upload', () =
   expect(subsequent.params.segmentId).toBe(extra[0].id)
 })
 
+
+test('a paused 10-second draft near midnight is NOT a pending upload, even after rollover', () => {
+  const lastNight = new Date(2026, 9, 14, 23, 59, 30).getTime()
+  const midnight = new Date(2026, 9, 15, 0, 0, 0).getTime()
+  const accountId = 'provisional-before-midnight'
+  setProvisionalNeteaseListen({
+    accountId,
+    startedAt: lastNight,
+    endedAt: lastNight + 10_000,
+    seconds: 10,
+    segments: [{ startedAt: lastNight, endedAt: lastNight + 10_000, seconds: 10 }]
+  })
+
+  const today = getNeteaseListenLedgerTotals(accountId, midnight, midnight + 86_400_000 - 1)
+  const earlier = getNeteaseListenLedgerTotals(
+    accountId,
+    new Date(2026, 9, 1).getTime(),
+    midnight - 1
+  )
+  const status = splitNeteaseSyncStatusByDay(today, earlier)
+  expect(status.todayPending).toBe(0)
+  expect(status.todayProvisional).toBe(0)
+  expect(status.earlierPending).toBe(0)
+  expect(status.earlierProvisional).toBe(10)
+  expect(neteaseListenEntries.value).toHaveLength(0)
+  // If the current live session still exists, this draft remains visible
+  // even after the local date changes; it is never an upload receipt.
+  expect(getNeteaseListenLedgerTotals(accountId).provisional).toBe(10)
+})
+
+test('a short in-memory draft is exported separately, never counted as a pending upload', () => {
+  const now = Date.now()
+  const accountId = 'diagnose-provisional-separately'
+  setProvisionalNeteaseListen({
+    accountId,
+    startedAt: now - 10_000,
+    endedAt: now,
+    seconds: 10,
+    segments: [{ startedAt: now - 10_000, endedAt: now, seconds: 10 }]
+  })
+  const diagnostics = getNeteaseListenSyncDiagnostics(accountId)
+  expect(diagnostics.pendingEntries).toBe(0)
+  expect(diagnostics.pendingSeconds).toBe(0)
+  expect(diagnostics.provisionalSeconds).toBe(10)
+  expect(diagnostics.acceptedSeconds).toBe(0)
+})
+
+test('after resuming across midnight to 15 seconds, segments retain their real dates', () => {
+  const t = new Date(2026, 9, 14, 23, 59, 30).getTime()
+  const accountId = 'threshold-after-midnight'
+  const sessionId = 'one-cross-midnight-session'
+  const first = recordNeteaseListenSegment({
+    accountId,
+    sessionId,
+    startedAt: t,
+    endedAt: t + 10_000,
+    seconds: 10,
+    params
+  })
+  const second = recordNeteaseListenSegment({
+    accountId,
+    sessionId,
+    startedAt: t + 60_000,
+    endedAt: t + 65_000,
+    seconds: 5,
+    params
+  })
+  expect(first[0].dateKey).toBe('2026-10-14')
+  expect(first[0].seconds).toBe(10)
+  expect(second[0].dateKey).toBe('2026-10-15')
+  expect(second[0].seconds).toBe(5)
+  expect(second[0].id).not.toBe(first[0].id)
+})
