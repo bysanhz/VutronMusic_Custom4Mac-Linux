@@ -1022,6 +1022,8 @@
       "syncWaiting": "還有時長待處理",
       "syncTodayDuration": "今日 +{duration}",
       "syncEarlierDuration": "1日至昨天 +{duration}",
+      "provisionalListenLabel": "本機暫存累計：{duration}",
+      "provisionalListenHelp": "一般歌曲累計達到 {threshold} 秒後才進入「待發」。跨日繼續播放仍保留實際日期；未達門檻的試聽在關閉程式後不會保留。",
       "pendingUnsubmittedLabel": "待發",
       "pendingUnsubmittedHelp": "本機已記錄，尚未提交網易雲。",
       "pendingSubmittedLabel": "待核",
