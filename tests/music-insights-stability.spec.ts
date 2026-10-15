@@ -71,7 +71,9 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('class="sync-light amber"')
     expect(view).toContain('class="sync-light green"')
     expect(view).toContain('v-if="accountId !== \'anonymous\'"')
-    expect(view).toContain(':disabled="totalAwaitingSeconds <= 0 && monthReportRegressionSeconds < 120"')
+    expect(view).toContain(
+      ':disabled="totalAwaitingSeconds <= 0 && monthReportRegressionSeconds < 120"'
+    )
     expect(view).toContain('class="clear-sync-button"')
     expect(view).toContain('class="sync-status-help"')
     expect(view.indexOf('class="sync-status-help"')).toBeLessThan(
@@ -81,7 +83,9 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('id="netease-listen-threshold"')
     expect(view).toContain('@change="updateListenThreshold"')
     expect(view).toContain('dismissNeteaseListenReportRegression')
-    expect(view).toContain('monthStatus.regressionDismissed ? 0 : monthStatus.regressionSeconds')
+    expect(view).toContain(
+      'monthStatus.regressionDismissed ? 0 : monthStatus.regressionSeconds'
+    )
     expect(view).toContain('grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr)')
     expect(view).toContain("if (activeTab.value === 'footprint' && !refreshing.value)")
     expect(view).toContain('void refreshPendingRemoteDuration()')
