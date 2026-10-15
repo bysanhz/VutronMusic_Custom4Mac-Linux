@@ -1022,8 +1022,6 @@
       "syncWaiting": "还有时长待处理",
       "syncTodayDuration": "今日 +{duration}",
       "syncEarlierDuration": "1日至昨天 +{duration}",
-      "provisionalListenLabel": "本机临时累计：{duration}",
-      "provisionalListenHelp": "普通歌曲累计达到 {threshold} 秒后才进入“待发”。跨日继续播放仍保留实际日期；未达门槛的试听在关闭应用后不予保留。",
       "pendingUnsubmittedLabel": "待发",
       "pendingUnsubmittedHelp": "本机已记录，尚未提交网易云。",
       "pendingSubmittedLabel": "待核",
@@ -1048,7 +1046,8 @@
       "durationHoursMinutes": "{hours}小时 {minutes}分",
       "durationMinutes": "{minutes}分",
       "todayMetric": "今日 · 歌曲数",
-      "reportRegressed": "网易云本月报表比之前的有效读数回退了 {duration}。为避免把旧报表的反弹误当成新增听歌时长，当前不会据此核销待核记录。上传回执不等于云端统计确认，请保留记录并观察后续报表。"
+      "reportDiagnosticLabel": "云端月报读数差异 · 查看详情",
+      "reportRegressed": "网易云本月报表当前比此前的最高读数低 {duration}。这可能与报表缓存、统计口径或历史数据修正有关，不能据此判断本次歌曲上传失败。为避免旧报表回升导致错误核销，程序仍保留历史基线与待核记录。"
     },
     "style": {
       "title": "曲风漫游 2.0",
