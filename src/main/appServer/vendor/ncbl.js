@@ -177,8 +177,10 @@ const buildRecord = ({ time, action, data }) => {
 
 const buildRecords = (records) => records.map(buildRecord).join('')
 
-const buildPlv = (ctx, song, source) => {
-  const now = Date.now()
+const buildPlv = (ctx, song, source, eventTimeMs = Date.now()) => {
+  // Referral timestamps describe the original playback event, not the retry.
+  // The NCBL upload context itself still uses the actual upload time.
+  const now = eventTimeMs
   const addRefer = `[F:63][${now}#933#${ctx.app.version}#${ctx.app.versionCode}#c9156c3][e][2][23][cell_pc_songlist_song:2|page_pc_songlist_songflow|page_mine_like_music][${song.id}:song:x:x|:::|${source.id}:list::]`
   const multiRefers = [
     '[F:26][s][18][_ai]',
@@ -218,8 +220,8 @@ const buildPlv = (ctx, song, source) => {
   }
 }
 
-const buildPld = (ctx, song, source, played) => {
-  const now = Date.now()
+const buildPld = (ctx, song, source, played, eventTimeMs = Date.now()) => {
+  const now = eventTimeMs
   const addRefer = `[F:63][${now}#616#${ctx.app.version}#${ctx.app.versionCode}#c9156c3][e][2][92][btn_pc_cover_play|cell_pc_songlist_song:6|page_pc_songlist_songflow|page_mine_like_music][:::|${song.id}:song:x:x|:::|${source.id}:list::]`
   const multiRefers = [
     '[F:26][s][87][_ai]',
