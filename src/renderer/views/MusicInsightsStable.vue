@@ -145,18 +145,6 @@
               </div>
             </div>
           </div>
-          <div v-if="provisionalSeconds > 0" class="sync-provisional-info" role="status">
-            <strong>{{
-              t('insights.footprint.provisionalListenLabel', {
-                duration: formatPendingListenDuration(provisionalSeconds)
-              })
-            }}</strong>
-            <small>{{
-              t('insights.footprint.provisionalListenHelp', {
-                threshold: MIN_NETEASE_LISTEN_SECONDS
-              })
-            }}</small>
-          </div>
           <div
             v-if="monthReportAvailable === false && totalAwaitingSeconds > 0"
             class="sync-report-unavailable"
@@ -164,17 +152,17 @@
           >
             {{ t('insights.footprint.reportUnavailable') }}
           </div>
-          <div
-            v-if="monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0"
-            class="sync-report-unavailable"
-            role="status"
+          <details
+            v-if="monthReportAvailable === true && monthReportRegressionSeconds >= 120"
+            class="sync-report-diagnostics"
           >
-            {{
+            <summary>{{ t('insights.footprint.reportDiagnosticLabel') }}</summary>
+            <p>{{
               t('insights.footprint.reportRegressed', {
                 duration: formatPendingListenDuration(monthReportRegressionSeconds)
               })
-            }}
-          </div>
+            }}</p>
+          </details>
         </div>
       </div>
 
@@ -480,12 +468,10 @@ import {
   getNeteaseListenReportStatus,
   localDateKey,
   neteaseListenEntries,
-  provisionalNeteaseListen,
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount
 } from '../utils/neteaseListenLedger'
 import { splitNeteaseSyncStatusByDay } from '../utils/neteaseSyncStatus'
-import { MIN_NETEASE_LISTEN_SECONDS } from '../../shared/neteaseListenThreshold'
 import { deleteCloudSong } from '../api/discovery'
 import {
   cloudLyricGet,
@@ -569,7 +555,6 @@ const monthReportRegressionSeconds = ref(0)
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
   void neteaseListenEntries.value
-  void provisionalNeteaseListen.value
   return getNeteaseListenLedgerTotals(accountId.value, start, end, periodKey)
 }
 const todayLedger = computed(() =>
@@ -578,14 +563,8 @@ const todayLedger = computed(() =>
 const earlierMonthLedger = computed(() =>
   ledgerTotals(startOfMonth.value, startOfToday.value - 1, monthPeriodKey.value)
 )
-const totalLedger = computed(() =>
-  ledgerTotals(Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, totalPeriodKey)
-)
-const ledgerUnconfirmedSeconds = (value: {
-  pending: number
-  accepted: number
-  provisional: number
-}) => value.pending + value.accepted + value.provisional
+const ledgerUnconfirmedSeconds = (value: { pending: number; accepted: number }) =>
+  value.pending + value.accepted
 // 状态栏展示今天和本月此前，避免把整周未确认时长误作今天新增。
 // listen/total 的累计值更新较慢，仅用于后台轮询，不能代替本月状态。
 const visiblePendingNeteaseListenSeconds = computed(
@@ -593,7 +572,17 @@ const visiblePendingNeteaseListenSeconds = computed(
     ledgerUnconfirmedSeconds(todayLedger.value) + ledgerUnconfirmedSeconds(earlierMonthLedger.value)
 )
 const backgroundPendingNeteaseListenSeconds = computed(() =>
-  Math.max(visiblePendingNeteaseListenSeconds.value, ledgerUnconfirmedSeconds(totalLedger.value))
+  Math.max(
+    visiblePendingNeteaseListenSeconds.value,
+    ledgerUnconfirmedSeconds(
+      getNeteaseListenLedgerTotals(
+        accountId.value,
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        totalPeriodKey
+      )
+    )
+  )
 )
 
 /*
@@ -614,9 +603,6 @@ const pendingUnsubmittedSeconds = computed(() => syncStatus.value.todayPending)
 const submittedNeteaseListenSeconds = computed(() => syncStatus.value.todayAccepted)
 const earlierPendingNeteaseListenSeconds = computed(() => syncStatus.value.earlierPending)
 const earlierAcceptedNeteaseListenSeconds = computed(() => syncStatus.value.earlierAccepted)
-// A paused, sub-threshold session can span a month boundary; use the
-// account-wide provisional total so it remains visible on the new day.
-const provisionalSeconds = computed(() => totalLedger.value.provisional)
 const totalUnsubmittedSeconds = computed(
   () => pendingUnsubmittedSeconds.value + earlierPendingNeteaseListenSeconds.value
 )
@@ -1580,20 +1566,6 @@ button:disabled {
   white-space: normal;
 }
 
-.sync-provisional-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--color-secondary-bg, rgba(128, 128, 128, 0.07));
-  font-size: 12px;
-  line-height: 1.5;
-}
-.sync-provisional-info small {
-  color: var(--color-text-secondary, #777);
-}
-
 .sync-traffic-light {
   display: grid;
   align-content: start;
@@ -1714,6 +1686,31 @@ button:disabled {
   color: #b45309;
   font-size: 11px;
   line-height: 1.45;
+}
+
+.sync-report-diagnostics {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sync-report-diagnostics summary {
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  opacity: 0.68;
+}
+
+.sync-report-diagnostics summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.sync-report-diagnostics p {
+  margin: 6px 0 0;
+  opacity: 0.74;
 }
 
 .clear-sync-button:hover,
