@@ -1040,7 +1040,9 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
       : 0
   return {
     pendingEntries,
-    pendingSeconds: Math.round(pendingSeconds + provisional),
+    pendingSeconds: Math.round(pendingSeconds),
+    // In-memory, below-threshold listening is not an upload-ready record.
+    provisionalSeconds: Math.round(provisional),
     acceptedEntries,
     acceptedSeconds: Math.round(acceptedSeconds),
     failedPendingEntries: failedEntries,
