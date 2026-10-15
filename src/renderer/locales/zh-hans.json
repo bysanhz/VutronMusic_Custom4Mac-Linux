@@ -1022,6 +1022,8 @@
       "syncWaiting": "还有时长待处理",
       "syncTodayDuration": "今日 +{duration}",
       "syncEarlierDuration": "1日至昨天 +{duration}",
+      "provisionalListenLabel": "本机临时累计：{duration}",
+      "provisionalListenHelp": "普通歌曲累计达到 {threshold} 秒后才进入“待发”。跨日继续播放仍保留实际日期；未达门槛的试听在关闭应用后不予保留。",
       "pendingUnsubmittedLabel": "待发",
       "pendingUnsubmittedHelp": "本机已记录，尚未提交网易云。",
       "pendingSubmittedLabel": "待核",
