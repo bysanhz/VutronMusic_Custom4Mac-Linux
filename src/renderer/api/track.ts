@@ -255,7 +255,8 @@ const performScrobble = async (params: ScrobbleParams) => {
  * 存进 playlistSource.id，这里统一规范化，并在非法时使用歌曲自身 ID。
  *
  * 快速切歌不会直接污染网易云听歌足迹：普通歌曲需达到本机设定的有效播放门槛；
- * 未达到门槛的短曲要求完整播放。随后再执行并发与 10 秒窗口去重，避免 ended/next 等异步
+ * 门槛为 0 时仍要求正数播放时长，非零门槛下较短曲目要求完整播放。
+ * 随后再执行并发与 10 秒窗口去重，避免 ended/next 等异步
  * 回调在切歌边界向网易云重复提交同一段播放记录。
  */
 export function scrobble(params: ScrobbleParams): Promise<any> {
@@ -266,6 +267,7 @@ export function scrobble(params: ScrobbleParams): Promise<any> {
 
   if (
     !Number.isFinite(listenedSeconds) ||
+    listenedSeconds <= 0 ||
     (!params.allowShort && listenedSeconds < minimumSeconds)
   ) {
     debugScrobble('[Track API] 跳过过短的网易云 scrobble：', {

@@ -1,7 +1,8 @@
 /**
  * Configurable effective-listening threshold for VutronMusic.
  * This is a local reporting policy, NOT an official NetEase duration rule.
- * Short tracks qualify after their whole duration.
+ * A zero threshold allows any positive playback time. With a positive
+ * threshold, shorter tracks qualify after their whole duration.
  */
 export const MIN_NETEASE_LISTEN_SECONDS = 15
 export const MAX_NETEASE_LISTEN_SECONDS = 120
@@ -9,7 +10,7 @@ const STORAGE_KEY = 'vutronmusic-netease-listen-threshold-v1'
 
 export const normalizeNeteaseListenThreshold = (value: unknown): number => {
   const seconds = Number(value)
-  return Number.isInteger(seconds) && seconds >= 1 && seconds <= MAX_NETEASE_LISTEN_SECONDS
+  return Number.isInteger(seconds) && seconds >= 0 && seconds <= MAX_NETEASE_LISTEN_SECONDS
     ? seconds
     : MIN_NETEASE_LISTEN_SECONDS
 }
@@ -37,6 +38,6 @@ export const setConfiguredNeteaseListenSeconds = (value: number): number => {
 export const getMinimumNeteaseListenSeconds = (total?: number): number => {
   const threshold = getConfiguredNeteaseListenSeconds()
   const duration = Number(total)
-  if (!Number.isFinite(duration) || duration <= 0) return threshold
+  if (threshold === 0 || !Number.isFinite(duration) || duration <= 0) return threshold
   return Math.min(threshold, Math.max(1, Math.floor(duration)))
 }

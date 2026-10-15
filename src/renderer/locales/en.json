@@ -1050,7 +1050,7 @@
       "reportRegressed": "The latest NetEase monthly report is {duration} below its previous high-water reading. Cache differences or historical corrections may explain this; it does not prove that a recent upload failed. The app retains the previous baseline and unverified receipts to prevent incorrect reconciliation.",
       "thresholdLabel": "Valid-play threshold",
       "thresholdUnit": "sec",
-      "thresholdHelp": "Set 1–120 seconds (default 15). Pending time updates each second after qualifying; shorter tracks must finish. Paused sessions submit after a brief delay. This is a local threshold, not a guarantee of NetEase reporting."
+      "thresholdHelp": "Enter 0–120 seconds (default 15). Zero removes the minimum listening threshold, but actual positive playback is still required. Shorter tracks must finish when the threshold is nonzero. Eligible pending time updates each second; NetEase reporting is not guaranteed."
     },
     "style": {
       "title": "Style Explorer 2.0",

@@ -60,12 +60,13 @@
             <div class="listen-threshold-controls">
               <input
                 id="netease-listen-threshold"
-                type="number"
-                min="1"
-                max="120"
-                step="1"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
                 :value="listenThresholdSeconds"
-                @change="updateListenThreshold"
+                @blur="updateListenThreshold"
+                @keydown.enter.prevent="confirmListenThresholdOnEnter"
               />
               <span>{{ t('insights.footprint.thresholdUnit') }}</span>
             </div>
@@ -492,7 +493,8 @@ import {
 import { splitNeteaseSyncStatusByDay } from '../utils/neteaseSyncStatus'
 import {
   getConfiguredNeteaseListenSeconds,
-  setConfiguredNeteaseListenSeconds
+  setConfiguredNeteaseListenSeconds,
+  MAX_NETEASE_LISTEN_SECONDS
 } from '../../shared/neteaseListenThreshold'
 import { deleteCloudSong } from '../api/discovery'
 import {
@@ -547,8 +549,16 @@ const clockNow = ref(Date.now())
 const listenThresholdSeconds = ref(getConfiguredNeteaseListenSeconds())
 const updateListenThreshold = (event: Event): void => {
   const input = event.target as HTMLInputElement
-  listenThresholdSeconds.value = setConfiguredNeteaseListenSeconds(Number(input.value))
+  const raw = input.value.trim()
+  // An empty input must not silently become zero (Number('') === 0).
+  if (/^\d+$/.test(raw) && Number(raw) <= MAX_NETEASE_LISTEN_SECONDS) {
+    listenThresholdSeconds.value = setConfiguredNeteaseListenSeconds(Number(raw))
+  }
   input.value = String(listenThresholdSeconds.value)
+}
+const confirmListenThresholdOnEnter = (event: KeyboardEvent): void => {
+  // Blur commits through the same path as clicking away from the field.
+  ;(event.target as HTMLInputElement).blur()
 }
 const accountId = computed(() => String(user.value.userId || 'anonymous'))
 
@@ -1801,9 +1811,12 @@ button:disabled {
   border: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
   border-radius: 8px;
   background: var(--color-body-bg);
-  color: var(--color-text);
+  color: var(--color-primary);
+  caret-color: var(--color-primary);
   font: inherit;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .listen-threshold-controls input:focus-visible {

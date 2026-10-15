@@ -132,7 +132,9 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(threshold).toContain('MIN_NETEASE_LISTEN_SECONDS = 15')
     expect(trackApi).toContain('getMinimumNeteaseListenSeconds(params.total)')
     expect(threshold).toContain('Math.min(threshold, Math.max(1, Math.floor(duration)))')
+    expect(threshold).toContain('threshold === 0')
     expect(trackApi).toContain('!params.allowShort && listenedSeconds < minimumSeconds')
+    expect(trackApi).toContain('listenedSeconds <= 0')
     expect(trackApi).toContain("reason: 'short-playback'")
     expect(trackApi).toContain(
       '!params.allowRepeat && Date.now() - lastSuccessAt < SCROBBLE_DEDUP_WINDOW_MS'
