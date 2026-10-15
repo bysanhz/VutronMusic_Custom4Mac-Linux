@@ -438,9 +438,14 @@ export const recordNeteaseListenSegment = (input: RecordSegmentInput): NeteaseLi
     let entry = entries.find(
       (item) =>
         item.accountId === accountId &&
+        // Once an upload has been attempted, its event times and duration
+        // must remain immutable for PLV/PLD partial-retry idempotency.
         item.sessionId === slice.sessionId &&
         item.dateKey === dateKey &&
-        item.status === 'pending'
+        item.status === 'pending' &&
+        item.attempts === 0 &&
+        item.nextRetryAt === 0 &&
+        !item.manualReplayCount
     )
 
     if (entry) {
