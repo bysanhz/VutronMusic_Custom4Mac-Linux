@@ -20,13 +20,18 @@
         <span class="cover-loading-spinner"></span>
       </div>
       <img
-        :src="imageUrl"
+        v-if="!imageFailed"
+        :src="displayImageUrl"
         :style="imageStyles"
         :loading="imageLoading"
+        :referrerpolicy="isNeteaseAssetUrl(displayImageUrl) ? 'no-referrer' : undefined"
         decoding="async"
         @load="handleImageLoad"
         @error="handleImageError"
       />
+      <div v-else class="cover-error-fallback" aria-hidden="true">
+        <span class="cover-error-glyph">♪</span>
+      </div>
       <Transition v-if="coverHover || alwaysShowShadow" name="fade">
         <div v-show="focus || alwaysShowShadow" class="shadow" :style="shadowStyles"></div>
       </Transition>
@@ -47,6 +52,8 @@ import { getArtist } from '../api/artist'
 import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
 import { observeCoverVisibility } from '../utils/coverVisibility'
+import { isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
+import { getCoverImageSources } from '../utils/coverImageSources'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -70,6 +77,12 @@ const props = defineProps({
 const focus = ref(false)
 const coverContainerRef = ref<HTMLElement>()
 const imageLoaded = ref(false)
+const imageFailed = ref(false)
+const imageSourceIndex = ref(0)
+const imageSources = computed(() => getCoverImageSources(props.imageUrl))
+const displayImageUrl = computed(
+  () => imageSources.value[Math.min(imageSourceIndex.value, imageSources.value.length - 1)]
+)
 const isNearViewport = ref(false)
 const showImageLoading = computed(() => isNearViewport.value && !imageLoaded.value)
 let stopObservingCover: (() => void) | null = null
@@ -79,12 +92,21 @@ const handleImageLoad = () => {
 }
 
 const handleImageError = () => {
+  // Prefer an existing, bounded NetEase main-process proxy before the
+  // application placeholder; never retry the same broken URL indefinitely.
+  if (imageSourceIndex.value + 1 < imageSources.value.length) {
+    imageSourceIndex.value += 1
+    return
+  }
+  imageFailed.value = true
   imageLoaded.value = true
 }
 
 watch(
   () => props.imageUrl,
   () => {
+    imageSourceIndex.value = 0
+    imageFailed.value = false
     imageLoaded.value = false
   }
 )
@@ -131,7 +153,7 @@ const imageStyles = computed(() => {
 
 const shadowStyles = computed(() => {
   const styles = {
-    backgroundImage: `url(${props.imageUrl})`,
+    backgroundImage: imageFailed.value ? 'none' : `url("${displayImageUrl.value}")`,
     borderRadius: props.type === 'artist' ? '50%' : '0'
   }
   return styles
@@ -195,6 +217,24 @@ const goTo = () => {
 
 .cover-container--artist {
   border-radius: 50%;
+}
+
+.cover-error-fallback {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  place-items: center;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-secondary-bg) 86%, var(--color-text));
+  color: color-mix(in srgb, var(--color-text) 45%, transparent);
+  pointer-events: none;
+}
+
+.cover-error-glyph {
+  font-size: clamp(22px, 3vw, 38px);
+  line-height: 1;
 }
 
 .cover-loading {
