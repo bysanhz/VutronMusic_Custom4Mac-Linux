@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { describeCoverImageSource, getCoverLoadDiagnostics } from '../src/renderer/utils/coverNetworkDiagnostics'
-import { getNeteaseImageCandidateUrls } from '../src/shared/neteaseAssetUrl'
+import { getNeteaseImageCandidateUrls, normalizeNeteaseAssetUrl, buildNeteaseImageUrl } from '../src/shared/neteaseAssetUrl'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -55,4 +55,26 @@ test('NetEase cover retries the untransformed resource only for size-only query 
   expect(getNeteaseImageCandidateUrls(authenticated)).not.toContain(
     'https://p1.music.126.net/example.jpg'
   )
+})
+
+test('corrupted artwork query is stripped but ordinary URLs and authentication are preserved', () => {
+  const base = 'https://p1.music.126.net/abc/image.jpg'
+  const malformed = base + '?param=300y300' + '?param=300y300'.repeat(13)
+  expect(normalizeNeteaseAssetUrl(malformed)).toBe(base)
+  expect(buildNeteaseImageUrl(malformed)).toBe(base)
+  expect(getNeteaseImageCandidateUrls(malformed)[0]).toBe(base)
+
+  const repeated = base + '?param=300y300&x=1&x=2&x=3&x=4&y=1&y=2&y=3&y=4&z=1'
+  expect(normalizeNeteaseAssetUrl(repeated)).toBe(base)
+  expect(normalizeNeteaseAssetUrl(base + '?param=300y300')).toBe(base + '?param=300y300')
+  expect(normalizeNeteaseAssetUrl(base + '?token=private&param=300y300')).toBe(
+    base + '?token=private&param=300y300'
+  )
+  expect(normalizeNeteaseAssetUrl('https://example.com/image.jpg?x=1?x=2?x=3')).toBe(
+    'https://example.com/image.jpg?x=1?x=2?x=3'
+  )
+  expect(normalizeNeteaseAssetUrl('https://p1.music.126.net/audio.mp3?x=1?x=2?x=3')).toBe(
+    'https://p1.music.126.net/audio.mp3?x=1?x=2?x=3'
+  )
+  expect(readSource('src/renderer/components/CoverBox.vue')).toContain(':src="safeImageUrl"')
 })
