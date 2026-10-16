@@ -1,12 +1,9 @@
 name: Code Quality
 
+# CI runs only when requested from the GitHub Actions tab.
+# Ordinary main pushes and pull requests no longer launch a long build.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read

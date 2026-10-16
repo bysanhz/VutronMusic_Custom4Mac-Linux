@@ -437,7 +437,10 @@ a {
   .middle .container {
     flex: 0 0 auto;
     display: grid;
-    grid-template-columns: repeat(6, var(--player-center-slot));
+    // Six playback controls plus the timer: keep all seven in one row.
+    // The last track grows only when an active countdown has visible text.
+    grid-template-columns: repeat(6, var(--player-center-slot)) max-content;
+    align-items: center;
     gap: var(--player-center-gap);
     padding: 0 !important;
   }
@@ -453,20 +456,24 @@ a {
   .middle .container > .playback-speed-button {
     display: grid;
     place-items: center;
-    position: relative;
-    left: 6px;
-
-    &.medium-rate {
-      left: 13px;
-    }
-
-    &.wide-rate {
-      left: 17px;
-    }
+    position: static;
   }
 
   .middle .container > .playback-speed-button .speed-label {
-    transform: translate(-1px, 1px);
+    transform: none;
+  }
+
+  .middle .container > .sleep-timer-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: var(--player-center-slot);
+    height: var(--player-center-slot);
+    padding: 0 6px !important;
+    margin: 0 !important;
+    white-space: nowrap;
   }
 
   .middle .container .button-icon .svg-icon {
@@ -529,6 +536,17 @@ a {
 
   #app .player .controls .right {
     min-width: 0;
+  }
+
+  // At narrow widths, keep the timer icon in its slot and put the
+  // full countdown in the button's accessible title/tooltip.
+  #app .player .middle .container > .sleep-timer-button {
+    width: var(--player-center-slot);
+    padding: 0 !important;
+  }
+
+  #app .player .middle .container > .sleep-timer-button .timer-label {
+    display: none;
   }
 }
 /* =========== newADD end ======== */
