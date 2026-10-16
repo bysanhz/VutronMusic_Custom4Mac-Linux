@@ -106,7 +106,8 @@ test.describe('NetEase listening duration extraction', () => {
 })
 
 test.describe('Rolling seven-day NetEase duration trend', () => {
-  const month = (year: number, month: number, days: Array<[string, number]>) => ({
+  type DailyRow = [string, number]
+  const month = (year: number, month: number, days: DailyRow[]) => ({
     data: {
       startTime: new Date(year, month - 1, 1).getTime(),
       endTime: new Date(year, month, 0, 23, 59, 59).getTime(),
@@ -117,7 +118,7 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     }
   })
 
-  test('uses the last seven local dates, including today, rather than Monday-Sunday', () => {
+  test('uses rolling seven local dates instead of calendar weeks', () => {
     const now = new Date(2026, 9, 16, 12, 0, 0)
     const currentMonth = month(2026, 10, [
       ['2026-10-10', 30],
@@ -143,12 +144,10 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     ])
     // Explicitly dated month data takes precedence; sparse dates covered by a
     // valid current-month report have zero listening time.
-    expect(series.map(({ seconds }) => seconds)).toEqual([
-      1800, 0, 4500, 0, 0, 0, 2700
-    ])
+    expect(series.map(({ seconds }) => seconds)).toEqual([1800, 0, 4500, 0, 0, 0, 2700])
   })
 
-  test('combines week and month details across month boundary, preserving unknown days', () => {
+  test('joins month and week reports without inventing older days', () => {
     const series = buildNeteaseLastSevenDays(
       new Date(2026, 10, 3, 9, 0),
       month(2026, 11, [
@@ -168,12 +167,15 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
       }
     )
     expect(series.map(({ dateKey }) => dateKey)).toEqual([
-      '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31',
-      '2026-11-01', '2026-11-02', '2026-11-03'
+      '2026-10-28',
+      '2026-10-29',
+      '2026-10-30',
+      '2026-10-31',
+      '2026-11-01',
+      '2026-11-02',
+      '2026-11-03'
     ])
-    expect(series.map(({ seconds }) => seconds)).toEqual([
-      null, null, 2400, 4200, 1200, 0, 600
-    ])
+    expect(series.map(({ seconds }) => seconds)).toEqual([null, null, 2400, 4200, 1200, 0, 600])
   })
 
   test('never fabricates zeros from missing or stale reports', () => {
@@ -187,24 +189,23 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     )
   })
 
-  test('allows a verified zero-duration monthly report to show empty days', () => {
-    const series = buildNeteaseLastSevenDays(
-      new Date(2026, 10, 3, 10),
-      month(2026, 11, [])
-    )
-    expect(series.map(({ seconds }) => seconds)).toEqual([
-      null, null, null, null, 0, 0, 0
-    ])
+  test('shows zero days from a valid zero-duration month report', () => {
+    const series = buildNeteaseLastSevenDays(new Date(2026, 10, 3, 10), month(2026, 11, []))
+    expect(series.map(({ seconds }) => seconds)).toEqual([null, null, null, null, 0, 0, 0])
   })
 
   test('wires the chart to full and lightweight remote refreshes', () => {
     const view = readFileSync(
-      resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8'
+      resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'),
+      'utf8'
     )
     const component = readFileSync(
-      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'), 'utf8'
+      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'),
+      'utf8'
     )
-    expect(view).toContain('<ListenDurationTrend :points="recentSevenDayTrend" />')
+    expect(view).toContain(
+      '<ListenDurationTrend :points="recentSevenDayTrend" />'
+    )
     expect(view).toContain('trendMonthReport.value = currentMonth')
     expect(view).toContain('trendWeekReport.value = week')
     expect(view).toContain('sevenDaySpansLastMonth.value')

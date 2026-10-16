@@ -19,8 +19,19 @@
       >
         <title>{{ t('insights.footprint.sevenDayTrendTitle') }}</title>
         <g v-for="tick in yTicks" :key="tick">
-          <line :x1="left" :x2="right" :y1="pointY(tick)" :y2="pointY(tick)" class="trend-grid" />
-          <text :x="left - 12" :y="pointY(tick) + 4" text-anchor="end" class="trend-scale">
+          <line
+            :x1="left"
+            :x2="right"
+            :y1="pointY(tick)"
+            :y2="pointY(tick)"
+            class="trend-grid"
+          />
+          <text
+            :x="left - 12"
+            :y="pointY(tick) + 4"
+            text-anchor="end"
+            class="trend-scale"
+          >
             {{ Math.round(tick) }}m
           </text>
         </g>
@@ -79,10 +90,15 @@ const bottom = 162
 const selectedDate = ref<string | null>(null)
 
 const selectedPoint = computed(
-  () => props.points.find((point) => point.dateKey === selectedDate.value) ?? props.points.at(-1)
+  () =>
+    props.points.find((point) => point.dateKey === selectedDate.value) ??
+    props.points.at(-1)
 )
 const maxMinutes = computed(() => {
-  const topValue = Math.max(0, ...props.points.map((point) => (point.seconds ?? 0) / 60))
+  const topValue = Math.max(
+    0,
+    ...props.points.map((point) => (point.seconds ?? 0) / 60)
+  )
   return Math.max(30, Math.ceil(topValue / 30) * 30)
 })
 const yTicks = computed(() => [0, maxMinutes.value / 2, maxMinutes.value])
@@ -118,7 +134,9 @@ const formatDuration = (value: number | null): string => {
       minutes: Math.floor((seconds % 3600) / 60)
     })
   }
-  return t('insights.footprint.sevenDayTrendMinutes', { minutes: Math.floor(seconds / 60) })
+  return t('insights.footprint.sevenDayTrendMinutes', {
+    minutes: Math.floor(seconds / 60)
+  })
 }
 const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   `${point.dateKey}: ${formatDuration(point.seconds)}`
