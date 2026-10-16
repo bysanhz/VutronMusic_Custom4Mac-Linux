@@ -216,15 +216,15 @@
   color: var(--rainbow-playback) !important;
 }
 
-:root[data-accent-theme='rainbow'] #app .rainbow-repeat-control.rainbow-enabled .svg-icon {
+:root[data-accent-theme='rainbow'] #app .rainbow-repeat-control.rainbow-enabled:not(.disabled) .svg-icon {
   color: var(--rainbow-repeat) !important;
 }
 
-:root[data-accent-theme='rainbow'] #app .rainbow-shuffle-control.rainbow-enabled .svg-icon {
+:root[data-accent-theme='rainbow'] #app .rainbow-shuffle-control.rainbow-enabled:not(.disabled) .svg-icon {
   color: var(--rainbow-shuffle) !important;
 }
 
-:root[data-accent-theme='rainbow'] #app .rainbow-queue-control .svg-icon {
+:root[data-accent-theme='rainbow'] #app .rainbow-queue-control:not(.disabled) .svg-icon {
   color: var(--rainbow-queue) !important;
 }
 
@@ -276,3 +276,22 @@
 #app .player-media-control .like-button.liked:not(.disabled) .svg-icon {
   color: var(--color-like) !important;
 }
+
+/* Insights summary: four distinct categories, with restrained tinted surfaces.
+   Numeric magnitudes remain legible and do not rely solely on the hues. */
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-today { --rainbow-metric-color: var(--rainbow-1); }
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-week { --rainbow-metric-color: var(--rainbow-4); }
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-month { --rainbow-metric-color: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-total { --rainbow-metric-color: var(--rainbow-7); }
+
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-card {
+  background: color-mix(in srgb, var(--rainbow-metric-color) 7%, var(--color-body-bg));
+  box-shadow: inset 0 3px var(--rainbow-metric-color);
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-metric-card strong {
+  color: var(--rainbow-metric-color);
+}
+
+/* Disabled transport controls stay neutral, even when repeat was enabled
+   before entering the restricted Personal FM playback mode. */

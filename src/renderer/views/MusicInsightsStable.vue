@@ -173,7 +173,7 @@
       </div>
 
       <div class="metric-grid">
-        <div class="metric-card">
+        <div class="metric-card rainbow-metric-card rainbow-metric-today">
           <span>{{ t('insights.footprint.todayMetric') }}</span>
           <strong>{{
             footprint.todayCount !== undefined
@@ -191,15 +191,15 @@
             }}</small>
           </div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card rainbow-metric-card rainbow-metric-week">
           <span>{{ t('insights.footprint.week') }}</span>
           <strong>{{ formatDisplayListenDuration(displayWeekSeconds) }}</strong>
         </div>
-        <div class="metric-card">
+        <div class="metric-card rainbow-metric-card rainbow-metric-month">
           <span>{{ t('insights.footprint.month') }}</span>
           <strong>{{ formatDisplayListenDuration(displayMonthSeconds) }}</strong>
         </div>
-        <div class="metric-card">
+        <div class="metric-card rainbow-metric-card rainbow-metric-total">
           <span>{{ t('insights.footprint.total') }}</span>
           <strong>{{ formatDisplayListenDuration(displayTotalSeconds) }}</strong>
         </div>
