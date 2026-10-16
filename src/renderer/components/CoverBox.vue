@@ -47,6 +47,7 @@ import { getArtist } from '../api/artist'
 import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
 import { observeCoverVisibility } from '../utils/coverVisibility'
+import { recordCoverSource } from '../utils/coverNetworkDiagnostics'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -84,9 +85,11 @@ const handleImageError = () => {
 
 watch(
   () => props.imageUrl,
-  () => {
+  (url) => {
+    recordCoverSource(url)
     imageLoaded.value = false
-  }
+  },
+  { immediate: true }
 )
 
 onMounted(() => {

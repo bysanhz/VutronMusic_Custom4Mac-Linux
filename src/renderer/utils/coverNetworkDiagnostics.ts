@@ -24,6 +24,19 @@ const failures: CoverFailure[] = []
 const privateProbeUrls: string[] = []
 let loadCount = 0
 let errorCount = 0
+let sourceCount = 0
+let missingSourceCount = 0
+let neteaseSourceCount = 0
+
+/** Distinguish an API record without a cover URL from a CDN image failure. */
+export const recordCoverSource = (value: unknown): void => {
+  sourceCount += 1
+  if (typeof value !== 'string' || !value.trim()) {
+    missingSourceCount += 1
+  } else if (isNeteaseAssetUrl(value)) {
+    neteaseSourceCount += 1
+  }
+}
 
 /** Deliberately exclude path, query, fragment, credentials and song IDs. */
 export const describeCoverImageSource = (source: string): Omit<CoverFailure, 'time' | 'hasSource'> => {
@@ -75,6 +88,9 @@ if (typeof window !== 'undefined') {
 }
 
 export const getCoverLoadDiagnostics = () => ({
+  sourceCount,
+  missingSourceCount,
+  neteaseSourceCount,
   successCount: loadCount,
   failureCount: errorCount,
   recentFailures: failures.map((failure) => ({ ...failure }))

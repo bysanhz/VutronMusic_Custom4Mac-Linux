@@ -27,6 +27,8 @@ test('one-click diagnostics collects image failures and triggers a bounded CDN p
   expect(renderer).toContain('coverImages: getCoverLoadDiagnostics()')
   expect(renderer).toContain("'probe-netease-cover-network'")
   expect(observer).toContain("target.closest('.cover-container')")
+  expect(observer).toContain('missingSourceCount')
+  expect(readSource('src/renderer/components/CoverBox.vue')).toContain('recordCoverSource(url)')
   expect(observer).toContain('MAX_RECENT_FAILURES = 12')
   expect(main).toContain('.slice(0, 2)')
   expect(main).toContain('.filter(isNeteaseAssetUrl)')
