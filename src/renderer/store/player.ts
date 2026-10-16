@@ -53,6 +53,7 @@ import {
   stageNeteaseHistoricalReplay,
   recordNeteaseListenSegment,
   recoverNeteaseListenLedgerBackup,
+  provisionalNeteaseListen,
   reconcileNeteaseListenReport,
   setActiveNeteaseListenAccount,
   setProvisionalNeteaseListen,
@@ -2221,10 +2222,11 @@ export const usePlayerStore = defineStore(
             Math.floor((track.dt || track.duration || 0) / 1000)
           )
           const minimumSeconds = getMinimumNeteaseListenSeconds(trackDuration)
+          const uncommittedSeconds =
+            neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
           if (
             neteaseSessionListenedSeconds >= minimumSeconds &&
-            neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds >=
-              NETEASE_LOCAL_CHECKPOINT_SECONDS
+            uncommittedSeconds >= NETEASE_LOCAL_CHECKPOINT_SECONDS
           ) {
             // Disk checkpoint remains in REAL seconds; uploads are session-based.
             commitNeteaseSessionProgress(track)
