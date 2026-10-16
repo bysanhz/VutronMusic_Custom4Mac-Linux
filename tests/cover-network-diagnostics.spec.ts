@@ -13,6 +13,9 @@ test('cover diagnostics discard the image path and token-like query strings', ()
     netease: true
   })
   expect(JSON.stringify(getCoverLoadDiagnostics())).not.toContain('secret-image-id')
+  expect(describeCoverImageSource('http://192.168.1.1:8080/cover.jpg?access=secret').host).toBe(
+    'other-resource'
+  )
 })
 
 test('one-click diagnostics collects image failures and triggers a bounded CDN probe', () => {
@@ -23,7 +26,7 @@ test('one-click diagnostics collects image failures and triggers a bounded CDN p
   expect(renderer).toContain("'probe-netease-cover-network'")
   expect(observer).toContain("target.closest('.cover-container')")
   expect(observer).toContain('MAX_RECENT_FAILURES = 12')
-  expect(main).toContain("sources.slice(0, 2)")
+  expect(main).toContain('.slice(0, 2)')
   expect(main).toContain('.filter(isNeteaseAssetUrl)')
   expect(main).toContain('COVER_PROBE_TIMEOUT_MS = 3500')
   expect(main).not.toContain('return { url, status:')

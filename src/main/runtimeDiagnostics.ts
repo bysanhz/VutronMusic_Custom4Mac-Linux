@@ -55,7 +55,11 @@ const installRuntimeDiagnostics = (): void => {
         sources
           .slice(0, 2)
           .filter((value): value is string => typeof value === 'string' && value.length < 2048)
-          .filter(isNeteaseAssetUrl)
+          .filter((value) => {
+            if (!isNeteaseAssetUrl(value)) return false
+            const parsed = new URL(value)
+            return !parsed.username && !parsed.password && !parsed.port
+          })
       )
     )
     if (!urls.length) return { checked: false, reason: 'no_netease_failures' }

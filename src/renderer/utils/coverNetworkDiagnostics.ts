@@ -30,7 +30,7 @@ export const describeCoverImageSource = (source: string): Omit<CoverFailure, 'ti
   try {
     const parsed = new URL(source)
     return {
-      host: parsed.hostname,
+      host: isNeteaseAssetUrl(source) ? parsed.hostname : 'other-resource',
       protocol: parsed.protocol,
       netease: isNeteaseAssetUrl(source)
     }
@@ -56,12 +56,12 @@ if (typeof window !== 'undefined') {
     (event) => {
       if (!isCoverImage(event.target)) return
       errorCount += 1
-      const source = event.target.currentSrc || event.target.src || ''
+      const source = event.target.getAttribute('src') || ''
       const details = describeCoverImageSource(source)
       failures.unshift({
         time: new Date().toISOString(),
         ...details,
-        hasSource: Boolean(source)
+        hasSource: source.trim().length > 0
       })
       failures.splice(MAX_RECENT_FAILURES)
 
