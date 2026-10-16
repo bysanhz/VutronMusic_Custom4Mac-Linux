@@ -40,6 +40,8 @@ test('one-click diagnostics collects image failures and triggers a bounded CDN p
   expect(main).toContain('urlShape: describeCoverUrlShape(url)')
   expect(main).toContain('sizeVariantAvailable: Boolean(withoutSize)')
   expect(main).toContain('hasOtherQueryParameters:')
+  expect(main).toContain('repeatedQueryKeyCount:')
+  expect(main).toContain("without_query_diagnostic")
   expect(main).not.toContain('return { url, status:')
 })
 
