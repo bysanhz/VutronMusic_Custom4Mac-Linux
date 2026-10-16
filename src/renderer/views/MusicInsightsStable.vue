@@ -205,6 +205,8 @@
         </div>
       </div>
 
+      <ListenDurationTrend :points="recentSevenDayTrend" />
+
       <div class="sub-tabs">
         <button
           :class="{ active: footprintRankMode === 'week' }"
@@ -457,10 +459,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
+import ListenDurationTrend from '../components/ListenDurationTrend.vue'
+import { buildNeteaseLastSevenDays } from '../utils/neteaseListenTrend'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
 import { usePlayerStore } from '../store/player'
@@ -575,6 +579,14 @@ const weekPeriodKey = computed(() => `week:${localDateKey(startOfWeek.value)}`)
 const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).slice(0, 7)}`)
 const totalPeriodKey = 'total'
 const monthReportAvailable = ref<boolean | null>(null)
+// Remote report snapshots are only retained in memory for the rolling 7-day chart.
+// The durable local upload ledger is not a substitute for all cloud listening history.
+const trendMonthReport = shallowRef<unknown>(undefined)
+const trendWeekReport = shallowRef<unknown>(undefined)
+const recentSevenDayTrend = computed(() =>
+  buildNeteaseLastSevenDays(new Date(clockNow.value), trendMonthReport.value, trendWeekReport.value)
+)
+const sevenDaySpansLastMonth = computed(() => new Date(clockNow.value).getDate() <= 6)
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
@@ -897,6 +909,8 @@ const loadFootprint = async (): Promise<void> => {
     const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
       ? month
       : undefined
+    trendMonthReport.value = currentMonth
+    trendWeekReport.value = week
 
     // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
     const nextTodayCount = extractTodaySongCount(today, week)
@@ -985,6 +999,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
     const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
       ? month
       : undefined
+    trendMonthReport.value = currentMonth
 
     const nextTodayCount = extractTodaySongCount(today)
     if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
@@ -1020,8 +1035,9 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
 
     // month 缺逐日明细，或今日专用接口临时不可用时，才补请求 week report。
     // 这样既保留自然周兜底，也能避免今日首数因为单个接口失败长期停留在旧值。
-    if (nextRemoteWeekSeconds === undefined || nextTodayCount === undefined) {
+    if (nextRemoteWeekSeconds === undefined || nextTodayCount === undefined || sevenDaySpansLastMonth.value) {
       const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
+      trendWeekReport.value = week
       if (nextRemoteWeekSeconds === undefined) {
         nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
       }
@@ -1319,6 +1335,8 @@ watch(
 )
 
 watch(accountId, () => {
+  trendMonthReport.value = undefined
+  trendWeekReport.value = undefined
   monthReportAvailable.value = null
   setActiveNeteaseListenAccount(accountId.value)
   void loadFootprint()
@@ -1336,6 +1354,8 @@ onMounted(() => {
     const previousDate = localDateKey(clockNow.value)
     clockNow.value = Date.now()
     if (localDateKey(clockNow.value) !== previousDate) {
+      trendMonthReport.value = undefined
+      trendWeekReport.value = undefined
       monthReportAvailable.value = null
       void loadFootprint()
       return

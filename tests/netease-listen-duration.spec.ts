@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { buildNeteaseLastSevenDays } from '../src/renderer/utils/neteaseListenTrend'
 import {
   extractCalendarWeekListenSeconds,
   extractDailyListenSeconds,
@@ -99,5 +102,114 @@ test.describe('NetEase listening duration extraction', () => {
     expect(isRealtimeListenReportForMonth(makeReport(), '2026-09')).toBe(true)
     expect(isRealtimeListenReportForMonth(makeReport(), '2026-10')).toBe(false)
     expect(isRealtimeListenReportForMonth({ data: {} }, '2026-09')).toBe(false)
+  })
+})
+
+test.describe('Rolling seven-day NetEase duration trend', () => {
+  const month = (year: number, month: number, days: Array<[string, number]>) => ({
+    data: {
+      startTime: new Date(year, month - 1, 1).getTime(),
+      endTime: new Date(year, month, 0, 23, 59, 59).getTime(),
+      listenTimeDistributionBlock: {
+        playDuration: days.reduce((total, [, duration]) => total + duration, 0),
+        durationDetails: days.map(([period, duration]) => ({ period, duration }))
+      }
+    }
+  })
+
+  test('uses the last seven local dates, including today, rather than Monday-Sunday', () => {
+    const now = new Date(2026, 9, 16, 12, 0, 0)
+    const currentMonth = month(2026, 10, [
+      ['2026-10-10', 30],
+      ['2026-10-12', 75],
+      ['2026-10-16', 45]
+    ])
+    const week = {
+      data: {
+        listenTimeDistributionBlock: {
+          durationDetails: [{ period: '2026-10-16', duration: 999 }]
+        }
+      }
+    }
+    const series = buildNeteaseLastSevenDays(now, currentMonth, week)
+    expect(series.map(({ dateKey }) => dateKey)).toEqual([
+      '2026-10-10',
+      '2026-10-11',
+      '2026-10-12',
+      '2026-10-13',
+      '2026-10-14',
+      '2026-10-15',
+      '2026-10-16'
+    ])
+    // Explicitly dated month data takes precedence; sparse dates covered by a
+    // valid current-month report have zero listening time.
+    expect(series.map(({ seconds }) => seconds)).toEqual([
+      1800, 0, 4500, 0, 0, 0, 2700
+    ])
+  })
+
+  test('combines week and month details across month boundary, preserving unknown days', () => {
+    const series = buildNeteaseLastSevenDays(
+      new Date(2026, 10, 3, 9, 0),
+      month(2026, 11, [
+        ['2026-11-01', 20],
+        ['2026-11-03', 10]
+      ]),
+      {
+        data: {
+          listenTimeDistributionBlock: {
+            durationDetails: [
+              { period: '2026-10-30', duration: 40 },
+              { period: '2026-10-31', duration: 70 },
+              { period: '2026-11-01', duration: 99 }
+            ]
+          }
+        }
+      }
+    )
+    expect(series.map(({ dateKey }) => dateKey)).toEqual([
+      '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31',
+      '2026-11-01', '2026-11-02', '2026-11-03'
+    ])
+    expect(series.map(({ seconds }) => seconds)).toEqual([
+      null, null, 2400, 4200, 1200, 0, 600
+    ])
+  })
+
+  test('never fabricates zeros from missing or stale reports', () => {
+    const now = new Date(2026, 10, 3, 9, 0)
+    expect(buildNeteaseLastSevenDays(now).map(({ seconds }) => seconds)).toEqual(
+      Array(7).fill(null)
+    )
+    const stale = month(2026, 10, [['2026-10-31', 88]])
+    expect(buildNeteaseLastSevenDays(now, stale).map(({ seconds }) => seconds)).toEqual(
+      Array(7).fill(null)
+    )
+  })
+
+  test('allows a verified zero-duration monthly report to show empty days', () => {
+    const series = buildNeteaseLastSevenDays(
+      new Date(2026, 10, 3, 10),
+      month(2026, 11, [])
+    )
+    expect(series.map(({ seconds }) => seconds)).toEqual([
+      null, null, null, null, 0, 0, 0
+    ])
+  })
+
+  test('wires the chart to full and lightweight remote refreshes', () => {
+    const view = readFileSync(
+      resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8'
+    )
+    const component = readFileSync(
+      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'), 'utf8'
+    )
+    expect(view).toContain('<ListenDurationTrend :points="recentSevenDayTrend" />')
+    expect(view).toContain('trendMonthReport.value = currentMonth')
+    expect(view).toContain('trendWeekReport.value = week')
+    expect(view).toContain('sevenDaySpansLastMonth.value')
+    expect(component).toContain('var(--color-primary)')
+    expect(component).toContain('point.seconds === null')
+    expect(component).toContain('sevenDayTrendTitle')
   })
 })
