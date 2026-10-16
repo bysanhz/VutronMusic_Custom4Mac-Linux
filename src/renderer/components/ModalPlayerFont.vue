@@ -4,7 +4,11 @@
       class="player-tool-modal"
       :show="setFontModal"
       :title="t('playerFont.title')"
-      width="min(760px, calc(100vw - 40px))"
+      :width="
+        activeTheme.theme.activeLayout === 'Creative'
+          ? 'min(680px, calc(100vw - 40px))'
+          : 'min(520px, calc(100vw - 40px))'
+      "
       min-width="0"
       :show-footer="false"
       :close-fn="close"
@@ -531,11 +535,27 @@ onMounted(() => {
   }
 }
 
-.item {
-  display: flex;
+.lyric-setting {
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+.lyric-setting > .item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
   align-items: center;
-  justify-content: space-between;
+  column-gap: 16px;
   margin-bottom: 10px;
+
+  > .left {
+    min-width: 0;
+  }
+
+  > .right {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
 
   .left .title {
     font-size: 16px;
@@ -553,6 +573,21 @@ onMounted(() => {
     padding: 8px 14px;
     border-radius: 4px;
     text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .lyric-setting > .item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 140px);
+    column-gap: 8px;
+  }
+
+  .lyric-setting > .item input[type='number'] {
+    width: 100%;
+  }
+
+  .lyric-setting > .item .input-select {
+    width: 100% !important;
   }
 }
 
