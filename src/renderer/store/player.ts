@@ -64,6 +64,7 @@ import { getBufferedAheadSeconds } from '../utils/audioBufferHealth'
 import { OwnedObjectUrls } from '../utils/ownedObjectUrls'
 import { createNeteasePauseUploadScheduler } from '../../shared/neteasePauseUpload'
 import { getMinimumNeteaseListenSeconds } from '../../shared/neteaseListenThreshold'
+import { createNeteasePlaybackClock } from '../utils/neteasePlaybackClock'
 
 interface biquadType {
   31: number
@@ -147,6 +148,9 @@ export const usePlayerStore = defineStore(
       endedAt: number
       seconds: number
     }> = []
+    // Media currentTime measures song progress, NOT real listening time at
+    // playback speeds other than 1x. Use monotonic wall time for the ledger.
+    const neteasePlaybackClock = createNeteasePlaybackClock()
     let neteaseScrobbleQueue: Promise<void> = Promise.resolve()
     let neteaseRetryTimer: number | null = null
     const NETEASE_SCROBBLE_QUEUE_GAP_MS = 350
@@ -398,6 +402,8 @@ export const usePlayerStore = defineStore(
       },
       set(value) {
         if (!audioNodes.audio) return
+        collectCurrentNeteasePlayback()
+        neteasePlaybackClock.suspend()
         audioNodes.audio.currentTime = value
         _progress.value = value
         progress.value = value
@@ -493,8 +499,15 @@ export const usePlayerStore = defineStore(
     const playbackRate = computed({
       get: () => backRate.value,
       set: (value) => {
+        // Account for real listening up to the speed-change boundary using
+        // the OLD rate, then rebase so no interval spans two playback rates.
+        collectCurrentNeteasePlayback()
+        neteasePlaybackClock.suspend()
         backRate.value = value
-        if (audioNodes.audio) audioNodes.audio.playbackRate = value
+        if (audioNodes.audio) {
+          audioNodes.audio.playbackRate = value
+          resumeNeteasePlaybackClock()
+        }
       }
     })
 
@@ -1072,6 +1085,7 @@ export const usePlayerStore = defineStore(
           ? seek.value
           : 0
 
+      neteasePlaybackClock.suspend()
       currentTrack.value = track
       neteaseSessionListenedSeconds = 0
       neteaseSessionCommittedSeconds = 0
@@ -1160,6 +1174,7 @@ export const usePlayerStore = defineStore(
         allowPreviousAccount?: boolean
       } = {}
     ): number => {
+      collectCurrentNeteasePlayback()
       if (!shouldTrackNeteaseListenTime(track)) return 0
       if (
         neteaseSessionAccountId === 'anonymous' ||
@@ -1637,6 +1652,8 @@ export const usePlayerStore = defineStore(
     }
 
     const nextTrackCallback = () => {
+      collectCurrentNeteasePlayback()
+      neteasePlaybackClock.suspend()
       neteasePauseUpload.cancel()
       markPlaybackEndReason('natural-end')
       const endedTrack = currentTrack.value
@@ -1903,9 +1920,12 @@ export const usePlayerStore = defineStore(
       recordPlaybackMediaEvent('playing')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
       playing.value = true
+      resumeNeteasePlaybackClock()
     }
 
     const _handleMediaPause = () => {
+      collectCurrentNeteasePlayback()
+      neteasePlaybackClock.suspend()
       recordPlaybackMediaEvent('pause')
       playing.value = false
       const track = currentTrack.value
@@ -1921,16 +1941,32 @@ export const usePlayerStore = defineStore(
     }
 
     const _handleMediaWaiting = () => {
+      collectCurrentNeteasePlayback()
+      neteasePlaybackClock.suspend()
       recordPlaybackMediaEvent('waiting')
       sendAudioHealthEvent('waiting')
     }
     const _handleMediaStalled = () => {
+      collectCurrentNeteasePlayback()
+      neteasePlaybackClock.suspend()
       recordPlaybackMediaEvent('stalled')
       sendAudioHealthEvent('stalled')
+    }
+    const _handleMediaSeeking = () => {
+      // currentTime may already have jumped by the time seeking fires.
+      // Never count that jump as listening time.
+      neteasePlaybackClock.suspend()
     }
     const _handleMediaSeeked = () => {
       recordPlaybackMediaEvent('seeked')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
+      lastUpdateTime = audioNodes.audio?.currentTime || 0
+      resumeNeteasePlaybackClock()
+    }
+    const _handleMediaRateChange = () => {
+      collectCurrentNeteasePlayback()
+      neteasePlaybackClock.suspend()
+      resumeNeteasePlaybackClock()
     }
 
     const _handleMediaError = () => {
@@ -2107,70 +2143,96 @@ export const usePlayerStore = defineStore(
       return true
     }
 
+    const resumeNeteasePlaybackClock = (): void => {
+      const audio = audioNodes.audio
+      if (
+        !audio ||
+        !playing.value ||
+        audio.paused ||
+        audio.ended ||
+        audio.seeking ||
+        audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+      ) return
+      neteasePlaybackClock.start(audio.currentTime, performance.now(), audio.playbackRate)
+    }
+
+    const collectCurrentNeteasePlayback = (): void => {
+      const audio = audioNodes.audio
+      if (!audio) return
+      const slice = neteasePlaybackClock.sample(audio.currentTime, performance.now(), Date.now())
+      if (!slice || !shouldTrackNeteaseListenTime(currentTrack.value)) return
+      if (neteaseSessionAccountId !== currentNeteaseAccountId()) return
+
+      if (!neteaseSessionStartedAt) neteaseSessionStartedAt = slice.startedAt
+      const previousSlice = neteaseSessionSlices.at(-1)
+      if (slice.continuous && previousSlice && slice.startedAt - previousSlice.endedAt <= 250) {
+        previousSlice.endedAt = slice.endedAt
+        previousSlice.seconds += slice.seconds
+      } else {
+        neteaseSessionSlices.push({
+          startedAt: slice.startedAt,
+          endedAt: slice.endedAt,
+          seconds: slice.seconds
+        })
+      }
+      neteaseSessionListenedSeconds += slice.seconds
+
+      const trackDuration = Math.max(
+        1,
+        Math.floor((currentTrack.value?.dt || currentTrack.value?.duration || 0) / 1000)
+      )
+      const minimumSeconds = getMinimumNeteaseListenSeconds(trackDuration)
+      const uncommittedSeconds = neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
+      const existing = provisionalNeteaseListen.value
+      const eligible = neteaseSessionListenedSeconds >= minimumSeconds
+      // The UI needs only integer-second updates; avoid writing reactive
+      // provisional state on every 250 ms HTMLAudioElement timeupdate.
+      if (
+        Math.floor(uncommittedSeconds) !== Math.floor(existing.seconds) ||
+        existing.eligible !== eligible ||
+        existing.accountId !== neteaseSessionAccountId
+      ) {
+        setProvisionalNeteaseListen({
+          accountId: neteaseSessionAccountId,
+          startedAt: neteaseSessionStartedAt,
+          endedAt: slice.endedAt,
+          seconds: uncommittedSeconds,
+          segments: neteaseSessionSlices,
+          eligible
+        })
+      }
+    }
+
     const _handleTimeUpdate = () => {
       if (!audioNodes.audio) return
 
-      const currentTime = audioNodes.audio.currentTime
+      const audio = audioNodes.audio
+      const currentTime = audio.currentTime
       notePlaybackProgress(currentTime)
-      const delta = currentTime - lastUpdateTime
-      if (Math.abs(delta) >= 1) {
-        /*
-         * session 内持续累计真实播放；达到有效播放门槛后才把整段加入待同步，避免
-         * 不会上报的短试听污染全局账本。seek setter 会同步 lastUpdateTime，因此手动
-         * 拖动进度条不会被算成收听时长；异常的大跳变也会被上限保护过滤。
-         */
-        const maxExpectedDelta = Math.max(5, 5 * Number(playbackRate.value || 1))
-        if (
-          playing.value &&
-          delta > 0 &&
-          delta <= maxExpectedDelta &&
-          shouldTrackNeteaseListenTime(currentTrack.value)
-        ) {
-          const now = Date.now()
-          if (!neteaseSessionStartedAt) {
-            neteaseSessionStartedAt = now - Math.max(1, delta) * 1000
-          }
-          const sliceStartedAt = now - delta * 1000
-          const previousSlice = neteaseSessionSlices.at(-1)
-          if (previousSlice && sliceStartedAt - previousSlice.endedAt <= 2000) {
-            previousSlice.endedAt = now
-            previousSlice.seconds += delta
-          } else {
-            neteaseSessionSlices.push({ startedAt: sliceStartedAt, endedAt: now, seconds: delta })
-          }
-          neteaseSessionListenedSeconds += delta
 
+      if (playing.value && !audio.paused && !audio.seeking && !audio.ended) {
+        if (!neteasePlaybackClock.isRunning()) resumeNeteasePlaybackClock()
+        else collectCurrentNeteasePlayback()
+
+        const track = currentTrack.value
+        if (track && shouldTrackNeteaseListenTime(track)) {
           const trackDuration = Math.max(
             1,
-            Math.floor((currentTrack.value?.dt || currentTrack.value?.duration || 0) / 1000)
+            Math.floor((track.dt || track.duration || 0) / 1000)
           )
           const minimumSeconds = getMinimumNeteaseListenSeconds(trackDuration)
-          // Preserve the full played-time total, but avoid a reactive ledger
-          // rewrite (and synchronous localStorage flush) on every second after
-          // the initial listening threshold.
-          const uncommittedSeconds =
-            neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds
           if (
             neteaseSessionListenedSeconds >= minimumSeconds &&
-            uncommittedSeconds >= NETEASE_LOCAL_CHECKPOINT_SECONDS
+            neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds >=
+              NETEASE_LOCAL_CHECKPOINT_SECONDS
           ) {
-            // Commit every five seconds after the initial valid-play threshold.
-            // Networking remains session-based; this only narrows crash loss.
-            commitNeteaseSessionProgress(currentTrack.value!)
-          } else {
-            setProvisionalNeteaseListen({
-              accountId: neteaseSessionAccountId,
-              startedAt: neteaseSessionStartedAt,
-              endedAt: now,
-              seconds: neteaseSessionListenedSeconds - neteaseSessionCommittedSeconds,
-              // Count the 1-4s live remainder only after the full session qualifies.
-              // The durable disk checkpoint stays at five-second intervals.
-              segments: neteaseSessionSlices,
-              eligible: neteaseSessionListenedSeconds >= minimumSeconds
-            })
+            // Disk checkpoint remains in REAL seconds; uploads are session-based.
+            commitNeteaseSessionProgress(track)
           }
         }
+      }
 
+      if (Math.abs(currentTime - lastUpdateTime) >= 0.25) {
         _progress.value = currentTime
         lastUpdateTime = currentTime
       }
@@ -2199,8 +2261,11 @@ export const usePlayerStore = defineStore(
         audioNodes.audio.removeEventListener('pause', _handleMediaPause)
         audioNodes.audio.removeEventListener('waiting', _handleMediaWaiting)
         audioNodes.audio.removeEventListener('stalled', _handleMediaStalled)
+        audioNodes.audio.removeEventListener('seeking', _handleMediaSeeking)
         audioNodes.audio.removeEventListener('seeked', _handleMediaSeeked)
+        audioNodes.audio.removeEventListener('ratechange', _handleMediaRateChange)
         audioNodes.audio.removeEventListener('error', _handleMediaError)
+        neteasePlaybackClock.suspend()
         audioNodes.audio.pause()
         audioNodes.audio.removeAttribute('src')
         audioNodes.audio.load()
@@ -2312,7 +2377,9 @@ export const usePlayerStore = defineStore(
       audioNodes.audio.addEventListener('pause', _handleMediaPause)
       audioNodes.audio.addEventListener('waiting', _handleMediaWaiting)
       audioNodes.audio.addEventListener('stalled', _handleMediaStalled)
+      audioNodes.audio.addEventListener('seeking', _handleMediaSeeking)
       audioNodes.audio.addEventListener('seeked', _handleMediaSeeked)
+      audioNodes.audio.addEventListener('ratechange', _handleMediaRateChange)
       audioNodes.audio.addEventListener('error', _handleMediaError)
 
       // Music playback can trade a little output latency for more scheduling headroom.
@@ -2512,6 +2579,7 @@ export const usePlayerStore = defineStore(
       enabled.value = false
       currentTrackIndex.value = 0
       currentTrack.value = null
+      neteasePlaybackClock.suspend()
       neteaseSessionListenedSeconds = 0
       neteaseSessionCommittedSeconds = 0
       neteaseSessionStartedAt = 0
@@ -2979,6 +3047,7 @@ export const usePlayerStore = defineStore(
           }
           // Cookie 已经随账号切换，不能再把旧会话提交到新账号。已落账片段保留在旧账号
           // 的独立队列中；当前歌曲从切换时刻开始建立一个全新的账号会话。
+          neteasePlaybackClock.suspend()
           neteaseSessionListenedSeconds = 0
           neteaseSessionCommittedSeconds = 0
           neteaseSessionStartedAt = 0
@@ -2987,6 +3056,7 @@ export const usePlayerStore = defineStore(
           neteaseSessionAccountId = nextAccountId
           neteaseSessionSlices = []
           setProvisionalNeteaseListen()
+          resumeNeteasePlaybackClock()
           flushNeteaseListenLedger(true)
         }
         retryPendingNeteaseListen()

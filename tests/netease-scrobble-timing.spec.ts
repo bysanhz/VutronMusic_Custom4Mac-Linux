@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { createNeteasePlaybackClock } from '../src/renderer/utils/neteasePlaybackClock'
 import { uploadScrobbleStages } from '../src/shared/neteaseScrobbleStages'
 import { normalizeNeteaseScrobbleTiming } from '../src/shared/scrobbleTiming'
 import { createNeteasePauseUploadScheduler } from '../src/shared/neteasePauseUpload'
@@ -357,4 +358,77 @@ test('the configured threshold is validated, stored and shared by playback and s
     if (previous) Object.defineProperty(globalThis, 'localStorage', previous)
     else Reflect.deleteProperty(globalThis, 'localStorage')
   }
+})
+
+test.describe('Real-time listening clock: monotonic wall time, not media progress', () => {
+  test('counts one real second at 0.5x, 1x, 1.5x and 2x playback speeds', () => {
+    for (const speed of [0.5, 1, 1.5, 2]) {
+      const clock = createNeteasePlaybackClock()
+      clock.start(0, 1_000, speed)
+      const credited = clock.sample(speed, 2_000, 1729000002000)
+      expect(credited?.seconds).toBeCloseTo(1, 6)
+      expect(credited?.endedAt - credited!.startedAt).toBeCloseTo(1000, 6)
+    }
+  })
+
+  test('does not treat fast seek as listening, even when it skips far ahead', () => {
+    const clock = createNeteasePlaybackClock()
+    clock.start(5, 0, 2)
+    expect(clock.sample(6, 500, 500)?.seconds).toBeCloseTo(0.5)
+    expect(clock.sample(125, 1000, 1000)).toBeNull()
+    expect(clock.sample(127, 2000, 2000)?.seconds).toBeCloseTo(1)
+  })
+
+  test('pauses and buffering gaps do not count as active listening time', () => {
+    const clock = createNeteasePlaybackClock()
+    clock.start(0, 0, 1)
+    const first = clock.sample(1, 1000, 1000)
+    expect(first?.seconds).toBe(1)
+    clock.suspend()
+    expect(clock.sample(1, 20000, 20000)).toBeNull()
+    clock.start(1, 20000, 1)
+    const second = clock.sample(2, 21000, 21000)
+    expect(second?.seconds).toBe(1)
+    expect(second?.continuous).toBe(false)
+  })
+
+  test('does not count time stuck on the same media position', () => {
+    const clock = createNeteasePlaybackClock()
+    clock.start(4, 0, 1)
+    expect(clock.sample(4, 10_000, 10_000)).toBeNull()
+    expect(clock.sample(5, 11_000, 11_000)?.seconds).toBe(1)
+  })
+
+  test('caps suspicious motion while tolerating delayed background events', () => {
+    const clock = createNeteasePlaybackClock()
+    clock.start(0, 0, 2)
+    const delayed = clock.sample(60, 30_000, 30_000)
+    expect(delayed?.seconds).toBe(30)
+    clock.suspend()
+    clock.start(60, 30_000, 2)
+    expect(clock.sample(300, 30_500, 30_500)).toBeNull()
+  })
+
+  test('re-bases when rate changes, keeping the total in real seconds', () => {
+    const clock = createNeteasePlaybackClock()
+    clock.start(0, 0, 1)
+    const normal = clock.sample(1, 1000, 1000)
+    clock.suspend()
+    clock.start(1, 1000, 2)
+    const fast = clock.sample(3, 2000, 2000)
+    expect(normal!.seconds + fast!.seconds).toBeCloseTo(2)
+    expect(fast?.continuous).toBe(false)
+  })
+
+  test('player lifecycle gates playback on pause, seeking, waiting and rate changes', () => {
+    const player = readFileSync(resolve(process.cwd(), 'src/renderer/store/player.ts'), 'utf8')
+    expect(player).toContain('createNeteasePlaybackClock()')
+    expect(player).toContain('neteaseSessionListenedSeconds += slice.seconds')
+    expect(player).toContain("addEventListener('seeking', _handleMediaSeeking)")
+    expect(player).toContain("addEventListener('ratechange', _handleMediaRateChange)")
+    expect(player).toContain('const _handleMediaWaiting = () => {')
+    expect(player).not.toContain('netaeasePlaybackClock')
+    expect(player).not.toContain('const delta = currentTime - lastUpdateTime')
+    expect(player).toContain('collectCurrentNeteasePlayback()')
+  })
 })

@@ -58,7 +58,7 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(player).toContain("new CustomEvent('vutronmusic-netease-scrobble'")
     expect(player).toContain("from '../utils/neteaseListenLedger'")
     expect(player).toContain('recordNeteaseListenSegment({')
-    expect(player).toContain('neteaseSessionListenedSeconds += delta')
+    expect(player).toContain('neteaseSessionListenedSeconds += slice.seconds')
     expect(player).toContain('neteaseSessionListenedSeconds >= minimumSeconds')
     expect(player).toContain('setProvisionalNeteaseListen(')
     expect(player).toContain('markNeteaseListenEntryAccepted(entry.id, {')
@@ -70,14 +70,17 @@ test.describe('NetEase scrobble lifecycle', () => {
     expect(trackApi).not.toContain('addPendingNeteaseListenSeconds')
   })
 
-  test('counts real playback progress continuously without counting seeks twice', () => {
+  test('counts real monotonic playback rather than speed-scaled media progress', () => {
     const player = readSource('src/renderer/store/player.ts')
+    const clock = readSource('src/renderer/utils/neteasePlaybackClock.ts')
 
-    expect(player).toContain('const delta = currentTime - lastUpdateTime')
-    expect(player).toContain('delta > 0')
-    expect(player).toContain('delta <= maxExpectedDelta')
-    expect(player).toContain('shouldTrackNeteaseListenTime(currentTrack.value)')
+    expect(player).toContain('createNeteasePlaybackClock()')
+    expect(player).toContain('neteaseSessionListenedSeconds += slice.seconds')
+    expect(player).not.toContain('netEaseUnused')
+    expect(player).not.toContain('const delta = currentTime - lastUpdateTime')
     expect(player).toContain('lastUpdateTime = value')
+    expect(clock).toContain('progressedSeconds / previous.rate')
+    expect(clock).toContain('Math.min(wallSeconds, progressedSeconds / previous.rate)')
   })
 
   test('serializes duration-aware scrobbles across rapid track changes', () => {
