@@ -36,6 +36,12 @@ jobs:
       - name: Check formatting
         run: yarn run format:check
 
+      - name: Inspect sleep timer formatting
+        if: ${{ always() }}
+        run: |
+          yarn prettier tests/sleep-timer-controls.spec.ts > /tmp/sleep-timer-controls-formatted
+          diff -u tests/sleep-timer-controls.spec.ts /tmp/sleep-timer-controls-formatted || true
+
       - name: Lint source
         if: ${{ always() }}
         run: yarn lint
