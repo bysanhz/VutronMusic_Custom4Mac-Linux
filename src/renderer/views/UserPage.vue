@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="user-page">
-    <div class="artist-info">
+    <div class="artist-info rainbow-surface-profile">
       <div class="head">
         <img :src="image" loading="lazy" />
       </div>

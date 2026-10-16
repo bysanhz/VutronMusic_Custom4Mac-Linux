@@ -29,7 +29,7 @@
           <FMCard />
         </div>
       </div>
-      <button class="insights-card" @click="router.push('/insights')">
+      <button class="insights-card rainbow-surface-hero" @click="router.push('/insights')">
         <div class="insights-eyebrow">NEW</div>
         <div class="insights-title">{{ t('home.insightsTitle') }}</div>
         <div class="insights-desc">{{ t('home.insightsDesc') }}</div>

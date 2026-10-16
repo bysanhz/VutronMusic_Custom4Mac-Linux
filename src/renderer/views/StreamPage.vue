@@ -1,6 +1,6 @@
 <template>
   <div class="streaming-music">
-    <div class="section-one">
+    <div class="section-one rainbow-surface-overview">
       <div class="left" style="width: 100%">
         <InfoBG />
         <div class="content">
@@ -33,7 +33,7 @@
           </div>
         </div>
       </div>
-      <div class="right-top" @click="goToLikedSongsList">
+      <div class="right-top rainbow-liked-feature" @click="goToLikedSongsList">
         <div class="title"
           >{{ $t('library.likedSongs') }} - {{ likedTracks.length }}{{ $t('common.songs') }}</div
         >

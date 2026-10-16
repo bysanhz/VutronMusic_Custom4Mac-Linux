@@ -1,6 +1,6 @@
 <template>
   <div class="local-music">
-    <div class="section-one">
+    <div class="section-one rainbow-surface-overview">
       <div class="left" style="width: 100%">
         <InfoBG />
         <div class="content">

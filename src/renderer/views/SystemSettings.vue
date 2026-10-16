@@ -1,6 +1,6 @@
 <template>
   <div class="system-settings" :style="mainStyle" @click="clickOutside">
-    <div v-if="user.userId" class="user-info">
+    <div v-if="user.userId" class="user-info rainbow-surface-profile">
       <div class="left">
         <img class="avatar" :src="user.avatarUrl" loading="lazy" />
         <div class="info">

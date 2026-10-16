@@ -1,6 +1,6 @@
 <template>
   <div class="insights-page">
-    <div class="hero">
+    <div class="hero rainbow-surface-hero">
       <div>
         <div class="eyebrow">NETEASE INSIGHTS</div>
         <h1>{{ t('insights.title') }}</h1>

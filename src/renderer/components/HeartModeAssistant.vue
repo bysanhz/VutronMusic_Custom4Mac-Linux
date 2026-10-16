@@ -33,7 +33,7 @@
         <nav class="panel-tabs" role="tablist" :aria-label="texts.tabsLabel">
           <button
             type="button"
-            class="panel-tab"
+            class="panel-tab rainbow-heart-tab rainbow-heart-tab-1"
             :class="{ active: panelPage === 'main' }"
             role="tab"
             :aria-selected="panelPage === 'main'"
@@ -43,7 +43,7 @@
           </button>
           <button
             type="button"
-            class="panel-tab"
+            class="panel-tab rainbow-heart-tab rainbow-heart-tab-2"
             :class="{ active: panelPage === 'settings' }"
             role="tab"
             :aria-selected="panelPage === 'settings'"
@@ -53,7 +53,7 @@
           </button>
           <button
             type="button"
-            class="panel-tab"
+            class="panel-tab rainbow-heart-tab rainbow-heart-tab-3"
             :class="{ active: panelPage === 'guide' }"
             role="tab"
             :aria-selected="panelPage === 'guide'"
@@ -84,7 +84,7 @@
           <div class="actions">
             <button
               type="button"
-              class="heart-action-button"
+              class="heart-action-button rainbow-heart-positive"
               :disabled="!customAlgorithmEnabled || !session"
               @pointerdown.stop
               @click.stop="moreLikeThis"
@@ -94,7 +94,7 @@
             </button>
             <button
               type="button"
-              class="heart-action-button"
+              class="heart-action-button rainbow-heart-explore"
               :disabled="!customAlgorithmEnabled || !session"
               @pointerdown.stop
               @click.stop="goFurther"
