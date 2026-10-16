@@ -16,6 +16,7 @@ import {
   getNeteaseListenSyncDiagnostics
 } from './neteaseListenLedger'
 import request from './request'
+import { getCoverLoadDiagnostics, getFailedNeteaseCoverProbeUrls } from './coverNetworkDiagnostics'
 
 const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
 const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'
@@ -38,7 +39,7 @@ const TEXTS = {
   zh: {
     title: '一键诊断快照',
     description:
-      '复制版本、系统、播放状态、桌面歌词、定时器和最近错误；不会包含密码、Cookie 或完整本地路径',
+      '复制版本、系统、播放状态、封面加载及 CDN 检测、最近错误；不会包含密码、Cookie 或完整图片 URL',
     copy: '复制诊断快照',
     copied: '诊断信息已复制到剪贴板',
     failed: '生成诊断信息失败'
@@ -46,7 +47,7 @@ const TEXTS = {
   zht: {
     title: '一鍵診斷快照',
     description:
-      '複製版本、系統、播放狀態、桌面歌詞、定時器與最近錯誤；不包含密碼、Cookie 或完整本機路徑',
+      '複製版本、系統、播放狀態、封面載入及 CDN 偵測、最近錯誤；不包含密碼、Cookie 或完整圖片網址',
     copy: '複製診斷快照',
     copied: '診斷資訊已複製到剪貼簿',
     failed: '產生診斷資訊失敗'
@@ -54,7 +55,7 @@ const TEXTS = {
   en: {
     title: 'One-click Diagnostics',
     description:
-      'Copies version, system, playback, desktop lyric, timer and recent error data without passwords, cookies or full local paths.',
+      'Copies version, system, playback, recent cover failures and CDN probe status without passwords, cookies or full image URLs.',
     copy: 'Copy diagnostics',
     copied: 'Diagnostics copied to the clipboard',
     failed: 'Could not generate diagnostics'
@@ -133,6 +134,7 @@ const collectRendererDiagnostics = () => {
       cachePath: redactPath(settings?.autoCacheTrack?.cachePath)
     },
     queueSnapshotCount: queueSnapshots.length,
+    coverImages: getCoverLoadDiagnostics(),
     listenSync: getNeteaseListenSyncDiagnostics(activeNeteaseListenAccountId.value),
     recentErrors
   }
@@ -202,9 +204,19 @@ const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
         window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({}),
         getNeteaseScrobbleRuntimeDiagnostics()
       ])
+      const probeUrls = getFailedNeteaseCoverProbeUrls()
+      let coverNetwork: Record<string, unknown> = { checked: false, reason: 'no_recent_netease_failures' }
+      if (probeUrls.length && window.mainApi?.invoke) {
+        try {
+          coverNetwork = await window.mainApi.invoke('probe-netease-cover-network', probeUrls)
+        } catch {
+          coverNetwork = { checked: false, reason: 'probe_unavailable' }
+        }
+      }
       const output = formatDiagnostics(main, {
         ...collectRendererDiagnostics(),
-        neteaseScrobble
+        neteaseScrobble,
+        coverNetwork
       })
       await navigator.clipboard.writeText(output)
       status.textContent = text.copied

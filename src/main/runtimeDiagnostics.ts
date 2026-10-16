@@ -1,16 +1,73 @@
-import { app, ipcMain, webContents } from 'electron'
+import { app, ipcMain, net, webContents } from 'electron'
 import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
 import store from './store'
+import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
 const APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
+const COVER_PROBE_TIMEOUT_MS = 3500
+
+const classifyCoverNetworkError = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : String(error)
+  const code = message.match(/\bERR_[A-Z0-9_]+\b/)?.[0]
+  if (code) return code
+  return /abort|timeout/i.test(message) ? 'timeout' : 'request_failed'
+}
+
+/** Probe only NetEase's image CDN, without exporting URL paths or query strings. */
+const probeCoverCandidate = async (url: string) => {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), COVER_PROBE_TIMEOUT_MS)
+  const host = new URL(url).hostname
+  try {
+    const response = await net.fetch(url, {
+      method: 'GET',
+      credentials: 'omit',
+      signal: controller.signal
+    })
+    const contentType = (response.headers.get('content-type') || '').split(';')[0].toLowerCase()
+    const result = {
+      host,
+      status: response.status,
+      contentType,
+      image: response.ok && contentType.startsWith('image/')
+    }
+    await response.body?.cancel().catch(() => undefined)
+    return result
+  } catch (error) {
+    return { host, status: null, contentType: '', image: false, error: classifyCoverNetworkError(error) }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
 
 const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
   if (runtime[INSTALL_KEY]) return
   runtime[INSTALL_KEY] = true
+
+  ipcMain.handle('probe-netease-cover-network', async (_event, sources: unknown) => {
+    if (!Array.isArray(sources)) return { checked: false, reason: 'invalid_input' }
+    const urls = Array.from(
+      new Set(
+        sources
+          .slice(0, 2)
+          .filter((value): value is string => typeof value === 'string' && value.length < 2048)
+          .filter(isNeteaseAssetUrl)
+      )
+    )
+    if (!urls.length) return { checked: false, reason: 'no_netease_failures' }
+
+    const results = await Promise.all(
+      urls.map(async (url) => {
+        const candidates = getNeteaseImageCandidateUrls(url).slice(0, 2)
+        return { attempts: await Promise.all(candidates.map(probeCoverCandidate)) }
+      })
+    )
+    return { checked: true, sampleCount: results.length, results }
+  })
 
   ipcMain.handle('get-runtime-diagnostics', async () => {
     const gpuStatus = app.isReady() ? app.getGPUFeatureStatus() : {}
