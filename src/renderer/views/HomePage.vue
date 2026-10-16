@@ -56,18 +56,6 @@
     </div>
 
     <div class="index-row">
-      <div class="title">
-        {{ personalizedPlaylists.length ? t('home.personalized') : t('home.recommendPlaylist') }}
-        <a @click="toExplore('playlist', '推荐歌单')">{{ $t('home.seeMore') }}</a>
-      </div>
-      <CoverRow
-        :items="personalizedPlaylists.length ? personalizedPlaylists : recommendPlaylist.items"
-        type="playlist"
-        sub-text="copywriter"
-      />
-    </div>
-
-    <div class="index-row">
       <div class="title">{{ $t('home.recommendArtist') }}</div>
       <CoverRow :items="recommendArtists.items" type="artist" :colunm-number="6" />
     </div>
@@ -100,11 +88,9 @@ import { homepageBlockPage } from '../api/modern'
 import {
   extractArtists,
   extractCursor,
-  extractPlaylists,
   extractTracks,
   setPersonalizedTrackSnapshot
 } from '../services/neteaseModern'
-import { getRecommendPlayList } from '../utils/playlist'
 import { tricklingProgress } from '../utils/tricklingProgress'
 import CoverRow from '../components/CoverRow.vue'
 import TrackList from '../components/VirtualTrackList.vue'
@@ -140,8 +126,6 @@ const timer = ref<any>(null)
 const show = ref(false)
 const loadRevision = ref(0)
 
-const recommendPlaylist = ref<{ items: any[] }>({ items: [] })
-const personalizedPlaylists = ref<any[]>([])
 const personalizedTracks = ref<any[]>([])
 const recommendArtists = ref<{ items: any[]; indexs: any[] }>({
   items: [],
@@ -205,7 +189,6 @@ const loadPersonalizedHome = async (revision: number) => {
   const trackSnapshot = extractTracks(result, 200)
   setPersonalizedTrackSnapshot(trackSnapshot, extractCursor(result))
   personalizedTracks.value = trackSnapshot.slice(0, 5)
-  personalizedPlaylists.value = extractPlaylists(result, 10)
 
   const artists = extractArtists(result, 6)
   if (artists.length) {
@@ -236,7 +219,6 @@ const loadData = async () => {
   tricklingProgress.start()
 
   personalizedTracks.value = []
-  personalizedPlaylists.value = []
   recommendArtists.value.items = []
 
   const jobs: Promise<any>[] = []
@@ -252,12 +234,6 @@ const loadData = async () => {
       })
     )
   }
-
-  jobs.push(
-    getRecommendPlayList(10, false).then((items) => {
-      if (revision === loadRevision.value) recommendPlaylist.value.items = items
-    })
-  )
 
   jobs.push(loadPersonalizedHome(revision))
   jobs.push(loadFallbackArtists(revision))
