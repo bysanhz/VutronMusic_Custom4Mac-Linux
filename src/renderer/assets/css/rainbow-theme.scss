@@ -32,6 +32,13 @@
   --rainbow-6: #356cd2; /* local / blue */
   --rainbow-7: #7857c6; /* settings / violet */
 
+  /* Shared translucent pill treatments for top and side navigation.
+     Keep the surface transparent instead of blending with an opaque grey. */
+  --rainbow-pill-rest: 7%;
+  --rainbow-pill-hover: 14%;
+  --rainbow-pill-active: 20%;
+  --rainbow-pill-line: 32%;
+
   --rainbow-navigation: var(--rainbow-7);
   --rainbow-playback: var(--rainbow-6);
   --rainbow-volume: var(--rainbow-5);
@@ -64,6 +71,12 @@
   --rainbow-5: #74d4e5;
   --rainbow-6: #89b4ff;
   --rainbow-7: #b6a0f4;
+  /* On dark backgrounds, a slightly stronger transparent tint keeps colored
+     pills distinguishable without creating muddy, opaque grey rectangles. */
+  --rainbow-pill-rest: 12%;
+  --rainbow-pill-hover: 19%;
+  --rainbow-pill-active: 27%;
+  --rainbow-pill-line: 48%;
   /* Recompute aliases on BODY so they follow the dark palette. */
   --rainbow-navigation: var(--rainbow-7);
   --rainbow-playback: var(--rainbow-6);
@@ -96,23 +109,51 @@
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-local { --rainbow-nav-color: var(--rainbow-6); }
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-settings { --rainbow-nav-color: var(--rainbow-7); }
 
+/* Match the top navigation pills: colored icon, faint tint, bottom accent.
+   The app's responsive side-nav dimensions are preserved. */
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav {
+  box-sizing: border-box;
   color: var(--rainbow-nav-color) !important;
-  background: color-mix(in srgb, var(--rainbow-nav-color) 10%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-nav-color) var(--rainbow-pill-rest),
+    transparent
+  ) !important;
+  border: 1px solid transparent;
+  border-radius: clamp(6px, 0.8vw, 8px) !important;
+  box-shadow: inset 0 -2px color-mix(
+    in srgb,
+    var(--rainbow-nav-color) var(--rainbow-pill-line),
+    transparent
+  );
 }
 
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav .icon {
   color: var(--rainbow-nav-color) !important;
-  opacity: 0.95;
+  opacity: 1;
 }
 
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav:is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--rainbow-nav-color) 18%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-nav-color) var(--rainbow-pill-hover),
+    transparent
+  ) !important;
+  box-shadow: inset 0 -2px var(--rainbow-nav-color);
 }
 
 :root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav.active {
-  background: color-mix(in srgb, var(--rainbow-nav-color) 23%, transparent) !important;
-  box-shadow: inset 3px 0 var(--rainbow-nav-color);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-nav-color) var(--rainbow-pill-active),
+    transparent
+  ) !important;
+  box-shadow: inset 0 -3px var(--rainbow-nav-color);
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav:focus-visible {
+  outline: 2px solid var(--rainbow-nav-color);
+  outline-offset: 2px;
 }
 
 :root[data-accent-theme='rainbow'] #app .side-nav::after {
@@ -308,16 +349,32 @@
 
 :root[data-accent-theme='rainbow'] #app nav .rainbow-explore-tabs > .rainbow-explore-tab {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 7%, transparent);
-  box-shadow: inset 0 -2px color-mix(in srgb, var(--rainbow-item-color) 25%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-rest),
+    transparent
+  );
+  box-shadow: inset 0 -2px color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-line),
+    transparent
+  );
 }
 :root[data-accent-theme='rainbow'] #app nav .rainbow-explore-tabs > .rainbow-explore-tab:hover {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 15%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-hover),
+    transparent
+  );
 }
 :root[data-accent-theme='rainbow'] #app nav .rainbow-explore-tabs > .rainbow-explore-tab.active {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 19%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-active),
+    transparent
+  );
   box-shadow: inset 0 -3px var(--rainbow-item-color);
 }
 
@@ -331,16 +388,33 @@
 
 :root[data-accent-theme='rainbow'] #app .explore-page .rainbow-explore-filter > .button {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 7%, var(--color-secondary-bg));
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-rest),
+    transparent
+  );
+  box-shadow: inset 0 -2px color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-line),
+    transparent
+  );
 }
 :root[data-accent-theme='rainbow'] #app .explore-page .rainbow-explore-filter > .button:hover {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 15%, var(--color-secondary-bg));
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-hover),
+    transparent
+  );
 }
 :root[data-accent-theme='rainbow'] #app .explore-page .rainbow-explore-filter > .button.active {
   color: var(--rainbow-item-color);
-  background: color-mix(in srgb, var(--rainbow-item-color) 21%, var(--color-secondary-bg));
-  box-shadow: inset 0 -2px var(--rainbow-item-color);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-item-color) var(--rainbow-pill-active),
+    transparent
+  );
+  box-shadow: inset 0 -3px var(--rainbow-item-color);
 }
 
 /*
@@ -577,19 +651,35 @@
   color: var(--rainbow-web-tab-color) !important;
   opacity: 1 !important;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--rainbow-web-tab-color) 7%, var(--color-secondary-bg)) !important;
-  box-shadow: inset 0 -2px color-mix(in srgb, var(--rainbow-web-tab-color) 28%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--rainbow-web-tab-color) var(--rainbow-pill-rest),
+    transparent
+  ) !important;
+  box-shadow: inset 0 -2px color-mix(
+    in srgb,
+    var(--rainbow-web-tab-color) var(--rainbow-pill-line),
+    transparent
+  );
   transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 
 :root[data-accent-theme='rainbow'] #app .rainbow-web-tab:hover:not(:disabled) {
   color: var(--rainbow-web-tab-color) !important;
-  background: color-mix(in srgb, var(--rainbow-web-tab-color) 15%, var(--color-secondary-bg)) !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-web-tab-color) var(--rainbow-pill-hover),
+    transparent
+  ) !important;
 }
 
 :root[data-accent-theme='rainbow'] #app .rainbow-web-tab:is(.active, .playHistory-button--selected) {
   color: var(--rainbow-web-tab-color) !important;
-  background: color-mix(in srgb, var(--rainbow-web-tab-color) 19%, var(--color-secondary-bg)) !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-web-tab-color) var(--rainbow-pill-active),
+    transparent
+  ) !important;
   box-shadow: inset 0 -3px var(--rainbow-web-tab-color);
 }
 
