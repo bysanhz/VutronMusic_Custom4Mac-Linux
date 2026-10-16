@@ -6,8 +6,7 @@ import {
   getSleepTimerDisplay
 } from '../src/renderer/utils/sleepTimerDisplay'
 
-const readSource = (path: string): string =>
-  readFileSync(resolve(process.cwd(), path), 'utf8')
+const readSource = (path: string): string => readFileSync(resolve(process.cwd(), path), 'utf8')
 
 test.describe('shared sleep-timer button', () => {
   test('rounds remaining duration up to the next whole second', () => {
