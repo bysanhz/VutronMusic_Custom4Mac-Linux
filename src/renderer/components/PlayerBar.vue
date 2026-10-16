@@ -10,8 +10,8 @@
         :max="currentTrackDuration"
         :marks="marks"
         :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-        :process-style="{ background: 'var(--color-primary)' }"
-        :tooltip-style="{ background: 'var(--color-primary)' }"
+        :process-style="{ background: 'var(--color-playback-accent, var(--color-primary))' }"
+        :tooltip-style="{ background: 'var(--color-playback-accent, var(--color-primary))' }"
         :step-style="{
           display: 'block',
           height: '6px',
@@ -99,8 +99,10 @@
           ><svg-icon icon-class="list"
         /></button-icon>
         <button-icon
+          class="rainbow-repeat-control"
           :class="{
             active: repeatMode !== 'off',
+            'rainbow-enabled': repeatMode !== 'off',
             disabled: isPersonalFM
           }"
           :title="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
@@ -110,7 +112,8 @@
           <svg-icon v-show="repeatMode === 'one'" icon-class="repeat-1" />
         </button-icon>
         <button-icon
-          :class="{ active: shuffle, disabled: isPersonalFM }"
+          class="rainbow-shuffle-control"
+          :class="{ active: shuffle, 'rainbow-enabled': shuffle, disabled: isPersonalFM }"
           :title="$t('player.shuffle')"
           @click.stop="shuffle = !shuffle"
           ><svg-icon icon-class="shuffle"
@@ -127,13 +130,13 @@
               :drag-on-click="false"
               :tooltip-formatter="formatVolume"
               :tooltip-style="{
-                backgroundColor: 'var(--color-primary)',
-                borderColor: 'var(--color-primary)'
+                backgroundColor: 'var(--color-volume-accent, var(--color-primary))',
+                borderColor: 'var(--color-volume-accent, var(--color-primary))'
               }"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-              :process-style="{ background: 'var(--color-primary)' }"
+              :process-style="{ background: 'var(--color-volume-accent, var(--color-primary))' }"
               :dot-style="{
-                backgroundColor: 'var(--color-primary)',
+                backgroundColor: 'var(--color-volume-accent, var(--color-primary))',
                 border: '2px solid var(--color-body-bg)',
                 boxShadow: '0 1px 4px rgba(0, 0, 0, 0.18)'
               }"

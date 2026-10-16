@@ -19,6 +19,8 @@ const DEFAULT_THEME_COLORS = [
   { name: 'red', color: 'rgba(221, 76, 70, 1)', selected: false },
   { name: 'pink', color: 'rgba(219, 76, 151, 1)', selected: false },
   { name: 'gold', color: 'rgba(214, 164, 38, 1)', selected: false },
+  // Valid solid fallback; the semantic multicolor styles are enabled separately.
+  { name: 'rainbow', color: 'rgba(120, 87, 198, 1)', selected: false },
   { name: 'Customize', color: 'rgba(51, 94, 234, 1)', selected: false }
 ]
 
@@ -114,6 +116,11 @@ export const useSettingsStore = defineStore(
           '--color-primary',
           selectedColor ? selectedColor.color : 'rgba(51, 94, 234, 1)'
         )
+        if (selectedColor?.name === 'rainbow') {
+          document.documentElement.setAttribute('data-accent-theme', 'rainbow')
+        } else {
+          document.documentElement.removeAttribute('data-accent-theme')
+        }
       },
       {
         deep: true
@@ -331,6 +338,7 @@ export const useSettingsStore = defineStore(
         const existing = existingByName.get(fallback.name)
         const existingColor = String(existing?.color || '').trim()
         const shouldKeepExistingColor =
+          fallback.name !== 'rainbow' &&
           Boolean(existingColor) &&
           !(
             fallback.name === 'Customize' &&

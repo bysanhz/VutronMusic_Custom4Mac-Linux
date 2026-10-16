@@ -85,7 +85,7 @@
                   opacy: 0.8
                 }"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-                :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
+                :process-style="{ backgroundColor: 'var(--color-playback-accent, var(--color-text))', opacity: 0.8 }"
                 tooltip="none"
               ></vue-slider>
             </div>
@@ -93,7 +93,8 @@
           </div>
           <div class="media-controls">
             <button-icon
-              :class="{ active: repeatMode !== 'off' }"
+              class="rainbow-repeat-control"
+              :class="{ active: repeatMode !== 'off', 'rainbow-enabled': repeatMode !== 'off' }"
               :title="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
               @click="switchRepeatMode"
             >
@@ -121,7 +122,8 @@
               /></button-icon>
             </div>
             <button-icon
-              :class="{ active: shuffle }"
+              class="rainbow-shuffle-control"
+              :class="{ active: shuffle, 'rainbow-enabled': shuffle }"
               :title="$t('player.shuffle')"
               @click="shuffle = !shuffle"
               ><svg-icon icon-class="shuffle"
@@ -141,7 +143,7 @@
                 :height="4"
                 :wheel-step="0.05"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-                :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
+                :process-style="{ backgroundColor: 'var(--color-volume-accent, var(--color-text))', opacity: 0.8 }"
                 tooltip="none"
               />
             </div>

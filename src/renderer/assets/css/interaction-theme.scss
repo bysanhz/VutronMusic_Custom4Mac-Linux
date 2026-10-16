@@ -138,3 +138,95 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
+
+/*
+ * Semantic Rainbow theme: distinct solid hues for navigation, playback,
+ * volume, repeat and shuffle. Single-color themes remain unchanged.
+ * Liked hearts continue to use --color-like, independently of this theme.
+ */
+:root {
+  --rainbow-stripes: linear-gradient(
+    90deg,
+    #e5748d 0% 14.2857%,
+    #efa45a 14.2857% 28.5714%,
+    #e9c75c 28.5714% 42.8571%,
+    #5daf93 42.8571% 57.1428%,
+    #53b9d2 57.1428% 71.4285%,
+    #6e9ee5 71.4285% 85.7142%,
+    #ac89e2 85.7142% 100%
+  );
+}
+
+:root[data-accent-theme='rainbow'] {
+  --rainbow-navigation: #7857c6;
+  --rainbow-playback: #356cd2;
+  --rainbow-volume: #087f95;
+  --rainbow-repeat: #238357;
+  --rainbow-shuffle: #b96d25;
+  --color-playback-accent: var(--rainbow-playback);
+  --color-volume-accent: var(--rainbow-volume);
+}
+
+/* Appearance is assigned to BODY by Utils.changeAppearance(). */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] {
+  --color-primary: #ad98f3;
+  --rainbow-navigation: #ad98f3;
+  --rainbow-playback: #83b1ff;
+  --rainbow-volume: #6ed0e5;
+  --rainbow-repeat: #68c999;
+  --rainbow-shuffle: #f2b573;
+}
+
+/* Restrained segmented rainbow decoration, with a solid violet selection. */
+:root[data-accent-theme='rainbow'] #app .side-nav::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 14px;
+  right: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rainbow-stripes);
+  pointer-events: none;
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav button.active {
+  color: var(--rainbow-navigation);
+  background: color-mix(in srgb, var(--rainbow-navigation) 14%, transparent);
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav button.active .icon {
+  color: var(--rainbow-navigation);
+}
+
+:root[data-accent-theme='rainbow'] #app .player .controls .play .svg-icon,
+:root[data-accent-theme='rainbow'] #app .media-controls #play .svg-icon,
+:root[data-accent-theme='rainbow'] #app .player-media-control #play .svg-icon {
+  color: var(--rainbow-playback) !important;
+}
+
+/* Only active repeat/shuffle states are colored; inactive icons stay neutral. */
+:root[data-accent-theme='rainbow'] #app .rainbow-repeat-control.rainbow-enabled,
+:root[data-accent-theme='rainbow'] #app .rainbow-repeat-control.rainbow-enabled .svg-icon {
+  color: var(--rainbow-repeat) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-shuffle-control.rainbow-enabled,
+:root[data-accent-theme='rainbow'] #app .rainbow-shuffle-control.rainbow-enabled .svg-icon {
+  color: var(--rainbow-shuffle) !important;
+}
+
+/* The only large-area gradient is reserved for affirmative dialog actions. */
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary {
+  color: #fff !important;
+  background: linear-gradient(110deg, #7857c6, #356cd2) !important;
+  border-color: var(--rainbow-navigation) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, #6846b7, #275cbb) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary:active:not(:disabled) {
+  filter: brightness(0.94);
+}

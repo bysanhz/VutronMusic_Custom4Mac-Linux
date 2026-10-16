@@ -33,7 +33,7 @@
               :use-keyboard="false"
               :drag-on-click="false"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-              :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
+              :process-style="{ backgroundColor: 'var(--color-playback-accent, var(--color-text))', opacity: 0.8 }"
               :dot-style="{
                 display: 'none',
                 backgroundColor: 'var(--color-text)',
@@ -48,14 +48,18 @@
         </div>
         <div class="player-media-control">
           <button-icon
-            :class="{ active: repeatMode === 'off' }"
+            class="rainbow-repeat-control"
+            :class="{ active: repeatMode === 'off', 'rainbow-enabled': repeatMode !== 'off' }"
             :title="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
             @click="switchRepeatMode"
           >
             <svg-icon v-show="repeatMode !== 'one'" icon-class="repeat" />
             <svg-icon v-show="repeatMode === 'one'" icon-class="repeat-1" />
           </button-icon>
-          <button-icon :class="{ active: !shuffle }" @click="shuffle = !shuffle"
+          <button-icon
+            class="rainbow-shuffle-control"
+            :class="{ active: !shuffle, 'rainbow-enabled': shuffle }"
+            @click="shuffle = !shuffle"
             ><svg-icon icon-class="shuffle"
           /></button-icon>
           <div class="middle">
@@ -109,7 +113,7 @@
               :drag-on-click="false"
               :tooltip-formatter="Math.round(volume * 100).toString()"
               :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-              :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
+              :process-style="{ backgroundColor: 'var(--color-volume-accent, var(--color-text))', opacity: 0.8 }"
               :dot-style="{
                 display: 'none',
                 backgroundColor: 'var(--color-text)',

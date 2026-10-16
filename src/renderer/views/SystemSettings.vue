@@ -165,7 +165,11 @@
                 @click="changeColor(color)"
               >
                 <div v-show="color.selected" class="selected-icon"></div>
-                <div class="theme-color-item" :style="{ backgroundColor: color.color }"></div>
+                <div
+                  class="theme-color-item"
+                  :class="{ 'rainbow-theme-swatch': color.name === 'rainbow' }"
+                  :style="color.name === 'rainbow' ? undefined : { backgroundColor: color.color }"
+                ></div>
                 {{ $t(`settings.theme.${color.name}`) }}
               </div>
               <div
@@ -2127,8 +2131,10 @@ onBeforeUnmount(() => {
   }
   .colors {
     display: flex;
-    width: 90%;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 12px 18px;
+    width: 100%;
   }
   .color {
     margin-top: 10px;
@@ -2140,8 +2146,13 @@ onBeforeUnmount(() => {
   .theme-color {
     display: flex;
     flex-direction: column;
-    margin-left: 20px;
+    margin-left: 0;
     position: relative;
+
+    .rainbow-theme-swatch {
+      // Seven adjacent solid colors, not a continuously blended gradient.
+      background: var(--rainbow-stripes);
+    }
 
     .theme-color-item,
     :deep(.theme-color-picker) {
