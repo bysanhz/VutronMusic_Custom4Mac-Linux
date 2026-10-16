@@ -1050,11 +1050,11 @@
       "thresholdUnit": "sec",
       "thresholdHelp": "Enter 0–120 seconds (default 15). Zero removes the minimum listening threshold, but actual positive playback is still required. Shorter tracks must finish when the threshold is nonzero. Eligible pending time updates each second; NetEase reporting is not guaranteed.",
       "sevenDayTrendTitle": "Daily Listening · Last 7 Days",
-      "sevenDayTrendHelp": "Seven rolling local calendar days, not Monday–Sunday",
-      "sevenDayTrendNote": "Uses dated NetEase monthly/weekly report data; reporting may lag. A missing day in a valid current-month report is shown as 0; days outside verified coverage appear as —. Unsent and awaiting-confirmation time is excluded.",
       "sevenDayTrendMinutes": "{minutes} min",
       "sevenDayTrendHoursMinutes": "{hours} hr {minutes} min",
-      "sevenDayTrendUnknown": "No report data"
+      "sevenDayTrendUnknown": "No report data",
+      "sevenDayTrendAverage": "Avg {duration}",
+      "sevenDayTrendPartialAverage": "Avg ({days}d) {duration}"
     },
     "style": {
       "title": "Style Explorer 2.0",

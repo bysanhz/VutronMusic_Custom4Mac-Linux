@@ -70,3 +70,22 @@ export const buildNeteaseLastSevenDays = (
     return { dateKey, seconds: null }
   })
 }
+
+/**
+ * Mean of available cloud-reported dates in the displayed 7-day window.
+ * Missing data (null) is excluded; a reported zero is included in the mean.
+ * The UI explicitly labels partial coverage rather than presenting it as
+ * a complete seven-day average.
+ */
+export const summarizeNeteaseSevenDayAverage = (
+  points: readonly NeteaseDailyListenPoint[]
+): { seconds: number; knownDays: number } | null => {
+  const validSeconds = points
+    .map((point) => point.seconds)
+    .filter((seconds): seconds is number => seconds !== null && Number.isFinite(seconds) && seconds >= 0)
+  if (!validSeconds.length) return null
+  return {
+    seconds: validSeconds.reduce((sum, seconds) => sum + seconds, 0) / validSeconds.length,
+    knownDays: validSeconds.length
+  }
+}

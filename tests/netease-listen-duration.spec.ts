@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { buildNeteaseLastSevenDays } from '../src/renderer/utils/neteaseListenTrend'
+import {
+  buildNeteaseLastSevenDays,
+  summarizeNeteaseSevenDayAverage
+} from '../src/renderer/utils/neteaseListenTrend'
 import {
   extractCalendarWeekListenSeconds,
   extractDailyListenSeconds,
@@ -192,6 +195,52 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
   test('shows zero days from a valid zero-duration month report', () => {
     const series = buildNeteaseLastSevenDays(new Date(2026, 10, 3, 10), month(2026, 11, []))
     expect(series.map(({ seconds }) => seconds)).toEqual([null, null, null, null, 0, 0, 0])
+  })
+
+  test('averages all seven known dates including reported zero minutes', () => {
+    const points = [
+      0, 1800, 3600, 7200, 1800, 3600, 0
+    ].map((seconds, index) => ({
+      dateKey: `2026-10-${String(index + 10).padStart(2, '0')}`,
+      seconds
+    }))
+    expect(summarizeNeteaseSevenDayAverage(points)).toEqual({
+      knownDays: 7,
+      seconds: 18000 / 7
+    })
+  })
+
+  test('labels partial averaging honestly and never includes missing dates as zero', () => {
+    const points = [
+      { dateKey: '2026-10-10', seconds: null },
+      { dateKey: '2026-10-11', seconds: 0 },
+      { dateKey: '2026-10-12', seconds: 3600 },
+      { dateKey: '2026-10-13', seconds: null }
+    ]
+    expect(summarizeNeteaseSevenDayAverage(points)).toEqual({
+      knownDays: 2,
+      seconds: 1800
+    })
+    expect(summarizeNeteaseSevenDayAverage(points.slice(0, 1))).toBeNull()
+  })
+
+  test('renders bars, a daily line and an average guide in hours with a full date', () => {
+    const component = readFileSync(
+      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'),
+      'utf8'
+    )
+    expect(component).toContain('class="trend-bar"')
+    expect(component).toContain('class="trend-line"')
+    expect(component).toContain('class="trend-average"')
+    expect(component).toContain('summarizeNeteaseSevenDayAverage(props.points)')
+    expect(component).toContain('point.seconds / 3600')
+    expect(component).toContain('{{ formatHours(tick) }}')
+    expect(component).toContain('formatFullDate(selectedPoint.dateKey)')
+    expect(component).toContain("year: 'numeric'")
+    expect(component).toContain("month: 'long'")
+    expect(component).toContain("day: 'numeric'")
+    expect(component).not.toContain('sevenDayTrendHelp')
+    expect(component).not.toContain('sevenDayTrendNote')
   })
 
   test('wires the chart to full and lightweight remote refreshes', () => {

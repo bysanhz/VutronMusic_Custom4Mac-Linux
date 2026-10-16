@@ -1,12 +1,9 @@
 <template>
   <section class="daily-trend">
     <div class="daily-trend-header">
-      <div>
-        <h3>{{ t('insights.footprint.sevenDayTrendTitle') }}</h3>
-        <p>{{ t('insights.footprint.sevenDayTrendHelp') }}</p>
-      </div>
+      <h3>{{ t('insights.footprint.sevenDayTrendTitle') }}</h3>
       <div class="daily-trend-selection" aria-live="polite">
-        <span>{{ selectedPoint ? formatDate(selectedPoint.dateKey) : '—' }}</span>
+        <span>{{ selectedPoint ? formatFullDate(selectedPoint.dateKey) : '—' }}</span>
         <strong>{{ selectedPoint ? formatDuration(selectedPoint.seconds) : '—' }}</strong>
       </div>
     </div>
@@ -32,7 +29,36 @@
             text-anchor="end"
             class="trend-scale"
           >
-            {{ Math.round(tick) }}m
+            {{ formatHours(tick) }}
+          </text>
+        </g>
+        <g v-for="(point, index) in points" :key="`bar-${point.dateKey}`">
+          <rect
+            v-if="point.seconds !== null"
+            :x="pointX(index) - barWidth / 2"
+            :y="barTop(point.seconds)"
+            :width="barWidth"
+            :height="bottom - barTop(point.seconds)"
+            rx="5"
+            class="trend-bar"
+            :class="{ selected: selectedPoint?.dateKey === point.dateKey }"
+          />
+        </g>
+        <g v-if="averageSummary">
+          <line
+            :x1="left"
+            :x2="right"
+            :y1="pointY(averageSummary.seconds / 3600)"
+            :y2="pointY(averageSummary.seconds / 3600)"
+            class="trend-average"
+          />
+          <text
+            :x="right"
+            :y="Math.max(top + 12, pointY(averageSummary.seconds / 3600) - 9)"
+            text-anchor="end"
+            class="trend-average-label"
+          >
+            {{ averageLabel }}
           </text>
         </g>
         <path
@@ -46,7 +72,7 @@
           <circle
             v-if="point.seconds !== null"
             :cx="pointX(index)"
-            :cy="pointY(point.seconds / 60)"
+            :cy="pointY(point.seconds / 3600)"
             :r="selectedPoint?.dateKey === point.dateKey ? 6.5 : 5"
             class="trend-dot"
             tabindex="0"
@@ -71,20 +97,22 @@
         </g>
       </svg>
     </div>
-    <p class="daily-trend-note">{{ t('insights.footprint.sevenDayTrendNote') }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { NeteaseDailyListenPoint } from '../utils/neteaseListenTrend'
+import {
+  summarizeNeteaseSevenDayAverage,
+  type NeteaseDailyListenPoint
+} from '../utils/neteaseListenTrend'
 
 const props = defineProps<{ points: NeteaseDailyListenPoint[] }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
-const left = 58
-const right = 730
+const left = 68
+const right = 710
 const top = 18
 const bottom = 162
 const selectedDate = ref<string | null>(null)
@@ -94,18 +122,35 @@ const selectedPoint = computed(
     props.points.find((point) => point.dateKey === selectedDate.value) ??
     props.points.at(-1)
 )
-const maxMinutes = computed(() => {
-  const topValue = Math.max(
-    0,
-    ...props.points.map((point) => (point.seconds ?? 0) / 60)
-  )
-  return Math.max(30, Math.ceil(topValue / 30) * 30)
+const averageSummary = computed(() => summarizeNeteaseSevenDayAverage(props.points))
+const averageLabel = computed(() => {
+  if (!averageSummary.value) return ''
+  const key =
+    averageSummary.value.knownDays === props.points.length
+      ? 'insights.footprint.sevenDayTrendAverage'
+      : 'insights.footprint.sevenDayTrendPartialAverage'
+  return t(key, {
+    duration: formatHours(averageSummary.value.seconds / 3600),
+    days: averageSummary.value.knownDays
+  })
 })
-const yTicks = computed(() => [0, maxMinutes.value / 2, maxMinutes.value])
+const axisStepHours = computed(() => {
+  const highest = Math.max(0, ...props.points.map((point) => (point.seconds ?? 0) / 3600))
+  const target = Math.max(0.25, highest / 2)
+  const power = 10 ** Math.floor(Math.log10(target))
+  const multiplier = [1, 2, 2.5, 5, 10].find((candidate) => candidate * power >= target) ?? 10
+  return multiplier * power
+})
+const maxHours = computed(() => axisStepHours.value * 2)
+const yTicks = computed(() => [0, axisStepHours.value, maxHours.value])
+const barWidth = computed(() => Math.min(44, ((right - left) / Math.max(1, props.points.length)) * 0.55))
 const pointX = (index: number): number =>
   left + (index * (right - left)) / Math.max(1, props.points.length - 1)
-const pointY = (minutes: number): number =>
-  bottom - (minutes / maxMinutes.value) * (bottom - top)
+const pointY = (hours: number): number =>
+  bottom - (hours / maxHours.value) * (bottom - top)
+const barTop = (seconds: number): number =>
+  Math.min(bottom - 2, pointY(seconds / 3600))
+const formatHours = (hours: number): string => `${Number(hours.toFixed(2))}h`
 
 // Splitting at unavailable dates prevents invented continuity across missing reports.
 const linePaths = computed(() => {
@@ -118,13 +163,21 @@ const linePaths = computed(() => {
       return
     }
     const x = pointX(index)
-    const y = pointY(point.seconds / 60)
+    const y = pointY(point.seconds / 3600)
     path += `${path ? ' L' : 'M'} ${x} ${y}`
   })
   if (path) segments.push(path)
   return segments
 })
 const formatDate = (key: string): string => key.slice(5).replace('-', '/')
+const formatFullDate = (key: string): string => {
+  const [year, month, day] = key.split('-').map(Number)
+  return new Intl.DateTimeFormat(locale.value, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date(year, month - 1, day))
+}
 const formatDuration = (value: number | null): string => {
   if (value === null) return t('insights.footprint.sevenDayTrendUnknown')
   const seconds = Math.max(0, Math.floor(value))
@@ -163,15 +216,6 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   margin: 0 0 4px;
   font-size: 17px;
   line-height: 1.35;
-}
-
-.daily-trend-header p,
-.daily-trend-note {
-  margin: 0;
-  color: var(--color-text);
-  opacity: 0.6;
-  font-size: 12px;
-  line-height: 1.55;
 }
 
 .daily-trend-selection {
@@ -219,6 +263,31 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   font-size: 12px;
 }
 
+.trend-bar {
+  fill: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  pointer-events: none;
+}
+
+.trend-bar.selected {
+  fill: color-mix(in srgb, var(--color-primary) 38%, transparent);
+}
+
+.trend-average {
+  stroke: var(--color-text);
+  stroke-opacity: 0.6;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  pointer-events: none;
+}
+
+.trend-average-label {
+  fill: var(--color-text);
+  opacity: 0.85;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .trend-line {
   stroke: var(--color-primary);
   stroke-width: 3;
@@ -246,7 +315,4 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   stroke-linecap: round;
 }
 
-.daily-trend-note {
-  margin-top: 3px;
-}
 </style>
