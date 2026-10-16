@@ -19,6 +19,8 @@ test('cover diagnostics discard the image path and token-like query strings', ()
 })
 
 test('one-click diagnostics collects image failures and triggers a bounded CDN probe', () => {
+  const bootstrap = readSource('src/renderer/main.ts')
+  expect(bootstrap).toContain("import './utils/diagnosticsSnapshotSettings'")
   const renderer = readSource('src/renderer/utils/diagnosticsSnapshotSettings.ts')
   const observer = readSource('src/renderer/utils/coverNetworkDiagnostics.ts')
   const main = readSource('src/main/runtimeDiagnostics.ts')
