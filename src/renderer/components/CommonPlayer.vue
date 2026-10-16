@@ -629,10 +629,10 @@ onBeforeUnmount(() => {
       }
       .media-controls {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         margin: 1.9vh 0 1.1vh 0;
         align-items: center;
-        gap: 10px;
+        gap: 0;
         --media-control-icon-size: 18px;
         --media-control-primary-icon-size: 20px;
 
@@ -656,8 +656,11 @@ onBeforeUnmount(() => {
         .middle {
           padding: 0;
           display: flex;
+          flex: 1;
+          min-width: 0;
           align-items: center;
-          gap: 10px;
+          justify-content: space-evenly;
+          gap: 0;
 
           button#play .svg-icon {
             height: var(--media-control-primary-icon-size);
