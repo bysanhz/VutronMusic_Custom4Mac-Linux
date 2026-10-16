@@ -243,6 +243,23 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     expect(component).not.toContain('sevenDayTrendNote')
   })
 
+  test('keeps today highlighted separately from selection and emphasizes the average', () => {
+    const component = readFileSync(
+      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'),
+      'utf8'
+    )
+    expect(component).toContain('today: index === points.length - 1')
+    expect(component).toContain('class="trend-today-halo"')
+    expect(component).toContain('class="trend-dot"')
+    expect(component).toContain('class="trend-date"')
+    expect(component).toContain('.trend-bar.today.selected')
+    expect(component).toContain('.trend-dot.today')
+    expect(component).toContain('.trend-date.today')
+    expect(component).toContain('stroke-width: 2.8')
+    expect(component).toContain('.trend-average-label')
+    expect(component).toContain('font-weight: 800')
+  })
+
   test('wires the chart to full and lightweight remote refreshes', () => {
     const view = readFileSync(
       resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'),

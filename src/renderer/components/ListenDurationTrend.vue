@@ -41,7 +41,10 @@
             :height="bottom - barTop(point.seconds)"
             rx="5"
             class="trend-bar"
-            :class="{ selected: selectedPoint?.dateKey === point.dateKey }"
+            :class="{
+              selected: selectedPoint?.dateKey === point.dateKey,
+              today: index === points.length - 1
+            }"
           />
         </g>
         <g v-if="averageSummary">
@@ -70,11 +73,19 @@
         />
         <g v-for="(point, index) in points" :key="point.dateKey">
           <circle
+            v-if="point.seconds !== null && index === points.length - 1"
+            :cx="pointX(index)"
+            :cy="pointY(point.seconds / 3600)"
+            r="11"
+            class="trend-today-halo"
+          />
+          <circle
             v-if="point.seconds !== null"
             :cx="pointX(index)"
             :cy="pointY(point.seconds / 3600)"
-            :r="selectedPoint?.dateKey === point.dateKey ? 6.5 : 5"
+            :r="index === points.length - 1 ? 7 : selectedPoint?.dateKey === point.dateKey ? 6.5 : 5"
             class="trend-dot"
+            :class="{ today: index === points.length - 1 }"
             tabindex="0"
             role="button"
             :aria-label="pointAriaLabel(point)"
@@ -91,7 +102,13 @@
             :d="`M ${pointX(index) - 4} ${bottom} h 8`"
             class="trend-unavailable"
           />
-          <text :x="pointX(index)" y="193" text-anchor="middle" class="trend-date">
+          <text
+            :x="pointX(index)"
+            y="193"
+            text-anchor="middle"
+            class="trend-date"
+            :class="{ today: index === points.length - 1 }"
+          >
             {{ formatDate(point.dateKey) }}
           </text>
         </g>
@@ -272,20 +289,33 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill: color-mix(in srgb, var(--color-primary) 38%, transparent);
 }
 
-.trend-average {
-  stroke: var(--color-text);
-  stroke-opacity: 0.6;
+/* The rightmost entry is always today in the seven-day rolling window.
+   Today's emphasis is independent of hover/keyboard selection. */
+.trend-bar.today,
+.trend-bar.today.selected {
+  fill: var(--color-primary);
+  fill-opacity: 0.76;
+  stroke: var(--color-primary);
   stroke-width: 1.5;
-  stroke-dasharray: 6 5;
+}
+
+.trend-average {
+  stroke: var(--color-primary);
+  stroke-opacity: 1;
+  stroke-width: 2.8;
+  stroke-dasharray: 9 5;
   pointer-events: none;
 }
 
 .trend-average-label {
-  fill: var(--color-text);
-  opacity: 0.85;
-  font-size: 12px;
-  font-weight: 700;
+  fill: var(--color-primary);
+  font-size: 13px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--color-body-bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
 }
 
 .trend-line {
@@ -302,10 +332,27 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   cursor: pointer;
 }
 
+.trend-today-halo {
+  fill: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  pointer-events: none;
+}
+
+.trend-dot.today {
+  fill: var(--color-primary);
+  stroke: var(--color-body-bg);
+  stroke-width: 3;
+}
+
 .trend-dot:focus-visible {
   outline: none;
   fill: var(--color-primary);
   stroke-width: 4;
+}
+
+.trend-date.today {
+  fill: var(--color-primary);
+  opacity: 1;
+  font-weight: 800;
 }
 
 .trend-unavailable {
