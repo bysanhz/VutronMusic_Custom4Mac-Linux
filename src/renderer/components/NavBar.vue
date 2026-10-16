@@ -209,7 +209,6 @@ nav {
   height: 64px;
   padding: 0 30px 0 0;
   box-sizing: content-box;
-  border-bottom: 1px solid var(--color-border);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   background-color: var(--color-navbar-bg);
