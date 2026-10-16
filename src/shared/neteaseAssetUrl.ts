@@ -2,8 +2,35 @@ const NETEASE_ASSET_HTTP_PATTERN = /^http:\/\/([^/]+\.)?music\.126\.net\//i
 const NETEASE_ASSET_HOST_PATTERN = /(^|\.)music\.126\.net$/i
 const MAX_NORMALIZE_DEPTH = 16
 
+/**
+ * Recover public NetEase artwork URLs damaged by recursively appended query strings.
+ * Only image CDN hosts and strongly anomalous queries are eligible. Preserve ordinary
+ * image transformations, signed URLs, and all non-image resources unchanged.
+ */
 export const normalizeNeteaseAssetUrl = (value: string): string => {
-  return NETEASE_ASSET_HTTP_PATTERN.test(value) ? value.replace(/^http:/i, 'https:') : value
+  const normalized = NETEASE_ASSET_HTTP_PATTERN.test(value)
+    ? value.replace(/^http:/i, 'https:')
+    : value
+  if (!/[?&]/.test(normalized)) return normalized
+
+  try {
+    const url = new URL(normalized)
+    if (!/^p[1-3]\.music\.126\.net$/i.test(url.hostname)) return normalized
+    if (!/\.(?:jpe?g|png|webp)$/i.test(url.pathname)) return normalized
+
+    const questionMarks = (normalized.match(/\?/g) || []).length
+    const keys = Array.from(url.searchParams.keys())
+    const repeatedKeys = keys.length - new Set(keys).size
+    if (questionMarks < 3 && !(keys.length >= 10 && repeatedKeys >= 3)) return normalized
+
+    // The canonical resource path is known to work for these malformed URLs.
+    // Never attempt to guess which of the corrupted query parameters is valid.
+    url.search = ''
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return normalized
+  }
 }
 
 const repairRepeatedImageQuery = (value: string): string => {
