@@ -33,7 +33,7 @@
     </div>
     <div class="tabs">
       <div
-        class="tab dropdown"
+        class="tab rainbow-web-tab rainbow-web-tab-1 dropdown"
         :class="{ active: currentTab === 'playlist' }"
         @click="updateCurrentTab('playlist')"
       >
@@ -49,19 +49,19 @@
         /></span>
       </div>
       <div
-        class="tab"
+        class="tab rainbow-web-tab rainbow-web-tab-2"
         :class="{ active: currentTab === 'history' }"
         @click="updateCurrentTab('history')"
         >{{ t('userPage.history') }}</div
       >
       <div
-        class="tab"
+        class="tab rainbow-web-tab rainbow-web-tab-3"
         :class="{ active: currentTab === 'event' }"
         @click="updateCurrentTab('event')"
         >{{ t('userPage.events') }}</div
       >
       <div
-        class="tab"
+        class="tab rainbow-web-tab rainbow-web-tab-4"
         :class="{ active: currentTab === 'voicelist' }"
         @click="updateCurrentTab('voicelist')"
         >{{ t('userPage.podcasts') }}</div
@@ -83,6 +83,8 @@
         <button
           :class="{
             'playHistory-button': true,
+            'rainbow-web-tab': true,
+            'rainbow-web-tab-5': true,
             'playHistory-button--selected': playHistoryMode === 'week'
           }"
           @click="playHistoryMode = 'week'"
@@ -92,6 +94,8 @@
         <button
           :class="{
             'playHistory-button': true,
+            'rainbow-web-tab': true,
+            'rainbow-web-tab-6': true,
             'playHistory-button--selected': playHistoryMode === 'all'
           }"
           @click="playHistoryMode = 'all'"

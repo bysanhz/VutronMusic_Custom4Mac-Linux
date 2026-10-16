@@ -87,7 +87,7 @@
       >
         <div class="tabs">
           <div
-            class="tab dropdown"
+            class="tab rainbow-web-tab rainbow-web-tab-1 dropdown"
             :class="{ active: currentTab === 'playlist' }"
             @click="updateCurrentTab('playlist')"
           >
@@ -103,28 +103,28 @@
             /></span>
           </div>
           <div
-            class="tab"
+            class="tab rainbow-web-tab rainbow-web-tab-2"
             :class="{ active: currentTab === 'album' }"
             @click="updateCurrentTab('album')"
           >
             {{ $t('library.albums') }}
           </div>
           <div
-            class="tab"
+            class="tab rainbow-web-tab rainbow-web-tab-3"
             :class="{ active: currentTab === 'artist' }"
             @click="updateCurrentTab('artist')"
           >
             {{ $t('library.artists') }}
           </div>
           <div
-            class="tab"
+            class="tab rainbow-web-tab rainbow-web-tab-4"
             :class="{ active: currentTab === 'mvs' }"
             @click="updateCurrentTab('mvs')"
           >
             {{ $t('library.mvs') }}
           </div>
           <div
-            class="tab"
+            class="tab rainbow-web-tab rainbow-web-tab-5"
             :class="{ active: currentTab === 'cloudDisk' }"
             @click="updateCurrentTab('cloudDisk')"
           >

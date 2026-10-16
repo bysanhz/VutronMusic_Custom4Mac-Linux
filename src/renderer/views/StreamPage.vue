@@ -59,7 +59,7 @@
         }"
       >
         <div class="tabs">
-          <div class="tab dropdown" :class="{ active: idx === 0 }" @click="idx = 0">
+          <div class="tab dropdown rainbow-web-tab rainbow-web-tab-1" :class="{ active: idx === 0 }" @click="idx = 0">
             <span class="text">{{ $t('streamMusic.track') }}</span>
             <span class="icon" @click.stop="(e) => openTabMenu('track', e)"
               ><svg-icon icon-class="dropdown"
@@ -71,19 +71,19 @@
           <div v-if="isBatchOp" class="tab" @click="addToPlaylist">{{
             $t('streamMusic.playlist.addToPlaylist')
           }}</div>
-          <div v-else class="tab" :class="{ active: idx === 1 }" @click="idx = 1">
+          <div v-else class="tab rainbow-web-tab rainbow-web-tab-2" :class="{ active: idx === 1 }" @click="idx = 1">
             {{ $t('streamMusic.playlist.text') }}
           </div>
           <div v-if="isBatchOp" class="tab" @click="addTracksToQueue">{{
             $t('contextMenu.addToQueue')
           }}</div>
-          <div v-else class="tab" :class="{ active: idx === 2 }" @click="idx = 2">
+          <div v-else class="tab rainbow-web-tab rainbow-web-tab-3" :class="{ active: idx === 2 }" @click="idx = 2">
             {{ $t('streamMusic.album') }}
           </div>
           <div v-if="isBatchOp" class="tab" @click="finishBatchOp">{{
             $t('contextMenu.finish')
           }}</div>
-          <div v-else class="tab dropdown" :class="{ active: idx === 3 }" @click="idx = 3">
+          <div v-else class="tab dropdown rainbow-web-tab rainbow-web-tab-4" :class="{ active: idx === 3 }" @click="idx = 3">
             <span class="text">{{
               $t(artistBy === 0 ? 'streamMusic.artist' : 'localMusic.albumArtist')
             }}</span>

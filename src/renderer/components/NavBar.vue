@@ -6,28 +6,28 @@
 
       <div class="nav-left-spacer" aria-hidden="true"></div>
       <div v-if="route.name === 'search'" class="search-tabs">
-        <div :class="{ active: searchTab === 'track' }" class="item" @click="searchTab = 'track'">{{
+        <div :class="{ active: searchTab === 'track' }" class="item rainbow-web-tab rainbow-web-tab-1" @click="searchTab = 'track'">{{
           $t('nav.track')
         }}</div>
-        <div :class="{ active: searchTab === 'album' }" class="item" @click="searchTab = 'album'">{{
+        <div :class="{ active: searchTab === 'album' }" class="item rainbow-web-tab rainbow-web-tab-2" @click="searchTab = 'album'">{{
           $t('nav.album')
         }}</div>
         <div
           :class="{ active: searchTab === 'artist' }"
-          class="item"
+          class="item rainbow-web-tab rainbow-web-tab-3"
           @click="searchTab = 'artist'"
           >{{ $t('nav.artist') }}</div
         >
         <div
           :class="{ active: searchTab === 'playlist' }"
-          class="item"
+          class="item rainbow-web-tab rainbow-web-tab-4"
           @click="searchTab = 'playlist'"
           >{{ $t('nav.playlist') }}</div
         >
-        <div :class="{ active: searchTab === 'user' }" class="item" @click="searchTab = 'user'">{{
+        <div :class="{ active: searchTab === 'user' }" class="item rainbow-web-tab rainbow-web-tab-5" @click="searchTab = 'user'">{{
           $t('nav.user')
         }}</div>
-        <div :class="{ active: searchTab === 'lyric' }" class="item" @click="searchTab = 'lyric'">{{
+        <div :class="{ active: searchTab === 'lyric' }" class="item rainbow-web-tab rainbow-web-tab-6" @click="searchTab = 'lyric'">{{
           $t('nav.lyric')
         }}</div>
       </div>

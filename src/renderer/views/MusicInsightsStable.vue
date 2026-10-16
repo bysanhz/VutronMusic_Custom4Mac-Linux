@@ -20,7 +20,12 @@
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        :class="{ active: activeTab === tab.id }"
+        class="rainbow-web-tab"
+        :class="{
+          active: activeTab === tab.id,
+          'rainbow-web-tab-1': tab.id === 'footprint',
+          'rainbow-web-tab-6': tab.id === 'cloud'
+        }"
         @click="activeTab = tab.id"
       >
         {{ tab.label }}
@@ -209,12 +214,17 @@
 
       <div class="sub-tabs">
         <button
+          class="rainbow-web-tab rainbow-web-tab-4"
           :class="{ active: footprintRankMode === 'week' }"
           @click="footprintRankMode = 'week'"
         >
           {{ t('insights.footprint.weekTop') }}
         </button>
-        <button :class="{ active: footprintRankMode === 'all' }" @click="footprintRankMode = 'all'">
+        <button
+          class="rainbow-web-tab rainbow-web-tab-5"
+          :class="{ active: footprintRankMode === 'all' }"
+          @click="footprintRankMode = 'all'"
+        >
           {{ t('insights.footprint.historyTop') }}
         </button>
       </div>

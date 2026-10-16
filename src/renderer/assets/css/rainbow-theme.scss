@@ -454,3 +454,50 @@
   background: var(--rainbow-control-hover);
   border-color: rgba(255, 255, 255, 0.5);
 }
+
+/* Browser-style tabs: each function receives a stable hue, regardless of
+   conditional tab visibility. Temporary batch-operation commands stay neutral.
+   Scope is strictly limited to the Rainbow theme. */
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-1 { --rainbow-web-tab-color: var(--rainbow-1); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-2 { --rainbow-web-tab-color: var(--rainbow-2); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-3 { --rainbow-web-tab-color: var(--rainbow-3); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-4 { --rainbow-web-tab-color: var(--rainbow-4); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-5 { --rainbow-web-tab-color: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-6 { --rainbow-web-tab-color: var(--rainbow-6); }
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab-7 { --rainbow-web-tab-color: var(--rainbow-7); }
+
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab {
+  box-sizing: border-box;
+  color: var(--rainbow-web-tab-color) !important;
+  opacity: 1 !important;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--rainbow-web-tab-color) 7%, var(--color-secondary-bg)) !important;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--rainbow-web-tab-color) 28%, transparent);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab:hover:not(:disabled) {
+  color: var(--rainbow-web-tab-color) !important;
+  background: color-mix(in srgb, var(--rainbow-web-tab-color) 15%, var(--color-secondary-bg)) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab:is(.active, .playHistory-button--selected) {
+  color: var(--rainbow-web-tab-color) !important;
+  background: color-mix(in srgb, var(--rainbow-web-tab-color) 19%, var(--color-secondary-bg)) !important;
+  box-shadow: inset 0 -3px var(--rainbow-web-tab-color);
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab:focus-visible {
+  outline: 2px solid var(--rainbow-web-tab-color);
+  outline-offset: 2px;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-web-tab .svg-icon {
+  color: currentColor !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-accent-theme='rainbow'] #app .rainbow-web-tab {
+    transition: none;
+  }
+}
