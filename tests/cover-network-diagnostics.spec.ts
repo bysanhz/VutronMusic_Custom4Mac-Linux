@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { describeCoverImageSource, getCoverLoadDiagnostics } from '../src/renderer/utils/coverNetworkDiagnostics'
+import { getNeteaseImageCandidateUrls } from '../src/shared/neteaseAssetUrl'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -35,5 +36,18 @@ test('one-click diagnostics collects image failures and triggers a bounded CDN p
   expect(main).toContain('.slice(0, 2)')
   expect(main).toContain('.filter(isNeteaseAssetUrl)')
   expect(main).toContain('COVER_PROBE_TIMEOUT_MS = 3500')
+  expect(main).toContain('without_size_param')
   expect(main).not.toContain('return { url, status:')
+})
+
+test('NetEase cover retries the untransformed resource only for size-only query strings', () => {
+  const sized = 'https://p1.music.126.net/example.jpg?param=300y300'
+  const candidates = getNeteaseImageCandidateUrls(sized)
+  expect(candidates).toContain('https://p1.music.126.net/example.jpg')
+  expect(candidates[0]).toBe(sized)
+
+  const authenticated = 'https://p1.music.126.net/example.jpg?param=300y300&token=private'
+  expect(getNeteaseImageCandidateUrls(authenticated)).not.toContain(
+    'https://p1.music.126.net/example.jpg'
+  )
 })
