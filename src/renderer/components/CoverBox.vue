@@ -20,7 +20,7 @@
         <span class="cover-loading-spinner"></span>
       </div>
       <img
-        :src="imageUrl"
+        :src="safeImageUrl"
         :style="imageStyles"
         :loading="imageLoading"
         decoding="async"
@@ -48,6 +48,7 @@ import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
 import { observeCoverVisibility } from '../utils/coverVisibility'
 import { recordCoverSource } from '../utils/coverNetworkDiagnostics'
+import { normalizeNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -68,6 +69,7 @@ const props = defineProps({
   }
 })
 
+const safeImageUrl = computed(() => normalizeNeteaseAssetUrl(props.imageUrl))
 const focus = ref(false)
 const coverContainerRef = ref<HTMLElement>()
 const imageLoaded = ref(false)
