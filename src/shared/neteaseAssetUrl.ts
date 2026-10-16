@@ -65,6 +65,13 @@ export const getNeteaseImageCandidateUrls = (value: string): string[] => {
       candidate.hostname = `${prefix}${index}.music.126.net`
       candidates.push(candidate.toString())
     }
+    // A malformed or unsupported size transform can make every CDN sibling return 400.
+    // Only remove the optional size transform; never drop other query parameters.
+    if (url.searchParams.has('param') && Array.from(url.searchParams.keys()).every((key) => key === 'param')) {
+      const originalSizeUrl = new URL(url)
+      originalSizeUrl.searchParams.delete('param')
+      candidates.push(originalSizeUrl.toString())
+    }
     return Array.from(new Set(candidates))
   } catch {
     return [directUrl]
