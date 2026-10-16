@@ -62,6 +62,7 @@ test.describe('shared sleep-timer button', () => {
     expect(bar).toContain('<SleepTimerButton compact />')
 
     const bottomControls = common.split('<div class="media-controls">')[1]
-    expect(bottomControls.split('</div>')[0]).not.toContain('<PlaybackSpeedButton')
+    const firstGroup = bottomControls.split('</div>')[0]
+    expect(firstGroup).not.toContain('<PlaybackSpeedButton')
   })
 })
