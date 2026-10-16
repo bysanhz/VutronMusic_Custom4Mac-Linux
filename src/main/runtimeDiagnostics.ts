@@ -66,8 +66,20 @@ const installRuntimeDiagnostics = (): void => {
 
     const results = await Promise.all(
       urls.map(async (url) => {
-        const candidates = getNeteaseImageCandidateUrls(url).slice(0, 2)
-        return { attempts: await Promise.all(candidates.map(probeCoverCandidate)) }
+        const candidates = getNeteaseImageCandidateUrls(url)
+        const withoutSize = candidates.find((candidate) => {
+          const parsed = new URL(candidate)
+          return parsed.hostname === new URL(url).hostname &&
+            !parsed.searchParams.has('param') &&
+            new URL(url).searchParams.has('param')
+        })
+        const sample = withoutSize ? [candidates[0], withoutSize] : candidates.slice(0, 2)
+        return {
+          attempts: await Promise.all(sample.map(async (candidate) => ({
+            variant: candidate === withoutSize ? 'without_size_param' : 'original_or_cdn_sibling',
+            ...(await probeCoverCandidate(candidate))
+          })))
+        }
       })
     )
     return { checked: true, sampleCount: results.length, results }
