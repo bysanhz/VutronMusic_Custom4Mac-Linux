@@ -699,6 +699,86 @@
 }
 
 /*
+ * Dark-mode rainbow pills: the colored surface is the face of the button,
+ * while the bottom 3–4px is a neutral grey inset shadow. This reverses the
+ * older dark-grey face / colorful underline treatment. Use the existing
+ * categorical hue for each navigation item rather than its position.
+ *
+ * The text/icon ink is dark because the dark-mode pastel faces are now bright;
+ * at 78% tint, all seven category colors exceed 4.5:1 on #20242a.
+ * Light appearance and all single-color themes are unaffected.
+ */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .side-nav > .rainbow-nav {
+  --rainbow-dark-pill-hue: var(--rainbow-nav-color);
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app nav .rainbow-explore-tabs > .rainbow-explore-tab,
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .explore-page .rainbow-explore-filter > .button {
+  --rainbow-dark-pill-hue: var(--rainbow-item-color);
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .rainbow-web-tab {
+  --rainbow-dark-pill-hue: var(--rainbow-web-tab-color);
+}
+
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+) {
+  color: #20242a !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-dark-pill-hue) 78%,
+    var(--color-secondary-bg)
+  ) !important;
+  box-shadow:
+    inset 0 -3px #60636b,
+    inset 0 1px rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+):is(:hover, :focus-visible) {
+  color: #20242a !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-dark-pill-hue) 88%,
+    var(--color-secondary-bg)
+  ) !important;
+  box-shadow:
+    inset 0 -3px #60636b,
+    inset 0 1px rgba(255, 255, 255, 0.16) !important;
+}
+
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav.active,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab.active,
+  .explore-page .rainbow-explore-filter > .button.active,
+  .rainbow-web-tab.active,
+  .rainbow-web-tab.playHistory-button--selected
+) {
+  color: #20242a !important;
+  background: color-mix(
+    in srgb,
+    var(--rainbow-dark-pill-hue) 94%,
+    var(--color-secondary-bg)
+  ) !important;
+  box-shadow:
+    inset 0 -4px #54575f,
+    inset 0 1px rgba(255, 255, 255, 0.19) !important;
+}
+
+/* Side icons previously had a !important pastel fill, which disappears
+ * against a pastel-colored face. Switch the foreground to the same dark ink. */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .side-nav > .rainbow-nav .icon {
+  color: #20242a !important;
+  opacity: 1;
+}
+
+/*
  * Low-saturation rainbow surfaces:
  * - Keep the content edge nearly neutral for comfortable reading.
  * - Spread seven softly mixed solid hues across the remainder of the card.
