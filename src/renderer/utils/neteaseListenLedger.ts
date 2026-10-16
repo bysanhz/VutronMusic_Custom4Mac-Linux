@@ -34,7 +34,13 @@ export type NeteaseListenEntry = {
   lastError?: string
 }
 
-type ReportObservation = { seconds: number; observedAt: number }
+type ReportObservation = {
+  seconds: number
+  observedAt: number
+  /** Most recent DIFFERENT valid reading, not the previous polling response. */
+  previousSeconds?: number
+  previousObservedAt?: number
+}
 
 type LedgerState = {
   entries: NeteaseListenEntry[]
@@ -948,12 +954,19 @@ export const reconcileNeteaseListenReport = (options: {
   // reconciliation warning, not evidence to mark local listens as confirmed.
   const observed = remoteObservations[baselineKey]
   const now = Date.now()
+  const readingChanged = !observed || observed.seconds !== remoteSeconds
   const observationChanged =
-    !observed || observed.seconds !== remoteSeconds || now - observed.observedAt >= 5 * 60_000
+    readingChanged || now - observed.observedAt >= 5 * 60_000
   if (observationChanged) {
+    // Preserve the last *different* reading across identical refreshes and restarts.
+    // This reveals whether a smaller discrepancy reflects new monthly report growth.
+    const previousSeconds =
+      observed && readingChanged ? observed.seconds : observed?.previousSeconds
+    const previousObservedAt =
+      observed && readingChanged ? observed.observedAt : observed?.previousObservedAt
     remoteObservations = {
       ...remoteObservations,
-      [baselineKey]: { seconds: remoteSeconds, observedAt: now }
+      [baselineKey]: { seconds: remoteSeconds, observedAt: now, previousSeconds, previousObservedAt }
     }
   }
   if (changed || nextBaseline !== previous || observationChanged) {
@@ -971,6 +984,11 @@ export const getNeteaseListenReportStatus = (accountIdValue: unknown, periodKey:
   const observed = remoteObservations[key]
   const highWater = Number(remoteBaselines[key])
   const latest = Number(observed?.seconds)
+  const previousReading = Number(observed?.previousSeconds)
+  const hasPreviousReading =
+    observed?.previousSeconds !== undefined &&
+    Number.isFinite(previousReading) &&
+    previousReading >= 0
   const regressionSeconds =
     observed && Number.isFinite(highWater) && Number.isFinite(latest)
       ? Math.max(0, highWater - latest)
@@ -980,6 +998,15 @@ export const getNeteaseListenReportStatus = (accountIdValue: unknown, periodKey:
     highWaterSeconds: Number.isFinite(highWater) ? highWater : null,
     latestReportedSeconds: observed && Number.isFinite(latest) ? latest : null,
     lastObservedAt: observed?.observedAt || null,
+    previousReportedSeconds: hasPreviousReading ? previousReading : null,
+    previousObservedAt:
+      hasPreviousReading && Number.isFinite(Number(observed?.previousObservedAt))
+        ? observed?.previousObservedAt || null
+        : null,
+    latestChangeSeconds:
+      observed && Number.isFinite(latest) && hasPreviousReading
+        ? latest - previousReading
+        : null,
     regressionSeconds,
     regressionDismissed:
       regressionSeconds > 0 && Number.isFinite(dismissedThrough) && dismissedThrough >= highWater

@@ -1047,10 +1047,18 @@
       "durationMinutes": "{minutes}分",
       "todayMetric": "今日 · 歌曲數",
       "reportDiagnosticLabel": "雲端月報讀數差異 · 查看詳情",
-      "reportRegressed": "網易雲本月報表目前比先前最高讀數低 {duration}。這可能與報表快取、統計口徑或歷史資料修正有關，無法據此判定本次歌曲上傳失敗。為避免舊報表回升造成錯誤核銷，程式仍保留歷史基線與待核記錄。",
+      "reportRegressed": "目前月報比本機保存的歷史最高讀數低 {duration}。新增歌曲被計入後，差異也可能縮小；這不代表舊記錄已補回，更無法證明歌曲上傳失敗。報表按分鐘統計，程式繼續保存最高讀數以避免錯誤核銷。",
       "thresholdLabel": "有效播放門檻",
       "thresholdUnit": "秒",
-      "thresholdHelp": "可直接輸入 0–120 秒（預設 15 秒）；0 表示無門檻，但仍須有實際播放時長。非零門檻下短曲須完整播放。有效時長在待發中逐秒更新，暫停後稍候提交；網易雲是否計入依雲端為準。"
+      "thresholdHelp": "可直接輸入 0–120 秒（預設 15 秒）；0 表示無門檻，但仍須有實際播放時長。非零門檻下短曲須完整播放。有效時長在待發中逐秒更新，暫停後稍候提交；網易雲是否計入依雲端為準。",
+      "reportHighestLabel": "本月歷史最高",
+      "reportLatestLabel": "本月最新讀數",
+      "reportDifferenceLabel": "目前差異",
+      "reportObservedAtLabel": "最近讀取時間",
+      "reportDurationHoursMinutes": "{hours}小時{minutes}分",
+      "reportTrendIncrease": "較上次不同讀數（{time}，{previous}）增加 {duration}。",
+      "reportTrendDecrease": "較上次不同讀數（{time}，{previous}）減少 {duration}。",
+      "reportTrendUnavailable": "目前只有一次有效讀數，或尚無不同讀數可比較。"
     },
     "style": {
       "title": "曲風漫遊 2.0",

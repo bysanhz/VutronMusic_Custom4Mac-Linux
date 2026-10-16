@@ -1159,3 +1159,60 @@ test('dismissing a month discrepancy retains safe high-water reconciliation', ()
     highWaterSeconds: 1000, regressionSeconds: 200, regressionDismissed: false
   })
 })
+
+test('tracks distinct monthly readings without treating identical polling as progress', () => {
+  const accountId = 'distinct-month-report-observations'
+  const periodKey = 'month:2027-01'
+  const rangeStart = new Date(2027, 0, 1).getTime()
+  const rangeEnd = new Date(2027, 0, 31, 23, 59, 59, 999).getTime()
+  const observe = (remoteSeconds: number) =>
+    reconcileNeteaseListenReport({
+      accountId, periodKey, rangeStart, rangeEnd, remoteSeconds
+    })
+
+  observe(10_000)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    highWaterSeconds: 10_000,
+    latestReportedSeconds: 10_000,
+    previousReportedSeconds: null,
+    latestChangeSeconds: null
+  })
+
+  observe(4_060)
+  const dropped = getNeteaseListenReportStatus(accountId, periodKey)
+  expect(dropped).toMatchObject({
+    highWaterSeconds: 10_000,
+    latestReportedSeconds: 4_060,
+    previousReportedSeconds: 10_000,
+    latestChangeSeconds: -5_940,
+    regressionSeconds: 5_940
+  })
+  expect(dropped.lastObservedAt).toBeGreaterThanOrEqual(dropped.previousObservedAt!)
+
+  observe(4_300)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    latestReportedSeconds: 4_300,
+    previousReportedSeconds: 4_060,
+    latestChangeSeconds: 240,
+    regressionSeconds: 5_700
+  })
+  observe(4_300)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    previousReportedSeconds: 4_060,
+    latestChangeSeconds: 240
+  })
+
+  observe(4_540)
+  observe(4_720)
+  expect(getNeteaseListenReportStatus(accountId, periodKey)).toMatchObject({
+    highWaterSeconds: 10_000,
+    latestReportedSeconds: 4_720,
+    previousReportedSeconds: 4_540,
+    latestChangeSeconds: 180,
+    regressionSeconds: 5_280
+  })
+
+  // Invalid backend readings must not update either the high-water mark or trend.
+  observe(Number.NaN)
+  expect(getNeteaseListenReportStatus(accountId, periodKey).latestReportedSeconds).toBe(4_720)
+})

@@ -1047,10 +1047,18 @@
       "durationMinutes": "{minutes}m",
       "todayMetric": "Today · Track Count",
       "reportDiagnosticLabel": "Monthly report differs · Details",
-      "reportRegressed": "The latest NetEase monthly report is {duration} below its previous high-water reading. Cache differences or historical corrections may explain this; it does not prove that a recent upload failed. The app retains the previous baseline and unverified receipts to prevent incorrect reconciliation.",
+      "reportRegressed": "The current report is {duration} below this device's previous highest reading. New listening time can shrink this gap without restoring older listens; the gap alone does not indicate failed uploads. NetEase reports minutes, and the high-water mark remains for safe reconciliation.",
       "thresholdLabel": "Valid-play threshold",
       "thresholdUnit": "sec",
-      "thresholdHelp": "Enter 0–120 seconds (default 15). Zero removes the minimum listening threshold, but actual positive playback is still required. Shorter tracks must finish when the threshold is nonzero. Eligible pending time updates each second; NetEase reporting is not guaranteed."
+      "thresholdHelp": "Enter 0–120 seconds (default 15). Zero removes the minimum listening threshold, but actual positive playback is still required. Shorter tracks must finish when the threshold is nonzero. Eligible pending time updates each second; NetEase reporting is not guaranteed.",
+      "reportHighestLabel": "Highest this month",
+      "reportLatestLabel": "Latest monthly reading",
+      "reportDifferenceLabel": "Current gap",
+      "reportObservedAtLabel": "Last read",
+      "reportDurationHoursMinutes": "{hours}h {minutes}m",
+      "reportTrendIncrease": "Up {duration} from the last different reading ({previous}, read {time}).",
+      "reportTrendDecrease": "Down {duration} from the last different reading ({previous}, read {time}).",
+      "reportTrendUnavailable": "No earlier different reading is available for comparison."
     },
     "style": {
       "title": "Style Explorer 2.0",

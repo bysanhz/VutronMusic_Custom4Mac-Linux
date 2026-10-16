@@ -174,6 +174,41 @@
             class="sync-report-diagnostics"
           >
             <summary>{{ t('insights.footprint.reportDiagnosticLabel') }}</summary>
+            <template v-if="monthReportReadings">
+              <dl class="sync-report-readings">
+                <div>
+                  <dt>{{ t('insights.footprint.reportHighestLabel') }}</dt>
+                  <dd>{{ formatMonthReportDuration(monthReportReadings.highWaterSeconds) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('insights.footprint.reportLatestLabel') }}</dt>
+                  <dd>{{ formatMonthReportDuration(monthReportReadings.latestReportedSeconds) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('insights.footprint.reportDifferenceLabel') }}</dt>
+                  <dd>{{ formatMonthReportDuration(monthReportReadings.regressionSeconds) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('insights.footprint.reportObservedAtLabel') }}</dt>
+                  <dd>{{ formatMonthReportTime(monthReportReadings.lastObservedAt) }}</dd>
+                </div>
+              </dl>
+              <p v-if="monthReportReadings.latestChangeSeconds !== null" class="sync-report-trend">
+                {{
+                  t(
+                    monthReportReadings.latestChangeSeconds > 0
+                      ? 'insights.footprint.reportTrendIncrease'
+                      : 'insights.footprint.reportTrendDecrease',
+                    {
+                      previous: formatMonthReportDuration(monthReportReadings.previousReportedSeconds),
+                      time: formatMonthReportTime(monthReportReadings.previousObservedAt),
+                      duration: formatMonthReportDuration(Math.abs(monthReportReadings.latestChangeSeconds))
+                    }
+                  )
+                }}
+              </p>
+              <p v-else class="sync-report-trend">{{ t('insights.footprint.reportTrendUnavailable') }}</p>
+            </template>
             <p>{{
               t('insights.footprint.reportRegressed', {
                 duration: formatPendingListenDuration(monthReportRegressionSeconds)
@@ -518,7 +553,7 @@ import {
   isSuccessfulResponse
 } from '../services/neteaseModern'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const tabs = computed(() => [
   { id: 'footprint' as const, label: t('insights.tabs.footprint') },
@@ -589,6 +624,7 @@ const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).
 const totalPeriodKey = 'total'
 const monthReportAvailable = ref<boolean | null>(null)
 const monthReportRegressionSeconds = ref(0)
+const monthReportReadings = ref<ReturnType<typeof getNeteaseListenReportStatus> | null>(null)
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
@@ -743,6 +779,31 @@ const formatPendingListenDuration = (seconds: number): string => {
   return t('insights.footprint.durationSeconds', { seconds: restSeconds })
 }
 
+const formatMonthReportDuration = (seconds: number | null): string => {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return '—'
+  const value = Math.floor(seconds)
+  if (value >= 3600) {
+    return t('insights.footprint.reportDurationHoursMinutes', {
+      hours: Math.floor(value / 3600),
+      minutes: Math.floor((value % 3600) / 60)
+    })
+  }
+  return formatPendingListenDuration(value)
+}
+
+const formatMonthReportTime = (timestamp: number | null): string => {
+  if (timestamp === null || !Number.isFinite(timestamp) || timestamp <= 0) return '—'
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString(locale.value, {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+}
+
 const formatDisplayListenDuration = (seconds?: number): string => {
   if (!Number.isFinite(seconds) || Number(seconds) < 0) return '—'
   const value = Number(seconds)
@@ -862,6 +923,7 @@ let lastListenSyncHealthAt = 0
 const reportListenSyncHealth = (monthReportSeconds?: number): void => {
   if (accountId.value === 'anonymous') return
   const monthStatus = getNeteaseListenReportStatus(accountId.value, monthPeriodKey.value)
+  monthReportReadings.value = monthStatus
   monthReportRegressionSeconds.value = monthStatus.regressionDismissed ? 0 : monthStatus.regressionSeconds
   const now = Date.now()
   if (now - lastListenSyncHealthAt < 60_000) return
@@ -1343,6 +1405,9 @@ watch(
 )
 
 watch(accountId, () => {
+  monthReportReadings.value = null
+  monthReportRegressionSeconds.value = 0
+  monthReportAvailable.value = null
   setActiveNeteaseListenAccount(accountId.value)
   void loadFootprint()
 })
@@ -1359,6 +1424,9 @@ onMounted(() => {
     const previousDate = localDateKey(clockNow.value)
     clockNow.value = Date.now()
     if (localDateKey(clockNow.value) !== previousDate) {
+      monthReportReadings.value = null
+      monthReportRegressionSeconds.value = 0
+      monthReportAvailable.value = null
       void loadFootprint()
       return
     }
@@ -1766,6 +1834,39 @@ button:disabled {
 .sync-report-diagnostics p {
   margin: 6px 0 0;
   opacity: 0.74;
+}
+
+.sync-report-readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.sync-report-readings > div {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.sync-report-readings dt {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.sync-report-readings dd {
+  min-width: 0;
+  margin: 3px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.sync-report-trend {
+  color: var(--color-text);
+  line-height: 1.55;
 }
 
 .clear-sync-button:hover,

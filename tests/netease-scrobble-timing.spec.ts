@@ -330,6 +330,12 @@ test('monthly report regression stays accessible without repeated orange warning
   expect(page).not.toContain('monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0')
   expect(page).toContain('monthReportRegressionSeconds')
   expect(page).toContain("t('insights.footprint.reportRegressed'")
+  expect(page).toContain('monthReportReadings.latestReportedSeconds')
+  expect(page).toContain('monthReportReadings.highWaterSeconds')
+  expect(page).toContain('monthReportReadings.lastObservedAt')
+  expect(page).toContain('monthReportReadings.latestChangeSeconds')
+  expect(page).toContain('reportTrendIncrease')
+  expect(page).toContain('reportTrendDecrease')
 })
 
 test('the configured threshold is validated, stored and shared by playback and scrobble', () => {
