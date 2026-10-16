@@ -20,6 +20,7 @@
             <div class="top-right">
               <div class="buttons">
                 <div
+                  v-if="hasTLyric || hasRLyric"
                   class="transPro"
                   :title="$t('player.switchTranslation')"
                   @click="switchTransitionMode"

@@ -343,116 +343,222 @@
   box-shadow: inset 0 -2px var(--rainbow-item-color);
 }
 
-/* Cover-driven backgrounds can be dark and visually busy. These neutral tinted
-   surfaces and light icons provide contrast independent of album art. */
+/*
+ * Fullscreen player – soft categorical rainbow.
+ *
+ * A cover-derived backdrop must not be overrun by identical dark square
+ * buttons. Use a small colored glyph and translucent hue-tinted glass for
+ * each function. The play/pause control is the only emphasized action.
+ * Liked hearts remain the original semantic red (#e54861 via --color-like).
+ * All declarations are opt-in to Rainbow and scoped to the fullscreen player.
+ */
 :root[data-accent-theme='rainbow'] #app .player-container {
-  --rainbow-control-bg: rgba(18, 25, 36, 0.55);
-  --rainbow-control-hover: rgba(20, 29, 42, 0.78);
-  --rainbow-control-border: rgba(255, 255, 255, 0.28);
-  --rainbow-control-neutral: #f0f4fb;
-  --rainbow-control-gold: #f3cf82;
-  --rainbow-control-cyan: #86e0ee;
-  --rainbow-control-violet: #c9afff;
-  --rainbow-control-green: #89ddb3;
-  --rainbow-control-orange: #ffbb87;
+  --player-rainbow-rose: #ffa0bb;
+  --player-rainbow-orange: #ffc08e;
+  --player-rainbow-gold: #f5d888;
+  --player-rainbow-green: #89e0b3;
+  --player-rainbow-cyan: #7bdeed;
+  --player-rainbow-blue: #a1c6ff;
+  --player-rainbow-violet: #d0b6ff;
+  --player-rainbow-neutral: #f4f3fa;
+  --player-rainbow-glass: rgba(255, 255, 255, 0.065);
+  --player-rainbow-border: rgba(255, 255, 255, 0.11);
+  --player-rainbow-hue: var(--player-rainbow-neutral);
 }
 
-/* Classic: top action buttons are no longer bare glyphs. */
-:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro),
-:root[data-accent-theme='rainbow'] #app .player-container .play-page .media-controls > .button-icon,
+/* The player has its own background mode, independent of the app theme. */
+:root[data-accent-theme='rainbow'] #app [data-theme='light'] .player-container {
+  --player-rainbow-rose: #b53d68;
+  --player-rainbow-orange: #a35a1d;
+  --player-rainbow-gold: #886710;
+  --player-rainbow-green: #207d54;
+  --player-rainbow-cyan: #087989;
+  --player-rainbow-blue: #3269bf;
+  --player-rainbow-violet: #7651b6;
+  --player-rainbow-neutral: #29354c;
+  --player-rainbow-glass: rgba(255, 255, 255, 0.48);
+  --player-rainbow-border: rgba(34, 48, 70, 0.11);
+}
+
+/* Stable colors for controls, even when their modes are not active. */
+:root[data-accent-theme='rainbow'] #app .player-container .rainbow-add-control,
+:root[data-accent-theme='rainbow'] #app .player-container .playback-speed-button {
+  --player-rainbow-hue: var(--player-rainbow-gold);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .rainbow-more-control,
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .theme-button {
+  --player-rainbow-hue: var(--player-rainbow-violet);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .sleep-timer-button,
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .sense-button,
+:root[data-accent-theme='rainbow'] #app .player-container .progress-bar .time .button-icon,
+:root[data-accent-theme='rainbow'] #app .player-container .player-progress-bar .time .button-icon {
+  --player-rainbow-hue: var(--player-rainbow-cyan);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .rainbow-repeat-control,
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .lyric-button-1 {
+  --player-rainbow-hue: var(--player-rainbow-green);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .rainbow-shuffle-control {
+  --player-rainbow-hue: var(--player-rainbow-orange);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .reset-button {
+  --player-rainbow-hue: var(--player-rainbow-gold);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .close-button {
+  --player-rainbow-hue: var(--player-rainbow-neutral);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .like-button {
+  --player-rainbow-hue: var(--player-rainbow-rose);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .like-button.liked {
+  --player-rainbow-hue: var(--color-like);
+}
 :root[data-accent-theme='rainbow'] #app .player-container .play-page .media-controls .middle > .button-icon,
-:root[data-accent-theme='rainbow'] #app .player-container .creative-page .player-media-control > .button-icon,
 :root[data-accent-theme='rainbow'] #app .player-container .creative-page .player-media-control .middle > .button-icon {
+  --player-rainbow-hue: var(--player-rainbow-blue);
+}
+:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page .media-controls, .creative-page .player-media-control) #play {
+  --player-rainbow-hue: var(--player-rainbow-blue);
+}
+
+/* Lightly tinted, borderless secondary chips replace identical dark tiles.
+   No fixed widths for speed/timer: long countdowns can grow naturally. */
+:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro),
+:root[data-accent-theme='rainbow'] #app .player-container .play-page .media-controls .button-icon,
+:root[data-accent-theme='rainbow'] #app .player-container .creative-page .player-media-control .button-icon {
   box-sizing: border-box;
   flex-shrink: 0;
-  height: 36px;
-  min-height: 36px;
-  min-width: 34px;
-  margin: 0 !important;
-  border: 1px solid var(--rainbow-control-border);
-  border-radius: 11px;
-  background: var(--rainbow-control-bg);
-  color: var(--rainbow-control-neutral);
-  opacity: 1 !important;
-  backdrop-filter: blur(8px);
-}
-:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro) {
+  min-width: 32px;
   height: 34px;
   min-height: 34px;
+  margin: 0 !important;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--player-rainbow-hue) 13%, var(--player-rainbow-glass));
+  color: var(--player-rainbow-hue) !important;
+  opacity: 1 !important;
+  box-shadow: none;
+  backdrop-filter: blur(5px);
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro) {
+  min-height: 32px;
+  height: 32px;
   padding: 0 6px !important;
 }
-:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page, .creative-page) :is(.media-controls, .player-media-control, .top-right) .button-icon:hover {
-  background: var(--rainbow-control-hover);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > .transPro:hover {
-  background: var(--rainbow-control-hover);
+
+:root[data-accent-theme='rainbow'] #app .player-container .play-page .media-controls .button-icon,
+:root[data-accent-theme='rainbow'] #app .player-container .creative-page .player-media-control .button-icon {
+  width: 34px;
+  height: 34px;
 }
 
-:root[data-accent-theme='rainbow'] #app .player-container :is(.playback-speed-button, .sleep-timer-button) {
-  width: auto !important;
-  min-width: 36px;
-  padding: 0 8px !important;
-  font-size: 13px;
-  font-weight: 750;
-  opacity: 1 !important;
-  color: var(--rainbow-control-gold) !important;
-}
-:root[data-accent-theme='rainbow'] #app .player-container .sleep-timer-button {
-  color: var(--rainbow-control-cyan) !important;
-}
-
-/* The previous Classic player rendered inactive icons at opacity .38;
-   normalize controls while preserving disabled-button semantics. */
-:root[data-accent-theme='rainbow'] #app .player-container :is(.top-right .buttons, .media-controls, .player-media-control) .button-icon:not(.disabled) .svg-icon {
+/* The buttons retain their semantic color rather than getting an all-white
+   icon override. Outline heart remains neutral, liked heart is always red. */
+:root[data-accent-theme='rainbow'] #app .player-container :is(
+  .play-page .top-right .buttons,
+  .play-page .media-controls,
+  .creative-page .player-media-control
+) .button-icon:not(.disabled) .svg-icon {
+  color: var(--player-rainbow-hue) !important;
   opacity: 0.96 !important;
-  color: var(--rainbow-control-neutral) !important;
 }
-:root[data-accent-theme='rainbow'] #app .player-container .rainbow-add-control .svg-icon { color: var(--rainbow-control-gold) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .rainbow-more-control .svg-icon { color: var(--rainbow-control-violet) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .rainbow-repeat-control.rainbow-enabled:not(.disabled) .svg-icon { color: var(--rainbow-control-green) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .rainbow-shuffle-control.rainbow-enabled:not(.disabled) .svg-icon { color: var(--rainbow-control-orange) !important; }
 
-/* Dedicated blue play button is visually dominant without using a gradient. */
-:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page .media-controls, .creative-page .player-media-control) #play {
-  width: 40px;
-  height: 40px;
-  background: #3769cb;
-  border-color: #8ab9ff;
-  box-shadow: 0 4px 14px rgba(12, 40, 90, 0.35);
+:root[data-accent-theme='rainbow'] #app .player-container .like-button:not(.liked) {
+  --player-rainbow-hue: var(--player-rainbow-neutral);
 }
-:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page .media-controls, .creative-page .player-media-control) #play .svg-icon {
-  color: #fff !important;
-  opacity: 1 !important;
-}
-/* Keep the original heart color: liked red, unliked neutral. */
+:root[data-accent-theme='rainbow'] #app .player-container .like-button.liked:not(.disabled),
 :root[data-accent-theme='rainbow'] #app .player-container .like-button.liked:not(.disabled) .svg-icon {
   color: var(--color-like) !important;
 }
 
-/* Fullscreen upper-right and side overlay controls were faded to .48. */
+:root[data-accent-theme='rainbow'] #app .player-container :is(.playback-speed-button, .sleep-timer-button) {
+  width: auto !important;
+  min-width: 32px;
+  padding: 0 8px !important;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--player-rainbow-hue) !important;
+  opacity: 1 !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .player-container :is(
+  .play-page .top-right .buttons,
+  .play-page .media-controls,
+  .creative-page .player-media-control
+) .button-icon:not(.disabled):hover,
+:root[data-accent-theme='rainbow'] #app .player-container .play-page .top-right .buttons > .transPro:hover {
+  background: color-mix(in srgb, var(--player-rainbow-hue) 22%, var(--player-rainbow-glass));
+  border-color: color-mix(in srgb, var(--player-rainbow-hue) 30%, transparent);
+}
+
+:root[data-accent-theme='rainbow'] #app .player-container .rainbow-enabled:not(.disabled),
+:root[data-accent-theme='rainbow'] #app .player-container .sleep-timer-button.is-active {
+  background: color-mix(in srgb, var(--player-rainbow-hue) 23%, var(--player-rainbow-glass));
+  border-color: color-mix(in srgb, var(--player-rainbow-hue) 24%, transparent);
+}
+
+/* A modest blue focus point rather than a hard-edged solid blue square. */
+:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page .media-controls, .creative-page .player-media-control) #play {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--player-rainbow-blue) 29%, var(--player-rainbow-glass));
+  border: 1px solid color-mix(in srgb, var(--player-rainbow-blue) 35%, transparent);
+  box-shadow: 0 2px 9px rgba(14, 28, 55, 0.11);
+}
+:root[data-accent-theme='rainbow'] #app .player-container :is(.play-page .media-controls, .creative-page .player-media-control) #play .svg-icon {
+  color: var(--player-rainbow-neutral) !important;
+  opacity: 1 !important;
+}
+
+/* The upper-right and side rail actions should sit on the backdrop instead of
+   forming an unrelated second column of dark outlined squares. */
 :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons {
   opacity: 1;
 }
 :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .player-button {
-  opacity: .96 !important;
   box-sizing: border-box;
-  border: 1px solid var(--rainbow-control-border);
   border-radius: 12px;
-  background: var(--rainbow-control-bg);
-  backdrop-filter: blur(8px);
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--player-rainbow-hue) 11%, var(--player-rainbow-glass));
+  color: var(--player-rainbow-hue) !important;
+  box-shadow: none;
+  opacity: 0.93 !important;
+  backdrop-filter: blur(5px);
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .player-button .svg-icon {
-  color: var(--rainbow-control-neutral) !important;
+  color: var(--player-rainbow-hue) !important;
   opacity: 1 !important;
 }
-:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .theme-button .svg-icon { color: var(--rainbow-control-violet) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .reset-button .svg-icon { color: var(--rainbow-control-gold) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .sense-button .svg-icon { color: var(--rainbow-control-cyan) !important; }
-:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .lyric-button-1 .svg-icon { color: var(--rainbow-control-green) !important; }
 :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .player-button:hover {
-  background: var(--rainbow-control-hover);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--player-rainbow-hue) 20%, var(--player-rainbow-glass));
+  border-color: color-mix(in srgb, var(--player-rainbow-hue) 28%, transparent);
+  opacity: 1 !important;
+}
+
+/* Small, themed feedback without adding persistent shadows to every button. */
+:root[data-accent-theme='rainbow'] #app .player-container :is(
+  .play-page .media-controls,
+  .creative-page .player-media-control,
+  .play-page .top-right .buttons,
+  .buttons-icons
+) .button-icon:focus-visible {
+  outline: 2px solid var(--player-rainbow-hue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-accent-theme='rainbow'] #app .player-container .button-icon,
+  :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .player-button {
+    transition: none;
+  }
 }
 
 /* Browser-style tabs: each function receives a stable hue, regardless of
