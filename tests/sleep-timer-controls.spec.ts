@@ -1,12 +1,16 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { formatSleepTimerDuration, getSleepTimerDisplay } from '../src/renderer/utils/sleepTimerDisplay'
+import {
+  formatSleepTimerDuration,
+  getSleepTimerDisplay
+} from '../src/renderer/utils/sleepTimerDisplay'
 
-const readSource = (path: string): string => readFileSync(resolve(process.cwd(), path), 'utf8')
+const readSource = (path: string): string =>
+  readFileSync(resolve(process.cwd(), path), 'utf8')
 
 test.describe('shared sleep-timer button', () => {
-  test('displays accurate rounded-up duration from the existing seconds source', () => {
+  test('rounds remaining duration up to the next whole second', () => {
     expect(formatSleepTimerDuration(59.1)).toBe('01:00')
     expect(formatSleepTimerDuration(59)).toBe('00:59')
     expect(formatSleepTimerDuration(3600)).toBe('01:00:00')
@@ -32,10 +36,11 @@ test.describe('shared sleep-timer button', () => {
       active: true,
       label: '佇列後'
     })
-    expect(getSleepTimerDisplay('queueEnd', 0, 'en').title).toContain('current queue')
+    const queueEndEn = getSleepTimerDisplay('queueEnd', 0, 'en')
+    expect(queueEndEn.title).toContain('current queue')
   })
 
-  test('reuses the existing timer state and modal instead of creating another timer', () => {
+  test('reuses the existing timer state and modal', () => {
     const button = readSource('src/renderer/components/SleepTimerButton.vue')
     expect(button).toContain('sleepTimerRemainingSeconds.value')
     expect(button).toContain('sleepTimerMode.value')
@@ -49,9 +54,14 @@ test.describe('shared sleep-timer button', () => {
     const creative = readSource('src/renderer/components/CreativePlayer.vue')
     const bar = readSource('src/renderer/components/PlayerBar.vue')
 
-    expect(common).toMatch(/<PlaybackSpeedButton\s*\/>\s*<SleepTimerButton\s*\/>/)
-    expect(creative).toMatch(/<PlaybackSpeedButton\s*\/>\s*<SleepTimerButton compact\s*\/>/)
-    expect(bar).toMatch(/<PlaybackSpeedButton\s*\/>\s*<SleepTimerButton compact\s*\/>/)
-    expect(common.split('<div class="media-controls">')[1].split('</div>')[0]).not.toContain('<PlaybackSpeedButton')
+    const adjacentControls = /<PlaybackSpeedButton\s*\/>\s*<SleepTimerButton\b/
+    expect(common).toMatch(adjacentControls)
+    expect(creative).toMatch(adjacentControls)
+    expect(bar).toMatch(adjacentControls)
+    expect(creative).toContain('<SleepTimerButton compact />')
+    expect(bar).toContain('<SleepTimerButton compact />')
+
+    const bottomControls = common.split('<div class="media-controls">')[1]
+    expect(bottomControls.split('</div>')[0]).not.toContain('<PlaybackSpeedButton')
   })
 })

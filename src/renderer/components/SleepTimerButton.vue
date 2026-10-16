@@ -7,21 +7,31 @@
     @click.stop="openSleepTimer"
   >
     <span class="timer-clock" aria-hidden="true"></span>
-    <span v-if="display.active || !compact" class="timer-label">{{ display.label }}</span>
+    <span v-if="display.active || !compact" class="timer-label">
+      {{ display.label }}
+    </span>
   </ButtonIcon>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import ButtonIcon from './ButtonIcon.vue'
-import { sleepTimerModalVisible, sleepTimerMode, sleepTimerRemainingSeconds } from '../utils/sleepTimerSettings'
+import {
+  sleepTimerModalVisible,
+  sleepTimerMode,
+  sleepTimerRemainingSeconds
+} from '../utils/sleepTimerSettings'
 import { getSleepTimerDisplay } from '../utils/sleepTimerDisplay'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 
 withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
 const display = computed(() =>
-  getSleepTimerDisplay(sleepTimerMode.value, sleepTimerRemainingSeconds.value, resolveFeatureLanguage())
+  getSleepTimerDisplay(
+    sleepTimerMode.value,
+    sleepTimerRemainingSeconds.value,
+    resolveFeatureLanguage()
+  )
 )
 
 const openSleepTimer = () => {

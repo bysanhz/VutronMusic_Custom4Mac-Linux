@@ -292,7 +292,10 @@ watch(sleepTimerModalVisible, (visible) => {
 
 const statusText = computed(() => {
   if (sleepTimerMode.value === 'minutes') {
-    return text.value.countdown.replace('{time}', formatSleepTimerDuration(sleepTimerRemainingSeconds.value))
+    return text.value.countdown.replace(
+      '{time}',
+      formatSleepTimerDuration(sleepTimerRemainingSeconds.value)
+    )
   }
   if (sleepTimerMode.value === 'trackEnd') return text.value.waitingTrack
   if (sleepTimerMode.value === 'queueEnd') return text.value.waitingQueue
