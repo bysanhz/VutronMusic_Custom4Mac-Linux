@@ -31,39 +31,39 @@
           $t('nav.lyric')
         }}</div>
       </div>
-      <div v-if="route.name === 'explore'" class="search-tabs">
+      <div v-if="route.name === 'explore'" class="search-tabs rainbow-explore-tabs">
         <div
-          class="item"
+          class="item rainbow-explore-tab rainbow-explore-tab-1"
           :class="{ active: exploreTab === 'playlist' }"
           @click="toExplore('playlist')"
           >{{ $t('nav.playlist') }}</div
         >
-        <div class="item" :class="{ active: exploreTab === 'chart' }" @click="toExplore('chart')">{{
+        <div class="item rainbow-explore-tab rainbow-explore-tab-2" :class="{ active: exploreTab === 'chart' }" @click="toExplore('chart')">{{
           $t('nav.chart')
         }}</div>
         <div
-          class="item"
+          class="item rainbow-explore-tab rainbow-explore-tab-3"
           :class="{ active: exploreTab === 'newTrack' }"
           @click="toExplore('newTrack')"
           >{{ $t('nav.newTrack') }}</div
         >
         <div
-          class="item"
+          class="item rainbow-explore-tab rainbow-explore-tab-4"
           :class="{ active: exploreTab === 'newAlbum' }"
           @click="toExplore('newAlbum')"
           >{{ $t('nav.newAlbum') }}</div
         >
         <div
-          class="item"
+          class="item rainbow-explore-tab rainbow-explore-tab-5"
           :class="{ active: exploreTab === 'artist' }"
           @click="toExplore('artist')"
           >{{ $t('nav.artist') }}</div
         >
-        <div class="item" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')">{{
+        <div class="item rainbow-explore-tab rainbow-explore-tab-6" :class="{ active: exploreTab === 'style' }" @click="toExplore('style')">{{
           $t('nav.style')
         }}</div>
         <div
-          class="item"
+          class="item rainbow-explore-tab rainbow-explore-tab-7"
           :class="{ active: exploreTab === 'following' }"
           @click="toExplore('following')"
           >{{ $t('nav.followingWorks') }}</div

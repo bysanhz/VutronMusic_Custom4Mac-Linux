@@ -1,7 +1,7 @@
 <template>
   <div class="explore-page">
     <div v-if="exploreTab === 'playlist'" class="explore-filter-section">
-      <div class="buttons playlist-filter-bar">
+      <div class="buttons playlist-filter-bar rainbow-explore-filter">
         <div
           v-for="category in general.enabledPlaylistCategories"
           :key="category"
@@ -70,7 +70,7 @@
     </div>
 
     <div v-if="exploreTab === 'newTrack'" class="explore-filter-section">
-      <div class="buttons area-filter-bar">
+      <div class="buttons area-filter-bar rainbow-explore-filter">
         <div
           v-for="category in newTrackBtn"
           :key="category"
@@ -84,7 +84,7 @@
     </div>
 
     <div v-if="exploreTab === 'newAlbum'" class="albumsTab explore-filter-section">
-      <div class="buttons area-filter-bar">
+      <div class="buttons area-filter-bar rainbow-explore-filter">
         <div
           v-for="category in newTrackBtn"
           :key="category"
@@ -95,7 +95,7 @@
           {{ categoryLabel(category) }}
         </div>
       </div>
-      <div class="buttons album-type-filter-bar">
+      <div class="buttons album-type-filter-bar rainbow-explore-filter">
         <div
           v-for="(itemType, index) in albumTypeBtn"
           :key="index"
@@ -114,7 +114,7 @@
           <div class="section-desc">{{ t('explore.styleRoamDesc') }}</div>
         </div>
       </div>
-      <div class="buttons style-buttons">
+      <div class="buttons style-buttons rainbow-explore-filter">
         <div
           v-for="tag in styleTags"
           :key="String(tag.id)"
