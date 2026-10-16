@@ -43,6 +43,22 @@ const probeCoverCandidate = async (url: string) => {
   }
 }
 
+/** Share only URL structure: never include paths, query values, or resource identifiers. */
+const describeCoverUrlShape = (value: string) => {
+  const url = new URL(value)
+  const segments = url.pathname.split('/').filter(Boolean)
+  const queryKeys = Array.from(url.searchParams.keys())
+  return {
+    pathSegmentCount: segments.length,
+    pathLength: url.pathname.length,
+    hasEncodedPath: /%[0-9a-f]{2}/i.test(url.pathname),
+    hasSizeParam: url.searchParams.has('param'),
+    queryParameterCount: queryKeys.length,
+    hasOtherQueryParameters: queryKeys.some((key) => key !== 'param'),
+    hasFragment: Boolean(url.hash)
+  }
+}
+
 const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
   if (runtime[INSTALL_KEY]) return
@@ -75,6 +91,8 @@ const installRuntimeDiagnostics = (): void => {
         })
         const sample = withoutSize ? [candidates[0], withoutSize] : candidates.slice(0, 2)
         return {
+          urlShape: describeCoverUrlShape(url),
+          sizeVariantAvailable: Boolean(withoutSize),
           attempts: await Promise.all(sample.map(async (candidate) => ({
             variant: candidate === withoutSize ? 'without_size_param' : 'original_or_cdn_sibling',
             ...(await probeCoverCandidate(candidate))
