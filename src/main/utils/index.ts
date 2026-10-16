@@ -14,7 +14,7 @@ import { db, Tables } from '../db'
 import log from '../log'
 import { Worker } from 'worker_threads'
 import { TrackInfoOrder, lyricLine } from '@/types/music'
-import { getNeteaseImageCandidateUrls } from '../../shared/neteaseAssetUrl'
+import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 import { isNeteaseTransportFailure, summarizeNeteaseFailure } from './neteaseFailure'
 
 export const isFileExist = (file: string) => {
@@ -151,6 +151,21 @@ export const getPicFromApi = async (url: string) => {
   if (!url) return { pic: null as Buffer | null, format: '' }
 
   const candidates = getNeteaseImageCandidateUrls(url)
+  // Preserve normal query parameters first. If all CDN attempts fail, retry the
+  // same public resource without a corrupted query string, as verified by diagnostics.
+  if (isNeteaseAssetUrl(url)) {
+    try {
+      const parsed = new URL(url)
+      if (parsed.search && !parsed.username && !parsed.password) {
+        parsed.search = ''
+        parsed.hash = ''
+        const bare = parsed.toString()
+        if (!candidates.includes(bare)) candidates.push(bare)
+      }
+    } catch {
+      // Invalid URLs will be handled by the existing candidate loop.
+    }
+  }
   for (const candidate of candidates) {
     try {
       const response = await net.fetch(candidate)
