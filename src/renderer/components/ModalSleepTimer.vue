@@ -380,7 +380,9 @@ const cancel = () => {
   color: var(--color-text);
   background: var(--color-secondary-bg-for-transparent);
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
 
   &.active {
     border-color: var(--color-primary);
