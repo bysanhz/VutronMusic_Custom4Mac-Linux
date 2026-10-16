@@ -71,7 +71,7 @@ test.describe('music insights rendering stability', () => {
     expect(view).toContain('class="sync-light amber"')
     expect(view).toContain('class="sync-light green"')
     expect(view).toContain('v-if="accountId !== \'anonymous\'"')
-    expect(view).toContain(':disabled="totalAwaitingSeconds <= 0 &&')
+    expect(view).toContain(':disabled="totalAwaitingSeconds <= 0"')
     expect(view).toContain('class="clear-sync-button"')
     expect(view).toContain('class="sync-status-help"')
     expect(view.indexOf('class="sync-status-help"')).toBeLessThan(

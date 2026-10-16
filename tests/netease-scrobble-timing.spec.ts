@@ -319,23 +319,13 @@ test('short listens remain internal and never appear as an upload-ready UI statu
   expect(status).toContain('todayProvisional: today.provisional')
 })
 
-test('monthly report regression stays accessible without repeated orange warnings', () => {
+test('monthly report discrepancy details are not rendered in listening insights', () => {
   const page = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
-  expect(page).toContain('<details')
-  expect(page).toContain('class="sync-report-diagnostics"')
-  expect(page).toContain('<summary>{{ t(\'insights.footprint.reportDiagnosticLabel\') }}</summary>')
-  expect(page).toContain(
-    'monthReportAvailable === true && monthReportRegressionSeconds >= 120'
-  )
-  expect(page).not.toContain('monthReportRegressionSeconds >= 120 && totalAwaitingSeconds > 0')
-  expect(page).toContain('monthReportRegressionSeconds')
-  expect(page).toContain("t('insights.footprint.reportRegressed'")
-  expect(page).toContain('monthReportReadings.latestReportedSeconds')
-  expect(page).toContain('monthReportReadings.highWaterSeconds')
-  expect(page).toContain('monthReportReadings.lastObservedAt')
-  expect(page).toContain('monthReportReadings.latestChangeSeconds')
-  expect(page).toContain('reportTrendIncrease')
-  expect(page).toContain('reportTrendDecrease')
+  expect(page).not.toContain('sync-report-diagnostics')
+  expect(page).not.toContain('monthReportReadings')
+  expect(page).not.toContain('monthReportRegressionSeconds')
+  expect(page).not.toContain('reportDiagnosticLabel')
+  expect(page).toContain("t('insights.footprint.reportUnavailable')")
 })
 
 test('the configured threshold is validated, stored and shared by playback and scrobble', () => {
