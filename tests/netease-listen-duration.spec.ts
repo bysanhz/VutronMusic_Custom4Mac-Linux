@@ -256,8 +256,24 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     expect(component).toContain('.trend-dot.today')
     expect(component).toContain('.trend-date.today')
     expect(component).toContain('stroke-width: 2.8')
-    expect(component).toContain('.trend-average-label')
+    expect(component).toContain('.daily-trend-average-badge')
     expect(component).toContain('font-weight: 800')
+  })
+
+  test('shows hourly labels above all known bars and makes the trend line subtle', () => {
+    const component = readFileSync(
+      resolve(process.cwd(), 'src/renderer/components/ListenDurationTrend.vue'),
+      'utf8'
+    )
+    expect(component).toContain('class="trend-bar-value"')
+    expect(component).toContain('v-if="point.seconds !== null"')
+    expect(component).toContain('barValueY(point.seconds)')
+    expect(component).toContain('formatHours(point.seconds / 3600)')
+    expect(component).toContain('Math.max(26, barTop(seconds) - 12)')
+    expect(component).toContain('.trend-bar-value.today')
+    expect(component).toContain('stroke-opacity: 0.32')
+    expect(component).toContain('class="daily-trend-average-badge"')
+    expect(component).not.toContain('class="trend-average-label"')
   })
 
   test('wires the chart to full and lightweight remote refreshes', () => {

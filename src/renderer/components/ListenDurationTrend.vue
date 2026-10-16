@@ -2,9 +2,14 @@
   <section class="daily-trend">
     <div class="daily-trend-header">
       <h3>{{ t('insights.footprint.sevenDayTrendTitle') }}</h3>
-      <div class="daily-trend-selection" aria-live="polite">
-        <span>{{ selectedPoint ? formatFullDate(selectedPoint.dateKey) : '—' }}</span>
-        <strong>{{ selectedPoint ? formatDuration(selectedPoint.seconds) : '—' }}</strong>
+      <div class="daily-trend-header-metrics">
+        <span v-if="averageSummary" class="daily-trend-average-badge">
+          {{ averageLabel }}
+        </span>
+        <div class="daily-trend-selection" aria-live="polite">
+          <span>{{ selectedPoint ? formatFullDate(selectedPoint.dateKey) : '—' }}</span>
+          <strong>{{ selectedPoint ? formatDuration(selectedPoint.seconds) : '—' }}</strong>
+        </div>
       </div>
     </div>
     <div class="daily-trend-scroll">
@@ -55,14 +60,6 @@
             :y2="pointY(averageSummary.seconds / 3600)"
             class="trend-average"
           />
-          <text
-            :x="right"
-            :y="Math.max(top + 12, pointY(averageSummary.seconds / 3600) - 9)"
-            text-anchor="end"
-            class="trend-average-label"
-          >
-            {{ averageLabel }}
-          </text>
         </g>
         <path
           v-for="(path, index) in linePaths"
@@ -112,6 +109,18 @@
             {{ formatDate(point.dateKey) }}
           </text>
         </g>
+        <g v-for="(point, index) in points" :key="`value-${point.dateKey}`">
+          <text
+            v-if="point.seconds !== null"
+            :x="pointX(index)"
+            :y="barValueY(point.seconds)"
+            text-anchor="middle"
+            class="trend-bar-value"
+            :class="{ today: index === points.length - 1 }"
+          >
+            {{ formatHours(point.seconds / 3600) }}
+          </text>
+        </g>
       </svg>
     </div>
   </section>
@@ -130,7 +139,7 @@ const { t, locale } = useI18n()
 
 const left = 68
 const right = 710
-const top = 18
+const top = 38
 const bottom = 162
 const selectedDate = ref<string | null>(null)
 
@@ -167,6 +176,8 @@ const pointY = (hours: number): number =>
   bottom - (hours / maxHours.value) * (bottom - top)
 const barTop = (seconds: number): number =>
   Math.min(bottom - 2, pointY(seconds / 3600))
+const barValueY = (seconds: number): number =>
+  Math.max(26, barTop(seconds) - 12)
 const formatHours = (hours: number): string => `${Number(hours.toFixed(2))}h`
 
 // Splitting at unavailable dates prevents invented continuity across missing reports.
@@ -233,6 +244,27 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   margin: 0 0 4px;
   font-size: 17px;
   line-height: 1.35;
+}
+
+.daily-trend-header-metrics {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.daily-trend-average-badge {
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .daily-trend-selection {
@@ -307,20 +339,10 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   pointer-events: none;
 }
 
-.trend-average-label {
-  fill: var(--color-primary);
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  paint-order: stroke;
-  stroke: var(--color-body-bg);
-  stroke-width: 5px;
-  stroke-linejoin: round;
-}
-
 .trend-line {
   stroke: var(--color-primary);
-  stroke-width: 3;
+  stroke-opacity: 0.32;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -353,6 +375,24 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill: var(--color-primary);
   opacity: 1;
   font-weight: 800;
+}
+
+.trend-bar-value {
+  fill: var(--color-text);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--color-body-bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.trend-bar-value.today {
+  fill: var(--color-primary);
+  font-weight: 800;
+  font-size: 13px;
 }
 
 .trend-unavailable {
