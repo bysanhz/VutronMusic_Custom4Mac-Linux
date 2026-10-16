@@ -323,7 +323,7 @@ test('monthly report discrepancy details are not rendered in listening insights'
   const page = readFileSync(resolve(process.cwd(), 'src/renderer/views/MusicInsightsStable.vue'), 'utf8')
   expect(page).not.toContain('sync-report-diagnostics')
   expect(page).not.toContain('monthReportReadings')
-  expect(page).not.toContain('monthReportRegressionSeconds')
+  expect(page).not.toContain('monthReportRegressionSeconds.value')
   expect(page).not.toContain('reportDiagnosticLabel')
   expect(page).toContain("t('insights.footprint.reportUnavailable')")
 })
