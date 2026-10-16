@@ -53,6 +53,10 @@ const describeCoverUrlShape = (value: string) => {
     pathLength: url.pathname.length,
     hasEncodedPath: /%[0-9a-f]{2}/i.test(url.pathname),
     hasSizeParam: url.searchParams.has('param'),
+    sizeParamCount: queryKeys.filter((key) => key === 'param').length,
+    uniqueQueryKeyCount: new Set(queryKeys).size,
+    repeatedQueryKeyCount: queryKeys.length - new Set(queryKeys).size,
+    embeddedQuestionMarkCount: (url.search.match(/\\?/g) || []).length - 1,
     queryParameterCount: queryKeys.length,
     hasOtherQueryParameters: queryKeys.some((key) => key !== 'param'),
     hasFragment: Boolean(url.hash)
@@ -89,13 +93,21 @@ const installRuntimeDiagnostics = (): void => {
             !parsed.searchParams.has('param') &&
             new URL(url).searchParams.has('param')
         })
-        const sample = withoutSize ? [candidates[0], withoutSize] : candidates.slice(0, 2)
+        // Diagnostic-only comparison: never strip unknown parameters from production URLs.
+        const bareUrl = new URL(url)
+        bareUrl.search = ''
+        bareUrl.hash = ''
+        const sample = [
+          { variant: 'original', url: candidates[0] },
+          { variant: 'without_query_diagnostic', url: bareUrl.toString() }
+        ]
+        if (withoutSize) sample.push({ variant: 'without_size_param', url: withoutSize })
         return {
           urlShape: describeCoverUrlShape(url),
           sizeVariantAvailable: Boolean(withoutSize),
           attempts: await Promise.all(sample.map(async (candidate) => ({
-            variant: candidate === withoutSize ? 'without_size_param' : 'original_or_cdn_sibling',
-            ...(await probeCoverCandidate(candidate))
+            variant: candidate.variant,
+            ...(await probeCoverCandidate(candidate.url))
           })))
         }
       })
