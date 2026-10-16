@@ -21,6 +21,7 @@
       </button>
     </div>
     <button-icon
+      class="rainbow-nav rainbow-nav-home"
       :class="{ active: isCurrentRoute('/') }"
       :data-tip="`${$t('nav.home')}`"
       @click="handleRoute('/')"
@@ -28,6 +29,7 @@
       <svg-icon class="icon" icon-class="logo" />
     </button-icon>
     <button-icon
+      class="rainbow-nav rainbow-nav-explore"
       :class="{ active: isCurrentRoute('/explore') }"
       :data-tip="`${$t('nav.explore')}`"
       @click="handleRoute('/explore')"
@@ -35,6 +37,7 @@
       <svg-icon class="icon" icon-class="explore" style="transform: scale(1.4)" />
     </button-icon>
     <button-icon
+      class="rainbow-nav rainbow-nav-library"
       :class="{ active: isCurrentRoute('/library') }"
       :data-tip="`${$t('nav.library')}`"
       @click="handleRoute('/library')"
@@ -42,6 +45,7 @@
       <svg-icon class="icon" icon-class="library" />
     </button-icon>
     <button-icon
+      class="rainbow-nav rainbow-nav-insights"
       :class="{ active: isCurrentRoute('/insights') }"
       :data-tip="`${$t('nav.insights')}`"
       @click="handleRoute('/insights')"
@@ -50,6 +54,7 @@
     </button-icon>
     <button-icon
       v-if="enable"
+      class="rainbow-nav rainbow-nav-stream"
       :class="{ active: isCurrentRoute('/stream') }"
       :data-tip="`${$t('nav.stream')}`"
       @click="handleRoute('/stream')"
@@ -58,6 +63,7 @@
     </button-icon>
     <button-icon
       v-if="isElectron && localMusic.enble"
+      class="rainbow-nav rainbow-nav-local"
       :class="{ active: isCurrentRoute('/localMusic') }"
       :data-tip="`${$t('nav.localMusic')}`"
       @click="handleRoute('/localMusic')"
@@ -65,6 +71,7 @@
       <svg-icon class="icon" icon-class="local-music" />
     </button-icon>
     <button-icon
+      class="rainbow-nav rainbow-nav-settings"
       :class="{ active: isCurrentRoute('/settings') }"
       :data-tip="`${$t('nav.settings')}`"
       @click="handleRoute('/settings')"

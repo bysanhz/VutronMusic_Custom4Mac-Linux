@@ -83,13 +83,14 @@
             /></button-icon>
           </div>
           <button-icon
-            :class="{ active: false, disabled: heartDisabled }"
+            class="like-button"
+            :class="{ liked: isLiked, disabled: heartDisabled }"
             :title="heartDisabled ? $t('player.noAllowCauseLocal') : $t('player.like')"
             @click.stop="likeTrack"
           >
             <svg-icon :icon-class="isLiked ? 'heart-solid' : 'heart'"></svg-icon>
           </button-icon>
-          <button-icon class="button" :prevent-blur="true" @click="showContextMenu">
+          <button-icon class="button rainbow-more-control" :prevent-blur="true" @click="showContextMenu">
             <SvgIcon icon-class="options" />
           </button-icon>
           <PlaybackSpeedButton />

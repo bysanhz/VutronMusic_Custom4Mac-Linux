@@ -48,13 +48,13 @@
                   <SvgIcon :icon-class="isLiked ? 'heart-solid' : 'heart'" />
                 </button-icon>
                 <button-icon
-                  class="button"
+                  class="button rainbow-add-control"
                   :title="$t('player.addToPlaylist')"
                   @click="addTrackToPlaylist"
                   ><SvgIcon icon-class="plus"
                 /></button-icon>
                 <button-icon
-                  class="button"
+                  class="button rainbow-more-control"
                   :title="$t('player.moreActions')"
                   :prevent-blur="true"
                   @click="showContextMenu"

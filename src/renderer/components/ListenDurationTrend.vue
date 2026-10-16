@@ -37,7 +37,11 @@
             {{ formatHours(tick) }}
           </text>
         </g>
-        <g v-for="(point, index) in points" :key="`bar-${point.dateKey}`">
+        <g
+          v-for="(point, index) in points"
+          :key="`bar-${point.dateKey}`"
+          :style="{ '--rainbow-chart-day': `var(--rainbow-day-${index + 1})` }"
+        >
           <rect
             v-if="point.seconds !== null"
             :x="pointX(index) - barWidth / 2"
@@ -68,7 +72,11 @@
           class="trend-line"
           fill="none"
         />
-        <g v-for="(point, index) in points" :key="point.dateKey">
+        <g
+          v-for="(point, index) in points"
+          :key="point.dateKey"
+          :style="{ '--rainbow-chart-day': `var(--rainbow-day-${index + 1})` }"
+        >
           <circle
             v-if="point.seconds !== null && index === points.length - 1"
             :cx="pointX(index)"
@@ -109,7 +117,11 @@
             {{ formatDate(point.dateKey) }}
           </text>
         </g>
-        <g v-for="(point, index) in points" :key="`value-${point.dateKey}`">
+        <g
+          v-for="(point, index) in points"
+          :key="`value-${point.dateKey}`"
+          :style="{ '--rainbow-chart-day': `var(--rainbow-day-${index + 1})` }"
+        >
           <text
             v-if="point.seconds !== null"
             :x="pointX(index)"

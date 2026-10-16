@@ -1,0 +1,278 @@
+/*
+ * VutronMusic Rainbow – categorical/semantic colors, not a full UI gradient.
+ *
+ * - Seven navigation destinations and rolling seven-day chart bars use seven
+ *   deliberate solid hues, from coral through violet.
+ * - Player controls have stable, functional color meanings.
+ * - Large surfaces and body text remain neutral for visual hierarchy.
+ * - Liked hearts and destructive actions use their own semantic color tokens.
+ * - Rules are opt-in, and do not affect existing monochrome presets.
+ */
+
+:root {
+  /* Also used by the preview swatch when Rainbow is not selected. */
+  --rainbow-stripes: linear-gradient(
+    90deg,
+    #d95e79 0% 14.2857%,
+    #dd913a 14.2857% 28.5714%,
+    #d6b44a 28.5714% 42.8571%,
+    #46a77a 42.8571% 57.1428%,
+    #3eafc2 57.1428% 71.4285%,
+    #5888d9 71.4285% 85.7142%,
+    #9a77d4 85.7142% 100%
+  );
+}
+
+:root[data-accent-theme='rainbow'] {
+  --rainbow-1: #c94c6a; /* home / rose */
+  --rainbow-2: #b66b23; /* explore / orange */
+  --rainbow-3: #937515; /* library / amber */
+  --rainbow-4: #238357; /* insights / green */
+  --rainbow-5: #0a8295; /* stream / cyan */
+  --rainbow-6: #356cd2; /* local / blue */
+  --rainbow-7: #7857c6; /* settings / violet */
+
+  --rainbow-navigation: var(--rainbow-7);
+  --rainbow-playback: var(--rainbow-6);
+  --rainbow-volume: var(--rainbow-5);
+  --rainbow-repeat: var(--rainbow-4);
+  --rainbow-shuffle: var(--rainbow-2);
+  --rainbow-lyric: var(--rainbow-7);
+  --rainbow-secondary: var(--rainbow-3);
+  --rainbow-timer: var(--rainbow-5);
+  --rainbow-queue: var(--rainbow-1);
+  --rainbow-chart-average: var(--rainbow-7);
+
+  --color-playback-accent: var(--rainbow-playback);
+  --color-volume-accent: var(--rainbow-volume);
+  --rainbow-day-1: var(--rainbow-1);
+  --rainbow-day-2: var(--rainbow-2);
+  --rainbow-day-3: var(--rainbow-3);
+  --rainbow-day-4: var(--rainbow-4);
+  --rainbow-day-5: var(--rainbow-5);
+  --rainbow-day-6: var(--rainbow-6);
+  --rainbow-day-7: var(--rainbow-7);
+}
+
+/* Utils.changeAppearance sets data-theme on BODY rather than :root. */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] {
+  --color-primary: #ad98f3;
+  --rainbow-1: #f18ea6;
+  --rainbow-2: #f0b574;
+  --rainbow-3: #e4cb79;
+  --rainbow-4: #6dcca0;
+  --rainbow-5: #74d4e5;
+  --rainbow-6: #89b4ff;
+  --rainbow-7: #b6a0f4;
+  /* Recompute aliases on BODY so they follow the dark palette. */
+  --rainbow-navigation: var(--rainbow-7);
+  --rainbow-playback: var(--rainbow-6);
+  --rainbow-volume: var(--rainbow-5);
+  --rainbow-repeat: var(--rainbow-4);
+  --rainbow-shuffle: var(--rainbow-2);
+  --rainbow-lyric: var(--rainbow-7);
+  --rainbow-secondary: var(--rainbow-3);
+  --rainbow-timer: var(--rainbow-5);
+  --rainbow-queue: var(--rainbow-1);
+  --rainbow-chart-average: var(--rainbow-7);
+  --color-playback-accent: var(--rainbow-playback);
+  --color-volume-accent: var(--rainbow-volume);
+  --rainbow-day-1: var(--rainbow-1);
+  --rainbow-day-2: var(--rainbow-2);
+  --rainbow-day-3: var(--rainbow-3);
+  --rainbow-day-4: var(--rainbow-4);
+  --rainbow-day-5: var(--rainbow-5);
+  --rainbow-day-6: var(--rainbow-6);
+  --rainbow-day-7: var(--rainbow-7);
+}
+
+/* Navigation: all seven icons retain their individual colors even when inactive.
+   Route classes are explicit, so optional streaming/local buttons never shift hues. */
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-home { --rainbow-nav-color: var(--rainbow-1); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-explore { --rainbow-nav-color: var(--rainbow-2); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-library { --rainbow-nav-color: var(--rainbow-3); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-insights { --rainbow-nav-color: var(--rainbow-4); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-stream { --rainbow-nav-color: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-local { --rainbow-nav-color: var(--rainbow-6); }
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav-settings { --rainbow-nav-color: var(--rainbow-7); }
+
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav {
+  color: var(--rainbow-nav-color) !important;
+  background: color-mix(in srgb, var(--rainbow-nav-color) 10%, transparent) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav .icon {
+  color: var(--rainbow-nav-color) !important;
+  opacity: 0.95;
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--rainbow-nav-color) 18%, transparent) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav > .rainbow-nav.active {
+  background: color-mix(in srgb, var(--rainbow-nav-color) 23%, transparent) !important;
+  box-shadow: inset 3px 0 var(--rainbow-nav-color);
+}
+
+:root[data-accent-theme='rainbow'] #app .side-nav::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 14px;
+  right: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rainbow-stripes);
+  pointer-events: none;
+}
+
+/* Seven settings tabs share the same ordered hues. The active accent bar
+   changes with the selected section instead of remaining permanently violet. */
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-general { --rainbow-tab-color: var(--rainbow-1); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-lyric { --rainbow-tab-color: var(--rainbow-2); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-music { --rainbow-tab-color: var(--rainbow-3); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-unblock { --rainbow-tab-color: var(--rainbow-4); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-shortcut { --rainbow-tab-color: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-misc { --rainbow-tab-color: var(--rainbow-6); }
+:root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-update { --rainbow-tab-color: var(--rainbow-7); }
+
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar > .rainbow-settings-tab {
+  color: var(--rainbow-tab-color);
+  opacity: 0.78;
+}
+
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar > .rainbow-settings-tab:hover {
+  opacity: 1;
+}
+
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar > .rainbow-settings-tab.active {
+  color: var(--rainbow-tab-color);
+  opacity: 1;
+}
+
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-general.active) { --rainbow-current-tab: var(--rainbow-1); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-lyric.active) { --rainbow-current-tab: var(--rainbow-2); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-music.active) { --rainbow-current-tab: var(--rainbow-3); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-unblock.active) { --rainbow-current-tab: var(--rainbow-4); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-shortcut.active) { --rainbow-current-tab: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-misc.active) { --rainbow-current-tab: var(--rainbow-6); }
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar:has(> .rainbow-settings-update.active) { --rainbow-current-tab: var(--rainbow-7); }
+
+:root[data-accent-theme='rainbow'] #app .system-settings .slideBar .iconfont {
+  background-color: var(--rainbow-current-tab, var(--rainbow-7));
+}
+
+/* Listening footprint: seven independent solid-colored bars. The chart remains
+   readable by bar height, numeric labels and date even without hue perception.
+   Today is always the final slot and keeps its separate outline emphasis. */
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar {
+  fill: var(--rainbow-chart-day) !important;
+  fill-opacity: 0.7;
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar.selected {
+  fill-opacity: 0.89;
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar.today {
+  fill-opacity: 0.95;
+  stroke: var(--rainbow-chart-day);
+  stroke-width: 2.5;
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-dot {
+  stroke: var(--rainbow-chart-day);
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-dot.today {
+  fill: var(--rainbow-chart-day);
+  stroke: var(--color-body-bg);
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-today-halo {
+  fill: color-mix(in srgb, var(--rainbow-chart-day) 22%, transparent);
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-date.today,
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar-value.today {
+  fill: var(--rainbow-chart-day);
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-average {
+  stroke: var(--rainbow-chart-average);
+  stroke-width: 3;
+}
+
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-line {
+  stroke: var(--rainbow-6);
+  stroke-opacity: 0.28;
+}
+
+/* Stable, small semantic accents in both player layouts. */
+:root[data-accent-theme='rainbow'] #app .player .controls .play .svg-icon,
+:root[data-accent-theme='rainbow'] #app .media-controls #play .svg-icon,
+:root[data-accent-theme='rainbow'] #app .player-media-control #play .svg-icon {
+  color: var(--rainbow-playback) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-repeat-control.rainbow-enabled .svg-icon {
+  color: var(--rainbow-repeat) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-shuffle-control.rainbow-enabled .svg-icon {
+  color: var(--rainbow-shuffle) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-queue-control .svg-icon {
+  color: var(--rainbow-queue) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-osd-lyrics-control .svg-icon {
+  color: var(--rainbow-lyric) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .playback-speed-button {
+  color: var(--rainbow-secondary) !important;
+  opacity: 1;
+}
+
+:root[data-accent-theme='rainbow'] #app .sleep-timer-button {
+  color: var(--rainbow-timer) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-add-control .svg-icon {
+  color: var(--rainbow-secondary) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .rainbow-more-control .svg-icon {
+  color: var(--rainbow-lyric) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .player .volume > .button-icon .svg-icon {
+  color: var(--rainbow-volume) !important;
+}
+
+/* A subtle functional accent for the affirmative action; secondary and
+   destructive buttons remain neutral and red, respectively. */
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary {
+  color: #fff !important;
+  background: linear-gradient(110deg, #7857c6, #356cd2) !important;
+  border-color: var(--rainbow-navigation) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, #6846b7, #275cbb) !important;
+}
+
+:root[data-accent-theme='rainbow'] #app .shade .modal button.primary:active:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+/* The heart has its own semantic red; this overrides historical generic
+   '.button-icon.active' palette rules even in the bottom player toolbar. */
+#app .player .controls .like-button.liked:not(.disabled),
+#app .player .controls .like-button.liked:not(.disabled) .svg-icon,
+#app .player-media-control .like-button.liked:not(.disabled) .svg-icon {
+  color: var(--color-like) !important;
+}

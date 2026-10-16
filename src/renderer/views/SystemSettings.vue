@@ -24,25 +24,25 @@
     <div class="slide-container">
       <div class="slideBar">
         <div class="tab slide" :style="{ top: slideTop + 'px' }"><div class="iconfont"></div></div>
-        <div class="tab" :class="{ active: tab === 'general' }" @click="updateTab(0)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-general" :class="{ active: tab === 'general' }" @click="updateTab(0)">{{
           $t('settings.nav.general')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'lyric' }" @click="updateTab(1)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-lyric" :class="{ active: tab === 'lyric' }" @click="updateTab(1)">{{
           isWindows ? $t('settings.nav.osdLyric') : $t('settings.nav.lyricSetting')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'music' }" @click="updateTab(2)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-music" :class="{ active: tab === 'music' }" @click="updateTab(2)">{{
           $t('settings.nav.music')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'unblock' }" @click="updateTab(3)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-unblock" :class="{ active: tab === 'unblock' }" @click="updateTab(3)">{{
           $t('settings.nav.unblock')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'shortcut' }" @click="updateTab(4)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-shortcut" :class="{ active: tab === 'shortcut' }" @click="updateTab(4)">{{
           $t('settings.nav.shortcut')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'misc' }" @click="updateTab(5)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-misc" :class="{ active: tab === 'misc' }" @click="updateTab(5)">{{
           $t('settings.nav.misc')
         }}</div>
-        <div class="tab" :class="{ active: tab === 'update' }" @click="updateTab(6)">{{
+        <div class="tab rainbow-settings-tab rainbow-settings-update" :class="{ active: tab === 'update' }" @click="updateTab(6)">{{
           $t('settings.nav.update')
         }}</div>
       </div>

@@ -78,6 +78,7 @@
             ><svg-icon icon-class="next"
           /></button-icon>
           <button-icon
+            class="rainbow-osd-lyrics-control"
             :title="$t('player.osdLyrics')"
             :class="{ active: show }"
             @click.stop="show = !show"
@@ -90,6 +91,7 @@
       </div>
       <div class="right">
         <button-icon
+          class="rainbow-queue-control"
           :title="$t('player.nextUp')"
           :class="{
             active: route.name === 'next',

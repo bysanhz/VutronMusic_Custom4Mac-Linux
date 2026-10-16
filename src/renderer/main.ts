@@ -14,6 +14,7 @@ import './assets/css/global.scss'
 import './assets/css/fluid-window.scss'
 import './assets/css/settings-fluid-layout.scss'
 import './assets/css/interaction-theme.scss'
+import './assets/css/rainbow-theme.scss'
 import './assets/css/resize-performance.scss'
 // =========== newADD end ========
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
