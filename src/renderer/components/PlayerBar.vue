@@ -84,6 +84,7 @@
             ><svg-icon icon-class="osd-lyrics"
           /></button-icon>
           <PlaybackSpeedButton />
+          <SleepTimerButton compact />
         </div>
         <div class="blank"></div>
       </div>
@@ -165,6 +166,7 @@
 import SliderVue from 'vue-3-slider-component'
 import VueSlider from './VueSlider.vue'
 import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
+import SleepTimerButton from './SleepTimerButton.vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useDataStore } from '../store/data'
@@ -396,14 +398,15 @@ watch(showLyrics, (value) => {
 
 .controls {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   height: 100%;
-  padding: 0 44px;
+  padding: 0 clamp(14px, 3.8vw, 44px);
   align-items: center;
 
   .left {
     display: flex;
     align-items: center;
+    min-width: 0;
     img {
       border-radius: 8px;
       height: 46px;
@@ -413,6 +416,7 @@ watch(showLyrics, (value) => {
       cursor: pointer;
     }
     .track-info {
+      min-width: 0;
       margin-left: 16px;
     }
     .track-info .title {
@@ -457,6 +461,10 @@ watch(showLyrics, (value) => {
       justify-content: center;
       align-items: center;
       padding: 0 8px;
+
+      :deep(.sleep-timer-button) {
+        margin: 2px;
+      }
 
       .play {
         background: transparent;

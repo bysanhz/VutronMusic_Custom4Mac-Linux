@@ -89,6 +89,7 @@
             <SvgIcon icon-class="options" />
           </button-icon>
           <PlaybackSpeedButton />
+          <SleepTimerButton compact />
         </div>
         <div class="player-progress-bar">
           <div class="time"
@@ -160,6 +161,7 @@ import { gsap } from 'gsap'
 import VueSlider from './VueSlider.vue'
 import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
+import SleepTimerButton from './SleepTimerButton.vue'
 import ButtonIcon from './ButtonIcon.vue'
 import SvgIcon from './SvgIcon.vue'
 import LyricPage from './LyricPage.vue'
@@ -1035,6 +1037,11 @@ $mid: math.ceil(math.div($count, 2));
       height: 36px;
       margin: 0;
       padding: 0;
+    }
+
+    :deep(.sleep-timer-button.is-active) {
+      width: auto;
+      min-width: 36px;
     }
 
     :deep(.playback-speed-button) {

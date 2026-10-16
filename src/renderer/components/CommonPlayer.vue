@@ -61,6 +61,8 @@
                 >
                   <SvgIcon icon-class="options" />
                 </button-icon>
+                <PlaybackSpeedButton />
+                <SleepTimerButton />
               </div>
             </div>
           </div>
@@ -124,7 +126,6 @@
               @click="shuffle = !shuffle"
               ><svg-icon icon-class="shuffle"
             /></button-icon>
-            <PlaybackSpeedButton />
           </div>
           <div class="progress-bar">
             <div class="time"
@@ -214,6 +215,7 @@ import SvgIcon from './SvgIcon.vue'
 import VueSlider from './VueSlider.vue'
 import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
+import SleepTimerButton from './SleepTimerButton.vue'
 import LyricPage from './LyricPage.vue'
 import Comment from './CommentPage.vue'
 import { usePlayerStore } from '../store/player'
@@ -561,6 +563,17 @@ onBeforeUnmount(() => {
               // =========== newADD end ========
             }
 
+            :deep(.playback-speed-button) {
+              min-height: 32px;
+              margin: 0;
+              padding: 0 5px;
+              opacity: 0.88;
+            }
+
+            :deep(.sleep-timer-button) {
+              margin: 0;
+            }
+
             .svg-icon {
               height: 18px;
               width: 18px;
@@ -625,15 +638,6 @@ onBeforeUnmount(() => {
           height: 36px;
           margin: 0;
           padding: 0;
-        }
-
-        :deep(.playback-speed-button) {
-          opacity: 0.38;
-
-          &.is-adjusted,
-          &:hover {
-            opacity: 0.88;
-          }
         }
 
         .svg-icon {

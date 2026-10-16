@@ -133,6 +133,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { formatSleepTimerDuration } from '../utils/sleepTimerDisplay'
 import BaseModal from './BaseModal.vue'
 import {
   cancelSleepTimer,
@@ -289,21 +290,9 @@ watch(sleepTimerModalVisible, (visible) => {
   }
 })
 
-const formatDuration = (seconds: number): string => {
-  const totalSeconds = Math.max(0, Math.ceil(seconds))
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const remainingSeconds = totalSeconds % 60
-  const minuteText = minutes.toString().padStart(2, '0')
-  const secondText = remainingSeconds.toString().padStart(2, '0')
-  return hours > 0
-    ? `${hours.toString().padStart(2, '0')}:${minuteText}:${secondText}`
-    : `${minuteText}:${secondText}`
-}
-
 const statusText = computed(() => {
   if (sleepTimerMode.value === 'minutes') {
-    return text.value.countdown.replace('{time}', formatDuration(sleepTimerRemainingSeconds.value))
+    return text.value.countdown.replace('{time}', formatSleepTimerDuration(sleepTimerRemainingSeconds.value))
   }
   if (sleepTimerMode.value === 'trackEnd') return text.value.waitingTrack
   if (sleepTimerMode.value === 'queueEnd') return text.value.waitingQueue
