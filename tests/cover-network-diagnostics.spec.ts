@@ -78,3 +78,13 @@ test('corrupted artwork query is stripped but ordinary URLs and authentication a
   )
   expect(readSource('src/renderer/components/CoverBox.vue')).toContain(':src="safeImageUrl"')
 })
+
+test('shared cover card retries only a failing NetEase URL once', () => {
+  const cover = readSource('src/renderer/components/CoverBox.vue')
+  expect(cover).toContain(':src="displayImageUrl"')
+  expect(cover).toContain("recoveredImageUrl.value = parsed.toString()")
+  expect(cover).toContain('!recoveredImageUrl.value && isNeteaseAssetUrl(current)')
+  expect(cover).toContain("recoveredImageUrl.value = ''")
+  const main = readSource('src/main/utils/index.ts')
+  expect(main).toContain('if (!candidates.includes(bare)) candidates.push(bare)')
+})
