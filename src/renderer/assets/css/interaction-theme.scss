@@ -175,6 +175,9 @@
   --rainbow-volume: #6ed0e5;
   --rainbow-repeat: #68c999;
   --rainbow-shuffle: #f2b573;
+  // Recompute on BODY: a var() resolved on ROOT would inherit its light value.
+  --color-playback-accent: var(--rainbow-playback);
+  --color-volume-accent: var(--rainbow-volume);
 }
 
 /* Restrained segmented rainbow decoration, with a solid violet selection. */
