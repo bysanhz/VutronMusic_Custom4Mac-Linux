@@ -65,7 +65,7 @@
     <SaveThemeModal />
     <BackgroundModal />
     <SenseSwitch v-model="showSenseSelector" :type="activeTheme.theme.activeLayout" />
-    <ContextMenu ref="playPageContextMenu">
+    <ContextMenu ref="playPageContextMenu" class="player-tools-menu">
       <div
         v-show="activeTheme.theme.activeLayout === 'Creative'"
         class="item"
@@ -349,6 +349,10 @@ watch(
 }
 
 .sleep-timer-active-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 500;

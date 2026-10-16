@@ -1,10 +1,11 @@
 <template>
   <BaseModal
-    class="save-theme-modal"
+    class="save-theme-modal player-tool-modal"
     :show="setSaveThemeModal"
     :title="t('modalTheme.saveTitle')"
     :close-fn="close"
-    width="25vw"
+    width="min(440px, calc(100vw - 40px))"
+    min-width="0"
   >
     <template #default>
       <input v-model="name" type="text" :placeholder="t('modalTheme.namePlaceholder')" />

@@ -1,9 +1,10 @@
 <template>
   <BaseModal
+    class="player-tool-modal"
     :show="sleepTimerModalVisible"
     :title="text.title"
-    width="25vw"
-    min-width="calc(min(23rem, 92vw))"
+    width="min(480px, calc(100vw - 32px))"
+    min-width="0"
     :close-fn="close"
   >
     <template #default>
@@ -352,49 +353,66 @@ const cancel = () => {
 
 <style scoped lang="scss">
 .timer-section {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .section-label {
-  margin-bottom: 7px;
-  color: color-mix(in srgb, var(--color-text), transparent 46%);
-  font-size: 11px;
+  margin-bottom: 10px;
+  color: color-mix(in srgb, var(--color-text), transparent 38%);
+  font-size: 13px;
   font-weight: 650;
+  line-height: 1.4;
 }
 
 .quick-time-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 7px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .quick-time-grid button,
 .end-mode-grid button,
 .segmented-control button {
-  border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
-  border-radius: 9px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
+  border-radius: 12px;
   color: var(--color-text);
   background: var(--color-secondary-bg-for-transparent);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
 
   &.active {
     border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary), transparent 89%);
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
 .quick-time-grid button {
-  min-height: 38px;
-  padding: 6px 4px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 9px 6px;
+  white-space: nowrap;
 
   strong {
-    margin-right: 2px;
-    font-size: 14px;
+    font-size: 16px;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
   }
 
   span {
-    color: color-mix(in srgb, var(--color-text), transparent 46%);
-    font-size: 9px;
+    color: color-mix(in srgb, var(--color-text), transparent 38%);
+    font-size: 12px;
+    line-height: 1.4;
   }
 }
 
@@ -402,12 +420,16 @@ const cancel = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
-  border-radius: 9px;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 6px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
+  border-radius: 12px;
   background: var(--color-secondary-bg-for-transparent);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: text;
 
   &.active {
     border-color: var(--color-primary);
@@ -416,88 +438,106 @@ const cancel = () => {
   &.invalid {
     border-color: #d44;
   }
+
+  &:focus-within {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+    outline-offset: 1px;
+  }
 }
 
 .custom-time-input-wrap {
   display: flex;
   align-items: center;
-  gap: 5px;
-  color: color-mix(in srgb, var(--color-text), transparent 44%);
+  gap: 8px;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--color-text), transparent 38%);
+  font-size: 12px;
 
   input {
-    width: 64px;
-    height: 28px;
+    width: 76px;
+    height: 34px;
     box-sizing: border-box;
-    padding: 0 7px;
+    padding: 0 8px;
     border: 0;
-    border-radius: 7px;
+    border-radius: 8px;
     outline: 0;
     color: var(--color-text);
     background: color-mix(in srgb, var(--color-text), transparent 93%);
-    text-align: right;
-    font: inherit;
+    text-align: center;
+    font-size: 14px;
     font-weight: 650;
+    font-variant-numeric: tabular-nums;
   }
 }
 
 .inline-error {
-  margin: 4px 2px 0;
+  margin: 6px 2px 0;
   color: #d44;
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .end-mode-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 7px;
+  gap: 10px;
+  margin-top: 10px;
 
   button {
-    display: grid;
-    gap: 2px;
-    min-height: 48px;
-    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    min-height: 74px;
+    padding: 12px 14px;
     text-align: left;
   }
 
   strong {
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 1.35;
   }
 
   span {
-    color: color-mix(in srgb, var(--color-text), transparent 48%);
-    font-size: 10px;
+    color: color-mix(in srgb, var(--color-text), transparent 42%);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
   }
 }
 
 .compact-settings {
-  padding-top: 10px;
+  padding-top: 16px;
   border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
 }
 
 .action-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   flex: 1;
+  min-width: 0;
 
   button {
-    min-height: 34px;
+    min-height: 40px;
+    padding: 6px 8px;
     border-radius: 0;
-    font-size: 11px;
+    font-size: 13px;
 
     &:first-child {
-      border-radius: 8px 0 0 8px;
+      border-radius: 10px 0 0 10px;
     }
 
     &:last-child {
       margin-left: -1px;
-      border-radius: 0 8px 8px 0;
+      border-radius: 0 10px 10px 0;
     }
   }
 }
@@ -505,28 +545,35 @@ const cancel = () => {
 .fade-select {
   display: flex;
   align-items: center;
-  gap: 5px;
-  color: color-mix(in srgb, var(--color-text), transparent 42%);
-  font-size: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--color-text), transparent 38%);
+  font-size: 12px;
 
   select {
-    height: 34px;
-    padding: 0 7px;
-    border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
-    border-radius: 8px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
+    border-radius: 10px;
     color: var(--color-text);
     background: var(--color-secondary-bg-for-transparent);
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
   }
 }
 
 .sleep-timer-status {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 28px;
+  gap: 8px;
+  min-height: 26px;
   padding: 0 2px;
-  color: color-mix(in srgb, var(--color-text), transparent 48%);
-  font-size: 11px;
+  color: color-mix(in srgb, var(--color-text), transparent 42%);
+  font-size: 12px;
+  line-height: 1.4;
 
   &.active {
     color: var(--color-primary);
@@ -534,8 +581,8 @@ const cancel = () => {
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   flex-shrink: 0;
   border-radius: 50%;
   background: currentColor;
@@ -544,7 +591,7 @@ const cancel = () => {
 .sleep-timer-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -556,6 +603,12 @@ const cancel = () => {
 
   .fade-select {
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 360px) {
+  .quick-time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

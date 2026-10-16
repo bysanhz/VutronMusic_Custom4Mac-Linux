@@ -300,4 +300,37 @@ hr {
     word-break: break-all;
   }
 }
+
+/* Restrict More Actions styling to the playback page's menu. */
+.context-menu.player-tools-menu {
+  .menu {
+    width: 252px;
+    max-width: calc(100vw - 24px);
+    padding: 8px;
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+  }
+
+  .menu .item {
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible,
+    &.active {
+      color: var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    }
+  }
+
+  hr {
+    margin: 6px 10px;
+  }
+}
 </style>

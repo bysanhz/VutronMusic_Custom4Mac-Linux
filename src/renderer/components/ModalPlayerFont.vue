@@ -1,9 +1,11 @@
 <template>
   <div :class="{ 'creative-container': activeTheme.theme.activeLayout === 'Creative' }">
     <Modal
+      class="player-tool-modal"
       :show="setFontModal"
       :title="t('playerFont.title')"
-      width="60vw"
+      width="min(760px, calc(100vw - 40px))"
+      min-width="0"
       :show-footer="false"
       :close-fn="close"
     >

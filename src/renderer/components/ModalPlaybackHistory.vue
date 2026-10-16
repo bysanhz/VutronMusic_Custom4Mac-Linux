@@ -1,9 +1,10 @@
 <template>
   <BaseModal
+    class="player-tool-modal"
     :show="playbackHistoryModalVisible"
     :title="text.title"
-    width="42vw"
-    min-width="calc(min(38rem, 94vw))"
+    width="min(720px, calc(100vw - 40px))"
+    min-width="0"
     :close-fn="close"
   >
     <template #default>

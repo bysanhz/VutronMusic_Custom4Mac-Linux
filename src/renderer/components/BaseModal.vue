@@ -289,4 +289,68 @@ onBeforeUnmount(() => {
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
+
+/* Common shell for the player More Actions dialogs. */
+.shade.player-tool-modal {
+  .modal {
+    box-sizing: border-box;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100dvh - 48px);
+    padding: 20px 0;
+    border-radius: 18px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+  }
+
+  .header {
+    gap: 12px;
+    margin: 0 24px 18px;
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
+  .content {
+    scrollbar-width: thin;
+  }
+
+  .footer {
+    margin: 18px 24px 0;
+    padding-top: 16px;
+
+    button {
+      min-height: 40px;
+      margin-left: 0;
+      padding: 8px 16px;
+      border-radius: 10px;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .shade.player-tool-modal {
+    .modal {
+      max-width: calc(100vw - 20px);
+      padding: 18px 0;
+    }
+
+    .header {
+      margin: 0 18px 16px;
+    }
+
+    .content {
+      padding: 0 18px;
+    }
+
+    .footer {
+      margin: 16px 18px 0;
+    }
+  }
+}
 </style>

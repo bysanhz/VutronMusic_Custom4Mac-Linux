@@ -1,9 +1,10 @@
 <template>
   <BaseModal
+    class="player-tool-modal"
     :show="trackLyricOffsetModalVisible"
     :title="text.title"
-    width="min(30rem, 94vw)"
-    min-width="min(22rem, 94vw)"
+    width="min(500px, calc(100vw - 40px))"
+    min-width="0"
     :close-fn="close"
   >
     <template #default>

@@ -1,9 +1,9 @@
 <template>
   <BaseModal
-    class="convolver-modal"
+    class="convolver-modal player-tool-modal"
     :show="setConvolverModal"
     :title="$t('player.converlution.title')"
-    width="min(500px, calc(100vw - 40px))"
+    width="min(540px, calc(100vw - 40px))"
     min-width="0"
     :show-footer="false"
     :close-fn="closeFn"
