@@ -76,6 +76,7 @@ const getMainLanguage = () => {
 
 const closeOnLinux = (e: any, win: BrowserWindow) => {
   const closeOpt = store.get('settings.closeAppOption') || 'ask'
+  log.warn('[ExitDiagnostics] Linux window close event', { closeOpt })
   if (closeOpt !== 'exit') {
     e.preventDefault()
   }
@@ -105,18 +106,41 @@ const closeOnLinux = (e: any, win: BrowserWindow) => {
         } else if (result.response === 1) {
           setTimeout(() => {
             win = null
+            recordExitIntent('Linux close dialog: exit')
             app.exit()
           }, 100)
         }
       })
       .catch()
   } else if (closeOpt === 'exit') {
+    recordExitIntent('Linux close option: exit')
     win = null
     app.quit()
   } else {
     win.hide()
   }
 }
+
+// Exit diagnostics must stay separate from UI diagnostics: a native crash cannot
+// reliably reach the renderer's one-click snapshot.
+const describeExitReason = (reason: unknown): string =>
+  reason instanceof Error ? reason.stack || reason.message : String(reason)
+
+let lastExitIntent = 'not_recorded'
+const recordExitIntent = (reason: string): void => {
+  lastExitIntent = reason
+  log.warn('[ExitDiagnostics] exit intent:', reason)
+}
+
+process.on('exit', (code) => {
+  log.warn('[ExitDiagnostics] Node exit event', { code, lastExitIntent })
+})
+process.on('uncaughtExceptionMonitor', (error, origin) => {
+  log.error('[ExitDiagnostics] uncaught exception', {
+    origin,
+    error: describeExitReason(error)
+  })
+})
 
 const defaultImagePath = Constants.IS_DEV_ENV
   ? path.join(process.cwd(), `./src/public/images/default.jpg`)
@@ -140,6 +164,7 @@ class BackGround {
   async init() {
     if (process.platform === 'win32') app.setAppUserModelId(app.getName())
     if (!app.requestSingleInstanceLock()) {
+      recordExitIntent('second instance denied')
       app.quit()
       process.exit(0)
     }
@@ -1101,14 +1126,19 @@ class BackGround {
     })
 
     app.on('window-all-closed', () => {
-      if (!Constants.IS_MAC) app.quit()
+      if (!Constants.IS_MAC) {
+        recordExitIntent('window-all-closed')
+        app.quit()
+      }
     })
 
     app.on('before-quit', () => {
+      log.warn('[ExitDiagnostics] before-quit', { lastExitIntent })
       this.willQuitApp = true
     })
 
-    app.on('quit', () => {
+    app.on('quit', (_event, exitCode) => {
+      log.warn('[ExitDiagnostics] app quit', { exitCode, lastExitIntent })
       globalShortcut.unregisterAll()
       if (this.checkInterval) clearInterval(this.checkInterval)
       void this.fastifyApp?.close()
@@ -1134,6 +1164,12 @@ class BackGround {
   }
 
   handleWindowEvents() {
+    this.win.webContents.on('render-process-gone', (_event, details) => {
+      log.error('[ExitDiagnostics] main renderer gone', details)
+    })
+    this.win.on('unresponsive', () => {
+      log.warn('[ExitDiagnostics] main window unresponsive')
+    })
     this.win.once('ready-to-show', async () => {
       this.win.show()
       this.win.focus()
@@ -1144,6 +1180,7 @@ class BackGround {
     })
 
     this.win.on('close', (e) => {
+      log.warn('[ExitDiagnostics] main window close', { platform: process.platform })
       if (Constants.IS_MAC) {
         if (this.willQuitApp) {
           this.win = null
