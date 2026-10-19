@@ -58,7 +58,11 @@
           >
             <svg-icon icon-class="heart-solid"></svg-icon>
           </button-icon>
-          <button-icon v-show="!isPersonalFM" :title="$t('player.previous')" @click.stop="playPrev"
+          <button-icon
+            v-show="!isPersonalFM"
+            class="rainbow-skip-control"
+            :title="$t('player.previous')"
+            @click.stop="playPrev"
             ><svg-icon icon-class="previous"
           /></button-icon>
           <button-icon
@@ -74,7 +78,10 @@
           >
             <svg-icon :icon-class="playing ? 'pause' : 'play'"
           /></button-icon>
-          <button-icon :title="$t('player.next')" @click.stop="_playNextTrack(isPersonalFM)"
+          <button-icon
+            class="rainbow-skip-control"
+            :title="$t('player.next')"
+            @click.stop="_playNextTrack(isPersonalFM)"
             ><svg-icon icon-class="next"
           /></button-icon>
           <button-icon
@@ -157,7 +164,7 @@
           /></button-icon>
         </div>
         <button-icon
-          class="lyrics-button"
+          class="lyrics-button rainbow-expand-control"
           :title="t('playerBar.lyrics')"
           @click.stop="showLyrics = !showLyrics"
           ><svg-icon icon-class="arrow-up"
