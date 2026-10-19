@@ -1,9 +1,9 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal sleep-timer-modal"
     :show="sleepTimerModalVisible"
     :title="text.title"
-    width="min(480px, calc(100vw - 32px))"
+    width="min(455px, calc(100vw - 32px))"
     min-width="0"
     :close-fn="close"
   >
@@ -345,11 +345,11 @@ const cancel = () => {
 
 <style scoped lang="scss">
 .timer-section {
-  margin-bottom: 16px;
+  margin-bottom: 9px;
 }
 
 .section-label {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   color: color-mix(in srgb, var(--color-text), transparent 38%);
   font-size: 13px;
   font-weight: 650;
@@ -359,8 +359,8 @@ const cancel = () => {
 .quick-time-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 7px;
+  margin-bottom: 7px;
 }
 
 .quick-time-grid button,
@@ -393,8 +393,8 @@ const cancel = () => {
   justify-content: center;
   gap: 4px;
   min-width: 0;
-  min-height: 48px;
-  padding: 9px 6px;
+  min-height: 38px;
+  padding: 5px 6px;
   white-space: nowrap;
 
   strong {
@@ -416,8 +416,8 @@ const cancel = () => {
   justify-content: space-between;
   gap: 12px;
   box-sizing: border-box;
-  min-height: 48px;
-  padding: 6px 14px;
+  min-height: 40px;
+  padding: 4px 10px;
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
   border-radius: 12px;
   background: var(--color-secondary-bg-for-transparent);
@@ -449,7 +449,7 @@ const cancel = () => {
 
   input {
     width: 76px;
-    height: 34px;
+    height: 30px;
     box-sizing: border-box;
     padding: 0 8px;
     border: 0;
@@ -474,18 +474,18 @@ const cancel = () => {
 .end-mode-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+  gap: 7px;
+  margin-top: 7px;
 
   button {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 5px;
+    gap: 3px;
     min-width: 0;
-    min-height: 74px;
-    padding: 12px 14px;
+    min-height: 56px;
+    padding: 7px 10px;
     text-align: left;
   }
 
@@ -503,14 +503,14 @@ const cancel = () => {
 }
 
 .compact-settings {
-  padding-top: 16px;
+  padding-top: 10px;
   border-top: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
 }
 
 .action-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .segmented-control {
@@ -520,8 +520,8 @@ const cancel = () => {
   min-width: 0;
 
   button {
-    min-height: 40px;
-    padding: 6px 8px;
+    min-height: 34px;
+    padding: 5px 8px;
     border-radius: 0;
     font-size: 13px;
 
@@ -545,7 +545,7 @@ const cancel = () => {
   font-size: 12px;
 
   select {
-    height: 40px;
+    height: 34px;
     padding: 0 10px;
     border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
     border-radius: 10px;
@@ -563,7 +563,7 @@ const cancel = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 26px;
+  min-height: 20px;
   padding: 0 2px;
   color: color-mix(in srgb, var(--color-text), transparent 42%);
   font-size: 12px;
