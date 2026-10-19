@@ -169,7 +169,7 @@ const recentLoading = ref(false)
 const recentError = ref(false)
 let recentRequestId = 0
 const loadRecentTracks = async () => {
-  if (!isOwnProfile.value || recentLoading.value) return
+  if (!isOwnProfile.value) return
   const requestId = ++recentRequestId
   recentLoading.value = true
   recentError.value = false
@@ -315,6 +315,8 @@ onBeforeRouteUpdate((to, from, next) => {
   show.value = false
   recentRequestId++
   recentTracks.value = []
+  recentLoading.value = false
+  recentError.value = false
   playHistoryMode.value = 'week'
   getUser(to.params.id as string)
   next()
