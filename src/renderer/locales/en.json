@@ -1244,7 +1244,11 @@
     "podcasts": "Podcasts",
     "follow": "Follow",
     "followBack": "Follow Back",
-    "followingStatus": "Following"
+    "followingStatus": "Following",
+    "crossDeviceRecent": "Recent Across Devices",
+    "recentLoading": "Loading recent plays…",
+    "recentError": "Could not load recent plays. Please try again.",
+    "recentEmpty": "No recent plays available"
   },
   "playerBar": {
     "lyrics": "Lyrics"
