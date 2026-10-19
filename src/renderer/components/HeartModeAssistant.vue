@@ -109,24 +109,26 @@
             <div class="section-hint">{{ texts.sessionHint }}</div>
 
             <div class="metrics">
-              <div>
+              <div class="rainbow-heart-metric rainbow-heart-metric-novelty">
                 <span>{{ texts.explore }}</span>
                 <strong>{{ effectiveProfile?.novelty ?? session.profile.novelty }}%</strong>
               </div>
-              <div>
+              <div class="rainbow-heart-metric rainbow-heart-metric-diversity">
                 <span>{{ texts.diversity }}</span>
                 <strong>{{ effectiveProfile?.diversity ?? session.profile.diversity }}%</strong>
               </div>
-              <div>
+              <div class="rainbow-heart-metric rainbow-heart-metric-familiarity">
                 <span>{{ texts.familiarity }}</span>
                 <strong>{{ effectiveProfile?.familiarity ?? session.profile.familiarity }}%</strong>
               </div>
             </div>
 
             <div class="queue-summary">
-              {{ texts.played }} {{ session.playedTrackIDs.length }} · {{ texts.queued }}
-              {{ session.enqueuedTrackIDs.length }} · {{ texts.pending }}
-              {{ session.pendingTrackIDs.length }}
+              <span class="rainbow-heart-count rainbow-heart-count-played">{{ texts.played }} <strong>{{ session.playedTrackIDs.length }}</strong></span>
+              <span aria-hidden="true">·</span>
+              <span class="rainbow-heart-count rainbow-heart-count-queued">{{ texts.queued }} <strong>{{ session.enqueuedTrackIDs.length }}</strong></span>
+              <span aria-hidden="true">·</span>
+              <span class="rainbow-heart-count rainbow-heart-count-pending">{{ texts.pending }} <strong>{{ session.pendingTrackIDs.length }}</strong></span>
             </div>
 
             <div class="branch-section-title">{{ texts.branchTitle }}</div>
