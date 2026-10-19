@@ -128,13 +128,19 @@
           </div>
         </div>
         <details class="preset-disclosure">
-          <summary>{{ $t('player.frequad.presets') }} · {{ activePresetName }}</summary>
+          <summary>
+            {{ $t('player.frequad.presets') }} ·
+            <span class="preset-current-name" :style="{ '--preset-hue': activePresetHue }">
+              {{ activePresetName }}
+            </span>
+          </summary>
           <div class="preset">
             <button
-              v-for="item in freqsPreset"
+              v-for="(item, index) in freqsPreset"
               :key="item.name"
               type="button"
               class="button"
+              :style="{ '--preset-hue': presetHue(index) }"
               :class="{ active: matchedFreqs(item) }"
               @click="setFreqs(item)"
               >{{ $t(`player.frequad.${item.name}`) }}</button
@@ -144,6 +150,7 @@
               :key="index"
               type="button"
               class="button"
+              :style="{ '--preset-hue': presetHue(freqsPreset.length + index) }"
               :class="{ active: matchedFreqs(Object.entries(item)[0][1]) }"
               @click="setFreqs(Object.entries(item)[0][1])"
               @contextmenu.prevent="removeFreqs(item)"
@@ -278,6 +285,18 @@ const matchedFreqs = (data: any) => {
   }
   return matched
 }
+
+// Use the same seven-color index for a preset chip and its current-value label.
+const presetHue = (index: number): string => `var(--rainbow-${(index % 7) + 1})`
+
+const activePresetHue = computed(() => {
+  const builtinIndex = freqsPreset.findIndex((preset) => matchedFreqs(preset))
+  if (builtinIndex >= 0) return presetHue(builtinIndex)
+  const customIndex = biquadUser.value.findIndex((preset) =>
+    matchedFreqs(Object.values(preset)[0])
+  )
+  return customIndex >= 0 ? presetHue(freqsPreset.length + customIndex) : 'var(--color-text)'
+})
 
 const activePresetName = computed(() => {
   const builtin = freqsPreset.find((preset) => matchedFreqs(preset))
