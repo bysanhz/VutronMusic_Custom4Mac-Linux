@@ -1244,7 +1244,11 @@
     "podcasts": "Podcast",
     "follow": "關注",
     "followBack": "回關",
-    "followingStatus": "已關注"
+    "followingStatus": "已關注",
+    "crossDeviceRecent": "跨裝置最近播放",
+    "recentLoading": "正在載入最近播放…",
+    "recentError": "無法取得最近播放，請稍後重試",
+    "recentEmpty": "暫無最近播放記錄"
   },
   "playerBar": {
     "lyrics": "歌詞"
