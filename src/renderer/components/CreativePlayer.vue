@@ -90,11 +90,11 @@
           >
             <svg-icon :icon-class="isLiked ? 'heart-solid' : 'heart'"></svg-icon>
           </button-icon>
+          <SleepTimerButton compact />
+          <PlaybackSpeedButton />
           <button-icon class="button rainbow-more-control" :prevent-blur="true" @click="showContextMenu">
             <SvgIcon icon-class="options" />
           </button-icon>
-          <PlaybackSpeedButton />
-          <SleepTimerButton compact />
         </div>
         <div class="player-progress-bar">
           <div class="time"
