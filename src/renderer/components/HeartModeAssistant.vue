@@ -904,7 +904,6 @@ const closeProfileDropdownOnOutsideClick = (event: PointerEvent): void => {
   if (!profileSelectRef.value?.contains(event.target as Node)) closeProfileDropdown()
 }
 
-watch([panelOpen, panelPage], () => closeProfileDropdown())
 
 
 const profileCoreControls = computed<
@@ -957,6 +956,7 @@ type HeartModePanelPage = 'main' | 'settings' | 'guide'
 
 const panelOpen = ref(false)
 const panelPage = ref<HeartModePanelPage>('main')
+watch([panelOpen, panelPage], () => closeProfileDropdown())
 const sessionVersion = ref(0)
 const seedNames = ref<Record<string, string>>({})
 
