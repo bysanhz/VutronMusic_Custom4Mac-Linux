@@ -16,6 +16,8 @@ import {
   getNeteaseListenSyncDiagnostics
 } from './neteaseListenLedger'
 import request from './request'
+import { listenRealtimeReport } from '../api/modern'
+import { summarizeListenReportSchema } from './neteaseListenReportSchema'
 import { getCoverLoadDiagnostics, getFailedNeteaseCoverProbeUrls } from './coverNetworkDiagnostics'
 
 const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
@@ -157,6 +159,23 @@ const getNeteaseScrobbleRuntimeDiagnostics = async () => {
   }
 }
 
+/** Opt-in schema-only inspection during a copied diagnostic snapshot. */
+const inspectListenReportSchemas = async () => {
+  const reports = await Promise.allSettled([
+    listenRealtimeReport('week'),
+    listenRealtimeReport('month')
+  ])
+  return Object.fromEntries(
+    reports.map((result, index) => {
+      const key = index === 0 ? 'week' : 'month'
+      if (result.status !== 'fulfilled' || !result.value) {
+        return [key, { available: false }]
+      }
+      return [key, { available: true, nodes: summarizeListenReportSchema(result.value) }]
+    })
+  )
+}
+
 const formatDiagnostics = (main: Record<string, any>, renderer: Record<string, any>): string => {
   const sanitizedMain = {
     ...main,
@@ -216,6 +235,7 @@ const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
       const output = formatDiagnostics(main, {
         ...collectRendererDiagnostics(),
         neteaseScrobble,
+        listenReportSchema: await inspectListenReportSchemas(),
         coverNetwork
       })
       await navigator.clipboard.writeText(output)
