@@ -290,6 +290,18 @@ onBeforeUnmount(() => {
   }
 }
 
+/* Narrow only the side gutters of these three player tools.
+   Preserve their pre-existing vertical spacing and button heights. */
+.shade.player-tool-modal:is(
+  .lyric-offset-modal,
+  .playback-history-modal,
+  .sleep-timer-modal
+) {
+  .header { margin-inline: 18px; }
+  .content { padding-inline: 18px; }
+  .footer { margin-inline: 18px; }
+}
+
 /* Common shell for the player More Actions dialogs. */
 .shade.player-tool-modal {
   .modal {
@@ -340,47 +352,6 @@ onBeforeUnmount(() => {
 // Keep an opaque contrasting surface when the user selects dark appearance.
 [data-theme='dark'] .shade.player-tool-modal .modal {
   background: #242424;
-}
-
-/* Compact shell only for the three utility dialogs with persistent unused space.
-   Keep all other player tool dialogs on the normal BaseModal spacing. */
-.shade.player-tool-modal:is(
-  .lyric-offset-modal,
-  .playback-history-modal,
-  .sleep-timer-modal
-) {
-  .modal {
-    padding: 12px 0;
-    max-height: calc(100dvh - 24px);
-  }
-
-  .header {
-    margin: 0 18px 8px;
-
-    .title {
-      font-size: 18px;
-      line-height: 1.3;
-    }
-
-    button {
-      height: 30px;
-      width: 30px;
-    }
-  }
-
-  .content {
-    padding: 0 18px;
-  }
-
-  .footer {
-    margin: 8px 18px 0;
-    padding-top: 8px;
-
-    button {
-      min-height: 34px;
-      padding: 5px 12px;
-    }
-  }
 }
 
 @media (max-width: 520px) {
