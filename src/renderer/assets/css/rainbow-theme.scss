@@ -1031,6 +1031,12 @@
     align-items: baseline;
     column-gap: 4px;
     row-gap: 2px;
+    opacity: 1;
+  }
+
+  .queue-summary > [aria-hidden='true'] {
+    color: var(--color-text);
+    opacity: 0.4;
   }
 
   .queue-summary .rainbow-heart-count {
