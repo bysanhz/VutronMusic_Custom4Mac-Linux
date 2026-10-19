@@ -184,9 +184,14 @@
             </div>
 
             <div class="settings-card">
-              <label class="profile-field">
+              <div class="profile-field">
                 <span>{{ texts.profileMode }}</span>
-                <select v-model="selectedProfileMode">
+                <!-- Preserve the native accessible select for non-rainbow themes. -->
+                <select
+                  v-model="selectedProfileMode"
+                  class="profile-native-select"
+                  :aria-label="texts.profileMode"
+                >
                   <option
                     v-for="option in profileModeOptions"
                     :key="option.value"
@@ -195,16 +200,67 @@
                     {{ option.label }}
                   </option>
                 </select>
-              </label>
+                <div
+                  ref="profileSelectRef"
+                  class="rainbow-profile-select"
+                  :class="`rainbow-profile-mode-${selectedProfileMode}`"
+                >
+                  <button
+                    ref="profileSelectTriggerRef"
+                    type="button"
+                    class="rainbow-profile-trigger"
+                    :aria-label="texts.profileMode"
+                    aria-haspopup="listbox"
+                    aria-controls="heart-profile-mode-options"
+                    :aria-expanded="profileDropdownOpen"
+                    @click.stop="toggleProfileDropdown"
+                    @keydown.down.prevent="openProfileDropdown(0)"
+                    @keydown.up.prevent="openProfileDropdown(profileModeOptions.length - 1)"
+                    @keydown.esc.prevent="closeProfileDropdown"
+                  >
+                    <span>{{ currentProfileModeLabel }}</span>
+                    <span class="rainbow-profile-chevron" aria-hidden="true">⌄</span>
+                  </button>
+                  <div
+                    v-if="profileDropdownOpen"
+                    id="heart-profile-mode-options"
+                    class="rainbow-profile-options"
+                    role="listbox"
+                    :aria-label="texts.profileMode"
+                    @keydown.esc.stop.prevent="closeProfileDropdown(true)"
+                  >
+                    <button
+                      v-for="(option, index) in profileModeOptions"
+                      :key="option.value"
+                      type="button"
+                      role="option"
+                      class="rainbow-profile-option"
+                      :class="[`rainbow-profile-mode-${option.value}`, { selected: selectedProfileMode === option.value }]"
+                      :aria-selected="selectedProfileMode === option.value"
+                      @click.stop="selectProfileMode(option.value)"
+                      @keydown.down.prevent="focusProfileOption(index + 1)"
+                      @keydown.up.prevent="focusProfileOption(index - 1)"
+                      @keydown.home.prevent="focusProfileOption(0)"
+                      @keydown.end.prevent="focusProfileOption(profileModeOptions.length - 1)"
+                    >
+                      <span>{{ option.label }}</span>
+                      <span v-if="selectedProfileMode === option.value" aria-hidden="true">✓</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-              <div class="profile-description">
-                <strong>{{ currentProfileModeLabel }}</strong>
+              <div
+                class="profile-description"
+                :class="`rainbow-profile-mode-${selectedProfileMode}`"
+              >
+                <strong class="rainbow-profile-mode-label">{{ currentProfileModeLabel }}</strong>
                 <p>{{ currentProfileModeDescription }}</p>
                 <div class="profile-summary">
-                  <span>{{ texts.noveltyShort }} {{ heartModeProfile.novelty }}</span>
-                  <span>{{ texts.diversityShort }} {{ heartModeProfile.diversity }}</span>
-                  <span>{{ texts.familiarityShort }} {{ heartModeProfile.familiarity }}</span>
-                  <span>{{ texts.seedShort }} {{ heartModeProfile.seedCount }}</span>
+                  <span class="rainbow-heart-param rainbow-heart-param-novelty">{{ texts.noveltyShort }} {{ heartModeProfile.novelty }}</span>
+                  <span class="rainbow-heart-param rainbow-heart-param-diversity">{{ texts.diversityShort }} {{ heartModeProfile.diversity }}</span>
+                  <span class="rainbow-heart-param rainbow-heart-param-familiarity">{{ texts.familiarityShort }} {{ heartModeProfile.familiarity }}</span>
+                  <span class="rainbow-heart-param rainbow-heart-param-seed">{{ texts.seedShort }} {{ heartModeProfile.seedCount }}</span>
                 </div>
               </div>
 
@@ -350,7 +406,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
@@ -807,6 +863,50 @@ const profileModeOptions = computed(() => [
   { value: 'custom' as const, label: texts.value.modeCustom }
 ])
 
+const profileSelectRef = ref<HTMLElement | null>(null)
+const profileSelectTriggerRef = ref<HTMLButtonElement | null>(null)
+const profileDropdownOpen = ref(false)
+
+const focusProfileOption = (index: number): void => {
+  const options = profileSelectRef.value?.querySelectorAll<HTMLButtonElement>(
+    '.rainbow-profile-option'
+  )
+  if (!options?.length) return
+  options[(index + options.length) % options.length]?.focus()
+}
+
+const openProfileDropdown = (index?: number): void => {
+  profileDropdownOpen.value = true
+  void nextTick(() => {
+    const selectedIndex = profileModeOptions.value.findIndex(
+      (option) => option.value === selectedProfileMode.value
+    )
+    focusProfileOption(index ?? Math.max(0, selectedIndex))
+  })
+}
+
+const closeProfileDropdown = (restoreFocus = false): void => {
+  profileDropdownOpen.value = false
+  if (restoreFocus) void nextTick(() => profileSelectTriggerRef.value?.focus())
+}
+
+const toggleProfileDropdown = (): void => {
+  if (profileDropdownOpen.value) closeProfileDropdown()
+  else openProfileDropdown()
+}
+
+const selectProfileMode = (value: HeartModeMode): void => {
+  selectedProfileMode.value = value
+  closeProfileDropdown(true)
+}
+
+const closeProfileDropdownOnOutsideClick = (event: PointerEvent): void => {
+  if (!profileSelectRef.value?.contains(event.target as Node)) closeProfileDropdown()
+}
+
+watch([panelOpen, panelPage], () => closeProfileDropdown())
+
+
 const profileCoreControls = computed<
   Array<{ key: HeartModeCoreField; label: string; value: number; hint: string }>
 >(() => [
@@ -1197,6 +1297,7 @@ onMounted(() => {
   restoreAssistantPosition()
   window.addEventListener(HEART_MODE_SESSION_CHANGE_EVENT, onSessionChange)
   window.addEventListener('pointermove', moveDrag)
+  document.addEventListener('pointerdown', closeProfileDropdownOnOutsideClick)
   window.addEventListener('pointerup', endDrag)
   window.addEventListener('pointercancel', endDrag)
   window.addEventListener('resize', handleViewportResize)
@@ -1207,6 +1308,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener(HEART_MODE_SESSION_CHANGE_EVENT, onSessionChange)
   window.removeEventListener('pointermove', moveDrag)
+  document.removeEventListener('pointerdown', closeProfileDropdownOnOutsideClick)
   window.removeEventListener('pointerup', endDrag)
   window.removeEventListener('pointercancel', endDrag)
   window.removeEventListener('resize', handleViewportResize)
@@ -1565,6 +1667,12 @@ onBeforeUnmount(() => {
     font: inherit;
     cursor: pointer;
   }
+}
+
+/* The native select remains visible outside rainbow mode. Its custom
+   counterpart is enabled by the rainbow stylesheet only. */
+.rainbow-profile-select {
+  display: none;
 }
 
 .seed-concept {
