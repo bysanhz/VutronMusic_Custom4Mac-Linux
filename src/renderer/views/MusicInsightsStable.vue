@@ -227,9 +227,18 @@
         >
           {{ t('insights.footprint.historyTop') }}
         </button>
+        <button
+          class="rainbow-web-tab rainbow-web-tab-6"
+          :class="{ active: footprintRankMode === 'recent' }"
+          @click="selectFootprintRankMode('recent')"
+        >
+          {{ t('userPage.crossDeviceRecent') }}
+        </button>
       </div>
 
       <div class="stable-results">
+        <p v-if="footprintRankMode === 'recent' && recentLoading">{{ t('userPage.recentLoading') }}</p>
+        <p v-else-if="footprintRankMode === 'recent' && recentError">{{ t('userPage.recentError') }}</p>
         <InsightsTrackList
           v-show="footprintRankMode === 'week'"
           :items="footprint.weekTracks"
@@ -239,6 +248,11 @@
           v-show="footprintRankMode === 'all'"
           :items="footprint.allTracks"
           :empty-text="t('insights.footprint.noHistory')"
+        />
+        <InsightsTrackList
+          v-if="footprintRankMode === 'recent' && !recentLoading && !recentError"
+          :items="recentTracks"
+          :empty-text="t('userPage.recentEmpty')"
         />
       </div>
     </section>
@@ -497,7 +511,7 @@ import {
   setConfiguredNeteaseListenSeconds,
   MAX_NETEASE_LISTEN_SECONDS
 } from '../../shared/neteaseListenThreshold'
-import { deleteCloudSong } from '../api/discovery'
+import { deleteCloudSong, recentSongs } from '../api/discovery'
 import {
   cloudLyricGet,
   cloudMatch,
@@ -545,7 +559,36 @@ const footprint = reactive<{
   weekTracks: any[]
   allTracks: any[]
 }>({ weekTracks: [], allTracks: [] })
-const footprintRankMode = ref<'week' | 'all'>('week')
+const footprintRankMode = ref<'week' | 'all' | 'recent'>('week')
+const recentTracks = ref<any[]>([])
+const recentLoading = ref(false)
+const recentError = ref(false)
+let recentRequestId = 0
+const loadRecentTracks = async (): Promise<void> => {
+  if (accountId.value === 'anonymous') return
+  const requestId = ++recentRequestId
+  recentLoading.value = true
+  recentError.value = false
+  try {
+    const response = await recentSongs(100)
+    if (requestId !== recentRequestId) return
+    if (!response || Number(response.code) !== 200) throw new Error('Recent plays unavailable')
+    const items = Array.isArray(response.data?.list)
+      ? response.data.list
+      : Array.isArray(response.data) ? response.data : []
+    recentTracks.value = items
+      .map((item: any) => item?.data || item?.song || item)
+      .filter((song: any) => song && (song.id || song.songId))
+  } catch {
+    if (requestId === recentRequestId) recentError.value = true
+  } finally {
+    if (requestId === recentRequestId) recentLoading.value = false
+  }
+}
+const selectFootprintRankMode = (mode: 'week' | 'all' | 'recent'): void => {
+  footprintRankMode.value = mode
+  if (mode === 'recent') void loadRecentTracks()
+}
 const clockNow = ref(Date.now())
 const listenThresholdSeconds = ref(getConfiguredNeteaseListenSeconds())
 const updateListenThreshold = (event: Event): void => {
@@ -1346,6 +1389,11 @@ watch(
 )
 
 watch(accountId, () => {
+  recentRequestId++
+  recentTracks.value = []
+  recentLoading.value = false
+  recentError.value = false
+  if (footprintRankMode.value === 'recent') void loadRecentTracks()
   trendMonthReport.value = undefined
   trendWeekReport.value = undefined
   monthReportAvailable.value = null
