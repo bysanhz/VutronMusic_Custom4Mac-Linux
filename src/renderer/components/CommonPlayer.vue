@@ -54,6 +54,8 @@
                   @click="addTrackToPlaylist"
                   ><SvgIcon icon-class="plus"
                 /></button-icon>
+                <SleepTimerButton />
+                <PlaybackSpeedButton />
                 <button-icon
                   class="button rainbow-more-control"
                   :title="$t('player.moreActions')"
@@ -62,8 +64,6 @@
                 >
                   <SvgIcon icon-class="options" />
                 </button-icon>
-                <PlaybackSpeedButton />
-                <SleepTimerButton />
               </div>
             </div>
           </div>
