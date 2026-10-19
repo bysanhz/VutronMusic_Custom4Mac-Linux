@@ -1,9 +1,9 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal playback-history-modal"
     :show="playbackHistoryModalVisible"
     :title="text.title"
-    width="min(660px, calc(100vw - 32px))"
+    width="min(610px, calc(100vw - 32px))"
     min-width="0"
     :close-fn="close"
   >
@@ -217,21 +217,14 @@ const close = () => {
 </script>
 
 <style scoped lang="scss">
-.player-tool-modal {
-  :deep(.modal) { padding-top: 15px; padding-bottom: 15px; }
-  :deep(.header) { margin-bottom: 11px; }
-  :deep(.footer) { margin-top: 10px; padding-top: 10px; }
-  :deep(.footer button) { min-height: 34px; padding: 6px 12px; }
-}
-
 .history-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 
   button {
-    min-height: 32px;
+    min-height: 30px;
     border-radius: 9px;
     background: var(--color-secondary-bg-for-transparent);
 
@@ -244,19 +237,19 @@ const close = () => {
 
 .history-panel {
   min-height: 0;
-  max-height: min(42vh, 330px);
+  max-height: min(34vh, 260px);
   overflow: auto;
 }
 
 .save-queue-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
 
   input {
     min-width: 0;
     flex: 1;
-    height: 34px;
+    height: 32px;
     box-sizing: border-box;
     padding: 0 10px;
     border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
@@ -276,15 +269,15 @@ const close = () => {
 
 .history-list {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .history-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 7px 10px;
+  gap: 10px;
+  padding: 5px 8px;
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
   border-radius: 10px;
   background: var(--color-secondary-bg-for-transparent);
@@ -314,7 +307,8 @@ const close = () => {
   gap: 7px;
 
   button {
-    padding: 5px 9px;
+    padding: 4px 8px;
+    min-height: 30px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--color-text), transparent 92%);
   }
@@ -364,7 +358,7 @@ const close = () => {
 
 .empty-state {
   display: grid;
-  min-height: 120px;
+  min-height: 80px;
   place-items: center;
   color: color-mix(in srgb, var(--color-text), transparent 48%);
 }
