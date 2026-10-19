@@ -16,7 +16,7 @@ import {
   getNeteaseListenSyncDiagnostics
 } from './neteaseListenLedger'
 import request from './request'
-import { listenRealtimeReport } from '../api/modern'
+import { listenRealtimeReport, listenYearReport } from '../api/modern'
 import { summarizeListenReportSchema } from './neteaseListenReportSchema'
 import { getCoverLoadDiagnostics, getFailedNeteaseCoverProbeUrls } from './coverNetworkDiagnostics'
 
@@ -163,11 +163,12 @@ const getNeteaseScrobbleRuntimeDiagnostics = async () => {
 const inspectListenReportSchemas = async () => {
   const reports = await Promise.allSettled([
     listenRealtimeReport('week'),
-    listenRealtimeReport('month')
+    listenRealtimeReport('month'),
+    listenYearReport()
   ])
   return Object.fromEntries(
     reports.map((result, index) => {
-      const key = index === 0 ? 'week' : 'month'
+      const key = ['week', 'month', 'year'][index]
       if (result.status !== 'fulfilled' || !result.value) {
         return [key, { available: false }]
       }
