@@ -168,6 +168,56 @@
   pointer-events: none;
 }
 
+/* Navigation utilities use the same categorical accents as sidebar destinations.
+   Network quality is still encoded solely by the indicator dot (green/amber/red). */
+:root[data-accent-theme='rainbow'] #app .side-nav .history-navigation .rainbow-history-back {
+  --rainbow-utility-hue: var(--rainbow-2);
+}
+:root[data-accent-theme='rainbow'] #app .side-nav .history-navigation .rainbow-history-forward {
+  --rainbow-utility-hue: var(--rainbow-4);
+}
+:root[data-accent-theme='rainbow'] #app .side-nav .network-widget .rainbow-network-control {
+  --rainbow-utility-hue: var(--rainbow-5);
+}
+:root[data-accent-theme='rainbow'] #app .side-nav :is(
+  .history-navigation .history-button,
+  .network-widget .network-button
+) {
+  color: var(--rainbow-utility-hue) !important;
+  background: color-mix(in srgb, var(--rainbow-utility-hue) var(--rainbow-pill-rest), transparent) !important;
+  box-shadow: inset 0 -2px color-mix(
+    in srgb, var(--rainbow-utility-hue) var(--rainbow-pill-line), transparent
+  );
+}
+:root[data-accent-theme='rainbow'] #app .side-nav :is(
+  .history-navigation .history-button,
+  .network-widget .network-button
+) :is(.history-icon, .network-icon) {
+  color: currentColor !important;
+}
+:root[data-accent-theme='rainbow'] #app .side-nav :is(
+  .history-navigation .history-button,
+  .network-widget .network-button
+):is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--rainbow-utility-hue) var(--rainbow-pill-hover), transparent) !important;
+  box-shadow: inset 0 -2px var(--rainbow-utility-hue);
+  outline-color: var(--rainbow-utility-hue);
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .side-nav :is(
+  .history-navigation .history-button,
+  .network-widget .network-button
+) {
+  color: #20242a !important;
+  background: color-mix(in srgb, var(--rainbow-utility-hue) 78%, var(--color-secondary-bg)) !important;
+  box-shadow: inset 0 -2px #60636b;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .side-nav :is(
+  .history-navigation .history-button,
+  .network-widget .network-button
+):is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--rainbow-utility-hue) 88%, var(--color-secondary-bg)) !important;
+}
+
 /* Seven settings tabs share the same ordered hues. The active accent bar
    changes with the selected section instead of remaining permanently violet. */
 :root[data-accent-theme='rainbow'] #app .system-settings .rainbow-settings-general { --rainbow-tab-color: var(--rainbow-1); }
@@ -294,6 +344,26 @@
   color: var(--rainbow-volume) !important;
 }
 
+/* Keep previous and next in one consistent blue transport group; distinguish
+   the expand/collapse arrow with violet. Applies only to the bottom player bar. */
+:root[data-accent-theme='rainbow'] #app .player .controls .rainbow-skip-control,
+:root[data-accent-theme='rainbow'] #app .player .controls .rainbow-skip-control .svg-icon {
+  color: var(--rainbow-playback) !important;
+  opacity: 1;
+}
+:root[data-accent-theme='rainbow'] #app .player .controls .rainbow-expand-control,
+:root[data-accent-theme='rainbow'] #app .player .controls .rainbow-expand-control .svg-icon {
+  color: var(--rainbow-navigation) !important;
+  opacity: 1;
+}
+:root[data-accent-theme='rainbow'] #app .player .controls :is(
+  .rainbow-skip-control, .rainbow-expand-control
+):is(:hover, :focus-visible) {
+  background: color-mix(
+    in srgb, currentColor var(--rainbow-pill-hover), transparent
+  );
+  border-radius: 8px;
+}
 /* A subtle functional accent for the affirmative action; secondary and
    destructive buttons remain neutral and red, respectively. */
 :root[data-accent-theme='rainbow'] #app .shade .modal button.primary {
