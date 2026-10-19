@@ -102,15 +102,6 @@
         >
           {{ $t('library.playHistory.all') }}
         </button>
-        <button
-          v-if="isOwnProfile"
-          class="playHistory-button rainbow-web-tab rainbow-web-tab-7"
-          :class="{ 'playHistory-button--selected': playHistoryMode === 'recent' }"
-          @click="selectPlayHistoryMode('recent')"
-        >{{ t('userPage.crossDeviceRecent') }}</button>
-        <p v-if="playHistoryMode === 'recent' && recentLoading" class="recent-info">{{ t('userPage.recentLoading') }}</p>
-        <p v-else-if="playHistoryMode === 'recent' && recentError" class="recent-info">{{ t('userPage.recentError') }}</p>
-        <p v-else-if="playHistoryMode === 'recent' && !recentTracks.length" class="recent-info">{{ t('userPage.recentEmpty') }}</p>
         <TrackList
           :items="playHistoryList"
           :colunm-number="1"
@@ -145,9 +136,6 @@ import { computed, watch, onMounted, ref, inject, nextTick, onBeforeUnmount } fr
 import { useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { userDetail, userPlayHistory } from '../api/user'
-import { recentSongs } from '../api/discovery'
-import { useDataStore } from '../store/data'
-import { storeToRefs } from 'pinia'
 import { userPlaylist } from '../api/auth'
 import { openExternal } from '../utils'
 import { useNormalStateStore } from '../store/state'
@@ -162,33 +150,6 @@ const user = ref<{ [key: string]: any }>({})
 const userMenu = ref()
 const playlistTabMenu = ref()
 const playHistoryMode = ref('week')
-const { user: signedInUser } = storeToRefs(useDataStore())
-const isOwnProfile = computed(() => Boolean(signedInUser.value.userId) && String(signedInUser.value.userId) === String(user.value.userId))
-const recentTracks = ref<any[]>([])
-const recentLoading = ref(false)
-const recentError = ref(false)
-let recentRequestId = 0
-const loadRecentTracks = async () => {
-  if (!isOwnProfile.value) return
-  const requestId = ++recentRequestId
-  recentLoading.value = true
-  recentError.value = false
-  try {
-    const response = await recentSongs(100)
-    if (requestId !== recentRequestId) return
-    if (!response || Number(response.code) !== 200) throw new Error('Recent songs unavailable')
-    const items = Array.isArray(response.data?.list) ? response.data.list : Array.isArray(response.data) ? response.data : []
-    recentTracks.value = items.map((item: any) => item?.data || item?.song || item).filter((song: any) => song && (song.id || song.songId))
-  } catch {
-    if (requestId === recentRequestId) recentError.value = true
-  } finally {
-    if (requestId === recentRequestId) recentLoading.value = false
-  }
-}
-const selectPlayHistoryMode = (mode: string) => {
-  playHistoryMode.value = mode
-  if (mode === 'recent') void loadRecentTracks()
-}
 const currentTab = ref('playlist')
 const playlistFilter = ref('all')
 const playlists = ref<any[]>([])
@@ -220,7 +181,6 @@ const filterPlaylists = computed(() => {
   }
 })
 const playHistoryList = computed(() => {
-  if (playHistoryMode.value === 'recent') return isOwnProfile.value ? recentTracks.value : []
   if (playHistoryMode.value === 'week') {
     return playlistHistory.value?.weekData
   } else if (playHistoryMode.value === 'all') {
@@ -288,7 +248,6 @@ const changePlaylistFilter = (tab: string) => {
 
 watch(currentTab, (val) => {
   if (val === 'history') {
-    if (playHistoryMode.value === 'recent') { void loadRecentTracks(); return }
     if (playlistHistory.value.allData.length > 0 || !user.value.peopleCanSeeMyPlayRecord) return
     Promise.all([
       userPlayHistory({ uid: user.value.userId as number, type: 0 }),
@@ -313,11 +272,6 @@ watch(currentTab, (val) => {
 
 onBeforeRouteUpdate((to, from, next) => {
   show.value = false
-  recentRequestId++
-  recentTracks.value = []
-  recentLoading.value = false
-  recentError.value = false
-  playHistoryMode.value = 'week'
   getUser(to.params.id as string)
   next()
 })
@@ -330,7 +284,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  recentRequestId++
   updatePadding(96)
 })
 </script>
@@ -475,6 +428,3 @@ button.tab-button {
 }
 </style>
 
-<style scoped>
-.recent-info { padding: 12px 8px; color: var(--color-text); opacity: 0.7; }
-</style>
