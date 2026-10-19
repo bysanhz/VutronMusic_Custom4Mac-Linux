@@ -22,7 +22,7 @@
           </button-icon>
           <button-icon
             :title="$t('player.collapsePlayer')"
-            class="player-button close-button"
+            class="player-button close-button rainbow-player-collapse"
             @click="showLyrics = !showLyrics"
           >
             <SvgIcon icon-class="arrow-down" />
