@@ -549,8 +549,8 @@
 :root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .reset-button {
   --player-rainbow-hue: var(--player-rainbow-gold);
 }
-:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .close-button {
-  --player-rainbow-hue: var(--player-rainbow-neutral);
+:root[data-accent-theme='rainbow'] #app .player-container .buttons-icons .close-button.rainbow-player-collapse {
+  --player-rainbow-hue: var(--player-rainbow-violet);
 }
 :root[data-accent-theme='rainbow'] #app .player-container .like-button {
   --player-rainbow-hue: var(--player-rainbow-rose);
@@ -685,6 +685,56 @@
   background: color-mix(in srgb, var(--player-rainbow-hue) 20%, var(--player-rainbow-glass));
   border-color: color-mix(in srgb, var(--player-rainbow-hue) 28%, transparent);
   opacity: 1 !important;
+}
+
+/* Three lyric timing controls beside the fullscreen lyrics were previously
+   unthemed grey, despite the nearby playback tools using rainbow colors.
+   Match the existing translucent-pill palette without touching timing logic. */
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > .rainbow-lyric-advance {
+  --player-rainbow-hue: var(--player-rainbow-rose);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > .rainbow-lyric-recovery {
+  --player-rainbow-hue: var(--player-rainbow-green);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > .rainbow-lyric-delay {
+  --player-rainbow-hue: var(--player-rainbow-orange);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance,
+  .rainbow-lyric-recovery,
+  .rainbow-lyric-delay
+) {
+  border: 1px solid transparent;
+  color: var(--player-rainbow-hue) !important;
+  background: color-mix(in srgb, var(--player-rainbow-hue) 13%, var(--player-rainbow-glass)) !important;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--player-rainbow-hue) 30%, transparent);
+  opacity: 0.94 !important;
+  backdrop-filter: blur(5px);
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance,
+  .rainbow-lyric-recovery,
+  .rainbow-lyric-delay
+) .svg-icon {
+  color: var(--player-rainbow-hue) !important;
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance,
+  .rainbow-lyric-recovery,
+  .rainbow-lyric-delay
+):is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--player-rainbow-hue) 23%, var(--player-rainbow-glass)) !important;
+  border-color: color-mix(in srgb, var(--player-rainbow-hue) 35%, transparent);
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance,
+  .rainbow-lyric-recovery,
+  .rainbow-lyric-delay
+):focus-visible {
+  outline: 2px solid var(--player-rainbow-hue);
+  outline-offset: 2px;
 }
 
 /* Small, themed feedback without adding persistent shadows to every button. */
