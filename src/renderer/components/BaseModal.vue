@@ -293,6 +293,10 @@ onBeforeUnmount(() => {
 /* Common shell for the player More Actions dialogs. */
 .shade.player-tool-modal {
   .modal {
+    // The shared translucent shell looked gray over the dimmed player.
+    // Tool dialogs use an opaque surface so each settings page stays readable.
+    background: #fff;
+    backdrop-filter: none;
     box-sizing: border-box;
     max-width: calc(100vw - 32px);
     max-height: calc(100dvh - 48px);
@@ -331,6 +335,11 @@ onBeforeUnmount(() => {
       border-radius: 10px;
     }
   }
+}
+
+// Keep an opaque contrasting surface when the user selects dark appearance.
+[data-theme='dark'] .shade.player-tool-modal .modal {
+  background: #242424;
 }
 
 @media (max-width: 520px) {
