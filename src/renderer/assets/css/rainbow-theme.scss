@@ -1012,27 +1012,77 @@
   .content .history-card:nth-child(7n) { border-left: 3px solid var(--rainbow-7); }
 }
 
-/* Outer settings: use categorical accents for groups and controls. */
-:root[data-accent-theme='rainbow'] #app .system-settings {
-  .item > .left .title {
+/* Convolver contains labels and native range inputs, not button grids.
+   Theme the actual elements; avoid blanket purple overrides. */
+:root[data-accent-theme='rainbow'] .shade.convolver-modal {
+  .convolution .scene-option {
+    --scene-hue: var(--rainbow-6);
+    border-color: color-mix(in srgb, var(--scene-hue) 24%, transparent);
+    background: color-mix(in srgb, var(--scene-hue) 9%, transparent);
+
+    &:hover, &.selected {
+      border-color: color-mix(in srgb, var(--scene-hue) 65%, transparent);
+      background: color-mix(in srgb, var(--scene-hue) 21%, transparent);
+    }
+    input[type='radio'] { accent-color: var(--scene-hue); }
+  }
+  .convolution .scene-option:nth-child(7n + 1) { --scene-hue: var(--rainbow-1); }
+  .convolution .scene-option:nth-child(7n + 2) { --scene-hue: var(--rainbow-2); }
+  .convolution .scene-option:nth-child(7n + 3) { --scene-hue: var(--rainbow-3); }
+  .convolution .scene-option:nth-child(7n + 4) { --scene-hue: var(--rainbow-4); }
+  .convolution .scene-option:nth-child(7n + 5) { --scene-hue: var(--rainbow-5); }
+  .convolution .scene-option:nth-child(7n + 6) { --scene-hue: var(--rainbow-6); }
+  .convolution .scene-option:nth-child(7n) { --scene-hue: var(--rainbow-7); }
+
+  .gain-control:first-child { --gain-hue: var(--rainbow-5); }
+  .gain-control:last-child { --gain-hue: var(--rainbow-2); }
+  .gain-value { color: var(--gain-hue, var(--rainbow-5)); }
+  .gain-range::-webkit-slider-thumb { background: var(--gain-hue, var(--rainbow-5)); }
+  .gain-range::-webkit-slider-runnable-track {
+    background: linear-gradient(
+      to right,
+      var(--gain-hue, var(--rainbow-5)) 0 var(--range-fill),
+      var(--color-border) var(--range-fill) 100%
+    );
+  }
+
+  .biquader { --eq-hue: var(--rainbow-6); }
+  .biquader:nth-child(7n + 1) { --eq-hue: var(--rainbow-1); }
+  .biquader:nth-child(7n + 2) { --eq-hue: var(--rainbow-2); }
+  .biquader:nth-child(7n + 3) { --eq-hue: var(--rainbow-3); }
+  .biquader:nth-child(7n + 4) { --eq-hue: var(--rainbow-4); }
+  .biquader:nth-child(7n + 5) { --eq-hue: var(--rainbow-5); }
+  .biquader:nth-child(7n + 6) { --eq-hue: var(--rainbow-6); }
+  .biquader:nth-child(7n) { --eq-hue: var(--rainbow-7); }
+  .biquader .frequency-value {
+    color: var(--eq-hue);
+    background: color-mix(in srgb, var(--eq-hue) 13%, transparent);
+  }
+  .biquader .equalizer-range::-webkit-slider-thumb { background: var(--eq-hue); }
+
+  .preset .button {
+    --preset-hue: var(--rainbow-6);
     color: var(--color-text);
+    border-color: color-mix(in srgb, var(--preset-hue) 32%, transparent);
+    background: color-mix(in srgb, var(--preset-hue) 10%, transparent);
   }
-  .slide-container .rainbow-settings-tab.active {
-    border-color: color-mix(in srgb, var(--rainbow-7) 40%, transparent);
-  }
-  .item :is(select, .custom-select, .text-input, .cache-custom-limit, .app-font-size-setting) {
-    border: 1px solid color-mix(in srgb, var(--rainbow-7) 25%, transparent);
-  }
-  .item :is(select, .custom-select, .text-input, .cache-custom-limit):focus-within {
-    border-color: var(--rainbow-7);
-  }
-  .item .toggle input:checked + label:before {
-    background: var(--rainbow-4);
-  }
-  .item :is(.slider-value, .font-size-value, .custom-select .custom-text) {
-    color: var(--rainbow-7);
-  }
-  .item :is(button:not(.danger):not(.primary), .font-size-btn):focus-visible {
-    outline-color: var(--rainbow-7);
+  .preset .button:nth-child(7n + 1) { --preset-hue: var(--rainbow-1); }
+  .preset .button:nth-child(7n + 2) { --preset-hue: var(--rainbow-2); }
+  .preset .button:nth-child(7n + 3) { --preset-hue: var(--rainbow-3); }
+  .preset .button:nth-child(7n + 4) { --preset-hue: var(--rainbow-4); }
+  .preset .button:nth-child(7n + 5) { --preset-hue: var(--rainbow-5); }
+  .preset .button:nth-child(7n + 6) { --preset-hue: var(--rainbow-6); }
+  .preset .button:nth-child(7n) { --preset-hue: var(--rainbow-7); }
+  .preset .button:hover, .preset .button.active {
+    border-color: var(--preset-hue);
+    background: color-mix(in srgb, var(--preset-hue) 24%, transparent);
   }
 }
+
+/* Give each player tool a distinct accent instead of one violet dialog. */
+:root[data-accent-theme='rainbow'] .shade.player-tool-modal {
+  --player-tool-accent: var(--rainbow-7);
+  .header .title { color: var(--player-tool-accent); }
+}
+:root[data-accent-theme='rainbow'] .shade.convolver-modal { --player-tool-accent: var(--rainbow-5); }
+:root[data-accent-theme='rainbow'] .shade.save-theme-modal { --player-tool-accent: var(--rainbow-4); }
