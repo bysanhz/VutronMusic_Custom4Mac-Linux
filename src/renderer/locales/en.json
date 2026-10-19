@@ -1248,7 +1248,8 @@
     "crossDeviceRecent": "Recent Across Devices",
     "recentLoading": "Loading recent plays…",
     "recentError": "Could not load recent plays. Please try again.",
-    "recentEmpty": "No recent plays available"
+    "recentEmpty": "No recent plays available",
+    "myProfile": "My Profile"
   },
   "playerBar": {
     "lyrics": "Lyrics"
