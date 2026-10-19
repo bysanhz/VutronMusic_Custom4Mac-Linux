@@ -999,6 +999,57 @@
   outline-offset: -2px;
 }
 
+/* Heart Mode current-session metrics: matching categorical card, label, and
+   percentage colors. The adjacent counters use gentler emphasis; numeric
+   meaning comes from the text, not from the hue. Monochrome presets unchanged. */
+:root[data-accent-theme='rainbow'] .heart-mode-assistant {
+  .rainbow-heart-metric-novelty { --heart-metric-hue: var(--rainbow-1); }
+  .rainbow-heart-metric-diversity { --heart-metric-hue: var(--rainbow-5); }
+  .rainbow-heart-metric-familiarity { --heart-metric-hue: var(--rainbow-7); }
+
+  .metrics > .rainbow-heart-metric {
+    background: color-mix(in srgb, var(--heart-metric-hue) 15%, var(--color-body-bg));
+    border: 1px solid color-mix(in srgb, var(--heart-metric-hue) 36%, transparent);
+    box-shadow: inset 0 -3px color-mix(in srgb, var(--heart-metric-hue) 65%, transparent);
+  }
+
+  .metrics > .rainbow-heart-metric span {
+    color: var(--heart-metric-hue);
+    font-weight: 650;
+    opacity: 1;
+  }
+
+  .metrics > .rainbow-heart-metric strong {
+    color: var(--heart-metric-hue);
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .queue-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 4px;
+    row-gap: 2px;
+  }
+
+  .queue-summary .rainbow-heart-count {
+    color: var(--color-text);
+    opacity: 0.88;
+    white-space: nowrap;
+  }
+
+  .queue-summary .rainbow-heart-count-played { --heart-count-hue: var(--rainbow-1); }
+  .queue-summary .rainbow-heart-count-queued { --heart-count-hue: var(--rainbow-5); }
+  .queue-summary .rainbow-heart-count-pending { --heart-count-hue: var(--rainbow-7); }
+
+  .queue-summary .rainbow-heart-count strong {
+    color: var(--heart-count-hue);
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 /* Different session feedback actions are intentionally different SOLID hues,
    not identical violet blocks. Ensure white text retains strong contrast. */
 :root[data-accent-theme='rainbow'] .heart-mode-assistant .actions .rainbow-heart-positive:not(:disabled) {
