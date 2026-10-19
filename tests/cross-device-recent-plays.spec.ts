@@ -4,15 +4,17 @@ import { resolve } from 'node:path'
 
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
-test('cross-device recent plays reuses user history and never replaces week/all rankings', () => {
-  const view = readSource('src/renderer/views/UserPage.vue')
-  expect(view).toContain("selectPlayHistoryMode('recent')")
-  expect(view).toContain("playHistoryMode === 'week'")
-  expect(view).toContain("playHistoryMode === 'all'")
+test('cross-device recent plays belongs to listening insights, not user profile', () => {
+  const view = readSource('src/renderer/views/MusicInsightsStable.vue')
+  expect(view).toContain("selectFootprintRankMode('recent')")
+  expect(view).toContain("footprintRankMode === 'week'")
+  expect(view).toContain("footprintRankMode === 'all'")
   expect(view).toContain("recentSongs(100)")
-  expect(view).toContain('v-if="isOwnProfile"')
+  expect(view).toContain("accountId.value === 'anonymous'")
   expect(view).toContain('requestId !== recentRequestId')
   expect(view).toContain('recentTracks.value = []')
+  expect(readSource('src/renderer/views/UserPage.vue')).not.toContain('crossDeviceRecent')
+  expect(readSource('src/renderer/components/NavBar.vue')).not.toContain('openMyProfile')
   expect(view).toContain("item?.data || item?.song || item")
 })
 
