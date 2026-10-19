@@ -3,7 +3,7 @@
     class="player-tool-modal"
     :show="playbackHistoryModalVisible"
     :title="text.title"
-    width="min(720px, calc(100vw - 40px))"
+    width="min(660px, calc(100vw - 32px))"
     min-width="0"
     :close-fn="close"
   >
@@ -217,14 +217,21 @@ const close = () => {
 </script>
 
 <style scoped lang="scss">
+.player-tool-modal {
+  :deep(.modal) { padding-top: 15px; padding-bottom: 15px; }
+  :deep(.header) { margin-bottom: 11px; }
+  :deep(.footer) { margin-top: 10px; padding-top: 10px; }
+  :deep(.footer button) { min-height: 34px; padding: 6px 12px; }
+}
+
 .history-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 
   button {
-    min-height: 36px;
+    min-height: 32px;
     border-radius: 9px;
     background: var(--color-secondary-bg-for-transparent);
 
@@ -236,20 +243,20 @@ const close = () => {
 }
 
 .history-panel {
-  min-height: 220px;
-  max-height: min(52vh, 440px);
+  min-height: 0;
+  max-height: min(42vh, 330px);
   overflow: auto;
 }
 
 .save-queue-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
 
   input {
     min-width: 0;
     flex: 1;
-    height: 38px;
+    height: 34px;
     box-sizing: border-box;
     padding: 0 10px;
     border: 1px solid color-mix(in srgb, var(--color-text), transparent 86%);
@@ -269,7 +276,7 @@ const close = () => {
 
 .history-list {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .history-card {
@@ -277,7 +284,7 @@ const close = () => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 11px;
+  padding: 7px 10px;
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 90%);
   border-radius: 10px;
   background: var(--color-secondary-bg-for-transparent);
@@ -286,7 +293,7 @@ const close = () => {
 .history-card-copy {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 
   strong,
   span {
@@ -307,7 +314,7 @@ const close = () => {
   gap: 7px;
 
   button {
-    padding: 7px 10px;
+    padding: 5px 9px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--color-text), transparent 92%);
   }
@@ -316,7 +323,7 @@ const close = () => {
 .recent-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  gap: 5px;
 }
 
 .recent-track {
@@ -324,14 +331,14 @@ const close = () => {
   align-items: center;
   gap: 9px;
   min-width: 0;
-  padding: 7px;
-  border-radius: 10px;
+  padding: 5px;
+  border-radius: 9px;
   text-align: left;
   background: var(--color-secondary-bg-for-transparent);
 
   img {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     flex-shrink: 0;
     border-radius: 7px;
     object-fit: cover;
@@ -357,7 +364,7 @@ const close = () => {
 
 .empty-state {
   display: grid;
-  min-height: 200px;
+  min-height: 120px;
   place-items: center;
   color: color-mix(in srgb, var(--color-text), transparent 48%);
 }
