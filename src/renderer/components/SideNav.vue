@@ -3,7 +3,7 @@
     <div class="history-navigation">
       <button
         type="button"
-        class="history-button"
+        class="history-button rainbow-history-back"
         :title="$t('nav.back')"
         :aria-label="$t('nav.back')"
         @click.stop="router.go(-1)"
@@ -12,7 +12,7 @@
       </button>
       <button
         type="button"
-        class="history-button"
+        class="history-button rainbow-history-forward"
         :title="$t('nav.forward')"
         :aria-label="$t('nav.forward')"
         @click.stop="router.go(1)"
@@ -81,7 +81,7 @@
     <div ref="networkWidgetRef" class="network-widget">
       <button
         type="button"
-        class="network-button"
+        class="network-button rainbow-network-control"
         :class="networkQualityTier"
         :title="`${t('nav.networkStatus')}：${t(networkQualityLabelKey)}`"
         :aria-label="`${t('nav.networkStatus')}：${t(networkQualityLabelKey)}`"
