@@ -1,9 +1,9 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal lyric-offset-modal"
     :show="trackLyricOffsetModalVisible"
     :title="text.title"
-    width="min(500px, calc(100vw - 40px))"
+    width="min(470px, calc(100vw - 32px))"
     min-width="0"
     :close-fn="close"
   >
@@ -146,13 +146,22 @@ const close = () => {
 </script>
 
 <style scoped lang="scss">
+/* Only compact this dialog; leave the shared modal sizing untouched. */
+.lyric-offset-modal {
+  :deep(.modal) { padding-top: 15px; padding-bottom: 15px; }
+  :deep(.header) { margin: 0 20px 10px; }
+  :deep(.content) { padding: 0 20px; }
+  :deep(.footer) { margin: 12px 20px 0; padding-top: 10px; }
+  :deep(.footer button) { min-height: 36px; padding: 6px 12px; }
+}
+
 .track-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
+  gap: 8px;
+  margin-bottom: 9px;
+  padding: 8px 10px;
   border-radius: 10px;
   background: var(--color-secondary-bg-for-transparent);
 }
@@ -179,15 +188,15 @@ const close = () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .offset-card {
   min-width: 0;
   display: grid;
   place-items: center;
-  gap: 4px;
-  padding: 9px 8px;
+  gap: 3px;
+  padding: 7px 8px;
   border: 1px solid color-mix(in srgb, var(--color-text), transparent 88%);
   border-radius: 9px;
   text-align: center;
@@ -213,7 +222,7 @@ const close = () => {
 
 .offset-controls {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .offset-input,
@@ -226,7 +235,7 @@ const close = () => {
 
 .offset-input {
   min-width: 0;
-  min-height: 42px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -274,7 +283,7 @@ const close = () => {
 
   button {
     min-width: 0;
-    min-height: 38px;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -295,7 +304,7 @@ const close = () => {
 }
 
 .offset-hint {
-  margin: 10px 2px 0;
+  margin: 8px 2px 0;
   color: color-mix(in srgb, var(--color-text), transparent 48%);
   font-size: 11px;
   line-height: 1.5;
@@ -308,7 +317,7 @@ const close = () => {
   width: 100%;
 
   button {
-    min-width: 88px;
+    min-width: 82px;
   }
 }
 
