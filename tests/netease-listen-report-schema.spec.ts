@@ -23,9 +23,10 @@ test('cloud report schema inspection returns structural information only', () =>
   expect(output).not.toContain('username')
 })
 
-test('one-click diagnostics inspects week and month report schema without raw records', () => {
+test('one-click diagnostics inspects week, month and year report schemas without raw records', () => {
   const source = readFileSync(resolve(process.cwd(), 'src/renderer/utils/diagnosticsSnapshotSettings.ts'), 'utf8')
   expect(source).toContain("listenRealtimeReport('week')")
   expect(source).toContain("listenRealtimeReport('month')")
+  expect(source).toContain('listenYearReport()')
   expect(source).toContain('listenReportSchema: await inspectListenReportSchemas()')
 })
