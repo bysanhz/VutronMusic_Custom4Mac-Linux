@@ -1248,7 +1248,8 @@
     "crossDeviceRecent": "跨裝置最近播放",
     "recentLoading": "正在載入最近播放…",
     "recentError": "無法取得最近播放，請稍後重試",
-    "recentEmpty": "暫無最近播放記錄"
+    "recentEmpty": "暫無最近播放記錄",
+    "myProfile": "我的主頁"
   },
   "playerBar": {
     "lyrics": "歌詞"
