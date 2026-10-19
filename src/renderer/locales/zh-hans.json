@@ -1248,8 +1248,7 @@
     "crossDeviceRecent": "跨设备最近播放",
     "recentLoading": "正在加载最近播放…",
     "recentError": "无法获取最近播放，请稍后重试",
-    "recentEmpty": "暂无最近播放记录",
-    "myProfile": "我的主页"
+    "recentEmpty": "暂无最近播放记录"
   },
   "playerBar": {
     "lyrics": "歌词"
