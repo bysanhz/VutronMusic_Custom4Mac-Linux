@@ -211,7 +211,6 @@
       </div>
 
       <ListenDurationTrend :points="recentSevenDayTrend" />
-      <ListenHourDistribution :hours="recentSevenDayHours" />
 
       <div class="sub-tabs">
         <button
@@ -475,8 +474,6 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import InsightsTrackList from '../components/InsightsTrackList.vue'
 import ListenDurationTrend from '../components/ListenDurationTrend.vue'
-import ListenHourDistribution from '../components/ListenHourDistribution.vue'
-import { buildLocalListeningHours } from '../utils/neteaseListenHours'
 import { buildNeteaseLastSevenDays } from '../utils/neteaseListenTrend'
 import SvgIcon from '../components/SvgIcon.vue'
 import { useDataStore } from '../store/data'
@@ -600,17 +597,6 @@ const recentSevenDayTrend = computed(() =>
   buildNeteaseLastSevenDays(new Date(clockNow.value), trendMonthReport.value, trendWeekReport.value)
 )
 const sevenDaySpansLastMonth = computed(() => new Date(clockNow.value).getDate() <= 6)
-const recentSevenDayHours = computed(() => {
-  const today = new Date(clockNow.value)
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6)
-  const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-  return buildLocalListeningHours(
-    neteaseListenEntries.value,
-    accountId.value,
-    firstDay.getTime(),
-    nextDay.getTime()
-  )
-})
 
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
