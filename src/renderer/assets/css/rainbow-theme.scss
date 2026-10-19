@@ -1056,6 +1056,138 @@
   }
 }
 
+/* Heart Mode settings reuse the exact live-session metric colors:
+   novelty rose, diversity cyan, familiarity violet, Seed amber.
+   Native <select> remains in non-rainbow themes; rainbow uses an accessible
+   custom menu to avoid the operating system's unstyleable blue selection. */
+:root[data-accent-theme='rainbow'] .heart-mode-assistant {
+  .rainbow-heart-param-novelty { --heart-param-hue: var(--rainbow-1); }
+  .rainbow-heart-param-diversity { --heart-param-hue: var(--rainbow-5); }
+  .rainbow-heart-param-familiarity { --heart-param-hue: var(--rainbow-7); }
+  .rainbow-heart-param-seed { --heart-param-hue: var(--rainbow-3); }
+
+  .profile-summary > .rainbow-heart-param {
+    color: var(--heart-param-hue);
+    border: 1px solid color-mix(in srgb, var(--heart-param-hue) 42%, transparent);
+    background: color-mix(in srgb, var(--heart-param-hue) 13%, var(--color-body-bg));
+    font-weight: 700;
+    opacity: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rainbow-profile-mode-continuous { --rainbow-profile-hue: var(--rainbow-2); }
+  .rainbow-profile-mode-balanced { --rainbow-profile-hue: var(--rainbow-4); }
+  .rainbow-profile-mode-diverse { --rainbow-profile-hue: var(--rainbow-5); }
+  .rainbow-profile-mode-explore { --rainbow-profile-hue: var(--rainbow-1); }
+  .rainbow-profile-mode-custom { --rainbow-profile-hue: var(--rainbow-7); }
+
+  .profile-field .profile-native-select {
+    display: none;
+  }
+
+  .profile-field .rainbow-profile-select {
+    position: relative;
+    display: block;
+    flex: 0 1 158px;
+    min-width: 130px;
+    z-index: 15;
+  }
+
+  .rainbow-profile-trigger {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 9px;
+    color: var(--rainbow-profile-hue);
+    background: color-mix(in srgb, var(--rainbow-profile-hue) 12%, var(--color-body-bg));
+    border: 1px solid color-mix(in srgb, var(--rainbow-profile-hue) 45%, transparent);
+    box-shadow: inset 0 -2px color-mix(in srgb, var(--rainbow-profile-hue) 45%, transparent);
+  }
+
+  .rainbow-profile-chevron {
+    color: var(--rainbow-profile-hue);
+    font-size: 19px;
+    line-height: 0.8;
+  }
+
+  .rainbow-profile-trigger:is(:hover, :focus-visible),
+  .rainbow-profile-trigger[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--rainbow-profile-hue) 21%, var(--color-body-bg));
+    border-color: var(--rainbow-profile-hue);
+  }
+
+  .rainbow-profile-trigger:focus-visible,
+  .rainbow-profile-option:focus-visible {
+    outline: 2px solid var(--rainbow-profile-hue);
+    outline-offset: 2px;
+  }
+
+  .rainbow-profile-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 5px;
+    border-radius: 10px;
+    background: var(--color-body-bg);
+    border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+  }
+
+  .rainbow-profile-option {
+    width: 100%;
+    min-height: 34px;
+    box-sizing: border-box;
+    padding: 6px 9px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    color: var(--rainbow-profile-hue);
+    background: color-mix(in srgb, var(--rainbow-profile-hue) 9%, var(--color-body-bg));
+  }
+
+  .rainbow-profile-option:is(:hover, :focus-visible),
+  .rainbow-profile-option.selected {
+    background: color-mix(in srgb, var(--rainbow-profile-hue) 21%, var(--color-body-bg));
+    border-color: color-mix(in srgb, var(--rainbow-profile-hue) 60%, transparent);
+  }
+
+  .profile-description > .rainbow-profile-mode-label {
+    color: var(--rainbow-profile-hue);
+    font-weight: 750;
+  }
+
+  .profile-description.rainbow-profile-mode-continuous,
+  .profile-description.rainbow-profile-mode-balanced,
+  .profile-description.rainbow-profile-mode-diverse,
+  .profile-description.rainbow-profile-mode-explore,
+  .profile-description.rainbow-profile-mode-custom {
+    border: 1px solid color-mix(in srgb, var(--rainbow-profile-hue) 30%, transparent);
+    background: color-mix(in srgb, var(--rainbow-profile-hue) 8%, var(--color-body-bg));
+  }
+}
+
 /* Different session feedback actions are intentionally different SOLID hues,
    not identical violet blocks. Ensure white text retains strong contrast. */
 :root[data-accent-theme='rainbow'] .heart-mode-assistant .actions .rainbow-heart-positive:not(:disabled) {
