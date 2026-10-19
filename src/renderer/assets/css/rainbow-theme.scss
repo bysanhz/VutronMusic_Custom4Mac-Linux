@@ -958,3 +958,81 @@
   box-shadow: none;
   opacity: 0.5;
 }
+
+
+/* Playback More Actions dialogs: internal controls, not just the menu shell. */
+:root[data-accent-theme='rainbow'] #app .shade.player-tool-modal {
+  --rainbow-tool-surface: var(--color-secondary-bg-for-transparent);
+  --rainbow-tool-border: color-mix(in srgb, var(--rainbow-7) 35%, transparent);
+
+  .modal {
+    border-color: var(--rainbow-tool-border);
+  }
+
+  .header .title {
+    color: var(--rainbow-7);
+  }
+
+  .content :is(.section-label, .title, .gain-label) {
+    color: var(--color-text);
+  }
+
+  .content :is(.timer-section, .effect-section, .lyric-setting, .item, .gain-control, .offset-card, .track-summary, .history-card) {
+    border-color: color-mix(in srgb, var(--rainbow-6) 23%, transparent);
+  }
+
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 1) { --rainbow-tool-item: var(--rainbow-1); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 2) { --rainbow-tool-item: var(--rainbow-2); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 3) { --rainbow-tool-item: var(--rainbow-3); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 4) { --rainbow-tool-item: var(--rainbow-4); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 5) { --rainbow-tool-item: var(--rainbow-5); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n + 6) { --rainbow-tool-item: var(--rainbow-6); }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > :nth-child(7n) { --rainbow-tool-item: var(--rainbow-7); }
+
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > button:not(:disabled):not(.danger):not(.primary) {
+    border-color: color-mix(in srgb, var(--rainbow-tool-item, var(--rainbow-6)) 38%, transparent);
+    background: color-mix(in srgb, var(--rainbow-tool-item, var(--rainbow-6)) 13%, transparent);
+    color: var(--color-text);
+  }
+  .content :is(.quick-time-grid, .end-mode-grid, .segmented-control, .history-tabs, .step-controls) > button:is(.active, .selected):not(:disabled) {
+    border-color: var(--rainbow-tool-item, var(--rainbow-6));
+    background: color-mix(in srgb, var(--rainbow-tool-item, var(--rainbow-6)) 25%, transparent);
+  }
+  .content :is(input:not([type='checkbox']), select, textarea):focus-visible {
+    border-color: var(--rainbow-6);
+    outline-color: var(--rainbow-6);
+  }
+
+  .content .history-card:nth-child(7n + 1) { border-left: 3px solid var(--rainbow-1); }
+  .content .history-card:nth-child(7n + 2) { border-left: 3px solid var(--rainbow-2); }
+  .content .history-card:nth-child(7n + 3) { border-left: 3px solid var(--rainbow-3); }
+  .content .history-card:nth-child(7n + 4) { border-left: 3px solid var(--rainbow-4); }
+  .content .history-card:nth-child(7n + 5) { border-left: 3px solid var(--rainbow-5); }
+  .content .history-card:nth-child(7n + 6) { border-left: 3px solid var(--rainbow-6); }
+  .content .history-card:nth-child(7n) { border-left: 3px solid var(--rainbow-7); }
+}
+
+/* Outer settings: use categorical accents for groups and controls. */
+:root[data-accent-theme='rainbow'] #app .system-settings {
+  .item > .left .title {
+    color: var(--color-text);
+  }
+  .slide-container .rainbow-settings-tab.active {
+    border-color: color-mix(in srgb, var(--rainbow-7) 40%, transparent);
+  }
+  .item :is(select, .custom-select, .text-input, .cache-custom-limit, .app-font-size-setting) {
+    border: 1px solid color-mix(in srgb, var(--rainbow-7) 25%, transparent);
+  }
+  .item :is(select, .custom-select, .text-input, .cache-custom-limit):focus-within {
+    border-color: var(--rainbow-7);
+  }
+  .item .toggle input:checked + label:before {
+    background: var(--rainbow-4);
+  }
+  .item :is(.slider-value, .font-size-value, .custom-select .custom-text) {
+    color: var(--rainbow-7);
+  }
+  .item :is(button:not(.danger):not(.primary), .font-size-btn):focus-visible {
+    outline-color: var(--rainbow-7);
+  }
+}
