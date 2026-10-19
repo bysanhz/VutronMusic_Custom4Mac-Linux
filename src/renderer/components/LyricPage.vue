@@ -2,13 +2,13 @@
   <transition name="slide-fade">
     <div v-if="!noLyric" class="lyric-wrapper" :class="{ 'use-mask': useMask }">
       <div v-show="hover" class="offset">
-        <button-icon :title="t('lyricPage.advance')" @click="setOffset(+0.5, $event)">
+        <button-icon class="rainbow-lyric-advance" :title="t('lyricPage.advance')" @click="setOffset(+0.5, $event)">
           <svg-icon icon-class="back5s" />
         </button-icon>
-        <button-icon class="recovery" :title="offset" @click="setOffset(0)">
+        <button-icon class="recovery rainbow-lyric-recovery" :title="offset" @click="setOffset(0)">
           <svg-icon icon-class="recovery" />
         </button-icon>
-        <button-icon :title="t('lyricPage.delay')" @click="setOffset(-0.5, $event)">
+        <button-icon class="rainbow-lyric-delay" :title="t('lyricPage.delay')" @click="setOffset(-0.5, $event)">
           <svg-icon icon-class="forward5s" />
         </button-icon>
       </div>
