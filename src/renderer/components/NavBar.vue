@@ -80,9 +80,6 @@
       </div>
     </nav>
     <ContextMenu ref="userProfileMenu">
-      <div v-if="isLooseLoggedIn" class="item" @click="openMyProfile">
-        {{ $t('userPage.myProfile') }}
-      </div>
       <div v-if="!isLooseLoggedIn" class="item" @click="toLogin">
         <svg-icon icon-class="login" />
         {{ $t('login.login') }}
@@ -174,12 +171,6 @@ const toExplore = (category: string) => {
   exploreTab.value = category
   const cat = ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'
   router.push({ name: 'explore', query: { category: cat, tab: category } })
-}
-
-const openMyProfile = () => {
-  const id = data.user.value?.userId
-  if (!id) return
-  router.push(`/user/${id}`)
 }
 
 const logout = () => {
