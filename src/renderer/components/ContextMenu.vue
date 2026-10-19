@@ -301,36 +301,56 @@ hr {
   }
 }
 
-/* Restrict More Actions styling to the playback page's menu. */
+/* Rainbow roles are scoped to playback tools; other context menus stay unchanged. */
 .context-menu.player-tools-menu {
   .menu {
     width: 252px;
     max-width: calc(100vw - 24px);
     padding: 8px;
     border-radius: 16px;
+    background: var(--color-body-bg);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
   }
 
   .menu .item {
+    --tool-rainbow: var(--color-primary);
     box-sizing: border-box;
     min-height: 44px;
     padding: 10px 14px;
     border-radius: 10px;
+    color: var(--color-text);
     font-size: 14px;
     font-weight: 600;
     line-height: 1.4;
     cursor: pointer;
+    border-left: 3px solid color-mix(in srgb, var(--tool-rainbow) 75%, transparent);
+    background: color-mix(in srgb, var(--tool-rainbow) 12%, var(--color-body-bg));
+
+    & + .item { margin-top: 4px; }
 
     &:hover,
     &:focus-visible,
     &.active {
-      color: var(--color-primary);
-      background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--tool-rainbow) 26%, var(--color-body-bg));
+      outline: 1px solid color-mix(in srgb, var(--tool-rainbow) 50%, transparent);
     }
   }
 
-  hr {
-    margin: 6px 10px;
+  .menu .item:nth-child(7n + 1) { --tool-rainbow: #e66d91; }
+  .menu .item:nth-child(7n + 2) { --tool-rainbow: #e7a85a; }
+  .menu .item:nth-child(7n + 3) { --tool-rainbow: #d7bb5c; }
+  .menu .item:nth-child(7n + 4) { --tool-rainbow: #60ae8e; }
+  .menu .item:nth-child(7n + 5) { --tool-rainbow: #63a9d0; }
+  .menu .item:nth-child(7n + 6) { --tool-rainbow: #8584ce; }
+  .menu .item:nth-child(7n) { --tool-rainbow: #b782d0; }
+
+  hr { margin: 8px 10px; }
+
+  &[data-theme='dark'] .menu,
+  [data-theme='dark'] & .menu {
+    background: var(--color-body-bg);
+    backdrop-filter: blur(12px);
   }
 }
 </style>
