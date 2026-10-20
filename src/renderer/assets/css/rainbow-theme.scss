@@ -1355,19 +1355,22 @@
     );
   }
 
-  .biquader { --eq-hue: var(--rainbow-6); }
-  .biquader:nth-child(7n + 1) { --eq-hue: var(--rainbow-1); }
-  .biquader:nth-child(7n + 2) { --eq-hue: var(--rainbow-2); }
-  .biquader:nth-child(7n + 3) { --eq-hue: var(--rainbow-3); }
-  .biquader:nth-child(7n + 4) { --eq-hue: var(--rainbow-4); }
-  .biquader:nth-child(7n + 5) { --eq-hue: var(--rainbow-5); }
-  .biquader:nth-child(7n + 6) { --eq-hue: var(--rainbow-6); }
-  .biquader:nth-child(7n) { --eq-hue: var(--rainbow-7); }
+  // Frequency labels in the guide and the live EQ controls have the same
+  // freqsKeyList order. Share one hue assignment to prevent palette drift.
+  :is(.biquader, .frequency-guide-item) { --eq-hue: var(--rainbow-6); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 1) { --eq-hue: var(--rainbow-1); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 2) { --eq-hue: var(--rainbow-2); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 3) { --eq-hue: var(--rainbow-3); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 4) { --eq-hue: var(--rainbow-4); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 5) { --eq-hue: var(--rainbow-5); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n + 6) { --eq-hue: var(--rainbow-6); }
+  :is(.biquader, .frequency-guide-item):nth-child(7n) { --eq-hue: var(--rainbow-7); }
   .biquader .frequency-value {
     color: var(--eq-hue);
     background: color-mix(in srgb, var(--eq-hue) 13%, transparent);
   }
   .biquader .equalizer-range::-webkit-slider-thumb { background: var(--eq-hue); }
+  .frequency-guide-item strong { color: var(--eq-hue); }
 
   .preset .button {
     --preset-hue: var(--rainbow-6);
