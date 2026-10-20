@@ -62,3 +62,24 @@ test('dark rainbow equalizer presets and close controls beat neutral modal overr
   expect(css).toContain('button.close .svg-icon')
   expect(css).toContain('.preset-disclosure > summary')
 })
+
+test('frequency guide labels match the rainbow equalizer slider and decibel hues', () => {
+  const view = readFileSync(resolve(process.cwd(), 'src/renderer/components/ModalConvolver.vue'), 'utf8')
+  const css = readFileSync(resolve(process.cwd(), 'src/renderer/assets/css/rainbow-theme.scss'), 'utf8')
+
+  // Both visual representations iterate the same fixed ordering.
+  expect(view).toContain('v-for="(item, index) in freqsKeyList" :key="item" class="biquader"')
+  expect(view).toContain('v-for="(item, index) in freqsKeyList" :key="item" class="frequency-guide-item"')
+
+  // One shared set of selectors drives both, so future hue changes remain synchronized.
+  expect(css).toContain(':is(.biquader, .frequency-guide-item) { --eq-hue: var(--rainbow-6); }')
+  for (let i = 1; i <= 7; i++) {
+    const suffix = i === 7 ? '7n' : `7n + ${i}`
+    expect(css).toContain(
+      `:is(.biquader, .frequency-guide-item):nth-child(${suffix}) { --eq-hue: var(--rainbow-${i}); }`
+    )
+  }
+  expect(css).toContain('.biquader .frequency-value {\n    color: var(--eq-hue);')
+  expect(css).toContain('.biquader .equalizer-range::-webkit-slider-thumb { background: var(--eq-hue); }')
+  expect(css).toContain('.frequency-guide-item strong { color: var(--eq-hue); }')
+})
