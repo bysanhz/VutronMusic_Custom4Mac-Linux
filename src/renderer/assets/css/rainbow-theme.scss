@@ -1544,3 +1544,125 @@
     background: color-mix(in srgb, var(--rainbow-3) 23%, var(--rainbow-dialog-paper)) !important;
   }
 }
+
+
+/* Sleep timer: options are real buttons, overridden by interaction-theme's
+   neutral !important styles unless targeted at the modal button level. */
+:root[data-accent-theme='rainbow'] #app .shade.sleep-timer-modal {
+  .quick-time-grid > button:nth-child(7n + 1) { --timer-hue: var(--rainbow-1); }
+  .quick-time-grid > button:nth-child(7n + 2) { --timer-hue: var(--rainbow-2); }
+  .quick-time-grid > button:nth-child(7n + 3) { --timer-hue: var(--rainbow-3); }
+  .quick-time-grid > button:nth-child(7n + 4) { --timer-hue: var(--rainbow-4); }
+  .quick-time-grid > button:nth-child(7n + 5) { --timer-hue: var(--rainbow-5); }
+  .quick-time-grid > button:nth-child(7n + 6) { --timer-hue: var(--rainbow-6); }
+  .quick-time-grid > button:nth-child(7n) { --timer-hue: var(--rainbow-7); }
+  .end-mode-grid > button:first-child { --timer-hue: var(--rainbow-5); }
+  .end-mode-grid > button:last-child { --timer-hue: var(--rainbow-6); }
+  .segmented-control > button:first-child { --timer-hue: var(--rainbow-4); }
+  .segmented-control > button:last-child { --timer-hue: var(--rainbow-7); }
+  .modal .content :is(.quick-time-grid, .end-mode-grid, .segmented-control) > button:not(:disabled) {
+    color: var(--timer-hue) !important;
+    background: color-mix(in srgb, var(--timer-hue) 10%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--timer-hue) 34%, transparent) !important;
+  }
+  .modal .content :is(.quick-time-grid, .end-mode-grid, .segmented-control) > button:is(.active, :hover, :focus-visible):not(:disabled) {
+    color: var(--timer-hue) !important;
+    background: color-mix(in srgb, var(--timer-hue) 22%, var(--rainbow-dialog-paper)) !important;
+    border-color: var(--timer-hue) !important;
+  }
+  .custom-time-row {
+    background: color-mix(in srgb, var(--rainbow-6) 7%, var(--rainbow-dialog-paper));
+    border-color: color-mix(in srgb, var(--rainbow-6) 34%, transparent);
+  }
+  .custom-time-row.active:not(.invalid) { border-color: var(--rainbow-6); }
+  .custom-time-input-wrap input {
+    color: var(--rainbow-6);
+    background: color-mix(in srgb, var(--rainbow-6) 10%, var(--rainbow-dialog-paper));
+  }
+  .fade-select select {
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--rainbow-3) 10%, var(--rainbow-dialog-paper));
+    border-color: color-mix(in srgb, var(--rainbow-3) 37%, transparent);
+  }
+  .sleep-timer-status.active { color: var(--rainbow-4); }
+}
+
+/* Background configuration: neutral white input areas with per-function edges. */
+:root[data-accent-theme='rainbow'] #app .shade.background-tool-modal {
+  .item-1 > .bg-select:nth-child(7n + 1) { --background-hue: var(--rainbow-1); }
+  .item-1 > .bg-select:nth-child(7n + 2) { --background-hue: var(--rainbow-2); }
+  .item-1 > .bg-select:nth-child(7n + 3) { --background-hue: var(--rainbow-3); }
+  .item-1 > .bg-select:nth-child(7n + 4) { --background-hue: var(--rainbow-4); }
+  .item-1 > .bg-select:nth-child(7n + 5) { --background-hue: var(--rainbow-5); }
+  .item-1 > .bg-select:nth-child(7n + 6) { --background-hue: var(--rainbow-6); }
+  .item-1 > .bg-select:nth-child(7n) { --background-hue: var(--rainbow-7); }
+  .item-1 > .bg-select {
+    color: var(--background-hue);
+    background: color-mix(in srgb, var(--background-hue) 8%, var(--rainbow-dialog-paper));
+    border-color: color-mix(in srgb, var(--background-hue) 36%, transparent);
+  }
+  .item-1 > .bg-select:is(.active, :hover, :focus-visible) {
+    color: var(--background-hue);
+    background: color-mix(in srgb, var(--background-hue) 20%, var(--rainbow-dialog-paper));
+    border-color: var(--background-hue);
+  }
+  .item.lyric-source input.text-input,
+  .item .right .custom-select {
+    background: var(--rainbow-dialog-paper);
+    border: 1px solid color-mix(in srgb, var(--rainbow-5) 40%, transparent);
+  }
+  .item.range-setting:nth-of-type(even) { --background-range-hue: var(--rainbow-5); }
+  .item.range-setting:nth-of-type(odd) { --background-range-hue: var(--rainbow-7); }
+  .item.range-setting .range-value input {
+    color: var(--background-range-hue, var(--rainbow-5));
+    font-weight: 700;
+  }
+  .item.range-setting .slider { accent-color: var(--background-range-hue, var(--rainbow-5)); }
+  .modal .content .range-reset:not(:disabled) {
+    color: var(--rainbow-3) !important;
+    background: color-mix(in srgb, var(--rainbow-3) 12%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--rainbow-3) 34%, transparent) !important;
+  }
+  .item .toggle input:checked + label:before { background: var(--rainbow-4); }
+}
+
+/* Lyrics font: lighter configuration surfaces and consistent selection tint. */
+:root[data-accent-theme='rainbow'] #app .shade.font-tool-modal {
+  .lyric-setting > .item:nth-child(7n + 1) { --font-setting-hue: var(--rainbow-1); }
+  .lyric-setting > .item:nth-child(7n + 2) { --font-setting-hue: var(--rainbow-2); }
+  .lyric-setting > .item:nth-child(7n + 3) { --font-setting-hue: var(--rainbow-3); }
+  .lyric-setting > .item:nth-child(7n + 4) { --font-setting-hue: var(--rainbow-4); }
+  .lyric-setting > .item:nth-child(7n + 5) { --font-setting-hue: var(--rainbow-5); }
+  .lyric-setting > .item:nth-child(7n + 6) { --font-setting-hue: var(--rainbow-6); }
+  .lyric-setting > .item:nth-child(7n) { --font-setting-hue: var(--rainbow-7); }
+  .lyric-setting > .item .text-input,
+  .lyric-setting > .item input[type='number'],
+  .lyric-setting > .item .custom-select {
+    color: var(--font-setting-hue);
+    background: color-mix(in srgb, var(--font-setting-hue) 8%, var(--rainbow-dialog-paper));
+    border: 1px solid color-mix(in srgb, var(--font-setting-hue) 35%, transparent);
+  }
+  .lyric-setting > .item .toggle input:checked + label:before { background: var(--font-setting-hue); }
+  .region-setting .settings-list:nth-child(7n + 1) { --font-region-hue: var(--rainbow-1); }
+  .region-setting .settings-list:nth-child(7n + 2) { --font-region-hue: var(--rainbow-2); }
+  .region-setting .settings-list:nth-child(7n + 3) { --font-region-hue: var(--rainbow-3); }
+  .region-setting .settings-list:nth-child(7n + 4) { --font-region-hue: var(--rainbow-4); }
+  .region-setting .settings-list:nth-child(7n + 5) { --font-region-hue: var(--rainbow-5); }
+  .region-setting .settings-list:nth-child(7n + 6) { --font-region-hue: var(--rainbow-6); }
+  .region-setting .settings-list:nth-child(7n) { --font-region-hue: var(--rainbow-7); }
+  .region-setting .settings-list input[type='number'] { color: var(--font-region-hue); }
+  .region-setting .reset.button {
+    color: var(--rainbow-3);
+    background: color-mix(in srgb, var(--rainbow-3) 12%, var(--rainbow-dialog-paper));
+  }
+}
+
+/* Saving a theme: avoid a single opaque gray text field. */
+:root[data-accent-theme='rainbow'] #app .shade.save-theme-modal .modal .content input[type='text'] {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--rainbow-5) 7%, var(--rainbow-dialog-paper));
+  border: 1px solid color-mix(in srgb, var(--rainbow-5) 38%, transparent);
+}
+:root[data-accent-theme='rainbow'] #app .shade.save-theme-modal .modal .content input[type='text']:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--rainbow-5) 45%, transparent);
+}
