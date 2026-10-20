@@ -34,3 +34,31 @@ test('equalizer displays active preset in exactly the corresponding chip color',
   expect(css).toContain('.modal .content .preset button.button:not(:disabled)')
   expect(css).toContain('color: var(--preset-hue) !important;')
 })
+
+test('dark rainbow equalizer presets and close controls beat neutral modal overrides', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/renderer/assets/css/rainbow-theme.scss'), 'utf8')
+  const interaction = readFileSync(resolve(process.cwd(), 'src/renderer/assets/css/interaction-theme.scss'), 'utf8')
+  const modal = readFileSync(resolve(process.cwd(), 'src/renderer/components/ModalConvolver.vue'), 'utf8')
+  const base = readFileSync(resolve(process.cwd(), 'src/renderer/components/BaseModal.vue'), 'utf8')
+  expect(interaction).toContain('#app .shade .modal button:not(.primary)')
+  expect(interaction).toContain('button.close')
+  expect(base).toContain('class="close"')
+  expect(modal).toContain('class="convolver-modal player-tool-modal"')
+  expect(modal).toContain('class="preset-current-name"')
+  expect(modal).toContain('class="reset button"')
+  expect(css).toContain(
+    ":root[data-accent-theme='rainbow'] #app .shade.convolver-modal .modal .content .preset > button.button:not(:disabled)"
+  )
+  expect(css).toContain(
+    ":root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .preset > button.button:not(:disabled)"
+  )
+  expect(css).toContain('color: var(--preset-hue, #f2f3f6) !important;')
+  expect(css).toContain('.freqsContainer .reset.button:not(:disabled)')
+  expect(css).toContain(
+    ":root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.player-tool-modal .modal > .header > button.close"
+  )
+  expect(css).toContain('color: #f2f3f6 !important;')
+  expect(css).toContain('background: #3a3a3a !important;')
+  expect(css).toContain('button.close .svg-icon')
+  expect(css).toContain('.preset-disclosure > summary')
+})
