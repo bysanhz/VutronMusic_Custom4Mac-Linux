@@ -1838,11 +1838,11 @@
   .theme-list > .theme-item:nth-child(7n) { --theme-tile-hue: var(--rainbow-7); }
   .theme-list > .theme-item {
     border: 1px solid color-mix(in srgb, var(--theme-tile-hue) 26%, transparent);
-    background: color-mix(in srgb, var(--theme-tile-hue) 5%, var(--rainbow-dialog-paper));
+    background: color-mix(in srgb, var(--theme-tile-hue) 5%, var(--color-body-bg));
   }
   .theme-list > .theme-item:is(.selected, :hover, :focus-visible) {
     color: var(--theme-tile-hue);
-    background: color-mix(in srgb, var(--theme-tile-hue) 15%, var(--rainbow-dialog-paper));
+    background: color-mix(in srgb, var(--theme-tile-hue) 15%, var(--color-body-bg));
     border-color: var(--theme-tile-hue);
   }
 }
