@@ -1,7 +1,7 @@
 <template>
   <div :class="{ 'creative-container': activeTheme.theme.activeLayout === 'Creative' }">
     <Modal
-      class="player-tool-modal"
+      class="player-tool-modal font-tool-modal"
       :show="setFontModal"
       :title="t('playerFont.title')"
       :width="
