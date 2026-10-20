@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal background-tool-modal"
     width="min(560px, calc(100vw - 40px))"
     min-width="0"
     :title="t('backgroundSettings.title')"
