@@ -278,6 +278,7 @@
                   v-for="control in profileCoreControls"
                   :key="control.key"
                   class="profile-slider"
+                  :class="`rainbow-profile-core-${control.key}`"
                 >
                   <div>
                     <span>{{ control.label }}</span>
