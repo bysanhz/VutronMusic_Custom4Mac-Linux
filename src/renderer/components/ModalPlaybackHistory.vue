@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal playback-history-modal"
     :show="playbackHistoryModalVisible"
     :title="text.title"
     width="min(525px, calc(100vw - 32px))"
