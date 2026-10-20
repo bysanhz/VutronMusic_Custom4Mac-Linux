@@ -1,5 +1,6 @@
 <template>
   <Modal
+    class="player-tool-modal theme-selection-modal"
     :show="setThemeModal"
     :title="$t('settings.playerTheme.title')"
     :close-fn="closeFn"
