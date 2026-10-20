@@ -1416,3 +1416,131 @@
 }
 :root[data-accent-theme='rainbow'] .shade.convolver-modal { --player-tool-accent: var(--rainbow-5); }
 :root[data-accent-theme='rainbow'] .shade.save-theme-modal { --player-tool-accent: var(--rainbow-4); }
+
+
+/* Rainbow tool-dialog surfaces: keep the white modal shell; tint controls
+   instead of filling large panels with the same neutral gray. */
+:root[data-accent-theme='rainbow'] #app .shade.player-tool-modal {
+  --rainbow-dialog-paper: #fff;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.player-tool-modal {
+  --rainbow-dialog-paper: #242424;
+}
+
+/* Playback History & Queues: gentle chromatic rows, readable metadata. */
+:root[data-accent-theme='rainbow'] #app .shade.playback-history-modal {
+  .history-tabs > button:first-child { --history-tab-hue: var(--rainbow-7); }
+  .history-tabs > button:last-child { --history-tab-hue: var(--rainbow-5); }
+  .modal .content .history-tabs > button:not(:disabled) {
+    color: var(--history-tab-hue) !important;
+    background: color-mix(in srgb, var(--history-tab-hue) 9%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--history-tab-hue) 26%, transparent) !important;
+  }
+  .modal .content .history-tabs > button:is(.active, :hover, :focus-visible):not(:disabled) {
+    color: var(--history-tab-hue) !important;
+    background: color-mix(in srgb, var(--history-tab-hue) 20%, var(--rainbow-dialog-paper)) !important;
+    border-color: var(--history-tab-hue) !important;
+    box-shadow: inset 0 -3px var(--history-tab-hue);
+  }
+  .save-queue-row > input {
+    background: var(--rainbow-dialog-paper);
+    border-color: color-mix(in srgb, var(--rainbow-5) 42%, transparent);
+  }
+  .save-queue-row > input:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--rainbow-5) 50%, transparent);
+    outline-offset: 1px;
+  }
+  .modal .content .save-queue-row > button:not(:disabled) {
+    color: var(--rainbow-7) !important;
+    background: color-mix(in srgb, var(--rainbow-7) 12%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--rainbow-7) 38%, transparent) !important;
+  }
+  .modal .content .save-queue-row > button:not(:disabled):is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--rainbow-7) 23%, var(--rainbow-dialog-paper)) !important;
+  }
+  .history-list > .history-card:nth-child(7n + 1) { --history-hue: var(--rainbow-1); }
+  .history-list > .history-card:nth-child(7n + 2) { --history-hue: var(--rainbow-2); }
+  .history-list > .history-card:nth-child(7n + 3) { --history-hue: var(--rainbow-3); }
+  .history-list > .history-card:nth-child(7n + 4) { --history-hue: var(--rainbow-4); }
+  .history-list > .history-card:nth-child(7n + 5) { --history-hue: var(--rainbow-5); }
+  .history-list > .history-card:nth-child(7n + 6) { --history-hue: var(--rainbow-6); }
+  .history-list > .history-card:nth-child(7n) { --history-hue: var(--rainbow-7); }
+  .history-list > .history-card {
+    background: color-mix(in srgb, var(--history-hue) 6%, var(--rainbow-dialog-paper));
+    border: 1px solid color-mix(in srgb, var(--history-hue) 34%, transparent);
+    border-left: 3px solid var(--history-hue);
+  }
+  .history-card-copy > span {
+    color: color-mix(in srgb, var(--color-text) 72%, transparent);
+  }
+  .modal .content .history-card-actions > button:not(.danger):not(:disabled) {
+    color: var(--history-hue) !important;
+    background: color-mix(in srgb, var(--history-hue) 12%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--history-hue) 36%, transparent) !important;
+  }
+  .modal .content .history-card-actions > button:not(.danger):not(:disabled):is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--history-hue) 24%, var(--rainbow-dialog-paper)) !important;
+  }
+  .recent-grid > .recent-track:nth-child(7n + 1) { --recent-hue: var(--rainbow-1); }
+  .recent-grid > .recent-track:nth-child(7n + 2) { --recent-hue: var(--rainbow-2); }
+  .recent-grid > .recent-track:nth-child(7n + 3) { --recent-hue: var(--rainbow-3); }
+  .recent-grid > .recent-track:nth-child(7n + 4) { --recent-hue: var(--rainbow-4); }
+  .recent-grid > .recent-track:nth-child(7n + 5) { --recent-hue: var(--rainbow-5); }
+  .recent-grid > .recent-track:nth-child(7n + 6) { --recent-hue: var(--rainbow-6); }
+  .recent-grid > .recent-track:nth-child(7n) { --recent-hue: var(--rainbow-7); }
+  .modal .content .recent-grid > .recent-track:not(:disabled) {
+    color: var(--color-text) !important;
+    background: color-mix(in srgb, var(--recent-hue) 7%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--recent-hue) 32%, transparent) !important;
+  }
+  .modal .content .recent-grid > .recent-track:not(:disabled):is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--recent-hue) 17%, var(--rainbow-dialog-paper)) !important;
+  }
+  .history-status { color: var(--rainbow-4); }
+}
+
+/* Track lyric correction: one hue per offset/value and one per adjustment. */
+:root[data-accent-theme='rainbow'] #app .shade.lyric-offset-modal {
+  .track-summary {
+    background: color-mix(in srgb, var(--rainbow-7) 9%, var(--rainbow-dialog-paper));
+    border: 1px solid color-mix(in srgb, var(--rainbow-7) 30%, transparent);
+  }
+  .track-summary .effective-offset { color: var(--rainbow-7); }
+  .offset-overview > .offset-card:first-child { --offset-hue: var(--rainbow-1); }
+  .offset-overview > .offset-card:last-child { --offset-hue: var(--rainbow-5); }
+  .offset-overview > .offset-card {
+    background: color-mix(in srgb, var(--offset-hue) 7%, var(--rainbow-dialog-paper));
+    border: 1px solid color-mix(in srgb, var(--offset-hue) 42%, transparent);
+  }
+  .offset-overview > .offset-card > span,
+  .offset-overview > .offset-card > strong { color: var(--offset-hue); }
+  .offset-controls > .offset-input {
+    background: color-mix(in srgb, var(--rainbow-7) 9%, var(--rainbow-dialog-paper));
+    border-color: color-mix(in srgb, var(--rainbow-7) 40%, transparent);
+  }
+  .offset-controls > .offset-input input { color: var(--rainbow-7); }
+  .offset-controls > .offset-input:focus-within {
+    outline: 2px solid color-mix(in srgb, var(--rainbow-7) 42%, transparent);
+  }
+  .step-controls > button:nth-child(1) { --step-hue: var(--rainbow-1); }
+  .step-controls > button:nth-child(2) { --step-hue: var(--rainbow-2); }
+  .step-controls > button:nth-child(3) { --step-hue: var(--rainbow-4); }
+  .step-controls > button:nth-child(4) { --step-hue: var(--rainbow-6); }
+  .modal .content .step-controls > button:not(:disabled) {
+    color: var(--step-hue) !important;
+    background: color-mix(in srgb, var(--step-hue) 12%, var(--rainbow-dialog-paper)) !important;
+    border: 1px solid color-mix(in srgb, var(--step-hue) 35%, transparent) !important;
+  }
+  .modal .content .step-controls > button:not(:disabled):is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--step-hue) 23%, var(--rainbow-dialog-paper)) !important;
+    border-color: var(--step-hue) !important;
+  }
+  .modal .footer .reset-button:not(:disabled) {
+    color: var(--rainbow-3) !important;
+    background: color-mix(in srgb, var(--rainbow-3) 13%, var(--rainbow-dialog-paper)) !important;
+    border-color: color-mix(in srgb, var(--rainbow-3) 36%, transparent) !important;
+  }
+  .modal .footer .reset-button:not(:disabled):is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--rainbow-3) 23%, var(--rainbow-dialog-paper)) !important;
+  }
+}
