@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    class="player-tool-modal"
+    class="player-tool-modal sleep-timer-modal"
     :show="sleepTimerModalVisible"
     :title="text.title"
     width="min(405px, calc(100vw - 32px))"
