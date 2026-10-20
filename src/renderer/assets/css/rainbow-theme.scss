@@ -1463,6 +1463,17 @@
   outline-offset: 2px;
 }
 
+/* Dark preset captions and help headings are labels, not disabled
+   controls; keep them distinct from muted secondary metadata. */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .preset-disclosure > summary,
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .frequency-guide > summary {
+  color: #e0e2e9 !important;
+  opacity: 1;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .preset-disclosure .preset-current-name {
+  color: var(--preset-hue, #f2f3f6) !important;
+}
+
 /* Give each player tool a distinct accent instead of one violet dialog. */
 :root[data-accent-theme='rainbow'] .shade.player-tool-modal {
   --player-tool-accent: var(--rainbow-7);
