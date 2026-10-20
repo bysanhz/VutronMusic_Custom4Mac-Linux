@@ -1409,6 +1409,60 @@
   }
 }
 
+/* Keep equalizer controls readable against the opaque dark tool surface.
+   These rules include #app so the global interaction-theme !important rule
+   cannot turn the preset labels and close glyph back into dark neutral ink. */
+:root[data-accent-theme='rainbow'] #app .shade.convolver-modal .modal .content .preset > button.button:not(:disabled) {
+  color: var(--preset-hue, var(--rainbow-6)) !important;
+  background: color-mix(in srgb, var(--preset-hue, var(--rainbow-6)) 12%, var(--color-body-bg)) !important;
+  border: 1px solid color-mix(in srgb, var(--preset-hue, var(--rainbow-6)) 38%, transparent) !important;
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] #app .shade.convolver-modal .modal .content .preset > button.button:is(.active, :hover, :focus-visible):not(:disabled) {
+  color: var(--preset-hue, var(--rainbow-6)) !important;
+  background: color-mix(in srgb, var(--preset-hue, var(--rainbow-6)) 24%, var(--color-body-bg)) !important;
+  border-color: var(--preset-hue, var(--rainbow-6)) !important;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .preset > button.button:not(:disabled) {
+  color: var(--preset-hue, #f2f3f6) !important;
+  background: color-mix(in srgb, var(--preset-hue, var(--rainbow-6)) 16%, #242424) !important;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.convolver-modal .modal .content .preset > button.button:is(.active, :hover, :focus-visible):not(:disabled) {
+  color: var(--preset-hue, #f2f3f6) !important;
+  background: color-mix(in srgb, var(--preset-hue, var(--rainbow-6)) 28%, #242424) !important;
+}
+/* The equalizer's reset button is a neutral action, not a disabled label. */
+:root[data-accent-theme='rainbow'] #app .shade.convolver-modal .modal .content .freqsContainer .reset.button:not(:disabled) {
+  color: var(--rainbow-3) !important;
+  background: color-mix(in srgb, var(--rainbow-3) 13%, var(--color-body-bg)) !important;
+  border: 1px solid color-mix(in srgb, var(--rainbow-3) 36%, transparent) !important;
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] #app .shade.convolver-modal .modal .content .freqsContainer .reset.button:is(:hover, :focus-visible):not(:disabled) {
+  background: color-mix(in srgb, var(--rainbow-3) 26%, var(--color-body-bg)) !important;
+  border-color: var(--rainbow-3) !important;
+}
+/* All player-tool X buttons should stay neutral but remain visible in dark
+   mode. Set the SVG itself because inherited neutral interaction colors alone
+   were insufficient on a dark modal background. */
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.player-tool-modal .modal > .header > button.close {
+  color: #f2f3f6 !important;
+  background: #3a3a3a !important;
+  border: 1px solid #666 !important;
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.player-tool-modal .modal > .header > button.close .svg-icon {
+  color: #f2f3f6 !important;
+  opacity: 1 !important;
+}
+:root[data-accent-theme='rainbow'] body[data-theme='dark'] #app .shade.player-tool-modal .modal > .header > button.close:is(:hover, :focus-visible) {
+  color: #fff !important;
+  background: #505050 !important;
+  border-color: var(--rainbow-7) !important;
+  outline: 2px solid var(--rainbow-7);
+  outline-offset: 2px;
+}
+
 /* Give each player tool a distinct accent instead of one violet dialog. */
 :root[data-accent-theme='rainbow'] .shade.player-tool-modal {
   --player-tool-accent: var(--rainbow-7);
