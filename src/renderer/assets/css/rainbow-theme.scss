@@ -1770,3 +1770,79 @@
 :root[data-accent-theme='rainbow'] .heart-mode-assistant.is-dark {
   --heart-rainbow-paper: #242424;
 }
+
+
+/* Heart Mode explanation and strategy cards share the same low-saturation
+   treatment as the custom profile controls instead of opaque gray panels. */
+:root[data-accent-theme='rainbow'] .heart-mode-assistant {
+  .profile-card {
+    background: color-mix(in srgb, var(--rainbow-7) 6%, var(--heart-rainbow-paper));
+    border-color: color-mix(in srgb, var(--rainbow-7) 28%, transparent);
+  }
+  .profile-card > summary > span { color: var(--rainbow-7); }
+  .strategy-card {
+    background: color-mix(in srgb, var(--rainbow-5) 6%, var(--heart-rainbow-paper));
+    border-color: color-mix(in srgb, var(--rainbow-5) 31%, transparent);
+  }
+  .strategy-card > summary > span { color: var(--rainbow-5); }
+  .strategy-card small, .strategy-group li { opacity: 0.8; }
+  .strategy-note,
+  .steering-note {
+    background: color-mix(in srgb, var(--rainbow-3) 9%, var(--heart-rainbow-paper));
+    border: 1px solid color-mix(in srgb, var(--rainbow-3) 28%, transparent);
+    border-radius: 8px;
+    padding: 7px 9px;
+    color: var(--color-text);
+    opacity: 0.88;
+  }
+  .branches > .branch-row:nth-child(7n + 1) { --heart-branch-hue: var(--rainbow-1); }
+  .branches > .branch-row:nth-child(7n + 2) { --heart-branch-hue: var(--rainbow-2); }
+  .branches > .branch-row:nth-child(7n + 3) { --heart-branch-hue: var(--rainbow-3); }
+  .branches > .branch-row:nth-child(7n + 4) { --heart-branch-hue: var(--rainbow-4); }
+  .branches > .branch-row:nth-child(7n + 5) { --heart-branch-hue: var(--rainbow-5); }
+  .branches > .branch-row:nth-child(7n + 6) { --heart-branch-hue: var(--rainbow-6); }
+  .branches > .branch-row:nth-child(7n) { --heart-branch-hue: var(--rainbow-7); }
+  .branches > .branch-row {
+    border-left: 2px solid var(--heart-branch-hue);
+    border-radius: 6px;
+    padding: 4px 7px;
+    background: color-mix(in srgb, var(--heart-branch-hue) 5%, var(--heart-rainbow-paper));
+  }
+  .branches > .branch-row .branch-state:not(.down):not(.strong-down) {
+    color: var(--heart-branch-hue);
+    opacity: 1;
+  }
+  .reset-zone > .reset-button {
+    color: var(--rainbow-3);
+    background: color-mix(in srgb, var(--rainbow-3) 12%, var(--heart-rainbow-paper));
+    border-color: color-mix(in srgb, var(--rainbow-3) 38%, transparent);
+  }
+  .reset-zone > .reset-button:hover {
+    background: color-mix(in srgb, var(--rainbow-3) 22%, var(--heart-rainbow-paper));
+  }
+}
+
+/* Fullscreen player theme picker: selected tile and thumbnails receive
+   categorical edging; the screenshot itself remains unaltered. */
+:root[data-accent-theme='rainbow'] #app .shade.theme-selection-modal {
+  .type-group:nth-child(7n + 1) { --theme-group-hue: var(--rainbow-5); }
+  .type-group:nth-child(7n + 2) { --theme-group-hue: var(--rainbow-7); }
+  .type-group:nth-child(7n + 3) { --theme-group-hue: var(--rainbow-3); }
+  .type-group > .title { color: var(--theme-group-hue); }
+  .theme-list > .theme-item:nth-child(7n + 1) { --theme-tile-hue: var(--rainbow-1); }
+  .theme-list > .theme-item:nth-child(7n + 2) { --theme-tile-hue: var(--rainbow-2); }
+  .theme-list > .theme-item:nth-child(7n + 3) { --theme-tile-hue: var(--rainbow-3); }
+  .theme-list > .theme-item:nth-child(7n + 4) { --theme-tile-hue: var(--rainbow-4); }
+  .theme-list > .theme-item:nth-child(7n + 5) { --theme-tile-hue: var(--rainbow-5); }
+  .theme-list > .theme-item:nth-child(7n + 6) { --theme-tile-hue: var(--rainbow-6); }
+  .theme-list > .theme-item:nth-child(7n) { --theme-tile-hue: var(--rainbow-7); }
+  .theme-list > .theme-item {
+    border: 1px solid color-mix(in srgb, var(--theme-tile-hue) 26%, transparent);
+    background: color-mix(in srgb, var(--theme-tile-hue) 5%, var(--rainbow-dialog-paper));
+  }
+  .theme-list > .theme-item:is(.selected, :hover, :focus-visible) {
+    color: var(--theme-tile-hue);
+    background: color-mix(in srgb, var(--theme-tile-hue) 15%, var(--rainbow-dialog-paper));
+    border-color: var(--theme-tile-hue);
+  }
+}
