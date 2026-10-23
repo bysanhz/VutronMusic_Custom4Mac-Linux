@@ -10,7 +10,7 @@
  */
 :root:not([data-accent-theme='rainbow']) {
   /* Mixing in dark ink makes even gold/pale custom colors readable on light UI. */
-  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 56%, #18212e);
+  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 52%, #18212e);
   --mono-accent-face: var(--mono-accent-ink);
   --mono-glass: color-mix(in srgb, var(--color-secondary-bg) 66%, transparent);
 }
