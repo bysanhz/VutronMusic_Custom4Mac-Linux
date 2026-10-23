@@ -46,3 +46,31 @@ test('reordered buttons retain rainbow hue progression, hover and active state i
   expect(css).toContain("body[data-theme='dark'] #app .explore-page .rainbow-explore-filter > .button")
   expect(css).toContain('--rainbow-dark-pill-hue: var(--rainbow-item-color)')
 })
+
+test('sidebar Explore and top playlist navigation both open Recommended by default', () => {
+  const sidebar = source('src/renderer/components/SideNav.vue')
+  const navbar = source('src/renderer/components/NavBar.vue')
+  const page = source('src/renderer/views/ExplorePage.vue')
+
+  expect(sidebar).toContain('@click="openExplore"')
+  expect(sidebar).toContain("query: { tab: 'playlist', category: '推荐歌单' }")
+  expect(navbar).toContain("@click=\"toExplore('playlist')\"")
+  expect(navbar).toContain("const cat = category === 'playlist'")
+  expect(navbar).toContain("? '推荐歌单'")
+  expect(page).toContain("const activeCategory = ref('推荐歌单')")
+  expect(page).toContain("const saveCategory = ref('推荐歌单')")
+  expect(page).toContain("exploreTab.value = tab || 'playlist'")
+  expect(page).toContain('activeCategory.value = (target.query.category as string) || saveCategory.value')
+})
+
+test('explicit All selection and unrelated Explore tabs keep their existing routes', () => {
+  const page = source('src/renderer/views/ExplorePage.vue')
+  const navbar = source('src/renderer/components/NavBar.vue')
+
+  expect(page).toContain("router.push({ name: 'explore', query: { tab, category } })")
+  expect(page).toContain("if (activeCategory.value === '精品歌单') return getHighQualityPlaylist()")
+  expect(page).toContain("cat: activeCategory.value")
+  expect(navbar).toContain("chart: '排行榜'")
+  expect(navbar).toContain("artist: '歌手'")
+  expect(navbar).toContain(": ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'")
+})
