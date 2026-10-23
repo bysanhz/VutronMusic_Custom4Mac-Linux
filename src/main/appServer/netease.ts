@@ -91,7 +91,7 @@ async function netease(fastify: FastifyInstance) {
       reply: FastifyReply
     ) => {
       try {
-        const { ...params } = req.query
+        const params: Record<string, any> = { ...req.query }
         // The "全部" explore feed is a public hot-playlist directory, not an
         // account recommendation. Suppress login cookies so the same feed is
         // returned whether or not the listener is signed in. The upstream API
