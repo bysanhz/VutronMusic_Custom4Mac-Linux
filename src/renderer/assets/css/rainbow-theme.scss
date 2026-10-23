@@ -285,8 +285,24 @@
   fill: color-mix(in srgb, var(--rainbow-chart-day) 22%, transparent);
 }
 
-:root[data-accent-theme='rainbow'] #app .daily-trend .trend-date.today,
-:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar-value.today {
+/* Each bar label and date share the same hue as that day's bar and dot.
+   Today's special emphasis (weight/outline) remains defined in the component. */
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-date,
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar-value {
+  fill: var(--rainbow-chart-day) !important;
+  opacity: 1;
+}
+/* The upper-right selection uses the day index of the focused/hovered point,
+   falling back to the last visible date when no point is explicitly selected. */
+:root[data-accent-theme='rainbow'] #app .daily-trend .daily-trend-selection > span,
+:root[data-accent-theme='rainbow'] #app .daily-trend .daily-trend-selection > strong {
+  color: var(--rainbow-chart-day) !important;
+  opacity: 1;
+}
+:root[data-accent-theme='rainbow'] #app .daily-trend .daily-trend-selection > span {
+  font-weight: 650;
+}
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-dot:focus-visible {
   fill: var(--rainbow-chart-day);
 }
 
