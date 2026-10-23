@@ -38,7 +38,7 @@
             <span>{{ currentTrack?.name }}</span>
           </div>
           <div class="albumAndLyric">
-            <span v-for="(ar, index) in artists" :key="ar.id" class="artist">
+            <span v-for="(ar, index) in artists" :key="`${ar.id ?? 'unknown'}-${index}`" class="artist">
               <span :class="{ ar: ar.matched !== false }" @click.stop="goToArtist(ar)">
                 {{ ar.name }}
               </span>
