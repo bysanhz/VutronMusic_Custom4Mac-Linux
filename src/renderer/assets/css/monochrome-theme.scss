@@ -1,0 +1,315 @@
+/*
+ * Monochrome accent presets: use the Rainbow theme's component language,
+ * but derive every accent from the user's selected --color-primary.
+ *
+ * The selector is deliberately exclusive to Rainbow, which already owns its
+ * own seven-hue and dark-mode rules. Default blue, other solid presets and the
+ * customizable color all use this single implementation.
+ *
+ * Keep page geometry, control semantics and semantic red (like/danger) intact.
+ */
+:root:not([data-accent-theme='rainbow']) {
+  /* Mixing in dark ink makes even gold/pale custom colors readable on light UI. */
+  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 64%, #18212e);
+  --mono-accent-face: var(--mono-accent-ink);
+  --mono-glass: color-mix(in srgb, var(--color-secondary-bg) 66%, transparent);
+}
+
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] {
+  /* Raise saturation-independent luminance before placing dark text on chips. */
+  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 53%, #fff);
+  --mono-accent-face: color-mix(in srgb, var(--mono-accent-ink) 80%, var(--color-secondary-bg));
+  --mono-glass: color-mix(in srgb, var(--color-secondary-bg) 68%, transparent);
+}
+
+/* Side rail, top tabs, category filters and browser-style tabs are peers.
+ * Light appearance uses the familiar faint tint and a thin bottom keyline. */
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+) {
+  box-sizing: border-box;
+  color: var(--mono-accent-ink) !important;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--mono-accent-ink) 8%, transparent) !important;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-accent-ink) 32%, transparent);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+:root:not([data-accent-theme='rainbow']) #app .side-nav > .rainbow-nav {
+  border-radius: clamp(6px, 0.8vw, 8px) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .rainbow-web-tab {
+  border-radius: 10px;
+}
+:root:not([data-accent-theme='rainbow']) #app .side-nav > .rainbow-nav .icon,
+:root:not([data-accent-theme='rainbow']) #app .rainbow-web-tab .svg-icon {
+  color: currentColor !important;
+  opacity: 1;
+}
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+):is(:hover, :focus-visible) {
+  color: var(--mono-accent-ink) !important;
+  background: color-mix(in srgb, var(--mono-accent-ink) 15%, transparent) !important;
+  box-shadow: inset 0 -2px var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+):is(.active, .playHistory-button--selected) {
+  color: var(--mono-accent-ink) !important;
+  background: color-mix(in srgb, var(--mono-accent-ink) 22%, transparent) !important;
+  box-shadow: inset 0 -3px var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+):focus-visible {
+  outline: 2px solid var(--mono-accent-ink);
+  outline-offset: 2px;
+}
+
+/* Dark mode follows the Rainbow design: a colored face and a small neutral
+ * grey lower lip, not a nearly-black button with a tiny colored underline. */
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+) {
+  color: #20242a !important;
+  background: var(--mono-accent-face) !important;
+  box-shadow:
+    inset 0 -3px #60636b,
+    inset 0 1px rgba(255, 255, 255, 0.12) !important;
+}
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab,
+  .explore-page .rainbow-explore-filter > .button,
+  .rainbow-web-tab
+):is(:hover, :focus-visible) {
+  color: #20242a !important;
+  background: color-mix(in srgb, var(--mono-accent-ink) 89%, var(--color-secondary-bg)) !important;
+  box-shadow:
+    inset 0 -3px #60636b,
+    inset 0 1px rgba(255, 255, 255, 0.16) !important;
+}
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app :is(
+  .side-nav > .rainbow-nav.active,
+  nav .rainbow-explore-tabs > .rainbow-explore-tab.active,
+  .explore-page .rainbow-explore-filter > .button.active,
+  .rainbow-web-tab.active,
+  .rainbow-web-tab.playHistory-button--selected
+) {
+  color: #20242a !important;
+  background: color-mix(in srgb, var(--mono-accent-ink) 96%, var(--color-secondary-bg)) !important;
+  box-shadow:
+    inset 0 -4px #54575f,
+    inset 0 1px rgba(255, 255, 255, 0.19) !important;
+}
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app .side-nav > .rainbow-nav .icon,
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app .rainbow-web-tab .svg-icon {
+  color: #20242a !important;
+  opacity: 1;
+}
+
+/* Settings categories and the active section rail share the chosen accent. */
+:root:not([data-accent-theme='rainbow']) #app .system-settings .slideBar > .rainbow-settings-tab {
+  color: var(--mono-accent-ink);
+  opacity: 0.79;
+}
+:root:not([data-accent-theme='rainbow']) #app .system-settings .slideBar > .rainbow-settings-tab:is(.active, :hover) {
+  color: var(--mono-accent-ink);
+  opacity: 1;
+}
+:root:not([data-accent-theme='rainbow']) #app .system-settings .slideBar .iconfont {
+  background-color: var(--mono-accent-ink);
+}
+
+/* Numbers, summary panels and highlighted info use the same solid theme
+ * rather than hardcoded blue/purple tints. Text remains on a quiet surface. */
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .rainbow-surface-hero,
+  .rainbow-surface-overview,
+  .rainbow-surface-profile
+) {
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--mono-accent-ink) 3%, var(--color-secondary-bg)) 0%,
+    color-mix(in srgb, var(--mono-accent-ink) 10%, var(--color-secondary-bg)) 100%
+  );
+}
+:root:not([data-accent-theme='rainbow']) #app .rainbow-metric-card {
+  background: color-mix(in srgb, var(--mono-accent-ink) 7%, var(--color-body-bg));
+  box-shadow: inset 0 3px var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) #app .rainbow-metric-card strong,
+:root:not([data-accent-theme='rainbow']) #app .insights-card.rainbow-surface-hero .insights-link {
+  color: var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) #app .daily-trend :is(.trend-date.today, .trend-bar-value.today) {
+  fill: var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) #app .daily-trend .trend-average {
+  stroke: var(--mono-accent-ink);
+}
+
+/* Primary actions stay affirmative rather than acquiring neutral cancel
+ * styling. Danger, close/cancel and the red favorite heart remain semantic. */
+:root:not([data-accent-theme='rainbow']) #app .shade .modal button.primary:not(:disabled) {
+  color: #fff !important;
+  background: color-mix(in srgb, var(--mono-accent-ink) 88%, #121923) !important;
+  border-color: var(--mono-accent-ink) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .shade .modal button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mono-accent-ink) 74%, #121923) !important;
+}
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app .shade .modal button.primary:not(:disabled) {
+  color: #20242a !important;
+  background: var(--mono-accent-face) !important;
+  border-color: transparent !important;
+}
+:root:not([data-accent-theme='rainbow']) body[data-theme='dark'] #app .shade .modal button.primary:hover:not(:disabled) {
+  background: var(--mono-accent-ink) !important;
+}
+
+/* Bottom transport and fullscreen controls share consistent translucent chips
+ * while retaining the existing layout, dimensions and visibility rules. */
+:root:not([data-accent-theme='rainbow']) #app .player .controls :is(
+  .rainbow-skip-control, .rainbow-expand-control, .rainbow-queue-control,
+  .rainbow-repeat-control, .rainbow-shuffle-control, .rainbow-osd-lyrics-control
+):not(.disabled) .svg-icon,
+:root:not([data-accent-theme='rainbow']) #app .player .controls .middle #play .svg-icon {
+  color: var(--mono-accent-ink) !important;
+  opacity: 1;
+}
+:root:not([data-accent-theme='rainbow']) #app .player .controls :is(
+  .rainbow-skip-control, .rainbow-expand-control, .rainbow-queue-control,
+  .rainbow-repeat-control, .rainbow-shuffle-control, .rainbow-osd-lyrics-control
+):not(.disabled):is(:hover, :focus-visible, .active) {
+  background: color-mix(in srgb, var(--mono-accent-ink) 13%, transparent);
+  border-radius: 8px;
+}
+
+:root:not([data-accent-theme='rainbow']) #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro),
+:root:not([data-accent-theme='rainbow']) #app .player-container .play-page .media-controls .button-icon,
+:root:not([data-accent-theme='rainbow']) #app .player-container .creative-page .player-media-control .button-icon {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  min-width: 32px;
+  min-height: 34px;
+  height: 34px;
+  margin: 0 !important;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--mono-accent-ink) 13%, var(--mono-glass));
+  color: var(--mono-accent-ink) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(5px);
+  box-shadow: none;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro) {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 6px !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(.playback-speed-button, .sleep-timer-button) {
+  width: auto !important;
+  min-width: 32px;
+  padding: 0 8px !important;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .top-right .buttons, .play-page .media-controls,
+  .creative-page .player-media-control
+) .button-icon:not(.disabled) .svg-icon {
+  color: var(--mono-accent-ink) !important;
+  opacity: 1 !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .top-right .buttons, .play-page .media-controls,
+  .creative-page .player-media-control
+) .button-icon:not(.disabled):is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--mono-accent-ink) 23%, var(--mono-glass));
+  border-color: color-mix(in srgb, var(--mono-accent-ink) 30%, transparent);
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .rainbow-enabled:not(.disabled),
+:root:not([data-accent-theme='rainbow']) #app .player-container .sleep-timer-button.is-active {
+  background: color-mix(in srgb, var(--mono-accent-ink) 25%, var(--mono-glass));
+  border-color: color-mix(in srgb, var(--mono-accent-ink) 24%, transparent);
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .media-controls, .creative-page .player-media-control
+) #play {
+  border: 1px solid color-mix(in srgb, var(--mono-accent-ink) 32%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--mono-accent-ink) 29%, var(--mono-glass));
+  box-shadow: 0 2px 9px rgb(0 0 0 / 10%);
+}
+
+/* Floating fullscreen rail and the three independent timing controls. */
+:root:not([data-accent-theme='rainbow']) #app .player-container .buttons-icons .player-button,
+:root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
+) {
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--mono-accent-ink) 13%, var(--mono-glass));
+  color: var(--mono-accent-ink) !important;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-accent-ink) 28%, transparent);
+  opacity: 0.94 !important;
+  backdrop-filter: blur(5px);
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .buttons-icons .player-button .svg-icon,
+:root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
+) .svg-icon {
+  color: var(--mono-accent-ink) !important;
+  opacity: 1;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .buttons-icons .player-button:is(:hover, :focus-visible),
+:root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
+  .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
+):is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--mono-accent-ink) 23%, var(--mono-glass));
+  border-color: color-mix(in srgb, var(--mono-accent-ink) 35%, transparent);
+}
+
+/* Favorite hearts stay red when liked, regardless of the monochrome hue. */
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .player .like-button.liked:not(.disabled),
+  .player-container .like-button.liked:not(.disabled)
+),
+:root:not([data-accent-theme='rainbow']) #app :is(
+  .player .like-button.liked:not(.disabled),
+  .player-container .like-button.liked:not(.disabled)
+) .svg-icon {
+  color: var(--color-like) !important;
+}
+
+/* Honor the system's reduced-motion request, like the Rainbow theme. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-accent-theme='rainbow']) #app :is(
+    .side-nav > .rainbow-nav,
+    nav .rainbow-explore-tabs > .rainbow-explore-tab,
+    .explore-page .rainbow-explore-filter > .button,
+    .rainbow-web-tab
+  ) {
+    transition: none;
+  }
+}
