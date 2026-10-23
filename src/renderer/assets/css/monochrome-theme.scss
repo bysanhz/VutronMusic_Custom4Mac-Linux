@@ -293,7 +293,7 @@
   .play-page .media-controls .button-icon,
   .creative-page .player-media-control .button-icon,
   .buttons-icons .player-button,
-  .lyric-wrapper .offset > .button-icon
+  .lyric-wrapper .offset > :is(.rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay)
 ) {
   box-sizing: border-box;
   background: none !important;
@@ -350,7 +350,7 @@
   .play-page .media-controls .button-icon,
   .creative-page .player-media-control .button-icon,
   .buttons-icons .player-button,
-  .lyric-wrapper .offset > .button-icon
+  .lyric-wrapper .offset > :is(.rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay)
 ):not(.disabled):is(:hover, :focus-visible, .active, .rainbow-enabled, .is-active, .is-adjusted) {
   background: none !important;
   border-color: transparent !important;
@@ -364,7 +364,7 @@
   .play-page .media-controls .button-icon,
   .creative-page .player-media-control .button-icon,
   .buttons-icons .player-button,
-  .lyric-wrapper .offset > .button-icon
+  .lyric-wrapper .offset > :is(.rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay)
 ):focus-visible {
   outline: 2px solid var(--mono-player-ink) !important;
   outline-offset: 2px;
