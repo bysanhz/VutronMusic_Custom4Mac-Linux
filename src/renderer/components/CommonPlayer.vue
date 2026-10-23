@@ -193,6 +193,7 @@
           :container-margin="isMobile ? '0 auto' : '0'"
           :hover="hover"
           :offset-padding="isMobile ? '10vw' : '24px'"
+          :offset-top="isMobile ? '50%' : 'calc(50% - 32px)'"
           :margin="isMobile ? '4vh' : '40vh'"
         />
         <Comment
