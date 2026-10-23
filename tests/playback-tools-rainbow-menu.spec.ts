@@ -9,7 +9,7 @@ test('rainbow player menu hues apply only when the Rainbow accent is selected', 
   const menu = menuSource()
   const rainbow = menu.slice(
     menu.indexOf("/* Rainbow roles are scoped"),
-    menu.indexOf('/* The monochrome player menu is a neutral list')
+    menu.indexOf('/* Solid presets and custom colors: use a single, light tint')
   )
   expect(rainbow).toContain(":root[data-accent-theme='rainbow'] .context-menu.player-tools-menu")
   expect(rainbow).toContain('--tool-rainbow')
@@ -19,19 +19,21 @@ test('rainbow player menu hues apply only when the Rainbow accent is selected', 
   expect(rainbow).not.toContain(":root:not([data-accent-theme='rainbow'])")
 })
 
-test('non-rainbow player menus keep the same geometry but use neutral item colors', () => {
+test('non-rainbow player menus keep the same geometry with a light single-hue tint', () => {
   const menu = menuSource()
   const common = menu.slice(
     menu.indexOf('/* Player-tool menu geometry is shared'),
     menu.indexOf('/* Rainbow roles are scoped')
   )
-  const mono = menu.slice(menu.indexOf('/* The monochrome player menu is a neutral list'))
+  const mono = menu.slice(menu.indexOf('/* Solid presets and custom colors: use a single, light tint'))
   expect(common).toContain('.context-menu.player-tools-menu')
   expect(common).toContain('width: 252px')
   expect(common).toContain("data-theme='dark'")
   expect(common).toContain('min-height: 44px')
   expect(mono).toContain(":root:not([data-accent-theme='rainbow']) .context-menu.player-tools-menu")
-  expect(mono).toContain('var(--color-text)')
+  expect(mono).toContain('var(--mono-accent-ink)')
+  expect(mono).toContain('var(--color-primary) 8%')
+  expect(mono).toContain('var(--color-primary) 15%')
   expect(mono).toContain('var(--color-body-bg)')
   expect(mono).toContain('&:focus-visible')
   expect(mono).not.toContain('--tool-rainbow')
