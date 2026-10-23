@@ -6,7 +6,11 @@
         <span v-if="averageSummary" class="daily-trend-average-badge">
           {{ averageLabel }}
         </span>
-        <div class="daily-trend-selection" aria-live="polite">
+        <div
+          class="daily-trend-selection"
+          :style="{ '--rainbow-chart-day': selectedDayColor }"
+          aria-live="polite"
+        >
           <span>{{ selectedPoint ? formatFullDate(selectedPoint.dateKey) : '—' }}</span>
           <strong>{{ selectedPoint ? formatDuration(selectedPoint.seconds) : '—' }}</strong>
         </div>
@@ -28,14 +32,6 @@
             :y2="pointY(tick)"
             class="trend-grid"
           />
-          <text
-            :x="left - 12"
-            :y="pointY(tick) + 4"
-            text-anchor="end"
-            class="trend-scale"
-          >
-            {{ formatHours(tick) }}
-          </text>
         </g>
         <g
           v-for="(point, index) in points"
@@ -149,7 +145,8 @@ import {
 const props = defineProps<{ points: NeteaseDailyListenPoint[] }>()
 const { t, locale } = useI18n()
 
-const left = 68
+// The y-axis has grid lines but no labels; reclaim the former label gutter.
+const left = 42
 const right = 710
 const top = 38
 const bottom = 162
@@ -160,6 +157,11 @@ const selectedPoint = computed(
     props.points.find((point) => point.dateKey === selectedDate.value) ??
     props.points.at(-1)
 )
+// The selection panel follows the same day-index palette as the SVG bars.
+const selectedDayColor = computed(() => {
+  const index = props.points.findIndex((point) => point.dateKey === selectedPoint.value?.dateKey)
+  return index >= 0 ? `var(--rainbow-day-${index + 1})` : 'var(--color-primary)'
+})
 const averageSummary = computed(() => summarizeNeteaseSevenDayAverage(props.points))
 const averageLabel = computed(() => {
   if (!averageSummary.value) return ''
@@ -317,7 +319,6 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   stroke-width: 1;
 }
 
-.trend-scale,
 .trend-date {
   fill: var(--color-text);
   opacity: 0.62;
