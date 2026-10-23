@@ -301,7 +301,8 @@ hr {
   }
 }
 
-/* Rainbow roles are scoped to playback tools; other context menus stay unchanged. */
+/* Player-tool menu geometry is shared by every theme; only Rainbow
+ * receives seven independent item hues. Mono themes are intentionally neutral. */
 .context-menu.player-tools-menu {
   .menu {
     width: 252px;
@@ -313,7 +314,6 @@ hr {
   }
 
   .menu .item {
-    --tool-rainbow: var(--color-primary);
     box-sizing: border-box;
     min-height: 44px;
     padding: 10px 14px;
@@ -323,10 +323,26 @@ hr {
     font-weight: 600;
     line-height: 1.4;
     cursor: pointer;
-    border-left: 3px solid color-mix(in srgb, var(--tool-rainbow) 75%, transparent);
-    background: color-mix(in srgb, var(--tool-rainbow) 12%, var(--color-body-bg));
 
     & + .item { margin-top: 4px; }
+  }
+
+  hr { margin: 8px 10px; }
+
+  &[data-theme='dark'] .menu,
+  [data-theme='dark'] & .menu {
+    background: var(--color-body-bg);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* Rainbow roles are scoped by BOTH component and selected accent theme.
+ * Do not leak these fixed seven colors into blue/gold/custom themes. */
+:root[data-accent-theme='rainbow'] .context-menu.player-tools-menu {
+  .menu .item {
+    --tool-rainbow: var(--color-primary);
+    border-left: 3px solid color-mix(in srgb, var(--tool-rainbow) 75%, transparent);
+    background: color-mix(in srgb, var(--tool-rainbow) 12%, var(--color-body-bg));
 
     &:hover,
     &:focus-visible,
@@ -344,13 +360,26 @@ hr {
   .menu .item:nth-child(7n + 5) { --tool-rainbow: #63a9d0; }
   .menu .item:nth-child(7n + 6) { --tool-rainbow: #8584ce; }
   .menu .item:nth-child(7n) { --tool-rainbow: #b782d0; }
+}
 
-  hr { margin: 8px 10px; }
+/* The monochrome player menu is a neutral list instead of a second seven-color
+ * palette. The selected single hue continues to style navigation elsewhere. */
+:root:not([data-accent-theme='rainbow']) .context-menu.player-tools-menu {
+  .menu .item {
+    border-left: 3px solid transparent;
+    background: color-mix(in srgb, var(--color-text) 5%, var(--color-body-bg));
 
-  &[data-theme='dark'] .menu,
-  [data-theme='dark'] & .menu {
-    background: var(--color-body-bg);
-    backdrop-filter: blur(12px);
+    &:hover,
+    &:focus-visible,
+    &.active {
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--color-text) 12%, var(--color-body-bg));
+      outline: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+    }
+  }
+
+  .sleep-timer-active-label {
+    color: var(--color-secondary);
   }
 }
 </style>
