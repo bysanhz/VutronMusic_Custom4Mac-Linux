@@ -45,7 +45,7 @@ test('sidebar, web tabs and Explore controls share the active monochrome palette
 test('dark-mode monochrome controls have colored faces and neutral lower shadows', () => {
   const css = mono()
   expect(css).toContain(":root:not([data-accent-theme='rainbow']) body[data-theme='dark']")
-  expect(css).toContain('--mono-accent-face: color-mix(in srgb, var(--mono-accent-ink) 80%')
+  expect(css).toContain('--mono-accent-face: color-mix(in srgb, var(--mono-accent-ink) 78%')
   expect(css).toContain('color: #20242a !important;')
   expect(css).toContain('background: var(--mono-accent-face) !important;')
   expect(css).toContain('inset 0 -3px #60636b')
