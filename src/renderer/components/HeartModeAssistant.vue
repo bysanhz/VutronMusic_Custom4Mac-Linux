@@ -216,7 +216,7 @@
                     @click.stop="toggleProfileDropdown"
                     @keydown.down.prevent="openProfileDropdown(0)"
                     @keydown.up.prevent="openProfileDropdown(profileModeOptions.length - 1)"
-                    @keydown.esc.prevent="closeProfileDropdown"
+                    @keydown.esc.prevent="closeProfileDropdown()"
                   >
                     <span>{{ currentProfileModeLabel }}</span>
                     <span class="rainbow-profile-chevron" aria-hidden="true">⌄</span>
