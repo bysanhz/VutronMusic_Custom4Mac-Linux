@@ -3,7 +3,7 @@
     <div v-if="exploreTab === 'playlist'" class="explore-filter-section">
       <div class="buttons playlist-filter-bar rainbow-explore-filter">
         <div
-          v-for="category in general.enabledPlaylistCategories"
+          v-for="category in displayedPlaylistCategories"
           :key="category"
           class="button"
           :class="{ active: category === activeCategory && !showCatOptions }"
@@ -315,7 +315,7 @@ import { storeToRefs } from 'pinia'
 import { useNormalStateStore } from '../store/state'
 import { useSettingsStore } from '../store/settings'
 import { useDataStore } from '../store/data'
-import { playlistCategories, artistCategories } from '../utils/common'
+import { playlistCategories, artistCategories, orderEnabledPlaylistCategories } from '../utils/common'
 import SvgIcon from '../components/SvgIcon.vue'
 import CoverRow from '../components/VirtualCoverRow.vue'
 import Cover from '../components/CoverBox.vue'
@@ -358,6 +358,11 @@ const { user } = storeToRefs(dataStore)
 const isAccountLoggedIn = computed(() => Number(user.value?.userId) > 0)
 const settingStore = useSettingsStore()
 const { general } = storeToRefs(settingStore)
+// Respect older saved category lists while pinning Recommended, Featured and
+// All to their new positions. The remaining enabled categories stay in order.
+const displayedPlaylistCategories = computed(() =>
+  orderEnabledPlaylistCategories(general.value.enabledPlaylistCategories)
+)
 const { togglePlaylistCategory } = settingStore
 
 const playlistInfo = reactive({
