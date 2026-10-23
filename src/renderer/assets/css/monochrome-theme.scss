@@ -290,6 +290,18 @@
   border-color: color-mix(in srgb, var(--mono-accent-ink) 35%, transparent);
 }
 
+/* Likes are a separate semantic state: unliked stays neutral; liked is red.
+ * Do not let the fullscreen chip/icon tint turn an unliked heart into the
+ * accent color (especially misleading for the red monochrome preset). */
+:root:not([data-accent-theme='rainbow']) #app .player-container .like-button:not(.liked):not(.disabled),
+:root:not([data-accent-theme='rainbow']) #app .player-container .like-button:not(.liked):not(.disabled) .svg-icon {
+  color: color-mix(in srgb, var(--color-text) 68%, transparent) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .like-button:not(.liked):not(.disabled):hover,
+:root:not([data-accent-theme='rainbow']) #app .player-container .like-button:not(.liked):not(.disabled):hover .svg-icon {
+  color: var(--color-text) !important;
+}
+
 /* Favorite hearts stay red when liked, regardless of the monochrome hue. */
 :root:not([data-accent-theme='rainbow']) #app :is(
   .player .like-button.liked:not(.disabled),
