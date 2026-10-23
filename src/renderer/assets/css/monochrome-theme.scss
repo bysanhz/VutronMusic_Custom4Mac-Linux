@@ -279,11 +279,11 @@
   border-radius: 8px;
 }
 
-/* Fullscreen song detail buttons are intentionally neutral in every solid
- * accent preset. Their backdrop comes from the cover artwork, so using a
- * saturated preset color here is distracting and inconsistent with the menu. */
+/* Fullscreen song detail controls use one soft accent rather than opaque,
+ * saturated theme buttons. Glyphs blend the selected hue with readable text;
+ * translucent chip surfaces get a much lighter tint. */
 :root:not([data-accent-theme='rainbow']) #app .player-container {
-  --mono-player-ink: var(--color-text);
+  --mono-player-ink: color-mix(in srgb, var(--color-primary) 55%, var(--color-text));
   --mono-player-glass: color-mix(in srgb, var(--color-secondary-bg) 76%, transparent);
 }
 
@@ -298,7 +298,7 @@
   margin: 0 !important;
   border: 1px solid transparent;
   border-radius: 11px;
-  background: color-mix(in srgb, var(--mono-player-ink) 13%, var(--mono-player-glass));
+  background: color-mix(in srgb, var(--color-primary) 9%, var(--mono-player-glass));
   color: var(--mono-player-ink) !important;
   opacity: 1 !important;
   backdrop-filter: blur(5px);
@@ -329,20 +329,20 @@
   .play-page .top-right .buttons, .play-page .media-controls,
   .creative-page .player-media-control
 ) .button-icon:not(.disabled):is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--mono-player-ink) 23%, var(--mono-player-glass));
-  border-color: color-mix(in srgb, var(--mono-player-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container .rainbow-enabled:not(.disabled),
 :root:not([data-accent-theme='rainbow']) #app .player-container .sleep-timer-button.is-active {
-  background: color-mix(in srgb, var(--mono-player-ink) 25%, var(--mono-player-glass));
-  border-color: color-mix(in srgb, var(--mono-player-ink) 24%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 20%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container :is(
   .play-page .media-controls, .creative-page .player-media-control
 ) #play {
-  border: 1px solid color-mix(in srgb, var(--mono-player-ink) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 23%, transparent);
   border-radius: 13px;
-  background: color-mix(in srgb, var(--mono-player-ink) 29%, var(--mono-player-glass));
+  background: color-mix(in srgb, var(--color-primary) 19%, var(--mono-player-glass));
   box-shadow: 0 2px 9px rgb(0 0 0 / 10%);
 }
 
@@ -369,9 +369,9 @@
   box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid transparent;
-  background: color-mix(in srgb, var(--mono-player-ink) 13%, var(--mono-player-glass));
+  background: color-mix(in srgb, var(--color-primary) 9%, var(--mono-player-glass));
   color: var(--mono-player-ink) !important;
-  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-player-ink) 28%, transparent);
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--color-primary) 20%, transparent);
   opacity: 0.94 !important;
   backdrop-filter: blur(5px);
 }
@@ -386,8 +386,8 @@
 :root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
   .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
 ):is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--mono-player-ink) 23%, var(--mono-player-glass));
-  border-color: color-mix(in srgb, var(--mono-player-ink) 35%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
 
 /* Likes are a separate semantic state: unliked stays neutral; liked is red.
