@@ -312,6 +312,21 @@
   box-shadow: 0 2px 9px rgb(0 0 0 / 10%);
 }
 
+/* Disabled transport actions must remain visually distinct from active ones.
+ * A previous rainbow-like generic button rule made them fully opaque. */
+:root:not([data-accent-theme='rainbow']) #app .player-container .button-icon.disabled,
+:root:not([data-accent-theme='rainbow']) #app .player-container .button-icon:disabled {
+  opacity: 0.42 !important;
+  border-color: transparent !important;
+  background: color-mix(in srgb, var(--color-text) 5%, var(--mono-glass)) !important;
+  cursor: default;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container .button-icon.disabled .svg-icon,
+:root:not([data-accent-theme='rainbow']) #app .player-container .button-icon:disabled .svg-icon {
+  color: var(--color-text) !important;
+  opacity: 0.6 !important;
+}
+
 /* Floating fullscreen rail and the three independent timing controls. */
 :root:not([data-accent-theme='rainbow']) #app .player-container .buttons-icons .player-button,
 :root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
