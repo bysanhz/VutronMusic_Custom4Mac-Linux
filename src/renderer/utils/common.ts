@@ -63,12 +63,21 @@ export const splitAlbumTitle = (title: string) => {
   return { title, subtitle: '' }
 }
 
+// Preferred Explore tab order. Filter the persisted enabled categories without
+// modifying their visibility or the order of other user-selected categories.
+const PRIMARY_PLAYLIST_CATEGORY_ORDER = ['推荐歌单', '精品歌单', '全部'] as const
+
+export const orderEnabledPlaylistCategories = (enabledCategories: readonly string[]): string[] => {
+  const pinned = PRIMARY_PLAYLIST_CATEGORY_ORDER.filter((category) =>
+    enabledCategories.includes(category)
+  )
+  const remaining = enabledCategories.filter(
+    (category) => !PRIMARY_PLAYLIST_CATEGORY_ORDER.some((pinnedCategory) => pinnedCategory === category)
+  )
+  return [...pinned, ...remaining]
+}
+
 export const playlistCategories = [
-  {
-    name: '全部',
-    enable: true,
-    bigCat: 'static'
-  },
   {
     name: '推荐歌单',
     enable: true,
@@ -76,6 +85,11 @@ export const playlistCategories = [
   },
   {
     name: '精品歌单',
+    enable: true,
+    bigCat: 'static'
+  },
+  {
+    name: '全部',
     enable: true,
     bigCat: 'static'
   },
