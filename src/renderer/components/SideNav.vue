@@ -32,7 +32,7 @@
       class="rainbow-nav rainbow-nav-explore"
       :class="{ active: isCurrentRoute('/explore') }"
       :data-tip="`${$t('nav.explore')}`"
-      @click="handleRoute('/explore')"
+      @click="openExplore"
     >
       <svg-icon class="icon" icon-class="explore" style="transform: scale(1.4)" />
     </button-icon>
@@ -312,6 +312,15 @@ const route: any = useRoute()
 
 const handleRoute = (path: string): void => {
   router.push(path)
+}
+
+// The Explore shortcut always begins in Recommended Playlists; explicit
+// category links elsewhere can still navigate to All or any other category.
+const openExplore = (): void => {
+  router.push({
+    name: 'explore',
+    query: { tab: 'playlist', category: '推荐歌单' }
+  })
 }
 
 const isElectron = window.env?.isElectron || false
