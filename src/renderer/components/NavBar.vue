@@ -169,7 +169,9 @@ const categoryMap = {
 
 const toExplore = (category: string) => {
   exploreTab.value = category
-  const cat = ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'
+  const cat = category === 'playlist'
+    ? '推荐歌单'
+    : ['chart', 'artist'].includes(category) ? categoryMap[category] : '全部'
   router.push({ name: 'explore', query: { category: cat, tab: category } })
 }
 
