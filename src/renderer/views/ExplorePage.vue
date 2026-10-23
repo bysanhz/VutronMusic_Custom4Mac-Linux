@@ -376,8 +376,8 @@ const newAlbumInfo = reactive({
 })
 const artistInfo = reactive({ more: true })
 
-const activeCategory = ref('全部')
-const saveCategory = ref('全部')
+const activeCategory = ref('推荐歌单')
+const saveCategory = ref('推荐歌单')
 const showCatOptions = ref(false)
 const allBigCats = ref(['语种', '风格', '场景', '情感', '主题'])
 const artistBigCats = ref(['语种', '分类', '筛选'])
@@ -1166,7 +1166,9 @@ const resetViewData = () => {
 
 const syncRoute = (target = route) => {
   const tab = target.query.tab as string
-  if (tab) exploreTab.value = tab
+  // A plain /explore URL opens the first playlist category, rather than
+  // retaining a different Explore tab from a previous visit.
+  exploreTab.value = tab || 'playlist'
   activeCategory.value = (target.query.category as string) || saveCategory.value
   if (target.query.type) albumType.value = target.query.type as string
 }
