@@ -17,8 +17,8 @@
 
 :root:not([data-accent-theme='rainbow']) body[data-theme='dark'] {
   /* Raise saturation-independent luminance before placing dark text on chips. */
-  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 53%, #fff);
-  --mono-accent-face: color-mix(in srgb, var(--mono-accent-ink) 80%, var(--color-secondary-bg));
+  --mono-accent-ink: color-mix(in srgb, var(--color-primary) 36%, #fff);
+  --mono-accent-face: color-mix(in srgb, var(--mono-accent-ink) 78%, var(--color-secondary-bg));
   --mono-glass: color-mix(in srgb, var(--color-secondary-bg) 68%, transparent);
 }
 
