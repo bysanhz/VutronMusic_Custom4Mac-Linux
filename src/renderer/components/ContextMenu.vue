@@ -301,8 +301,8 @@ hr {
   }
 }
 
-/* Player-tool menu geometry is shared by every theme; only Rainbow
- * receives seven independent item hues. Mono themes are intentionally neutral. */
+/* Player-tool menu geometry is shared by every theme. Rainbow keeps
+ * seven independent hues; solid presets use one softly tinted theme color. */
 .context-menu.player-tools-menu {
   .menu {
     width: 252px;
@@ -362,24 +362,25 @@ hr {
   .menu .item:nth-child(7n) { --tool-rainbow: #b782d0; }
 }
 
-/* The monochrome player menu is a neutral list instead of a second seven-color
- * palette. The selected single hue continues to style navigation elsewhere. */
+/* Solid presets and custom colors: use a single, light tint of the
+ * selected theme. Keep the menu text readable, without rainbow-colored rows. */
 :root:not([data-accent-theme='rainbow']) .context-menu.player-tools-menu {
   .menu .item {
-    border-left: 3px solid transparent;
-    background: color-mix(in srgb, var(--color-text) 5%, var(--color-body-bg));
+    color: var(--mono-accent-ink);
+    border-left: 3px solid color-mix(in srgb, var(--color-primary) 38%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-body-bg));
 
     &:hover,
     &:focus-visible,
     &.active {
-      color: var(--color-text);
-      background: color-mix(in srgb, var(--color-text) 12%, var(--color-body-bg));
-      outline: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+      color: var(--mono-accent-ink);
+      background: color-mix(in srgb, var(--color-primary) 15%, var(--color-body-bg));
+      outline: 1px solid color-mix(in srgb, var(--color-primary) 27%, transparent);
     }
   }
 
   .sleep-timer-active-label {
-    color: var(--color-secondary);
+    color: var(--mono-accent-ink);
   }
 }
 </style>
