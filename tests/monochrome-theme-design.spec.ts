@@ -53,7 +53,7 @@ test('dark-mode monochrome controls have colored faces and neutral lower shadows
   expect(css).toContain('.side-nav > .rainbow-nav .icon')
 })
 
-test('app controls and charts follow the solid hue while fullscreen details stay softly tinted', () => {
+test('app controls and charts follow the solid hue while fullscreen actions remain neutral', () => {
   const css = mono()
   for (const needle of [
     '.rainbow-metric-card', '.rainbow-surface-hero',
@@ -70,29 +70,39 @@ test('app controls and charts follow the solid hue while fullscreen details stay
   expect(css).toContain('@media (prefers-reduced-motion: reduce)')
 })
 
-test('solid preset fullscreen buttons use a soft theme tint instead of a neutral gray or saturated color', () => {
+test('fullscreen player buttons have neutral icons and no background in solid themes', () => {
   const css = mono()
-  const start = css.indexOf('/* Fullscreen song detail controls use one soft accent')
+  const start = css.indexOf('/* Solid-color themes: fullscreen song detail buttons')
   const end = css.indexOf('/* Honor the system\'s reduced-motion request')
   const fullscreen = css.slice(start, end)
   const main = css.slice(0, start)
 
   expect(start).toBeGreaterThan(0)
   expect(end).toBeGreaterThan(start)
-  expect(fullscreen).toContain('--mono-player-ink: color-mix(in srgb, var(--color-primary) 55%, var(--color-text))')
-  expect(fullscreen).toContain('--mono-player-glass:')
+  expect(fullscreen).toContain('--mono-player-ink: var(--color-text)')
+  expect(fullscreen).not.toContain('--mono-player-glass')
   expect(fullscreen).not.toContain('var(--mono-accent-ink)')
-  expect(fullscreen).toContain('background: color-mix(in srgb, var(--color-primary) 9%, var(--mono-player-glass))')
-  expect(fullscreen).toContain('background: color-mix(in srgb, var(--color-primary) 16%, var(--mono-player-glass))')
-  expect(fullscreen).toContain('background: color-mix(in srgb, var(--color-primary) 20%, var(--mono-player-glass))')
+  expect(fullscreen).not.toContain('var(--color-primary)')
   expect(fullscreen).not.toContain('var(--rainbow-1)')
-  expect(fullscreen).toContain('.play-page .media-controls .button-icon')
-  expect(fullscreen).toContain('.creative-page .player-media-control .button-icon')
-  expect(fullscreen).toContain('.buttons-icons .player-button')
-  expect(fullscreen).toContain('.rainbow-lyric-advance')
-  expect(fullscreen).toContain('.rainbow-lyric-delay')
-  expect(fullscreen).toContain('.playback-speed-button, .sleep-timer-button')
+  for (const selector of [
+    '.play-page .top-right .buttons > .button-icon',
+    '.play-page .top-right .buttons > .transPro',
+    '.play-page .media-controls .button-icon',
+    '.creative-page .player-media-control .button-icon',
+    '.buttons-icons .player-button',
+    '.lyric-wrapper .offset > .button-icon'
+  ]) {
+    expect(fullscreen).toContain(selector)
+  }
+  expect(fullscreen).toContain('background: none !important')
+  expect(fullscreen).toContain('background-image: none !important')
+  expect(fullscreen).toContain('border-color: transparent !important')
+  expect(fullscreen).toContain('box-shadow: none !important')
+  expect(fullscreen).toContain('backdrop-filter: none !important')
   expect(fullscreen).toContain('color: var(--mono-player-ink) !important')
+  expect(fullscreen).toContain('):focus-visible {')
+  expect(fullscreen).toContain('outline: 2px solid var(--mono-player-ink) !important')
+  expect(fullscreen).toContain('opacity: 0.42 !important')
   expect(fullscreen).toContain('color: var(--color-like) !important')
   expect(main).toContain('color: var(--mono-accent-ink) !important')
 })
