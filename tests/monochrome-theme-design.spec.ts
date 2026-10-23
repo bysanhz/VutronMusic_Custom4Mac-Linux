@@ -105,6 +105,48 @@ test('bottom player buttons have no background in solid themes, including hover 
   expect(bottom).not.toContain('.volume-slider')
 })
 
+test('non-heart bottom player controls share one hue, across SVGs, text, states and both modes', () => {
+  const css = mono()
+  const bottom = css.slice(
+    css.indexOf('/* Bottom-player icons retain the chosen solid hue'),
+    css.indexOf('/* Solid-color themes: fullscreen song detail buttons')
+  )
+  const player = source('src/renderer/components/PlayerBar.vue')
+  const speed = source('src/renderer/components/PlaybackSpeedButton.vue')
+  const timer = source('src/renderer/components/SleepTimerButton.vue')
+
+  // A generic rule includes Play, FM trash, volume, OSD lyrics, queue,
+  // repeat/shuffle and next/previous, including selected/active instances.
+  expect(bottom).toContain('.button-icon:not(.like-button):not(.disabled)')
+  expect(bottom).toContain('.button-icon:not(.like-button):not(.disabled) .svg-icon')
+  expect(bottom).toContain('color: var(--mono-accent-ink) !important')
+  expect(bottom).toContain('opacity: 1 !important')
+  expect(bottom).toContain('.playback-speed-button, .sleep-timer-button')
+  expect(bottom).toContain('.speed-label, .timer-label, .timer-clock')
+  expect(bottom).toContain('color: inherit !important')
+  expect(bottom).toContain('background: transparent !important')
+
+  for (const control of [
+    'rainbow-skip-control', 'rainbow-osd-lyrics-control', 'rainbow-queue-control',
+    'rainbow-repeat-control', 'rainbow-shuffle-control', 'rainbow-expand-control'
+  ]) {
+    expect(player).toContain(control)
+  }
+  expect(player).toContain('class="play"')
+  expect(player).toContain('class="volume"')
+  expect(speed).toContain('class="playback-speed-button"')
+  expect(timer).toContain('class="sleep-timer-button"')
+
+  // The semantic heart is excluded from the unified tint. The CSS is
+  // non-Rainbow only and does not touch fullscreen controls.
+  expect(bottom).toContain(":root:not([data-accent-theme='rainbow'])")
+  expect(bottom).not.toContain(':root[data-accent-theme=\'rainbow\']')
+  expect(bottom).not.toContain('.player-container')
+  const heart = source('src/renderer/assets/css/rainbow-theme.scss')
+  expect(heart).toContain('#app .player .controls .like-button.liked:not(.disabled)')
+  expect(heart).toContain('color: var(--color-like) !important;')
+})
+
 test('fullscreen player buttons have neutral icons and no background in solid themes', () => {
   const css = mono()
   const start = css.indexOf('/* Solid-color themes: fullscreen song detail buttons')
