@@ -216,6 +216,32 @@
   stroke: var(--mono-accent-ink);
 }
 
+/* Heart-mode and streaming insight tabs use one selected accent instead
+ * of retaining the old unthemed grey panels on solid presets. The assistant
+ * may mount outside #app, so use the same root theme boundary directly. */
+:root:not([data-accent-theme='rainbow']) .heart-mode-assistant .rainbow-heart-tab {
+  color: var(--mono-accent-ink);
+  background: color-mix(in srgb, var(--mono-accent-ink) 9%, var(--color-body-bg));
+  border-color: transparent;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-accent-ink) 28%, transparent);
+  opacity: 1;
+}
+:root:not([data-accent-theme='rainbow']) .heart-mode-assistant .rainbow-heart-tab:hover {
+  background: color-mix(in srgb, var(--mono-accent-ink) 16%, var(--color-body-bg));
+}
+:root:not([data-accent-theme='rainbow']) .heart-mode-assistant .rainbow-heart-tab.active {
+  color: var(--mono-accent-ink);
+  background: color-mix(in srgb, var(--mono-accent-ink) 20%, var(--color-body-bg));
+  box-shadow: inset 0 -3px var(--mono-accent-ink);
+}
+:root:not([data-accent-theme='rainbow']) .heart-mode-assistant .rainbow-heart-tab:focus-visible {
+  outline: 2px solid var(--mono-accent-ink);
+  outline-offset: -2px;
+}
+:root:not([data-accent-theme='rainbow']) #app .rainbow-liked-feature .title {
+  color: var(--mono-accent-ink);
+}
+
 /* Primary actions stay affirmative rather than acquiring neutral cancel
  * styling. Danger, close/cancel and the red favorite heart remain semantic. */
 :root:not([data-accent-theme='rainbow']) #app .shade .modal button.primary:not(:disabled) {
