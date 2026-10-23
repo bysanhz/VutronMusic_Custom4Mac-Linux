@@ -70,6 +70,41 @@ test('app controls and charts follow the solid hue while fullscreen actions rema
   expect(css).toContain('@media (prefers-reduced-motion: reduce)')
 })
 
+test('bottom player buttons have no background in solid themes, including hover and active states', () => {
+  const css = mono()
+  const bottom = css.slice(
+    css.indexOf('/* Bottom-player icons retain the chosen solid hue'),
+    css.indexOf('/* Solid-color themes: fullscreen song detail buttons')
+  )
+  const player = source('src/renderer/components/PlayerBar.vue')
+  const icon = source('src/renderer/components/ButtonIcon.vue')
+  const sleep = source('src/renderer/components/SleepTimerButton.vue')
+  const speed = source('src/renderer/components/PlaybackSpeedButton.vue')
+
+  expect(bottom).toContain(":root:not([data-accent-theme='rainbow'])")
+  expect(bottom).toContain('#app .player .controls .button-icon')
+  expect(bottom).toContain('background: transparent !important')
+  expect(bottom).toContain('background-image: none !important')
+  expect(bottom).toContain('border-color: transparent !important')
+  expect(bottom).toContain('box-shadow: none !important')
+  expect(bottom).toContain(':hover, :focus-visible, :active, .active, .liked, .rainbow-enabled')
+  expect(bottom).toContain('.is-active, .is-adjusted, .disabled')
+  expect(bottom).toContain('outline: 2px solid var(--mono-accent-ink)')
+  expect(bottom).toContain('color: var(--mono-accent-ink) !important')
+  expect(bottom).not.toContain('background: color-mix')
+  expect(player).toContain('<div class="controls"')
+  expect(player).toContain('class="rainbow-queue-control"')
+  expect(player).toContain('class="rainbow-repeat-control"')
+  expect(player).toContain('class="rainbow-shuffle-control"')
+  expect(icon).toContain('class="button-icon"')
+  expect(sleep).toContain('class="sleep-timer-button"')
+  expect(speed).toContain('class="playback-speed-button"')
+  // The rule applies only to buttons, never to the player bar, seek track,
+  // floating volume slider or other themed surfaces.
+  expect(bottom).not.toContain('.player .progress-bar')
+  expect(bottom).not.toContain('.volume-slider')
+})
+
 test('fullscreen player buttons have neutral icons and no background in solid themes', () => {
   const css = mono()
   const start = css.indexOf('/* Solid-color themes: fullscreen song detail buttons')
