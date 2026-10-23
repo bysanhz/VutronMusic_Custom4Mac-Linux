@@ -92,7 +92,16 @@ async function netease(fastify: FastifyInstance) {
     ) => {
       try {
         const { ...params } = req.query
-        if (!params.cookie) params.cookie = (req as any).cookies
+        // The "全部" explore feed is a public hot-playlist directory, not an
+        // account recommendation. Suppress login cookies so the same feed is
+        // returned whether or not the listener is signed in. The upstream API
+        // uses query.cookie || NETEASE_COOKIE, so {} intentionally prevents the
+        // environment cookie from silently restoring the logged-in identity.
+        if (name === 'top/playlist' && (!params.cat || params.cat === '全部')) {
+          params.cookie = {}
+        } else if (!params.cookie) {
+          params.cookie = (req as any).cookies
+        }
         const result = await neteaseApi(withDevSystemProxy(params, devSystemProxy))
         result.body = normalizeNeteaseAssetUrls(
           await handleNeteaseResult(name as CacheAPIs, result?.body)
