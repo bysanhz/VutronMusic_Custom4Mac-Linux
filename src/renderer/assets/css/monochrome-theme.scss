@@ -406,6 +406,28 @@
   color: var(--color-like) !important;
 }
 
+/* Fullscreen toolbar icon selectors are intentionally specific. Keep the
+ * semantic like colors more specific so the preceding generic icon tint
+ * cannot override them, even with !important on both declarations. */
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .top-right .buttons, .play-page .media-controls,
+  .creative-page .player-media-control
+) .like-button:not(.liked):not(.disabled) .svg-icon {
+  color: color-mix(in srgb, var(--color-text) 68%, transparent) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .top-right .buttons, .play-page .media-controls,
+  .creative-page .player-media-control
+) .like-button:not(.liked):not(.disabled):hover .svg-icon {
+  color: var(--color-text) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .top-right .buttons, .play-page .media-controls,
+  .creative-page .player-media-control
+) .like-button.liked:not(.disabled) .svg-icon {
+  color: var(--color-like) !important;
+}
+
 /* Honor the system's reduced-motion request, like the Rainbow theme. */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-accent-theme='rainbow']) #app :is(
