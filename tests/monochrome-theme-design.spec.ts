@@ -88,3 +88,48 @@ test('liked heart, danger actions and connection quality remain semantic', () =>
   expect(side).toContain('&.offline .network-indicator')
   expect(css).not.toContain('.network-indicator {')
 })
+
+test('every built-in solid preset keeps readable text against its light and dark chips', () => {
+  const css = mono()
+  const settings = source('src/renderer/store/settings.ts')
+  const lightPercentage = Number(
+    css.match(/--mono-accent-ink: color-mix\(in srgb, var\(--color-primary\) (\d+)%, #18212e\)/)?.[1]
+  ) / 100
+  const darkPercentage = Number(
+    css.match(/--mono-accent-ink: color-mix\(in srgb, var\(--color-primary\) (\d+)%, #fff\)/)?.[1]
+  ) / 100
+  const darkFacePercentage = Number(
+    css.match(/--mono-accent-face: color-mix\(in srgb, var\(--mono-accent-ink\) (\d+)%, var\(--color-secondary-bg\)\)/)?.[1]
+  ) / 100
+  const mix = (a: number[], b: number[], amount: number) =>
+    a.map((value, index) => value * amount + b[index] * (1 - amount))
+  const luminance = (rgb: number[]) =>
+    rgb.map((v) => v / 255)
+      .map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+      .reduce((sum, channel, i) => sum + channel * [0.2126, 0.7152, 0.0722][i], 0)
+  const contrast = (a: number[], b: number[]) => {
+    const first = luminance(a)
+    const second = luminance(b)
+    return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+  }
+
+  expect(lightPercentage).toBeGreaterThan(0)
+  expect(darkPercentage).toBeGreaterThan(0)
+  expect(darkFacePercentage).toBeGreaterThan(0)
+
+  const colors = [...settings.matchAll(
+    /\{ name: '(blue|purple|orange|cyan|green|red|pink|gold)', color: 'rgba\((\d+), (\d+), (\d+), 1\)'/
+  )]
+  expect(colors).toHaveLength(8)
+
+  for (const match of colors) {
+    const rgb = match.slice(2, 5).map(Number)
+    const lightText = mix(rgb, [24, 33, 46], lightPercentage)
+    const lightChip = mix(lightText, [245, 245, 247], 0.08)
+    expect(contrast(lightText, lightChip), match[1] + ' light').toBeGreaterThanOrEqual(4.5)
+
+    const darkTextAccent = mix(rgb, [255, 255, 255], darkPercentage)
+    const darkChip = mix(darkTextAccent, [44, 44, 46], darkFacePercentage)
+    expect(contrast([32, 36, 42], darkChip), match[1] + ' dark').toBeGreaterThanOrEqual(4.5)
+  }
+})
