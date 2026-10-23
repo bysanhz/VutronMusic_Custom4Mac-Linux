@@ -7,5 +7,5 @@
     "linux-amd64-deb",
     "mac-arm64-dmg"
   ],
-  "note": "Publish prerelease v4.0.0-beta.1 with three installers; keep the stable release unchanged."
+  "note": "Publish prerelease v4.0.0-beta.1 with three installers; keep the stable release unchanged. Retry after fixing the Heart Mode Escape key handler type."
 }
