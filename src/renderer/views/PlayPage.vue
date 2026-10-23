@@ -311,6 +311,10 @@ watch(
     border-radius: 0.75rem;
     height: 44px;
     width: 44px;
+    // ButtonIcon's default 4px inline margin shifted this fixed-position
+    // column left of LyricPage's 44px offset buttons (which use margin: 0).
+    margin-inline: 0;
+    box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
