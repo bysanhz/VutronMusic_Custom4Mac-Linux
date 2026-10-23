@@ -90,7 +90,7 @@ test('fullscreen player buttons have neutral icons and no background in solid th
     '.play-page .media-controls .button-icon',
     '.creative-page .player-media-control .button-icon',
     '.buttons-icons .player-button',
-    '.lyric-wrapper .offset > .button-icon'
+    '.lyric-wrapper .offset > :is(.rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay)'
   ]) {
     expect(fullscreen).toContain(selector)
   }
