@@ -9,7 +9,7 @@ test('all seven chart positions share their day color across columns, labels and
   const view = readSource('src/renderer/components/ListenDurationTrend.vue')
   const css = readSource('src/renderer/assets/css/rainbow-theme.scss')
 
-  expect(view).toContain(`'--rainbow-chart-day': \`var(--rainbow-day-${index + 1})\``)
+  expect(view).toContain("'--rainbow-chart-day': `var(--rainbow-day-${index + 1})`")
   expect(view).toContain("'--rainbow-chart-day': selectedDayColor")
   expect(view).toContain("props.points.findIndex((point) => point.dateKey === selectedPoint.value?.dateKey)")
   expect(view).toContain("index >= 0 ? `var(--rainbow-day-${index + 1})`")
