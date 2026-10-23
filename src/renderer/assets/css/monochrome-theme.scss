@@ -261,8 +261,9 @@
   background: var(--mono-accent-ink) !important;
 }
 
-/* Bottom transport and fullscreen controls share consistent translucent chips
- * while retaining the existing layout, dimensions and visibility rules. */
+/* Bottom-player icons retain the chosen solid hue, but their buttons
+ * have no filled chips in light or dark mode. Fullscreen controls are styled
+ * independently further below. */
 :root:not([data-accent-theme='rainbow']) #app .player .controls :is(
   .rainbow-skip-control, .rainbow-expand-control, .rainbow-queue-control,
   .rainbow-repeat-control, .rainbow-shuffle-control, .rainbow-osd-lyrics-control
@@ -271,12 +272,26 @@
   color: var(--mono-accent-ink) !important;
   opacity: 1;
 }
-:root:not([data-accent-theme='rainbow']) #app .player .controls :is(
-  .rainbow-skip-control, .rainbow-expand-control, .rainbow-queue-control,
-  .rainbow-repeat-control, .rainbow-shuffle-control, .rainbow-osd-lyrics-control
-):not(.disabled):is(:hover, :focus-visible, .active) {
-  background: color-mix(in srgb, var(--mono-accent-ink) 13%, transparent);
-  border-radius: 8px;
+/* Includes skip/play/like, the lyrics & queue controls, repeat/shuffle,
+ * volume and the composed speed/timer buttons. This overrides ButtonIcon's
+ * default hover fill and separate active-state component styles. The volume
+ * popover and the player bar itself must keep their surfaces. */
+:root:not([data-accent-theme='rainbow']) #app .player .controls .button-icon,
+:root:not([data-accent-theme='rainbow']) #app .player .controls .button-icon:is(
+  :hover, :focus-visible, :active, .active, .liked, .rainbow-enabled,
+  .is-active, .is-adjusted, .disabled
+) {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Visible keyboard focus is retained without reintroducing a button face. */
+:root:not([data-accent-theme='rainbow']) #app .player .controls .button-icon:focus-visible {
+  outline: 2px solid var(--mono-accent-ink);
+  outline-offset: 2px;
 }
 
 /* Solid-color themes: fullscreen song detail buttons are clean, neutral
