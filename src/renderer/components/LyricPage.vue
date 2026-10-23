@@ -61,6 +61,9 @@ const props = defineProps({
   unplayColor: { type: String, default: 'var(--color-wbw-text-unplay)' },
   containerWidth: { type: String, default: 'calc(min(50vh, 33.33vw))' },
   offsetPadding: { type: String, default: '2vw' },
+  // Parent layouts may raise the whole timing group to separate it from
+  // the fullscreen tool buttons below; the default preserves other layouts.
+  offsetTop: { type: String, default: '50%' },
   margin: { type: String, default: '40vh' },
   containerMargin: { type: String, default: '0 auto' }
 })
@@ -333,7 +336,7 @@ onBeforeUnmount(() => {
 
 .offset {
   position: absolute;
-  top: 50%;
+  top: v-bind(offsetTop);
   right: v-bind(offsetPadding);
   z-index: 1;
   display: flex;
