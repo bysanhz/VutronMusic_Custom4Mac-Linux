@@ -42,3 +42,24 @@ test('timing controls use themed icons, contrast and focus without disturbing ot
   expect(block).toContain(':focus-visible')
   expect(block).not.toContain('setOffset(')
 })
+
+test('right-side lyric offset buttons and lower fullscreen tools have the same horizontal alignment', () => {
+  const player = source('src/renderer/views/PlayPage.vue')
+  const classic = source('src/renderer/components/CommonPlayer.vue')
+  const lyrics = source('src/renderer/components/LyricPage.vue')
+  const button = source('src/renderer/components/ButtonIcon.vue')
+
+  // The common button contributes an inline 4px margin unless the positioned
+  // controls explicitly override it; upper lyric buttons already use margin: 0.
+  expect(button).toContain('margin: 4px;')
+  expect(player).toContain('margin-inline: 0;')
+  expect(player).toContain('box-sizing: border-box;')
+  expect(player).toContain('right: 24px;')
+  expect(player).toContain('height: 44px;')
+  expect(player).toContain('width: 44px;')
+  expect(classic).toContain(':offset-padding="isMobile ? \'10vw\' : \'24px\'"')
+  expect(lyrics).toContain('right: v-bind(offsetPadding);')
+  expect(lyrics).toContain('width: 44px;')
+  expect(lyrics).toContain('height: 44px;')
+  expect(lyrics).toContain('margin: 0;')
+})
