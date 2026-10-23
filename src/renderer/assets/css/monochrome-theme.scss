@@ -272,6 +272,25 @@
   color: var(--mono-accent-ink) !important;
   opacity: 1;
 }
+/* Every non-heart control in the bottom player uses exactly the same
+ * accent token. Previously only named SVG buttons used mono-accent-ink;
+ * Play, FM trash, volume and Speed/Timer inherited color-primary/color-text.
+ * Retain the distinct liked-heart red and keep disabled buttons visibly dim. */
+:root:not([data-accent-theme='rainbow']) #app .player .controls .button-icon:not(.like-button):not(.disabled) {
+  color: var(--mono-accent-ink) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player .controls .button-icon:not(.like-button):not(.disabled) .svg-icon {
+  color: var(--mono-accent-ink) !important;
+  opacity: 1 !important;
+}
+/* Speed is text; the timer clock uses currentColor for its hands and rim.
+ * Both follow the same token as SVG transport and volume controls. */
+:root:not([data-accent-theme='rainbow']) #app .player .controls :is(
+  .playback-speed-button, .sleep-timer-button
+):not(.disabled) :is(.speed-label, .timer-label, .timer-clock) {
+  color: inherit !important;
+}
+
 /* Includes skip/play/like, the lyrics & queue controls, repeat/shuffle,
  * volume and the composed speed/timer buttons. This overrides ButtonIcon's
  * default hover fill and separate active-state component styles. The volume
