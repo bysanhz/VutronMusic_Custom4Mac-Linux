@@ -279,6 +279,14 @@
   border-radius: 8px;
 }
 
+/* Fullscreen song detail buttons are intentionally neutral in every solid
+ * accent preset. Their backdrop comes from the cover artwork, so using a
+ * saturated preset color here is distracting and inconsistent with the menu. */
+:root:not([data-accent-theme='rainbow']) #app .player-container {
+  --mono-player-ink: var(--color-text);
+  --mono-player-glass: color-mix(in srgb, var(--color-secondary-bg) 76%, transparent);
+}
+
 :root:not([data-accent-theme='rainbow']) #app .player-container .play-page .top-right .buttons > :is(.button-icon, .transPro),
 :root:not([data-accent-theme='rainbow']) #app .player-container .play-page .media-controls .button-icon,
 :root:not([data-accent-theme='rainbow']) #app .player-container .creative-page .player-media-control .button-icon {
@@ -290,8 +298,8 @@
   margin: 0 !important;
   border: 1px solid transparent;
   border-radius: 11px;
-  background: color-mix(in srgb, var(--mono-accent-ink) 13%, var(--mono-glass));
-  color: var(--mono-accent-ink) !important;
+  background: color-mix(in srgb, var(--mono-player-ink) 13%, var(--mono-player-glass));
+  color: var(--mono-player-ink) !important;
   opacity: 1 !important;
   backdrop-filter: blur(5px);
   box-shadow: none;
@@ -314,27 +322,27 @@
   .play-page .top-right .buttons, .play-page .media-controls,
   .creative-page .player-media-control
 ) .button-icon:not(.disabled) .svg-icon {
-  color: var(--mono-accent-ink) !important;
+  color: var(--mono-player-ink) !important;
   opacity: 1 !important;
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container :is(
   .play-page .top-right .buttons, .play-page .media-controls,
   .creative-page .player-media-control
 ) .button-icon:not(.disabled):is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--mono-accent-ink) 23%, var(--mono-glass));
-  border-color: color-mix(in srgb, var(--mono-accent-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--mono-player-ink) 23%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--mono-player-ink) 30%, transparent);
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container .rainbow-enabled:not(.disabled),
 :root:not([data-accent-theme='rainbow']) #app .player-container .sleep-timer-button.is-active {
-  background: color-mix(in srgb, var(--mono-accent-ink) 25%, var(--mono-glass));
-  border-color: color-mix(in srgb, var(--mono-accent-ink) 24%, transparent);
+  background: color-mix(in srgb, var(--mono-player-ink) 25%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--mono-player-ink) 24%, transparent);
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container :is(
   .play-page .media-controls, .creative-page .player-media-control
 ) #play {
-  border: 1px solid color-mix(in srgb, var(--mono-accent-ink) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mono-player-ink) 32%, transparent);
   border-radius: 13px;
-  background: color-mix(in srgb, var(--mono-accent-ink) 29%, var(--mono-glass));
+  background: color-mix(in srgb, var(--mono-player-ink) 29%, var(--mono-player-glass));
   box-shadow: 0 2px 9px rgb(0 0 0 / 10%);
 }
 
@@ -344,7 +352,7 @@
 :root:not([data-accent-theme='rainbow']) #app .player-container .button-icon:disabled {
   opacity: 0.42 !important;
   border-color: transparent !important;
-  background: color-mix(in srgb, var(--color-text) 5%, var(--mono-glass)) !important;
+  background: color-mix(in srgb, var(--color-text) 5%, var(--mono-player-glass)) !important;
   cursor: default;
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container .button-icon.disabled .svg-icon,
@@ -361,9 +369,9 @@
   box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid transparent;
-  background: color-mix(in srgb, var(--mono-accent-ink) 13%, var(--mono-glass));
-  color: var(--mono-accent-ink) !important;
-  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-accent-ink) 28%, transparent);
+  background: color-mix(in srgb, var(--mono-player-ink) 13%, var(--mono-player-glass));
+  color: var(--mono-player-ink) !important;
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--mono-player-ink) 28%, transparent);
   opacity: 0.94 !important;
   backdrop-filter: blur(5px);
 }
@@ -371,15 +379,15 @@
 :root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
   .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
 ) .svg-icon {
-  color: var(--mono-accent-ink) !important;
+  color: var(--mono-player-ink) !important;
   opacity: 1;
 }
 :root:not([data-accent-theme='rainbow']) #app .player-container .buttons-icons .player-button:is(:hover, :focus-visible),
 :root:not([data-accent-theme='rainbow']) #app .player-container .lyric-wrapper .offset > :is(
   .rainbow-lyric-advance, .rainbow-lyric-recovery, .rainbow-lyric-delay
 ):is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--mono-accent-ink) 23%, var(--mono-glass));
-  border-color: color-mix(in srgb, var(--mono-accent-ink) 35%, transparent);
+  background: color-mix(in srgb, var(--mono-player-ink) 23%, var(--mono-player-glass));
+  border-color: color-mix(in srgb, var(--mono-player-ink) 35%, transparent);
 }
 
 /* Likes are a separate semantic state: unliked stays neutral; liked is red.
@@ -426,6 +434,19 @@
   .creative-page .player-media-control
 ) .like-button.liked:not(.disabled) .svg-icon {
   color: var(--color-like) !important;
+}
+
+/* The playback-speed and timer components sometimes use --color-primary
+ * internally; override their own text as well as the containing button. */
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .playback-speed-button, .sleep-timer-button
+) {
+  color: var(--mono-player-ink) !important;
+}
+:root:not([data-accent-theme='rainbow']) #app .player-container :is(
+  .play-page .media-controls, .creative-page .player-media-control
+) #play .svg-icon {
+  color: var(--mono-player-ink) !important;
 }
 
 /* Honor the system's reduced-motion request, like the Rainbow theme. */
