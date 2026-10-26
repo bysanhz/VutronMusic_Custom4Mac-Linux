@@ -20,8 +20,10 @@
       <svg
         class="daily-trend-svg"
         viewBox="0 0 760 220"
-        role="img"
+        role="group"
         :aria-label="t('insights.footprint.sevenDayTrendTitle')"
+        @mouseleave="clearPointerPreview"
+        @pointerdown.capture="beginPointerInteraction"
       >
         <title>{{ t('insights.footprint.sevenDayTrendTitle') }}</title>
         <g v-for="tick in yTicks" :key="tick">
@@ -49,6 +51,7 @@
               class="trend-bar"
               :class="{
                 selected: selectedPoint?.dateKey === point.dateKey,
+                pinned: pinnedDate === point.dateKey,
                 today: index === points.length - 1
               }"
             />
@@ -64,11 +67,13 @@
               role="button"
               tabindex="0"
               :aria-label="pointAriaLabel(point)"
-              @focus="selectDate(point.dateKey)"
-              @mouseenter="selectDate(point.dateKey)"
-              @click="selectDate(point.dateKey)"
-              @keydown.enter.prevent="selectDate(point.dateKey)"
-              @keydown.space.prevent="selectDate(point.dateKey)"
+              :aria-pressed="pinnedDate === point.dateKey"
+              @focus="previewFocusedDate(point.dateKey, $event)"
+              @blur="clearFocusedDate(point.dateKey)"
+              @mouseenter="previewPointerDate(point.dateKey)"
+              @click="togglePointerPin(point.dateKey)"
+              @keydown.enter.prevent="toggleKeyboardPin(point.dateKey)"
+              @keydown.space.prevent="toggleKeyboardPin(point.dateKey)"
             >
               <title>{{ pointAriaLabel(point) }}</title>
             </rect>
@@ -106,17 +111,22 @@
             v-if="point.seconds !== null"
             :cx="pointX(index)"
             :cy="pointY(point.seconds / 3600)"
-            :r="index === points.length - 1 ? 7 : selectedPoint?.dateKey === point.dateKey ? 6.5 : 5"
+            :r="pinnedDate === point.dateKey ? 7.5 : index === points.length - 1 ? 7 : selectedPoint?.dateKey === point.dateKey ? 6.5 : 5"
             class="trend-dot"
-            :class="{ today: index === points.length - 1 }"
+            :class="{
+              today: index === points.length - 1,
+              pinned: pinnedDate === point.dateKey
+            }"
             tabindex="0"
             role="button"
             :aria-label="pointAriaLabel(point)"
-            @focus="selectDate(point.dateKey)"
-            @mouseenter="selectDate(point.dateKey)"
-            @click="selectDate(point.dateKey)"
-            @keydown.enter.prevent="selectDate(point.dateKey)"
-            @keydown.space.prevent="selectDate(point.dateKey)"
+            :aria-pressed="pinnedDate === point.dateKey"
+            @focus="previewFocusedDate(point.dateKey, $event)"
+            @blur="clearFocusedDate(point.dateKey)"
+            @mouseenter="previewPointerDate(point.dateKey)"
+            @click="togglePointerPin(point.dateKey)"
+            @keydown.enter.prevent="toggleKeyboardPin(point.dateKey)"
+            @keydown.space.prevent="toggleKeyboardPin(point.dateKey)"
           >
             <title>{{ pointAriaLabel(point) }}</title>
           </circle>
@@ -157,12 +167,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   summarizeNeteaseSevenDayAverage,
   type NeteaseDailyListenPoint
 } from '../utils/neteaseListenTrend'
+import { resolveTrendDisplayDate, toggleTrendPinnedDate } from '../utils/listenTrendSelection'
 
 const props = defineProps<{ points: NeteaseDailyListenPoint[] }>()
 const { t, locale } = useI18n()
@@ -172,15 +183,86 @@ const left = 42
 const right = 710
 const top = 38
 const bottom = 162
-const selectedDate = ref<string | null>(null)
-const selectDate = (dateKey: string): void => {
-  selectedDate.value = dateKey
+// Pointer and keyboard focus preview dates transiently; a click pins one
+// date until it is clicked again. Neither kind of preview overwrites the pin.
+const hoveredDate = ref<string | null>(null)
+const focusedDate = ref<string | null>(null)
+const pinnedDate = ref<string | null>(null)
+// If the user clicks an already pinned date, the cursor is still over it.
+// Suppress that same hover/focus until the pointer moves elsewhere or focus
+// leaves, so the top-right summary immediately returns to today's date.
+const suppressedHoverDate = ref<string | null>(null)
+const suppressedFocusDate = ref<string | null>(null)
+
+const clearPointerPreview = (): void => {
+  hoveredDate.value = null
+  suppressedHoverDate.value = null
 }
 
-const selectedPoint = computed(
-  () =>
-    props.points.find((point) => point.dateKey === selectedDate.value) ??
-    props.points.at(-1)
+const beginPointerInteraction = (): void => {
+  focusedDate.value = null
+}
+
+const previewPointerDate = (dateKey: string): void => {
+  focusedDate.value = null
+  if (suppressedHoverDate.value === dateKey) return
+  suppressedHoverDate.value = null
+  hoveredDate.value = dateKey
+}
+
+const previewFocusedDate = (dateKey: string, event: FocusEvent): void => {
+  // Mouse clicks may focus SVG elements too. Only keyboard-visible focus
+  // should keep a preview after the pointer leaves the chart.
+  const target = event.currentTarget
+  if (!(target instanceof Element) || !target.matches(':focus-visible')) return
+  if (suppressedFocusDate.value === dateKey) return
+  suppressedFocusDate.value = null
+  hoveredDate.value = null
+  focusedDate.value = dateKey
+}
+
+const clearFocusedDate = (dateKey: string): void => {
+  if (focusedDate.value === dateKey) focusedDate.value = null
+  if (suppressedFocusDate.value === dateKey) suppressedFocusDate.value = null
+}
+
+const togglePointerPin = (dateKey: string): void => {
+  beginPointerInteraction()
+  const isUnpinning = pinnedDate.value === dateKey
+  pinnedDate.value = toggleTrendPinnedDate(pinnedDate.value, dateKey)
+  suppressedHoverDate.value = isUnpinning ? dateKey : null
+  hoveredDate.value = isUnpinning ? null : dateKey
+}
+
+const toggleKeyboardPin = (dateKey: string): void => {
+  const isUnpinning = pinnedDate.value === dateKey
+  pinnedDate.value = toggleTrendPinnedDate(pinnedDate.value, dateKey)
+  // Unpin should show today immediately even while the key has focus.
+  focusedDate.value = isUnpinning ? null : dateKey
+  suppressedFocusDate.value = isUnpinning ? dateKey : null
+  hoveredDate.value = null
+}
+
+watch(
+  () => props.points.map((point) => point.dateKey).join('|'),
+  () => {
+    const dates = new Set(props.points.map((point) => point.dateKey))
+    if (pinnedDate.value && !dates.has(pinnedDate.value)) pinnedDate.value = null
+    if (hoveredDate.value && !dates.has(hoveredDate.value)) hoveredDate.value = null
+    if (focusedDate.value && !dates.has(focusedDate.value)) focusedDate.value = null
+  }
+)
+
+const displayedDate = computed(() =>
+  resolveTrendDisplayDate(
+    props.points.map((point) => point.dateKey),
+    hoveredDate.value,
+    focusedDate.value,
+    pinnedDate.value
+  )
+)
+const selectedPoint = computed(() =>
+  props.points.find((point) => point.dateKey === displayedDate.value)
 )
 // The selection panel follows the same day-index palette as the SVG bars.
 const selectedDayColor = computed(() => {
@@ -376,6 +458,12 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill: color-mix(in srgb, var(--color-primary) 38%, transparent);
 }
 
+/* A persistent outline distinguishes a click-pin from temporary hover. */
+.trend-bar.pinned {
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
 /* The rightmost entry is always today in the seven-day rolling window.
    Today's emphasis is independent of hover/keyboard selection. */
 .trend-bar.today,
@@ -418,6 +506,10 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill: var(--color-primary);
   stroke: var(--color-body-bg);
   stroke-width: 3;
+}
+
+.trend-dot.pinned {
+  stroke-width: 4;
 }
 
 .trend-dot:focus-visible {
