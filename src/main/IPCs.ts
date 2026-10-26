@@ -4,7 +4,7 @@ import { YPMTray } from './tray'
 import { MprisImpl } from './mpris'
 import { checkUpdate, downloadUpdate, showManualUpdateDialog } from './checkUpdate'
 import Constants from './utils/Constants'
-import store from './store'
+import store, { persistMainWindowGeometry } from './store'
 import fs from 'fs'
 import path from 'path'
 import { db, Tables } from './db'
@@ -99,6 +99,7 @@ async function exitAsk(event: IpcMainEvent, win: BrowserWindow) {
         win.hide()
       } else if (result.response === 1) {
         setTimeout(() => {
+          persistMainWindowGeometry(win)
           win = null
           app.exit()
         }, 100)
@@ -197,6 +198,7 @@ function initWindowIpcMain(win: BrowserWindow): void {
   ipcMain.on('close', (event: IpcMainEvent) => {
     const closeAppOption = store.get('settings.closeAppOption') || 'ask'
     if (closeAppOption === 'exit') {
+      persistMainWindowGeometry(win)
       win = null
       app.exit()
     } else if (closeAppOption === 'minimizeToTray') {
