@@ -74,6 +74,12 @@ type CalibrationPayload = {
 const CALIBRATION_LISTENERS_KEY = '__VUTRON_WINDOW_SCALE_CALIBRATION_LISTENERS__'
 const calibrationSessions = new Map<WindowScaleTarget, CalibrationSession>()
 
+/** Ignore temporary 1x1-minimum preview geometry when persisting main bounds. */
+export const isWindowScaleCalibrationActive = (
+  target: WindowScaleTarget,
+  window: BrowserWindow
+): boolean => calibrationSessions.get(target)?.windowId === window.id
+
 const findDesktopLyricWindow = () => {
   return BrowserWindow.getAllWindows().find((window) => window.getTitle() === '桌面歌词') || null
 }
@@ -163,8 +169,17 @@ const finishCalibration = (senderWindow: BrowserWindow | null, payload: Calibrat
         })
       }
 
-      window.setMinimumSize(baseline.minWidth, baseline.minHeight)
+      // Restore resize capability first; some window managers ignore
+      // minimum-hint changes while the calibration preview is fixed-size.
       window.setResizable(session?.resizable ?? true)
+      window.setMinimumSize(baseline.minWidth, baseline.minHeight)
+      const [currentWidth, currentHeight] = window.getSize()
+      if (!window.isMaximized() && !window.isFullScreen()) {
+        window.setSize(
+          Math.max(currentWidth, baseline.minWidth),
+          Math.max(currentHeight, baseline.minHeight)
+        )
+      }
     }
     calibrationSessions.delete(target)
     return
