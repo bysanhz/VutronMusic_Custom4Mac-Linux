@@ -12,7 +12,7 @@ import {
 } from 'electron'
 import fs from 'fs'
 import Constants from './utils/Constants'
-import store, { persistMainWindowGeometry } from './store'
+import store, { installMainWindowMinimumSizeGuard, persistMainWindowGeometry } from './store'
 import { createTray, YPMTray } from './tray'
 import { createMenu } from './menu'
 import { MprisImpl } from './mpris'
@@ -258,6 +258,7 @@ class BackGround {
     }
 
     this.win = new BrowserWindow(option)
+    installMainWindowMinimumSizeGuard(this.win)
     this.win.setMenuBarVisibility(false)
 
     if (Constants.IS_DEV_ENV) {
