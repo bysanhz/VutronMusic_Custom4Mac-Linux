@@ -1,12 +1,14 @@
 import Store from 'electron-store'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import type { TrackInfoOrder, streamStatus } from '@/types/music'
 import {
   WindowScaleBaseline,
   WindowScaleTarget,
   getDefaultWindowScaleBaseline,
-  sanitizeWindowScaleBaseline
+  sanitizeWindowScaleBaseline,
+  isWindowScaleCalibrationActive
 } from './windowScaleBaseline'
+import { getPersistableMainWindowGeometry } from './mainWindowGeometry'
 
 export interface TypeElectronStore {
   /** Renderer listening-ledger disk mirror; never exposed in diagnostics. */
@@ -16,6 +18,7 @@ export interface TypeElectronStore {
     height: number
     x?: number
     y?: number
+    maximized?: boolean
   }
   osdWin: {
     show: boolean
@@ -202,6 +205,19 @@ const readOsdWindowBaseline = (target: 'osd-small' | 'osd-normal') => {
   )
 }
 
+/**
+ * Save only normal main-window bounds. Called on resize-idle, hide/close and
+ * explicit exit paths, because Electron's app.exit() skips window close events
+ * and therefore can outrun a pending resize debounce.
+ */
+export const persistMainWindowGeometry = (window: BrowserWindow | null): void => {
+  if (!window || window.isDestroyed() || isWindowScaleCalibrationActive('main', window)) {
+    return
+  }
+  const geometry = getPersistableMainWindowGeometry(window)
+  if (geometry) store.set('window', geometry)
+}
+
 const applyWindowMinimumSize = (
   window: BrowserWindow | null,
   target: WindowScaleTarget,
@@ -210,13 +226,19 @@ const applyWindowMinimumSize = (
   if (!window || window.isDestroyed()) return
 
   const baseline = sanitizeWindowScaleBaseline(target, value)
-  window.setMinimumSize(baseline.minWidth, baseline.minHeight)
+  // A calibrated minimum is binding unless the current monitor's workArea is
+  // smaller. This mirrors initial main-window geometry on smaller displays.
+  const workArea =
+    target === 'main' ? screen.getDisplayMatching(window.getBounds()).workArea : null
+  const minWidth = workArea ? Math.min(baseline.minWidth, workArea.width) : baseline.minWidth
+  const minHeight = workArea ? Math.min(baseline.minHeight, workArea.height) : baseline.minHeight
+  window.setMinimumSize(minWidth, minHeight)
 
   if (window.isMaximized() || window.isFullScreen()) return
 
   const [width, height] = window.getSize()
-  const nextWidth = Math.max(width, baseline.minWidth)
-  const nextHeight = Math.max(height, baseline.minHeight)
+  const nextWidth = Math.max(width, minWidth)
+  const nextHeight = Math.max(height, minHeight)
   if (nextWidth !== width || nextHeight !== height) {
     window.setSize(nextWidth, nextHeight)
   }
