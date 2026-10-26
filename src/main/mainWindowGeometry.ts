@@ -73,7 +73,7 @@ export type MainWindowGeometrySource = {
 
 export const getPersistableMainWindowGeometry = (
   window: MainWindowGeometrySource
-): SavedMainWindowGeometry | null => {
+): (WindowRect & { maximized: boolean }) | null => {
   if (window.isDestroyed()) return null
   const maximized = window.isMaximized()
   // Maximized, fullscreen and minimized geometry is not the user's normal
