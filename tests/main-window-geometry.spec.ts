@@ -96,6 +96,9 @@ test('main window sets baseline limits in its constructor and saves on immediate
 
   expect(main).toContain('resolveMainWindowGeometry(')
   expect(main).toContain('...geometry,')
+  expect(main).toContain('installMainWindowMinimumSizeGuard(this.win)')
+  expect(stores).toContain('export const installMainWindowMinimumSizeGuard =')
+  expect(stores).toContain('const [minWidth, minHeight] = window.getMinimumSize()')
   expect(main).toContain('useContentSize: false')
   expect(main).not.toContain('minWidth: 10,')
   expect(main).not.toContain('minHeight: 10,')
