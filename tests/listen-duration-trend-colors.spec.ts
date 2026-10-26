@@ -49,3 +49,53 @@ test('daily colors are scoped to rainbow mode and today retains distinct emphasi
   expect(view).toContain('today: index === points.length - 1')
   expect(view).toContain('selected: selectedPoint?.dateKey === point.dateKey')
 })
+
+test('seven-day bars and line dots select the same date by hover, click and keyboard', () => {
+  const view = readSource('src/renderer/components/ListenDurationTrend.vue')
+  const barStart = view.indexOf('class="trend-bar-group"')
+  const dotStart = view.indexOf('class="trend-dot"')
+  const barArea = view.slice(barStart, dotStart)
+  const dotArea = view.slice(dotStart, view.indexOf('class="trend-unavailable"', dotStart))
+
+  expect(barStart).toBeGreaterThan(-1)
+  expect(dotStart).toBeGreaterThan(barStart)
+  expect(barArea).toContain('<template v-if="point.seconds !== null">')
+  expect(barArea).toContain('class="trend-bar"')
+  expect(barArea).toContain('class="trend-bar-hit"')
+  expect(barArea).toContain(':height="Math.max(18, bottom - barTop(point.seconds))"')
+  expect(barArea).toContain(':aria-label="pointAriaLabel(point)"')
+  expect(barArea).toContain('role="button"')
+  expect(barArea).toContain('tabindex="0"')
+
+  const interactions = [
+    '@focus="selectDate(point.dateKey)"',
+    '@mouseenter="selectDate(point.dateKey)"',
+    '@click="selectDate(point.dateKey)"',
+    '@keydown.enter.prevent="selectDate(point.dateKey)"',
+    '@keydown.space.prevent="selectDate(point.dateKey)"'
+  ]
+  for (const eventHandler of interactions) {
+    expect(barArea).toContain(eventHandler)
+    expect(dotArea).toContain(eventHandler)
+  }
+  expect(view).toContain('const selectDate = (dateKey: string): void => {')
+  expect(view).toContain('selectedDate.value = dateKey')
+  expect(view).toContain('class="daily-trend-selection"')
+  expect(view).toContain("selectedPoint?.dateKey === point.dateKey")
+})
+
+test('bar hit targets are invisible, accessible and preserve rainbow styling', () => {
+  const view = readSource('src/renderer/components/ListenDurationTrend.vue')
+  const rainbow = readSource('src/renderer/assets/css/rainbow-theme.scss')
+  expect(view).toContain('.trend-bar-hit {')
+  expect(view).toContain('fill: transparent;')
+  expect(view).toContain('pointer-events: all;')
+  expect(view).toContain('cursor: pointer;')
+  expect(view).toContain('.trend-bar-group:focus-within .trend-bar')
+  expect(view).toContain('.trend-bar-hit:focus-visible')
+  expect(view).toContain('class="trend-today-halo"')
+  expect(view).toContain('class="trend-line"')
+  expect(view).toContain('class="trend-average"')
+  expect(rainbow).toContain(".daily-trend .trend-bar.selected")
+  expect(rainbow).toContain(".daily-trend .trend-bar.today")
+})
