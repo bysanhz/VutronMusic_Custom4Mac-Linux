@@ -266,6 +266,13 @@
   fill-opacity: 0.89;
 }
 
+/* Pinning is distinct from hovering: keep a day-colored outline visible
+   even while another column is being previewed. */
+:root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar.pinned {
+  stroke: var(--rainbow-chart-day);
+  stroke-width: 2.5;
+}
+
 :root[data-accent-theme='rainbow'] #app .daily-trend .trend-bar.today {
   fill-opacity: 0.95;
   stroke: var(--rainbow-chart-day);
