@@ -458,12 +458,6 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill: color-mix(in srgb, var(--color-primary) 38%, transparent);
 }
 
-/* A persistent outline distinguishes a click-pin from temporary hover. */
-.trend-bar.pinned {
-  stroke: var(--color-primary);
-  stroke-width: 2.5;
-}
-
 /* The rightmost entry is always today in the seven-day rolling window.
    Today's emphasis is independent of hover/keyboard selection. */
 .trend-bar.today,
@@ -472,6 +466,12 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
   fill-opacity: 0.76;
   stroke: var(--color-primary);
   stroke-width: 1.5;
+}
+
+/* A persistent outline distinguishes a click-pin from temporary hover. */
+.trend-bar.pinned {
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
 }
 
 .trend-average {
