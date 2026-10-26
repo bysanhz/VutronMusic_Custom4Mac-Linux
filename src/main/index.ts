@@ -12,7 +12,7 @@ import {
 } from 'electron'
 import fs from 'fs'
 import Constants from './utils/Constants'
-import store from './store'
+import store, { persistMainWindowGeometry } from './store'
 import { createTray, YPMTray } from './tray'
 import { createMenu } from './menu'
 import { MprisImpl } from './mpris'
@@ -44,6 +44,7 @@ import { buildProxyUrl } from '../shared/proxySettings'
 import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 import { getUsableTrackCoverUrl } from '../shared/trackCover'
 import { sanitizeWindowScaleBaseline } from './windowScaleBaseline'
+import { resolveMainWindowGeometry, type SavedMainWindowGeometry } from './mainWindowGeometry'
 
 const CLOSE_DIALOG_TEXT = {
   zh: {
@@ -105,6 +106,7 @@ const closeOnLinux = (e: any, win: BrowserWindow) => {
           win.hide()
         } else if (result.response === 1) {
           setTimeout(() => {
+            persistMainWindowGeometry(win)
             win = null
             recordExitIntent('Linux close dialog: exit')
             app.exit()
@@ -113,6 +115,7 @@ const closeOnLinux = (e: any, win: BrowserWindow) => {
       })
       .catch()
   } else if (closeOpt === 'exit') {
+    persistMainWindowGeometry(win)
     recordExitIntent('Linux close option: exit')
     win = null
     app.quit()
@@ -220,65 +223,37 @@ class BackGround {
       'main',
       store.get('settings.windowScaleBaseline')
     )
+    const storedWindow = store.get('window') as SavedMainWindowGeometry
+    const savedPositionIsValid =
+      Number.isFinite(storedWindow?.x) && Number.isFinite(storedWindow?.y)
+    const display = savedPositionIsValid
+      ? screen.getDisplayNearestPoint({
+          x: storedWindow.x as number,
+          y: storedWindow.y as number
+        })
+      : screen.getPrimaryDisplay()
+    const geometry = resolveMainWindowGeometry(
+      storedWindow,
+      mainBaseline,
+      display.workArea
+    )
     const option = {
       title: Constants.APP_NAME,
       show: false,
-      width: (store.get('window.width') as number) || mainBaseline.minWidth,
-      height: (store.get('window.height') as number) || mainBaseline.minHeight,
-      x: undefined,
-      y: undefined,
-      minWidth: 10,
-      minHeight: 10,
+      ...geometry,
       frame: !(
         Constants.IS_WINDOWS ||
         (Constants.IS_LINUX && store.get('settings.useCustomTitlebar'))
       ),
-      useContentSize: true,
+      // Persist with BrowserWindow.getBounds() (outer size). Restoring outer
+      // bounds as content size caused a titlebar-sized drift on each launch.
+      useContentSize: false,
       titleBarStyle: 'hiddenInset' as const,
       webPreferences: {
         ...Constants.DEFAULT_WEB_PREFERENCES,
         // Linux 在窗口连续拖拽/被其他窗口部分遮挡时仍保持 renderer 正常刷新。
         // 配合硬件合成与 resize debounce，避免 Chromium 降低重绘频率后出现局部空白。
         backgroundThrottling: !Constants.IS_LINUX
-      }
-    }
-
-    if (store.get('window.x') && store.get('window.y')) {
-      const x = store.get('window.x') as number
-      const y = store.get('window.y') as number
-
-      const displays = screen.getAllDisplays()
-      let isResetWindow = false
-      if (displays.length === 1) {
-        const { bounds } = displays[0]
-        if (
-          x < bounds.x ||
-          x > bounds.x + bounds.width - 50 ||
-          y < bounds.y ||
-          y > bounds.y + bounds.height - 50
-        ) {
-          isResetWindow = true
-        }
-      } else {
-        isResetWindow = true
-
-        for (let i = 0; i < displays.length; i++) {
-          const { bounds } = displays[i]
-          if (
-            x > bounds.x &&
-            x < bounds.x + bounds.width &&
-            y > bounds.y &&
-            y < bounds.y + bounds.height
-          ) {
-            isResetWindow = false
-            break
-          }
-        }
-      }
-
-      if (!isResetWindow) {
-        option.x = x
-        option.y = y
       }
     }
 
@@ -1133,6 +1108,7 @@ class BackGround {
     })
 
     app.on('before-quit', () => {
+      persistMainWindowGeometry(this.win)
       log.warn('[ExitDiagnostics] before-quit', { lastExitIntent })
       this.willQuitApp = true
     })
@@ -1172,6 +1148,10 @@ class BackGround {
     })
     this.win.once('ready-to-show', async () => {
       this.win.show()
+      // Restore the maximized state without overwriting the normal bounds.
+      if (store.get('window.maximized') && !this.win.isMaximized()) {
+        this.win.maximize()
+      }
       this.win.focus()
       if (Constants.IS_WINDOWS) {
         const createThumBar = (await import('./thumBar')).createThumBar
@@ -1180,6 +1160,7 @@ class BackGround {
     })
 
     this.win.on('close', (e) => {
+      persistMainWindowGeometry(this.win)
       log.warn('[ExitDiagnostics] main window close', { platform: process.platform })
       if (Constants.IS_MAC) {
         if (this.willQuitApp) {
@@ -1211,8 +1192,7 @@ class BackGround {
      */
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null
     const persistWindowBounds = () => {
-      if (!this.win || this.win.isDestroyed()) return
-      store.set('window', this.win.getBounds())
+      persistMainWindowGeometry(this.win)
     }
 
     this.win.on('resize', () => {
@@ -1240,6 +1220,13 @@ class BackGround {
       )
     })
 
+    // Debounced resize/move writes are not guaranteed to fire before quit.
+    // Save synchronously for hide, normal/maximized transitions and closing.
+    // getNormalBounds() prevents a maximized window from replacing its normal
+    // launch dimensions with the full-screen work area.
+    this.win.on('hide', persistWindowBounds)
+    this.win.on('maximize', persistWindowBounds)
+    this.win.on('unmaximize', persistWindowBounds)
     this.win.on('closed', () => {
       if (resizeTimeout) clearTimeout(resizeTimeout)
       if (moveTimeout) clearTimeout(moveTimeout)
