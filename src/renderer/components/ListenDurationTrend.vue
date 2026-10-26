@@ -36,21 +36,43 @@
         <g
           v-for="(point, index) in points"
           :key="`bar-${point.dateKey}`"
+          class="trend-bar-group"
           :style="{ '--rainbow-chart-day': `var(--rainbow-day-${index + 1})` }"
         >
-          <rect
-            v-if="point.seconds !== null"
-            :x="pointX(index) - barWidth / 2"
-            :y="barTop(point.seconds)"
-            :width="barWidth"
-            :height="bottom - barTop(point.seconds)"
-            rx="5"
-            class="trend-bar"
-            :class="{
-              selected: selectedPoint?.dateKey === point.dateKey,
-              today: index === points.length - 1
-            }"
-          />
+          <template v-if="point.seconds !== null">
+            <rect
+              :x="pointX(index) - barWidth / 2"
+              :y="barTop(point.seconds)"
+              :width="barWidth"
+              :height="bottom - barTop(point.seconds)"
+              rx="5"
+              class="trend-bar"
+              :class="{
+                selected: selectedPoint?.dateKey === point.dateKey,
+                today: index === points.length - 1
+              }"
+            />
+            <!-- A transparent 18px-minimum hit area keeps very short bars
+                 clickable without altering their visible height or color. -->
+            <rect
+              :x="pointX(index) - barWidth / 2"
+              :y="Math.min(barTop(point.seconds), bottom - 18)"
+              :width="barWidth"
+              :height="Math.max(18, bottom - barTop(point.seconds))"
+              class="trend-bar-hit"
+              rx="5"
+              role="button"
+              tabindex="0"
+              :aria-label="pointAriaLabel(point)"
+              @focus="selectDate(point.dateKey)"
+              @mouseenter="selectDate(point.dateKey)"
+              @click="selectDate(point.dateKey)"
+              @keydown.enter.prevent="selectDate(point.dateKey)"
+              @keydown.space.prevent="selectDate(point.dateKey)"
+            >
+              <title>{{ pointAriaLabel(point) }}</title>
+            </rect>
+          </template>
         </g>
         <g v-if="averageSummary">
           <line
@@ -90,11 +112,11 @@
             tabindex="0"
             role="button"
             :aria-label="pointAriaLabel(point)"
-            @focus="selectedDate = point.dateKey"
-            @mouseenter="selectedDate = point.dateKey"
-            @click="selectedDate = point.dateKey"
-            @keydown.enter.prevent="selectedDate = point.dateKey"
-            @keydown.space.prevent="selectedDate = point.dateKey"
+            @focus="selectDate(point.dateKey)"
+            @mouseenter="selectDate(point.dateKey)"
+            @click="selectDate(point.dateKey)"
+            @keydown.enter.prevent="selectDate(point.dateKey)"
+            @keydown.space.prevent="selectDate(point.dateKey)"
           >
             <title>{{ pointAriaLabel(point) }}</title>
           </circle>
@@ -151,6 +173,9 @@ const right = 710
 const top = 38
 const bottom = 162
 const selectedDate = ref<string | null>(null)
+const selectDate = (dateKey: string): void => {
+  selectedDate.value = dateKey
+}
 
 const selectedPoint = computed(
   () =>
@@ -328,6 +353,23 @@ const pointAriaLabel = (point: NeteaseDailyListenPoint): string =>
 .trend-bar {
   fill: color-mix(in srgb, var(--color-primary) 24%, transparent);
   pointer-events: none;
+}
+
+/* Keep the SVG bars visually unchanged; the overlay owns pointer and
+   keyboard events. A minimum hit height makes near-zero values usable. */
+.trend-bar-hit {
+  fill: transparent;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.trend-bar-hit:focus-visible {
+  outline: none;
+}
+
+.trend-bar-group:focus-within .trend-bar {
+  stroke: var(--color-text);
+  stroke-width: 2.5;
 }
 
 .trend-bar.selected {
