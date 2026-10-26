@@ -245,6 +245,33 @@ const applyWindowMinimumSize = (
 }
 
 /**
+ * Some Linux window managers can briefly report bounds below Electron's
+ * minimum-size hint during an interactive resize. The main window uses the
+ * current native minimum as the source of truth, including calibration's
+ * deliberate temporary 1x1 minimum during preview.
+ */
+export const installMainWindowMinimumSizeGuard = (window: BrowserWindow): void => {
+  let correcting = false
+  window.on('resize', () => {
+    if (correcting || window.isDestroyed() || window.isMaximized() || window.isFullScreen()) {
+      return
+    }
+    const [minWidth, minHeight] = window.getMinimumSize()
+    const [width, height] = window.getSize()
+    const nextWidth = Math.max(width, minWidth)
+    const nextHeight = Math.max(height, minHeight)
+    if (nextWidth === width && nextHeight === height) return
+
+    correcting = true
+    try {
+      window.setSize(nextWidth, nextHeight)
+    } finally {
+      correcting = false
+    }
+  })
+}
+
+/**
  * 为桌面歌词窗口补一层运行时最小尺寸保护。
  *
  * Electron 的 minWidth/minHeight 与 setMinimumSize 主要约束用户手动拉伸，
