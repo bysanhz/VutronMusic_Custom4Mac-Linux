@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
 import store from './store'
+import { readLinuxAppProcessMemory } from './linuxProcessMemory'
 import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
@@ -117,6 +118,10 @@ const installRuntimeDiagnostics = (): void => {
 
   ipcMain.handle('get-runtime-diagnostics', async () => {
     const gpuStatus = app.isReady() ? app.getGPUFeatureStatus() : {}
+    const processMetrics = app.isReady() ? app.getAppMetrics() : []
+    const linuxProcessMemory = process.platform === 'linux' && app.isReady()
+      ? readLinuxAppProcessMemory(process.pid, processMetrics.map((metric) => metric.pid))
+      : null
     const userDataDirectoryName = path.basename(app.getPath('userData'))
 
     return {
@@ -143,8 +148,11 @@ const installRuntimeDiagnostics = (): void => {
         totalMiB: Math.round(os.totalmem() / 1024 / 1024),
         freeMiB: Math.round(os.freemem() / 1024 / 1024)
       },
+      // Linux /proc tree includes child processes that getAppMetrics may
+      // omit; PSS distinguishes shared resident pages from virtual mappings.
+      linuxProcessMemory,
       processes: app.isReady()
-        ? app.getAppMetrics().map((metric) => {
+        ? processMetrics.map((metric) => {
             const contents = webContents
               .getAllWebContents()
               .find((contents) => contents.getOSProcessId() === metric.pid)
