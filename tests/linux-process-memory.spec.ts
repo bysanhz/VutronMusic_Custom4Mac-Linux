@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import {
   parseLinuxProcessStatus,
   readLinuxAppProcessMemory
@@ -96,8 +96,6 @@ test('missing process tree gracefully reports unavailable', () => {
 })
 
 test('runtime diagnostics includes Linux memory but never reads command lines or environment', () => {
-  const { readFileSync } = require('node:fs') as typeof import('node:fs')
-  const { resolve } = require('node:path') as typeof import('node:path')
   const runtime = readFileSync(resolve('src/main/runtimeDiagnostics.ts'), 'utf8')
   const linux = readFileSync(resolve('src/main/linuxProcessMemory.ts'), 'utf8')
   expect(runtime).toContain("readLinuxAppProcessMemory(process.pid, processMetrics.map((metric) => metric.pid))")
