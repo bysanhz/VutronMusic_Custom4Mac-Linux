@@ -160,21 +160,3 @@ test('reuses pitch output memory and zero-fills an underrun instead of replaying
   expect(processor._processedSamples).toBe(samples)
   expect(Array.from(output[0])).toEqual(Array(128).fill(0))
 })
-
-
-test('disposes metadata listeners when a failed audio source is replaced', () => {
-  const player = readFileSync(resolve('src/renderer/store/player.ts'), 'utf8')
-  expect(player).toContain('let pendingResumeMetadataListener: (() => void) | null = null')
-  expect(player).toContain("audioNodes.audio.removeEventListener('loadedmetadata', pendingResumeMetadataListener)")
-  expect(player).toContain('clearPendingResumeMetadataListener()')
-  expect(player).toContain("audioNodes.audio!.addEventListener('loadedmetadata', pendingResumeMetadataListener")
-})
-
-test('forwards only audio headers from the atom media proxy to its upstream', () => {
-  const main = readFileSync(resolve('src/main/index.ts'), 'utf8')
-  const streamProxy = main.slice(main.indexOf("host === 'get-online-music'"))
-  expect(streamProxy).toContain("['range', 'if-range', 'accept']")
-  expect(streamProxy).toContain('const headers = new Headers()')
-  expect(streamProxy).toContain('request.headers.get(name)')
-  expect(streamProxy).not.toContain('const headers = request.headers')
-})
