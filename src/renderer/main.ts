@@ -95,6 +95,7 @@ declare global {
       // ======== newADD start======
       setZoomFactor: (factor: number) => void
       getZoomFactor: () => number
+      getResourceDiagnostics?: () => Record<string, unknown>
       // =========== newADD end ========
     }
     env?: {

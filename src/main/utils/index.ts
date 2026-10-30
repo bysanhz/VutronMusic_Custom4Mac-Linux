@@ -1,3 +1,9 @@
+import { createHash } from 'node:crypto'
+import {
+  beginAudioDiagnostic,
+  audioFailureCode,
+  type AudioRequestDiagnostic
+} from './audioDiagnostics'
 import { net } from 'electron'
 import fs from 'fs'
 import path from 'path'
@@ -647,12 +653,16 @@ const normalizeNeteaseQuality = (quality: unknown): NetEaseSoundQuality => {
   return 'exhigh'
 }
 
-const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: any }> => {
+const getAudioSourceFromNetease = async (
+  track: any,
+  diagnostic: AudioRequestDiagnostic
+): Promise<{ [key: string]: any }> => {
   const requestedLevel = normalizeNeteaseQuality(store.get('settings.musicQuality'))
   const startIndex = NETEASE_QUALITY_ORDER.indexOf(requestedLevel)
   const fallbackLevels = NETEASE_QUALITY_ORDER.slice(Math.max(0, startIndex))
 
   for (const level of fallbackLevels) {
+    diagnostic.apiAttempts = (diagnostic.apiAttempts || 0) + 1
     try {
       const result = await request({
         url: '/song/url/v1',
@@ -660,6 +670,10 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
         params: { id: track.id, level }
       })
       const item = result?.data?.[0]
+      diagnostic.level = level
+      diagnostic.status = Number(item?.code || result?.code) || 0
+      diagnostic.available = Boolean(item?.url)
+      diagnostic.restricted = Boolean(item?.freeTrialInfo)
       const br = item?.br || 128000
       const gain = item?.gain || 0
       const peak = item?.peak || 1
@@ -673,6 +687,7 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
         level: item.level || level
       }
     } catch (error) {
+      diagnostic.error = audioFailureCode(error)
       const failure = summarizeNeteaseFailure(error)
       if (isNeteaseTransportFailure(failure)) {
         log.warn(`[NetEase] ${level} 音源请求失败，停止音质降级并尝试备用音源`, failure)
@@ -689,13 +704,22 @@ const getAudioSourceFromNetease = async (track: any): Promise<{ [key: string]: a
   return { url: '', br: 128000, gain: 0, peak: 1, level: 'standard' }
 }
 
+const recentAudioUrlHashes = new Map<string, string>()
+
 export const getAudioSource = async (track: any) => {
+  const startedAt = Date.now()
+  const diagnostic = beginAudioDiagnostic({
+    kind: 'source',
+    trackId: String(track.id),
+    source: 'netease',
+    phase: 'api'
+  })
   const enableUNM =
     (store.get('settings.unblockNeteaseMusic.enable') as boolean | undefined) ?? true
   let source = 'netease'
 
   // 优先使用网易云官方 /song/url/v1，并逐级降低音质。
-  const trackInfo = await getAudioSourceFromNetease(track)
+  const trackInfo = await getAudioSourceFromNetease(track, diagnostic)
 
   // 官方音源不可用时才进入 UNM。UNM 失败会返回 null，不能再直接访问 res.url。
   if (!trackInfo.url && enableUNM) {
@@ -713,6 +737,22 @@ export const getAudioSource = async (track: any) => {
   }
 
   trackInfo.source = source
+  diagnostic.source = source
+  diagnostic.available = Boolean(trackInfo.url)
+  diagnostic.phase = trackInfo.url ? 'resolved' : 'unavailable'
+  diagnostic.elapsedMs = Date.now() - startedAt
+  if (trackInfo.url) {
+    const parsed = new URL(trackInfo.url)
+    diagnostic.host = parsed.hostname
+    const hash = createHash('sha256').update(trackInfo.url).digest('hex')
+    const trackId = String(track.id)
+    const previous = recentAudioUrlHashes.get(trackId)
+    if (previous) diagnostic.urlChanged = previous !== hash
+    recentAudioUrlHashes.delete(trackId)
+    recentAudioUrlHashes.set(trackId, hash)
+    if (recentAudioUrlHashes.size > 32)
+      recentAudioUrlHashes.delete(recentAudioUrlHashes.keys().next().value!)
+  }
   return trackInfo
 }
 
@@ -751,7 +791,7 @@ export const getAudioSourceFromUnblock = async (track: any) => {
   global.proxy = url
 
   return match(track.id, sourceList).catch((error) => {
-    console.log('=== unblock error ===', global.proxy, error)
+    log.warn('[AudioSource] UNM lookup failed', { code: audioFailureCode(error) })
     return null
   })
 }

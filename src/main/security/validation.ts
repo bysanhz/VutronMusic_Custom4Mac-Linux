@@ -88,3 +88,23 @@ export const parseSafeExternalUrl = (value: unknown): URL | null => {
     return null
   }
 }
+
+/**
+ * Clash/TUN DNS can return benchmark-network Fake-IPs for public NetEase CDN names.
+ * This exception is intentionally limited to NetEase's numbered media/image CDN
+ * hosts on standard ports. Never permit literal benchmark IP URLs, other domains,
+ * or RFC1918/loopback answers, including mixed DNS responses.
+ */
+export const isAllowedRemoteAddress = (url: URL, address: string): boolean => {
+  if (!isPrivateIpAddress(address)) return true
+  const octets = address.split('.').map(Number)
+  const fakeIp =
+    net.isIP(address) === 4 && octets[0] === 198 && (octets[1] === 18 || octets[1] === 19)
+  return (
+    fakeIp &&
+    /^(?:m\d+c?|[ps]\d+)\.music\.126\.net$/i.test(url.hostname) &&
+    !url.port &&
+    !url.username &&
+    !url.password
+  )
+}

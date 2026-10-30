@@ -1,7 +1,7 @@
 import dns from 'dns/promises'
 import http from 'http'
 import https from 'https'
-import { isPrivateIpAddress, isUnsafeHostname, parseSafeExternalUrl } from './validation'
+import { isAllowedRemoteAddress, isUnsafeHostname, parseSafeExternalUrl } from './validation'
 
 const MAX_REDIRECTS = 5
 const DEFAULT_TIMEOUT_MS = 30_000
@@ -26,7 +26,7 @@ const assertPublicUrl = async (value: string | URL): Promise<URL> => {
   }
 
   const addresses = await dns.lookup(url.hostname, { all: true, verbatim: true })
-  if (!addresses.length || addresses.some((item) => isPrivateIpAddress(item.address))) {
+  if (!addresses.length || addresses.some((item) => !isAllowedRemoteAddress(url, item.address))) {
     throw new Error('下载地址解析到了私有或保留 IP')
   }
   return url

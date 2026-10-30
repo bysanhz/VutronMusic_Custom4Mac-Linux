@@ -98,7 +98,9 @@ test('missing process tree gracefully reports unavailable', () => {
 test('runtime diagnostics includes Linux memory but never reads command lines or environment', () => {
   const runtime = readFileSync(resolve('src/main/runtimeDiagnostics.ts'), 'utf8')
   const linux = readFileSync(resolve('src/main/linuxProcessMemory.ts'), 'utf8')
-  expect(runtime).toContain("readLinuxAppProcessMemory(process.pid, processMetrics.map((metric) => metric.pid))")
+  expect(runtime.replace(/\s/g, '')).toContain(
+    'readLinuxAppProcessMemory(process.pid,processMetrics.map((metric)=>metric.pid))'
+  )
   expect(runtime).toContain('linuxProcessMemory,')
   expect(linux).toContain('/smaps_rollup')
   expect(linux).not.toContain('/cmdline')

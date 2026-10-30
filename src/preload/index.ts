@@ -213,7 +213,13 @@ contextBridge.exposeInMainWorld('mainApi', {
     }
     webFrame.setZoomFactor(factor)
   },
-  getZoomFactor: (): number => webFrame.getZoomFactor()
+  getZoomFactor: (): number => webFrame.getZoomFactor(),
+  // Read on demand, never retain decoded resources or force collection.
+  getResourceDiagnostics: () => ({
+    resources: webFrame.getResourceUsage(),
+    heapKiB: typeof process.getHeapStatistics === 'function' ? process.getHeapStatistics() : null,
+    blinkKiB: typeof process.getBlinkMemoryInfo === 'function' ? process.getBlinkMemoryInfo() : null
+  })
 })
 
 contextBridge.exposeInMainWorld('env', {

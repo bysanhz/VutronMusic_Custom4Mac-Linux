@@ -36,6 +36,8 @@ import {
 } from './utils'
 import { CacheAPIs } from './utils/CacheApis'
 import { proxyFetch } from './utils/proxyFetch'
+import { serveAudioProxy } from './utils/audioProxyResponse'
+import { audioFailureCode } from './utils/audioDiagnostics'
 import { registerGlobalShortcuts } from './globalShortcut'
 import { initAutoUpdater } from './checkUpdate'
 import log from './log'
@@ -677,7 +679,7 @@ class BackGround {
 
   handleProtocol() {
     protocol.handle('atom', async (request) => {
-      const { host, pathname, searchParams, search } = new URL(request.url)
+      const { host, pathname, searchParams } = new URL(request.url)
 
       if (host === 'get-default-pic') {
         const pic = fs.readFileSync(defaultImagePath)
@@ -894,8 +896,8 @@ class BackGround {
                 headers: { 'content-type': 'application/json' }
               })
             } catch (error) {
-              const message = error instanceof Error ? error.message : String(error)
-              log.error(`[Player] 获取歌曲信息失败: ${ids}`, error)
+              const message = `Track lookup failed (${audioFailureCode(error)})`
+              log.error(`[Player] 获取歌曲信息失败: ${ids}`, { code: audioFailureCode(error) })
               return new Response(JSON.stringify({ code: 503, retryable: true, message }), {
                 status: 503,
                 headers: { 'content-type': 'application/json' }
@@ -974,59 +976,7 @@ class BackGround {
           headers: { 'Content-Type': mimeType }
         })
       } else if (host === 'get-online-music') {
-        let url = pathname.slice(1)
-        const headers = request.headers
-        url += search
-
-        try {
-          const response = await proxyFetch(url, { headers, signal: request.signal })
-          if (!response.ok) {
-            return new Response(null, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: {
-                'Content-Type': 'text/plain'
-              }
-            })
-          }
-
-          // 某些“音频地址”实际会返回登录页/错误页。若把 HTML/JSON 原样交给
-          // <audio>，Renderer 只会得到难以诊断的 DOMException。这里尽早拒绝。
-          const contentType = String(response.headers.get('content-type') || '')
-            .split(';')[0]
-            .trim()
-            .toLowerCase()
-
-          if (
-            contentType.startsWith('text/') ||
-            contentType === 'application/json' ||
-            contentType === 'application/xml'
-          ) {
-            await response.body?.cancel().catch(() => undefined)
-            log.warn('[AudioProxy] 上游返回非音频内容', { url, contentType })
-            return new Response(null, {
-              status: 502,
-              statusText: 'Upstream did not return audio',
-              headers: {
-                'Content-Type': 'text/plain'
-              }
-            })
-          }
-
-          return response
-        } catch (error) {
-          if (request.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
-            return new Response(null, {
-              status: 499,
-              statusText: 'Client Closed Request'
-            })
-          }
-          log.error('[AudioProxy] get-online-music failed', error)
-          return new Response(null, {
-            status: 500,
-            statusText: 'Internal Server Error'
-          })
-        }
+        return serveAudioProxy(request, proxyFetch)
       }
     })
   }

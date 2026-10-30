@@ -1,3 +1,4 @@
+import { IncrementalSnapshotStorage } from './incrementalSnapshotStorage'
 import { ref } from 'vue'
 import type { ScrobbleParams } from '../api/track'
 
@@ -60,6 +61,15 @@ export type RecordSegmentInput = {
 }
 
 const STORAGE_KEY = 'vutronmusic-netease-listen-ledger-v3'
+let checkpointStorage: IncrementalSnapshotStorage<LedgerState> | null = null
+const getCheckpointStorage = () => {
+  if (!checkpointStorage || checkpointStorage.backend !== localStorage) {
+    checkpointStorage = new IncrementalSnapshotStorage<LedgerState>(localStorage, STORAGE_KEY)
+    checkpointStorage.read()
+  }
+  return checkpointStorage
+}
+
 const LEGACY_OUTBOX_KEY = 'vutronmusic-netease-scrobble-outbox-v1'
 // Never truncate or age out unverified records. User removal is explicit only.
 const PERSIST_INTERVAL_MS = 5000
@@ -154,9 +164,15 @@ let backupStatusListenerInstalled = false
 let lastBackupAcknowledgedAt = 0
 
 const readState = (): LedgerState => {
-  if (!canReadLocalStorage()) return { entries: [], remoteBaselines: {}, remoteObservations: {}, dismissedReportBaselines: {} }
+  if (!canReadLocalStorage())
+    return {
+      entries: [],
+      remoteBaselines: {},
+      remoteObservations: {},
+      dismissedReportBaselines: {}
+    }
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    const stored = getCheckpointStorage().read() || ({} as Partial<LedgerState>)
     return {
       entries: Array.isArray(stored.entries)
         ? stored.entries.map(sanitizeEntry).filter(Boolean)
@@ -232,7 +248,7 @@ export const flushNeteaseListenLedger = (force = false): void => {
   let persisted = false
   if (canWriteLocalStorage() && !localStorageCorrupted) {
     try {
-      localStorage.setItem(STORAGE_KEY, serialized)
+      getCheckpointStorage().write(JSON.parse(serialized) as LedgerState)
       persisted = true
     } catch (error) {
       persistenceFailures += 1
@@ -1127,6 +1143,7 @@ export const getNeteaseListenSyncDiagnostics = (accountIdValue: unknown) => {
     historicalReplay: getNeteaseHistoricalReplayDiagnostics(accountId, now),
     persistence: {
       backupReady,
+      checkpointStorage: checkpointStorage?.diagnostics() || null,
       backupRecoveryEntries,
       lastBackupAcknowledgedAt,
       localStorageCorrupted,

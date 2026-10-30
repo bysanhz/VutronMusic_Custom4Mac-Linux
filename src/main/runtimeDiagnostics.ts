@@ -1,14 +1,17 @@
-import { app, ipcMain, net, webContents } from 'electron'
+import { app, ipcMain, net, webContents, type WebContents } from 'electron'
 import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
 import store from './store'
+import { getAudioRequestDiagnostics } from './utils/audioDiagnostics'
+import { MemoryTrendSampler } from './utils/memoryTrend'
 import { readLinuxAppProcessMemory } from './linuxProcessMemory'
 import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
 const APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
 const COVER_PROBE_TIMEOUT_MS = 3500
+const memoryTrendSampler = new MemoryTrendSampler()
 
 const classifyCoverNetworkError = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error)
@@ -64,6 +67,38 @@ const describeCoverUrlShape = (value: string) => {
   }
 }
 
+/** Main-world V8/backing storage, unavailable rather than invented when DevTools owns the target. */
+const readRendererHeapUsage = async (contents: WebContents) => {
+  if (contents.isDevToolsOpened()) return { available: false, reason: 'devtools_open' }
+  const debuggerApi = contents.debugger
+  let owned = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    if (!debuggerApi.isAttached()) {
+      debuggerApi.attach('1.3')
+      owned = true
+    }
+    const usage = await Promise.race([
+      debuggerApi.sendCommand('Runtime.getHeapUsage'),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), 1500)
+      })
+    ])
+    return {
+      available: true,
+      usedBytes: usage.usedSize,
+      allocatedBytes: usage.totalSize,
+      embedderBytes: usage.embedderHeapUsedSize ?? null,
+      backingStorageBytes: usage.backingStorageSize ?? null
+    }
+  } catch {
+    return { available: false, reason: 'unavailable' }
+  } finally {
+    if (timer) clearTimeout(timer)
+    if (owned && debuggerApi.isAttached()) debuggerApi.detach()
+  }
+}
+
 const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
   if (runtime[INSTALL_KEY]) return
@@ -90,9 +125,11 @@ const installRuntimeDiagnostics = (): void => {
         const candidates = getNeteaseImageCandidateUrls(url)
         const withoutSize = candidates.find((candidate) => {
           const parsed = new URL(candidate)
-          return parsed.hostname === new URL(url).hostname &&
+          return (
+            parsed.hostname === new URL(url).hostname &&
             !parsed.searchParams.has('param') &&
             new URL(url).searchParams.has('param')
+          )
         })
         // Diagnostic-only comparison: never strip unknown parameters from production URLs.
         const bareUrl = new URL(url)
@@ -106,22 +143,34 @@ const installRuntimeDiagnostics = (): void => {
         return {
           urlShape: describeCoverUrlShape(url),
           sizeVariantAvailable: Boolean(withoutSize),
-          attempts: await Promise.all(sample.map(async (candidate) => ({
-            variant: candidate.variant,
-            ...(await probeCoverCandidate(candidate.url))
-          })))
+          attempts: await Promise.all(
+            sample.map(async (candidate) => ({
+              variant: candidate.variant,
+              ...(await probeCoverCandidate(candidate.url))
+            }))
+          )
         }
       })
     )
     return { checked: true, sampleCount: results.length, results }
   })
 
-  ipcMain.handle('get-runtime-diagnostics', async () => {
+  ipcMain.handle('get-runtime-diagnostics', async (event) => {
     const gpuStatus = app.isReady() ? app.getGPUFeatureStatus() : {}
     const processMetrics = app.isReady() ? app.getAppMetrics() : []
-    const linuxProcessMemory = process.platform === 'linux' && app.isReady()
-      ? readLinuxAppProcessMemory(process.pid, processMetrics.map((metric) => metric.pid))
-      : null
+    const linuxProcessMemory =
+      process.platform === 'linux' && app.isReady()
+        ? readLinuxAppProcessMemory(
+            process.pid,
+            processMetrics.map((metric) => metric.pid)
+          )
+        : null
+    const deltas = memoryTrendSampler.sample(
+      processMetrics.map((metric) => ({
+        pid: metric.pid,
+        workingSetMiB: metric.memory.workingSetSize / 1024
+      }))
+    )
     const userDataDirectoryName = path.basename(app.getPath('userData'))
 
     return {
@@ -142,6 +191,13 @@ const installRuntimeDiagnostics = (): void => {
         node: process.versions.node,
         locale: app.getLocale(),
         hardwareAccelerationDisabled: app.commandLine.hasSwitch('vutron-software-rendering')
+      },
+      audioRequests: getAudioRequestDiagnostics(),
+      rendererHeap: await readRendererHeapUsage(event.sender),
+      browserMemory: {
+        heap: process.getHeapStatistics(),
+        externalBytes: process.memoryUsage().external,
+        arrayBufferBytes: process.memoryUsage().arrayBuffers
       },
       gpu: gpuStatus,
       systemMemory: {
@@ -167,6 +223,7 @@ const installRuntimeDiagnostics = (): void => {
                   : contents
                     ? 'main-window'
                     : metric.name || metric.serviceName || metric.type,
+              memoryTrend: deltas.get(metric.pid) || null,
               cpuPercent: Number(metric.cpu.percentCPUUsage.toFixed(2)),
               workingSetMiB: Number((metric.memory.workingSetSize / 1024).toFixed(2))
             }

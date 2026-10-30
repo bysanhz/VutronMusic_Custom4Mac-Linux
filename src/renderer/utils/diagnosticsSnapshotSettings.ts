@@ -1,3 +1,4 @@
+import { redactDiagnosticText } from '../../shared/diagnosticRedaction'
 import {
   createV327SettingsItem,
   observeV327SettingsControl,
@@ -27,7 +28,9 @@ const recentErrors: Array<{ time: string; message: string }> = []
 const pushError = (message: unknown): void => {
   recentErrors.unshift({
     time: new Date().toISOString(),
-    message: String(message instanceof Error ? message.stack || message.message : message)
+    message: redactDiagnosticText(
+      String(message instanceof Error ? message.stack || message.message : message)
+    )
   })
   recentErrors.splice(MAX_RECENT_ERRORS)
 }
@@ -99,6 +102,7 @@ const collectRendererDiagnostics = () => {
           limitMiB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
         }
       : null,
+    resourceMemory: window.mainApi?.getResourceDiagnostics?.() || null,
     playback: {
       trackId: player.currentTrack?.id ?? null,
       trackName: player.currentTrack?.name ?? '',
@@ -136,7 +140,7 @@ const collectRendererDiagnostics = () => {
     queueSnapshotCount: queueSnapshots.length,
     coverImages: getCoverLoadDiagnostics(),
     listenSync: getNeteaseListenSyncDiagnostics(activeNeteaseListenAccountId.value),
-    recentErrors
+    recentErrors: recentErrors.map((error) => ({ ...error }))
   }
 }
 

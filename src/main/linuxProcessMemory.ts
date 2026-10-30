@@ -7,7 +7,7 @@ import { readdirSync, readFileSync } from 'fs'
  * RSS across processes can double-count. PSS allocates shared pages
  * proportionally and is preferable for comparing a multi-process Electron app.
  *
- * Only numeric /proc status and smaps_rollup fields are read. Command lines,
+ * Numeric /proc status/rollup fields and aggregate mapping categories are read. Command lines,
  * environment variables, executable paths, and memory maps are never copied
  * into the diagnostic output.
  */
@@ -45,6 +45,8 @@ export type LinuxMemoryRecord = {
   proportionalMiB: number | null
   virtualMiB: number | null
   anonymousMiB: number | null
+  privateMiB: number | null
+  mappingResidentMiB?: Record<string, number> | null
 }
 
 export type LinuxProcessMemorySnapshot = {
@@ -103,9 +105,14 @@ export const readLinuxAppProcessMemory = (
   const records: LinuxMemoryRecord[] = members.map((pid) => {
     const status = statusByPid.get(pid)!
     let pssKiB: number | null = null
+    let privateKiB: number | null = null
     try {
       // smaps_rollup is only read for our own process tree, not every PID.
-      pssKiB = readField(readFileSync(`${procDirectory}/${pid}/smaps_rollup`, 'utf8'), 'Pss')
+      const rollup = readFileSync(`${procDirectory}/${pid}/smaps_rollup`, 'utf8')
+      pssKiB = readField(rollup, 'Pss')
+      const clean = readField(rollup, 'Private_Clean')
+      const dirty = readField(rollup, 'Private_Dirty')
+      if (clean !== null && dirty !== null) privateKiB = clean + dirty
     } catch {
       // Permission/availability varies by kernel and sandbox.
     }
@@ -116,9 +123,21 @@ export const readLinuxAppProcessMemory = (
       residentMiB: toMiB(status.rssKiB),
       proportionalMiB: toMiB(pssKiB),
       virtualMiB: toMiB(status.virtualKiB),
-      anonymousMiB: toMiB(status.anonymousKiB)
+      anonymousMiB: toMiB(status.anonymousKiB),
+      privateMiB: toMiB(privateKiB)
     }
   })
+  records.sort((a, b) => (b.residentMiB ?? 0) - (a.residentMiB ?? 0))
+  // Detailed map reads are limited to the two largest processes, on explicit snapshot only.
+  for (const record of records.slice(0, 2)) {
+    try {
+      record.mappingResidentMiB = summarizeLinuxMappings(
+        readFileSync(`${procDirectory}/${record.pid}/smaps`, 'utf8')
+      )
+    } catch {
+      record.mappingResidentMiB = null
+    }
+  }
   const measuredPss = records.filter((record) => record.proportionalMiB !== null)
   const sum = (items: (number | null)[]): number =>
     Math.round(items.reduce<number>((total, current) => total + (current ?? 0), 0) * 100) / 100
@@ -127,12 +146,43 @@ export const readLinuxAppProcessMemory = (
     processCount: records.length,
     electronReportedProcessCount: records.filter((record) => record.electronReported).length,
     residentSumMiB: sum(records.map((record) => record.residentMiB)),
-    proportionalSumMiB: measuredPss.length === records.length
-      ? sum(records.map((record) => record.proportionalMiB))
-      : null,
+    proportionalSumMiB:
+      measuredPss.length === records.length
+        ? sum(records.map((record) => record.proportionalMiB))
+        : null,
     proportionalMeasuredProcessCount: measuredPss.length,
     largestProcesses: records
       .sort((a, b) => (b.residentMiB ?? 0) - (a.residentMiB ?? 0))
       .slice(0, 24)
   }
+}
+
+/** RSS categories describe mappings, not ownership: V8 mappings are not equivalent to JS heap. */
+export const summarizeLinuxMappings = (content: string): Record<string, number> => {
+  const categories: Record<string, number> = {
+    v8: 0,
+    partitionAlloc: 0,
+    anonymous: 0,
+    file: 0,
+    other: 0
+  }
+  let category = 'other'
+  for (const line of content.split('\n')) {
+    if (/^[a-f0-9]+-[a-f0-9]+\s/.test(line)) {
+      const name = line.split(/\s+/).slice(5).join(' ').trim()
+      category =
+        name === '[anon:v8]'
+          ? 'v8'
+          : name.startsWith('[anon:partition_alloc')
+            ? 'partitionAlloc'
+            : !name || name === '[heap]'
+              ? 'anonymous'
+              : name.startsWith('/')
+                ? 'file'
+                : 'other'
+    } else if (line.startsWith('Rss:')) {
+      categories[category] += Number(line.split(/\s+/)[1]) || 0
+    }
+  }
+  return Object.fromEntries(Object.entries(categories).map(([key, value]) => [key, toMiB(value)!]))
 }

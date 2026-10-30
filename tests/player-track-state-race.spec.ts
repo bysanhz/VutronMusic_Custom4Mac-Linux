@@ -97,8 +97,10 @@ test.describe('player track-state race guards', () => {
 
     expect(main).toContain("if (track.type !== 'local' && !track.cache)")
     expect(main).toContain('await getAudioSource(track)')
-    expect(main).toContain('proxyFetch(url, { headers, signal: request.signal })')
-    expect(main).toContain("statusText: 'Client Closed Request'")
+    expect(main).toContain('serveAudioProxy(request, proxyFetch)')
+    const handler = readSource('src/main/utils/audioProxyResponse.ts')
+    expect(handler).toContain('signal: request.signal')
+    expect(handler).toContain("statusText: 'Client Closed Request'")
   })
 
   test('includes media health in diagnostics snapshots', () => {

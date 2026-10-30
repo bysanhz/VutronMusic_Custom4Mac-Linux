@@ -9,15 +9,12 @@ import {
   type WebContents
 } from 'electron'
 import Store from 'electron-store'
-import dns from 'dns/promises'
 import fs from 'fs'
 import path from 'path'
-import {
-  isPathInside,
-  isPrivateIpAddress,
-  isUnsafeHostname,
-  parseSafeExternalUrl
-} from './validation'
+import { isPathInside, parseSafeExternalUrl } from './validation'
+import { assertPublicRemoteUrl } from './remoteUrl'
+import { parseAudioProxyUrl } from '../../shared/neteaseAssetUrl'
+import { beginAudioDiagnostic, audioFailureCode } from '../utils/audioDiagnostics'
 
 const INSTALL_KEY = '__VUTRON_RUNTIME_SECURITY_INSTALLED__'
 const ENCRYPTED_PREFIX = 'vutron-secure:v1:'
@@ -450,16 +447,12 @@ const installIpcGuards = (): void => {
     })
 }
 
-const isSafeRemoteUrl = async (value: string): Promise<boolean> => {
-  const url = parseSafeExternalUrl(value)
-  if (!url) return false
-  if (isUnsafeHostname(url.hostname)) return false
-
+const getRemoteUrlRejection = async (value: string): Promise<string | null> => {
   try {
-    const addresses = await dns.lookup(url.hostname, { all: true, verbatim: true })
-    return addresses.length > 0 && addresses.every((item) => !isPrivateIpAddress(item.address))
-  } catch {
-    return false
+    await assertPublicRemoteUrl(value)
+    return null
+  } catch (error) {
+    return audioFailureCode(error)
   }
 }
 
@@ -567,9 +560,31 @@ const validateAtomRequest = async (requestUrl: string): Promise<Response | null>
   }
 
   if (request.host === 'get-online-music') {
-    const target = decodeURIComponent(request.pathname.slice(1)) + request.search
-    if (!(await isSafeRemoteUrl(target))) {
-      reportBlockedAction('阻止不安全的远程音频请求', target)
+    let parsed: ReturnType<typeof parseAudioProxyUrl>
+    try {
+      parsed = parseAudioProxyUrl(requestUrl)
+    } catch {
+      return new Response('Bad Request', { status: 400 })
+    }
+    const target = parsed.url
+    const rejection = await getRemoteUrlRejection(target)
+    if (rejection) {
+      let host = 'invalid'
+      try {
+        host = new URL(target).hostname
+      } catch {
+        /* Invalid URL stays redacted. */
+      }
+      beginAudioDiagnostic({
+        kind: 'proxy',
+        trackId: parsed.trackId,
+        revision: parsed.revision,
+        host,
+        phase: 'security-blocked',
+        error: rejection,
+        status: 403
+      })
+      reportBlockedAction('阻止不安全的远程音频请求', { host })
       return new Response('Forbidden', { status: 403 })
     }
   }

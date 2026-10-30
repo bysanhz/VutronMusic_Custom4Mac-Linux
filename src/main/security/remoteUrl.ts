@@ -1,5 +1,5 @@
 import dns from 'dns/promises'
-import { isPrivateIpAddress, isUnsafeHostname, parseSafeExternalUrl } from './validation'
+import { isAllowedRemoteAddress, isUnsafeHostname, parseSafeExternalUrl } from './validation'
 
 const MAX_REMOTE_URL_LENGTH = 8192
 const STREAMING_PLATFORMS = ['navidrome', 'emby', 'jellyfin'] as const
@@ -52,12 +52,14 @@ export const assertPublicRemoteUrl = async (value: string | URL): Promise<URL> =
   const rawValue = value instanceof URL ? value.toString() : value
   const url = parseSafeExternalUrl(rawValue)
   if (!url || isUnsafeHostname(url.hostname)) {
-    throw new Error('远程请求地址不是受允许的公网 HTTP(S) 地址')
+    throw Object.assign(new Error('远程请求地址不是受允许的公网 HTTP(S) 地址'), {
+      code: 'UNSAFE_REMOTE_URL'
+    })
   }
 
   const addresses = await dns.lookup(url.hostname, { all: true, verbatim: true })
-  if (!addresses.length || addresses.some((entry) => isPrivateIpAddress(entry.address))) {
-    throw new Error('远程请求地址解析到了私有或保留 IP')
+  if (!addresses.length || addresses.some((entry) => !isAllowedRemoteAddress(url, entry.address))) {
+    throw Object.assign(new Error('远程请求地址解析到了私有或保留 IP'), { code: 'NON_PUBLIC_DNS' })
   }
 
   return url

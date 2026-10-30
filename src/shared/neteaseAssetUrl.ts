@@ -135,3 +135,25 @@ export const normalizeNeteaseAssetUrls = <T>(value: T): T => {
 
   return visit(value, 0) as T
 }
+
+/** Correlate a media load without appending parameters to a signed CDN URL. */
+export const buildAudioProxyUrl = (
+  url: string,
+  trackId: number | string,
+  revision: number
+): string =>
+  `atom://get-online-music/v1/${encodeURIComponent(trackId)}/${revision}/${encodeURIComponent(url)}`
+
+/** Also accept legacy URLs retained by an already-open renderer. */
+export const parseAudioProxyUrl = (value: string) => {
+  const parsed = new URL(value)
+  const match = parsed.pathname.match(/^\/v1\/([^/]+)\/(\d+)\/(.+)$/)
+  if (match) {
+    return {
+      url: decodeURIComponent(match[3]),
+      trackId: decodeURIComponent(match[1]).slice(0, 64),
+      revision: Number(match[2])
+    }
+  }
+  return { url: parsed.pathname.slice(1) + parsed.search, trackId: '', revision: null }
+}
