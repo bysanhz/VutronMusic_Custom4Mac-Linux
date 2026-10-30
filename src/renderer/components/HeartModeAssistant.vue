@@ -1,6 +1,5 @@
 <template>
   <div
-    v-if="shouldShowAssistant"
     :class="['heart-mode-assistant', { 'is-dark': isDarkMode, dragging: isDragging }]"
     :style="assistantStyle"
   >
@@ -419,7 +418,6 @@ import {
   boostHeartModeCurrentBranch,
   getCurrentHeartModeSession,
   getEffectiveHeartModeProfile,
-  resolveHeartModeSourceSeedId,
   resetCurrentHeartModeLearning,
   steerHeartModeFurther
 } from '../utils/heartModeSession'
@@ -835,7 +833,7 @@ const TEXTS = {
 const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const settingsStore = useSettingsStore()
-const { currentTrack, playlistSource } = storeToRefs(playerStore)
+const { currentTrack } = storeToRefs(playerStore)
 
 type HeartModeCoreField = 'diversity' | 'novelty' | 'familiarity' | 'repeatTolerance'
 type HeartModeAdvancedField =
@@ -1051,17 +1049,7 @@ const sessionSnapshot = computed(() => ({
   value: getCurrentHeartModeSession()
 }))
 const session = computed(() => sessionSnapshot.value.value)
-const isHeartMode = computed(() => {
-  if (playlistSource.value?.type === 'intelligence') return true
-
-  const activeSession = sessionSnapshot.value.value
-  const trackId = Number(currentTrack.value?.id)
-  if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return false
-  return resolveHeartModeSourceSeedId(activeSession, trackId) !== null
-})
-// macOS 将悬浮按钮作为自研心动模式的常驻入口；即使当前播放源不是心动模式，
-// 用户仍可打开说明与参数设置。其他平台继续只在心动模式播放期间显示。
-const shouldShowAssistant = computed(() => Boolean(window.env?.isMac) || isHeartMode.value)
+// 所有平台都保留设置入口，不依赖当前队列或播放状态。
 const effectiveProfile = computed(() => getEffectiveHeartModeProfile(session.value))
 const reason = computed(() => {
   const activeSession = sessionSnapshot.value.value

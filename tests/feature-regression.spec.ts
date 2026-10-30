@@ -1357,11 +1357,10 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('strategyFeedbackBullets')
     expect(assistant).toContain('strategyControlBullets')
     expect(assistant).toContain('v-for="bullet in item.bullets"')
-    expect(assistant).toContain('resolveHeartModeSourceSeedId(activeSession, trackId) !== null')
-    expect(assistant).toContain('v-if="shouldShowAssistant"')
-    expect(assistant).toContain(
-      'const shouldShowAssistant = computed(() => Boolean(window.env?.isMac) || isHeartMode.value)'
-    )
+    expect(assistant).not.toContain('v-if="shouldShowAssistant"')
+    expect(assistant).not.toContain('window.env?.isMac')
+    expect(app).toContain('<HeartModeAssistant />')
+    expect(app).toContain('resolveHeartModeSourceSeedId(activeSession, trackId) === null')
     expect(app).toContain('const syncHeartModePlaylistSource = () =>')
     expect(app).not.toContain('syncLinuxHeartModePlaylistSource')
     expect(app).not.toContain(
