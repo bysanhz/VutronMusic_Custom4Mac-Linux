@@ -4,7 +4,7 @@ import path from 'path'
 import { name, version } from '../../package.json'
 import store from './store'
 import { getAudioRequestDiagnostics } from './utils/audioDiagnostics'
-import { MemoryTrendSampler } from './utils/memoryTrend'
+import { MemoryTrendSampler, summarizeRuntimeMemory } from './utils/memoryTrend'
 import { readLinuxAppProcessMemory } from './linuxProcessMemory'
 import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
@@ -41,7 +41,13 @@ const probeCoverCandidate = async (url: string) => {
     await response.body?.cancel().catch(() => undefined)
     return result
   } catch (error) {
-    return { host, status: null, contentType: '', image: false, error: classifyCoverNetworkError(error) }
+    return {
+      host,
+      status: null,
+      contentType: '',
+      image: false,
+      error: classifyCoverNetworkError(error)
+    }
   } finally {
     clearTimeout(timeout)
   }
@@ -103,6 +109,21 @@ const installRuntimeDiagnostics = (): void => {
   const runtime = globalThis as typeof globalThis & Record<string, unknown>
   if (runtime[INSTALL_KEY]) return
   runtime[INSTALL_KEY] = true
+
+  ipcMain.handle('get-runtime-memory', (event) => {
+    const lyricsPids = new Set(
+      webContents
+        .getAllWebContents()
+        .filter((contents) => contents.getURL().includes('/osdlyric.html'))
+        .map((contents) => contents.getOSProcessId())
+    )
+    return summarizeRuntimeMemory(
+      app.getAppMetrics(),
+      event.sender.getOSProcessId(),
+      lyricsPids,
+      process.platform
+    )
+  })
 
   ipcMain.handle('probe-netease-cover-network', async (_event, sources: unknown) => {
     if (!Array.isArray(sources)) return { checked: false, reason: 'invalid_input' }

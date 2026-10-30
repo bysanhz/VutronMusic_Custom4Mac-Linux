@@ -328,7 +328,9 @@ a {
   padding: var(--responsive-side-padding) !important;
   border-radius: clamp(8px, 1.2vw, 12px) !important;
 
-  button {
+  > button,
+  > .history-navigation > button,
+  > .network-widget > .network-button {
     width: var(--responsive-side-button-width) !important;
     height: var(--responsive-side-button-height) !important;
     margin: var(--responsive-side-button-margin) 0 !important;

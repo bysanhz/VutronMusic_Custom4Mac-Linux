@@ -73,6 +73,7 @@ const mainAvailChannels: string[] = [
   'delete-screenshot',
   'get-cache-path',
   'get-runtime-diagnostics',
+  'get-runtime-memory',
   'probe-netease-cover-network',
   'get-listen-ledger-backup',
   'listen-ledger-snapshot',

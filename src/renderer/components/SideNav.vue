@@ -83,8 +83,8 @@
         type="button"
         class="network-button rainbow-network-control"
         :class="networkQualityTier"
-        :title="`${t('nav.networkStatus')}：${t(networkQualityLabelKey)}`"
-        :aria-label="`${t('nav.networkStatus')}：${t(networkQualityLabelKey)}`"
+        :title="`${t('nav.runtimeStatus')}：${t(networkQualityLabelKey)}`"
+        :aria-label="`${t('nav.runtimeStatus')}：${t(networkQualityLabelKey)}`"
         aria-controls="network-status-panel"
         :aria-expanded="networkWindowOpen"
         @click.stop="networkWindowOpen = !networkWindowOpen"
@@ -108,12 +108,13 @@
         id="network-status-panel"
         class="network-panel"
         role="region"
-        :aria-label="t('nav.networkStatus')"
+        :aria-label="t('nav.runtimeStatus')"
       >
         <div class="network-panel-title">
           <span class="network-panel-indicator" :class="networkQualityTier"></span>
-          <span>{{ t('nav.networkStatus') }}</span>
+          <span>{{ t('nav.runtimeStatus') }}</span>
           <button
+            v-if="runtimeTab === 'network'"
             type="button"
             class="network-test-button"
             :disabled="networkTesting"
@@ -124,52 +125,96 @@
             {{ t(networkTesting ? 'nav.networkTesting' : 'nav.networkTest') }}
           </button>
         </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.deviceNetwork') }}</span>
-          <strong>{{
-            t(networkIssue === 'offline' ? 'nav.networkDisconnected' : 'nav.networkConnected')
-          }}</strong>
+        <div
+          ref="runtimeTabsRef"
+          class="runtime-tabs"
+          role="tablist"
+          :aria-label="t('nav.runtimeStatus')"
+        >
+          <button
+            id="runtime-network-tab"
+            type="button"
+            role="tab"
+            :aria-selected="runtimeTab === 'network'"
+            aria-controls="runtime-network-content"
+            :tabindex="runtimeTab === 'network' ? 0 : -1"
+            @click="runtimeTab = 'network'"
+            @keydown.left.prevent="switchRuntimeTab"
+            @keydown.right.prevent="switchRuntimeTab"
+            >{{ t('nav.runtimeNetwork') }}</button
+          >
+          <button
+            id="runtime-memory-tab"
+            type="button"
+            role="tab"
+            :aria-selected="runtimeTab === 'memory'"
+            aria-controls="runtime-memory-content"
+            :tabindex="runtimeTab === 'memory' ? 0 : -1"
+            @click="runtimeTab = 'memory'"
+            @keydown.left.prevent="switchRuntimeTab"
+            @keydown.right.prevent="switchRuntimeTab"
+            >{{ t('nav.runtimeMemory') }}</button
+          >
         </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.neteaseNetwork') }}</span>
-          <strong>{{ t(neteaseStatusKey) }}</strong>
+        <div
+          v-if="runtimeTab === 'network'"
+          id="runtime-network-content"
+          role="tabpanel"
+          aria-labelledby="runtime-network-tab"
+        >
+          <div class="network-panel-row">
+            <span>{{ t('nav.deviceNetwork') }}</span>
+            <strong>{{
+              t(networkIssue === 'offline' ? 'nav.networkDisconnected' : 'nav.networkConnected')
+            }}</strong>
+          </div>
+          <div class="network-panel-row">
+            <span>{{ t('nav.neteaseNetwork') }}</span>
+            <strong>{{ t(neteaseStatusKey) }}</strong>
+          </div>
+          <div class="network-panel-row">
+            <span>{{ t('nav.networkQuality') }}</span>
+            <strong>{{ t(networkQualityLabelKey) }}</strong>
+          </div>
+          <div class="network-panel-row">
+            <span>{{ t('nav.networkLatency') }}</span>
+            <strong>{{
+              networkIssue === 'offline' || qualitySummary.medianMs === null
+                ? '—'
+                : `${qualitySummary.medianMs} ms`
+            }}</strong>
+          </div>
+          <div class="network-panel-row">
+            <span>{{ t('nav.networkRecentFailures') }}</span>
+            <strong>{{
+              qualitySummary.sampleCount
+                ? `${qualitySummary.failedCount}/${qualitySummary.sampleCount}`
+                : '—'
+            }}</strong>
+          </div>
+          <div class="network-panel-row">
+            <span>{{ t('nav.networkAudioBuffer') }}</span>
+            <strong>{{
+              audioBufferSeconds === null ? '—' : `${audioBufferSeconds.toFixed(1)} s`
+            }}</strong>
+          </div>
+          <p v-if="networkTesting || networkTestResult" class="network-test-result" role="status">
+            {{
+              networkTesting
+                ? t('nav.networkTestingStatus')
+                : t(networkTestResult?.ok ? 'nav.networkTestSuccess' : 'nav.networkTestFailed', {
+                    latency: networkTestResult?.elapsedMs ?? 0
+                  })
+            }}
+          </p>
+          <p class="network-panel-note">{{ t('nav.networkStatusScope') }}</p>
         </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.networkQuality') }}</span>
-          <strong>{{ t(networkQualityLabelKey) }}</strong>
-        </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.networkLatency') }}</span>
-          <strong>{{
-            networkIssue === 'offline' || qualitySummary.medianMs === null
-              ? '—'
-              : `${qualitySummary.medianMs} ms`
-          }}</strong>
-        </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.networkRecentFailures') }}</span>
-          <strong>{{
-            qualitySummary.sampleCount
-              ? `${qualitySummary.failedCount}/${qualitySummary.sampleCount}`
-              : '—'
-          }}</strong>
-        </div>
-        <div class="network-panel-row">
-          <span>{{ t('nav.networkAudioBuffer') }}</span>
-          <strong>{{
-            audioBufferSeconds === null ? '—' : `${audioBufferSeconds.toFixed(1)} s`
-          }}</strong>
-        </div>
-        <p v-if="networkTesting || networkTestResult" class="network-test-result" role="status">
-          {{
-            networkTesting
-              ? t('nav.networkTestingStatus')
-              : t(networkTestResult?.ok ? 'nav.networkTestSuccess' : 'nav.networkTestFailed', {
-                  latency: networkTestResult?.elapsedMs ?? 0
-                })
-          }}
-        </p>
-        <p class="network-panel-note">{{ t('nav.networkStatusScope') }}</p>
+        <RuntimeMemoryPanel
+          v-else
+          id="runtime-memory-content"
+          role="tabpanel"
+          aria-labelledby="runtime-memory-tab"
+        />
       </div>
     </div>
   </div>
@@ -177,12 +222,13 @@
 
 <script setup lang="ts">
 import ButtonIcon from './ButtonIcon.vue'
+import RuntimeMemoryPanel from './RuntimeMemoryPanel.vue'
 import SvgIcon from './SvgIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from '../store/settings'
 import { useStreamMusicStore } from '../store/streamingMusic'
 import { storeToRefs } from 'pinia'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NETEASE_REQUEST_METRIC_EVENT,
@@ -199,6 +245,13 @@ const props = defineProps<{
 const { t } = useI18n()
 const networkWidgetRef = ref<HTMLElement | null>(null)
 const networkWindowOpen = ref(false)
+const runtimeTab = ref<'network' | 'memory'>('network')
+const runtimeTabsRef = ref<HTMLElement | null>(null)
+const switchRuntimeTab = async () => {
+  runtimeTab.value = runtimeTab.value === 'network' ? 'memory' : 'network'
+  await nextTick()
+  runtimeTabsRef.value?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus()
+}
 const requestSamples = ref<NetworkQualitySample[]>([])
 const qualityNow = ref(Date.now())
 const audioBufferSeconds = ref<number | null>(null)
@@ -261,14 +314,16 @@ const runNetworkTest = async (): Promise<void> => {
   networkTesting.value = false
 }
 
-watch(networkWindowOpen, (open) => {
+watch([networkWindowOpen, runtimeTab], ([open, tab]) => {
   if (audioBufferTimer !== null) window.clearInterval(audioBufferTimer)
   audioBufferTimer = null
-  if (open) {
+  if (open && tab === 'network') {
     refreshAudioBuffer()
     audioBufferTimer = window.setInterval(refreshAudioBuffer, 1_500)
   } else {
     audioBufferSeconds.value = null
+  }
+  if (!open) {
     networkTestRunId += 1
     networkTesting.value = false
     networkTestResult.value = null
@@ -527,7 +582,10 @@ const isCurrentRoute = (path: string): boolean => {
     bottom: 0;
     left: calc(100% + 24px);
     box-sizing: border-box;
-    width: 250px;
+    width: min(310px, calc(100vw - 140px));
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 14px;
@@ -540,6 +598,36 @@ const isCurrentRoute = (path: string): boolean => {
     line-height: 1.4;
     text-transform: none;
     user-select: text;
+
+    .runtime-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+      padding: 3px;
+      border-radius: 8px;
+      background: var(--color-secondary-bg);
+
+      button {
+        flex: 1;
+        min-height: 30px;
+        margin: 0;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--color-secondary);
+        font: inherit;
+        cursor: pointer;
+        &[aria-selected='true'] {
+          border-color: var(--color-border);
+          background: var(--color-body-bg);
+          color: var(--color-text);
+          font-weight: 700;
+        }
+        &:focus-visible {
+          outline: 2px solid var(--color-primary);
+        }
+      }
+    }
 
     .network-panel-title {
       display: flex;

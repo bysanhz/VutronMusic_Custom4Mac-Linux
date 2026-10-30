@@ -155,8 +155,7 @@ const getNeteaseScrobbleRuntimeDiagnostics = async () => {
 
   return {
     available: info.stableScrobbleV1Available === true,
-    appServerRevision:
-      typeof info.appServerRevision === 'string' ? info.appServerRevision : '',
+    appServerRevision: typeof info.appServerRevision === 'string' ? info.appServerRevision : '',
     source: typeof info.stableScrobbleV1Source === 'string' ? info.stableScrobbleV1Source : ''
   }
 }
@@ -176,6 +175,36 @@ const formatDiagnostics = (main: Record<string, any>, renderer: Record<string, a
     '=======================',
     JSON.stringify({ main: sanitizedMain, renderer }, null, 2)
   ].join('\n')
+}
+
+/** Share the existing full, redacted snapshot action with the runtime status panel. */
+export const copyDiagnosticsSnapshot = async (
+  additionalRendererDiagnostics: Record<string, unknown> = {}
+): Promise<void> => {
+  const [main, neteaseScrobble] = await Promise.all([
+    window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({}),
+    getNeteaseScrobbleRuntimeDiagnostics()
+  ])
+  const probeUrls = getFailedNeteaseCoverProbeUrls()
+  let coverNetwork: Record<string, unknown> = {
+    checked: false,
+    reason: 'no_recent_netease_failures'
+  }
+  if (probeUrls.length && window.mainApi?.invoke) {
+    try {
+      coverNetwork = await window.mainApi.invoke('probe-netease-cover-network', probeUrls)
+    } catch {
+      coverNetwork = { checked: false, reason: 'probe_unavailable' }
+    }
+  }
+  await navigator.clipboard.writeText(
+    formatDiagnostics(main, {
+      ...collectRendererDiagnostics(),
+      neteaseScrobble,
+      coverNetwork,
+      ...additionalRendererDiagnostics
+    })
+  )
 }
 
 /** Mount the same snapshot action in each settings section, without duplicating its logic. */
@@ -204,25 +233,7 @@ const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
     button.disabled = true
     status.textContent = ''
     try {
-      const [main, neteaseScrobble] = await Promise.all([
-        window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({}),
-        getNeteaseScrobbleRuntimeDiagnostics()
-      ])
-      const probeUrls = getFailedNeteaseCoverProbeUrls()
-      let coverNetwork: Record<string, unknown> = { checked: false, reason: 'no_recent_netease_failures' }
-      if (probeUrls.length && window.mainApi?.invoke) {
-        try {
-          coverNetwork = await window.mainApi.invoke('probe-netease-cover-network', probeUrls)
-        } catch {
-          coverNetwork = { checked: false, reason: 'probe_unavailable' }
-        }
-      }
-      const output = formatDiagnostics(main, {
-        ...collectRendererDiagnostics(),
-        neteaseScrobble,
-        coverNetwork
-      })
-      await navigator.clipboard.writeText(output)
+      await copyDiagnosticsSnapshot()
       status.textContent = text.copied
     } catch (error) {
       console.warn('[Diagnostics] 生成诊断快照失败：', error)
