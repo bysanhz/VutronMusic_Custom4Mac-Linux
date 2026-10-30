@@ -975,13 +975,7 @@ class BackGround {
         })
       } else if (host === 'get-online-music') {
         let url = pathname.slice(1)
-        // Forward only audio negotiation headers. Chromium's atom:// Host/Origin
-        // and Sec-Fetch headers must not be forwarded to a remote music CDN.
-        const headers = new Headers()
-        for (const name of ['range', 'if-range', 'accept']) {
-          const value = request.headers.get(name)
-          if (value) headers.set(name, value)
-        }
+        const headers = request.headers
         url += search
 
         try {
