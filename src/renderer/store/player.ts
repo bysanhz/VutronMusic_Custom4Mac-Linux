@@ -1444,15 +1444,6 @@ export const usePlayerStore = defineStore(
       window.mainApi?.send('update-now-playing', info)
     }
 
-    // The audio element is reused; a failed source may never emit loadedmetadata.
-    let pendingResumeMetadataListener: (() => void) | null = null
-    const clearPendingResumeMetadataListener = () => {
-      if (pendingResumeMetadataListener && audioNodes.audio) {
-        audioNodes.audio.removeEventListener('loadedmetadata', pendingResumeMetadataListener)
-      }
-      pendingResumeMetadataListener = null
-    }
-
     const playAudioSource = async (
       source: string,
       autoPlay = true,
@@ -1460,7 +1451,6 @@ export const usePlayerStore = defineStore(
       startAt = 0
     ) => {
       if (revision !== trackLoadRevision) return false
-      clearPendingResumeMetadataListener()
 
       // 切歌时先淡出。淡出期间如果又切歌，旧请求不得再覆盖媒体源。
       const fade = fadeDuration.value
@@ -1498,11 +1488,7 @@ export const usePlayerStore = defineStore(
         if (audioNodes.audio!.readyState >= 1) {
           applyResumePosition()
         } else {
-          pendingResumeMetadataListener = () => {
-            pendingResumeMetadataListener = null
-            applyResumePosition()
-          }
-          audioNodes.audio!.addEventListener('loadedmetadata', pendingResumeMetadataListener, {
+          audioNodes.audio!.addEventListener('loadedmetadata', applyResumePosition, {
             once: true
           })
         }
@@ -2266,7 +2252,6 @@ export const usePlayerStore = defineStore(
     }
 
     const destroAudioNode = async () => {
-      clearPendingResumeMetadataListener()
       audioGraphRevision += 1
       pitchProcessor?.close()
       pitchProcessor = null
