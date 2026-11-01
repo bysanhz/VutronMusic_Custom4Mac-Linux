@@ -179,6 +179,22 @@ function initWindowIpcMain(win: BrowserWindow): void {
       failedPendingEntries: safeNumber(data.failedPendingEntries, 2000),
       oldestAcceptedAgeMinutes: safeNumber(data.oldestAcceptedAgeMinutes, 1_000_000),
       monthReportAvailable: data.monthReportAvailable === true,
+      monthReportState: ['ready', 'stale', 'invalid', 'unavailable'].includes(
+        String(data.monthReportState)
+      )
+        ? data.monthReportState
+        : null,
+      monthReportLatestDate:
+        typeof data.monthReportLatestDate === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(data.monthReportLatestDate)
+          ? data.monthReportLatestDate
+          : null,
+      monthReportExpectedMonth:
+        typeof data.monthReportExpectedMonth === 'string' &&
+        /^\d{4}-\d{2}$/.test(data.monthReportExpectedMonth)
+          ? data.monthReportExpectedMonth
+          : null,
+      todayDurationAvailable: data.todayDurationAvailable === true,
       monthReportSeconds:
         data.monthReportSeconds === null ? null : safeNumber(data.monthReportSeconds),
       monthBaselineSeconds:

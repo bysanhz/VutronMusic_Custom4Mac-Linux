@@ -341,6 +341,14 @@ const isSameLocalDay = (left: Date, right: Date): boolean =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate()
 
+// Missing/null duration is unknown, not a reported zero (Number(null) === 0).
+const reportNumber = (value: unknown): number | undefined => {
+  if (typeof value !== 'number' && typeof value !== 'string') return undefined
+  if (typeof value === 'string' && !value.trim()) return undefined
+  const number = Number(value)
+  return Number.isFinite(number) && number >= 0 ? number : undefined
+}
+
 const reportReferenceDate = (source: any): Date => {
   const end = parseDateLike(source?.data?.endTime)
   return end ?? new Date()
@@ -397,6 +405,7 @@ export const extractTodayListenSeconds = (
   now = new Date(),
   requireExplicitDate = false
 ): number | undefined => {
+  if (!isSuccessfulResponse(source)) return undefined
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details) || !details.length) return undefined
 
@@ -405,8 +414,8 @@ export const extractTodayListenSeconds = (
     return date ? isSameLocalDay(date, now) : false
   })
 
-  const duration = Number(today?.duration)
-  return Number.isFinite(duration) && duration >= 0 ? duration * 60 : undefined
+  const duration = reportNumber(today?.duration)
+  return duration === undefined ? undefined : duration * 60
 }
 
 /** Read each dated row so yesterday's delayed report can still confirm yesterday's uploads. */
@@ -414,13 +423,14 @@ export const extractDailyListenSeconds = (
   source: any,
   requireExplicitDate = false
 ): Array<{ dateKey: string; seconds: number }> => {
+  if (!isSuccessfulResponse(source)) return []
   const details = source?.data?.listenTimeDistributionBlock?.durationDetails
   if (!Array.isArray(details)) return []
 
   return details.flatMap((item: any, index: number) => {
     const date = getDurationDetailDate(item, source, index, requireExplicitDate)
-    const minutes = Number(item?.duration)
-    if (!date || !Number.isFinite(minutes) || minutes < 0) return []
+    const minutes = reportNumber(item?.duration)
+    if (!date || minutes === undefined) return []
     const dateKey = [
       date.getFullYear(),
       String(date.getMonth() + 1).padStart(2, '0'),
@@ -439,11 +449,9 @@ export const extractDailyListenSeconds = (
  */
 export const extractCalendarWeekListenSeconds = (
   source: any,
-  now = new Date()
+  now = new Date(),
+  fallbackSource?: any
 ): number | undefined => {
-  const details = source?.data?.listenTimeDistributionBlock?.durationDetails
-  if (!Array.isArray(details) || !details.length) return undefined
-
   const weekStart = new Date(now)
   weekStart.setHours(0, 0, 0, 0)
   const daysSinceMonday = (weekStart.getDay() + 6) % 7
@@ -454,18 +462,19 @@ export const extractCalendarWeekListenSeconds = (
 
   let found = false
   let minutes = 0
-  details.forEach((item: any, index: number) => {
-    const date = getDurationDetailDate(item, source, index)
-    const duration = Number(item?.duration)
-    if (
-      date &&
-      date >= weekStart &&
-      date <= todayEnd &&
-      Number.isFinite(duration) &&
-      duration >= 0
-    ) {
+  // A calendar week can straddle two months. Merge explicit dates instead of
+  // substituting the upstream Sunday-based aggregate or counting dates twice.
+  const days = new Map<string, number>()
+  for (const report of [fallbackSource, source]) {
+    for (const { dateKey, seconds } of extractDailyListenSeconds(report, true)) {
+      days.set(dateKey, seconds)
+    }
+  }
+  days.forEach((seconds, dateKey) => {
+    const date = parseDateLike(dateKey)
+    if (date && date >= weekStart && date <= todayEnd) {
       found = true
-      minutes += duration
+      minutes += seconds / 60
     }
   })
 
@@ -476,13 +485,14 @@ export const extractCalendarWeekListenSeconds = (
  * 从周/月实时报告读取该统计周期的累计收听时长（秒）。
  */
 export const extractRealtimeListenSeconds = (source: any): number | undefined => {
-  const minutes = Number(source?.data?.listenTimeDistributionBlock?.playDuration)
-  return Number.isFinite(minutes) && minutes >= 0 ? minutes * 60 : undefined
+  if (!isSuccessfulResponse(source)) return undefined
+  const minutes = reportNumber(source?.data?.listenTimeDistributionBlock?.playDuration)
+  return minutes === undefined ? undefined : minutes * 60
 }
 
 /** 月初接口可能仍返回上月报表，不能将它用作本月时长或同步基准。 */
 export const isRealtimeListenReportForMonth = (source: any, monthKey: string): boolean => {
-  if (!/^\d{4}-\d{2}$/.test(monthKey)) return false
+  if (!isSuccessfulResponse(source) || !/^\d{4}-\d{2}$/.test(monthKey)) return false
   const start = parseDateLike(source?.data?.startTime)
   return Boolean(
     start &&
@@ -496,8 +506,30 @@ export const isRealtimeListenReportForMonth = (source: any, monthKey: string): b
  * 从累计听歌接口读取总收听时长（秒）。
  */
 export const extractTotalListenSeconds = (source: any): number | undefined => {
-  const seconds = Number(source?.data?.totalDuration)
-  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined
+  return isSuccessfulResponse(source) ? reportNumber(source?.data?.totalDuration) : undefined
+}
+
+/** Small, non-identifying evidence for delayed versus failed month reports. */
+export const getNeteaseMonthReportHealth = (source: any, now = new Date()) => {
+  const expectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const start = parseDateLike(source?.data?.startTime)
+  const reportedMonth = start
+    ? `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`
+    : null
+  const latestDate =
+    extractDailyListenSeconds(source, true)
+      .filter(({ dateKey }) => Number(parseDateLike(dateKey)) <= now.getTime())
+      .map(({ dateKey }) => dateKey)
+      .sort()
+      .at(-1) ?? null
+  const state = !isSuccessfulResponse(source)
+    ? 'unavailable'
+    : !start || extractRealtimeListenSeconds(source) === undefined
+      ? 'invalid'
+      : isRealtimeListenReportForMonth(source, expectedMonth)
+        ? 'ready'
+        : 'stale'
+  return { state, expectedMonth, reportedMonth, latestDate } as const
 }
 
 export const extractListenReportRank = (source: any, limit = 20): any[] => {

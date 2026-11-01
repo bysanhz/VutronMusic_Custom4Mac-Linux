@@ -10,6 +10,9 @@ import {
   extractDailyListenSeconds,
   extractTodayListenSeconds,
   extractTodaySongCount,
+  extractRealtimeListenSeconds,
+  extractTotalListenSeconds,
+  getNeteaseMonthReportHealth,
   isRealtimeListenReportForMonth
 } from '../src/renderer/services/neteaseModern'
 
@@ -99,6 +102,72 @@ test.describe('NetEase listening duration extraction', () => {
     const week = { code: 200, data: { weekTodayListenBlock: { songCount: 5 } } }
 
     expect(extractTodaySongCount(undefined, week)).toBe(5)
+  })
+
+  test('separates delayed, failed, malformed and ready month reports', () => {
+    const now = new Date(2026, 9, 1, 12)
+    expect(getNeteaseMonthReportHealth(undefined, now).state).toBe('unavailable')
+    expect(getNeteaseMonthReportHealth({ code: 301 }, now).state).toBe('unavailable')
+    expect(getNeteaseMonthReportHealth({ code: 200, data: {} }, now).state).toBe('invalid')
+    const previous = makeReport()
+    Object.assign(previous.data.listenTimeDistributionBlock, { playDuration: 411 })
+    expect(getNeteaseMonthReportHealth(previous, now)).toEqual({
+      state: 'stale',
+      expectedMonth: '2026-10',
+      reportedMonth: '2026-09',
+      latestDate: '2026-09-20'
+    })
+    expect(getNeteaseMonthReportHealth(previous, new Date(2026, 8, 20, 12)).state).toBe('ready')
+  })
+
+  test('never treats null/blank/boolean duration as a reported zero', () => {
+    for (const duration of [undefined, null, '', ' ', false, -1, 'invalid']) {
+      const report = {
+        data: {
+          totalDuration: duration,
+          listenTimeDistributionBlock: {
+            playDuration: duration,
+            durationDetails: [{ period: '2026-10-01', duration }]
+          }
+        }
+      }
+      expect(extractTotalListenSeconds(report)).toBeUndefined()
+      expect(extractRealtimeListenSeconds(report)).toBeUndefined()
+      expect(extractTodayListenSeconds(report, new Date(2026, 9, 1))).toBeUndefined()
+      expect(extractDailyListenSeconds(report, true)).toEqual([])
+    }
+    expect(extractTotalListenSeconds({ data: { totalDuration: 0 } })).toBe(0)
+    expect(
+      extractRealtimeListenSeconds({ data: { listenTimeDistributionBlock: { playDuration: '0' } } })
+    ).toBe(0)
+  })
+
+  test('merges a cross-month calendar week by explicit dates with no Sunday overcount', () => {
+    const month = {
+      data: {
+        startTime: new Date(2026, 10, 1).getTime(),
+        listenTimeDistributionBlock: { durationDetails: [{ period: '2026-11-01', duration: 15 }] }
+      }
+    }
+    const week = {
+      data: {
+        listenTimeDistributionBlock: {
+          playDuration: 9999,
+          durationDetails: [
+            { period: '2026-10-25', duration: 800 }, // previous Sunday, outside the UI's week
+            { period: '2026-10-26', duration: 10 },
+            { period: '2026-10-31', duration: 20 },
+            { period: '2026-11-01', duration: 5 }, // month is authoritative on overlap
+            { period: '2026-11-02', duration: 100 } // future date
+          ]
+        }
+      }
+    }
+    const now = new Date(2026, 10, 1, 12)
+    expect(extractCalendarWeekListenSeconds(month, now, week)).toBe(45 * 60)
+    expect(extractCalendarWeekListenSeconds(undefined, now, week)).toBe(35 * 60)
+    expect(extractTodayListenSeconds(week, now, true)).toBe(5 * 60)
+    expect(extractCalendarWeekListenSeconds(undefined, now)).toBeUndefined()
   })
 
   test('rejects a previous-month report during month rollover', () => {

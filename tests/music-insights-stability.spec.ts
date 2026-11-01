@@ -60,9 +60,9 @@ test.describe('music insights rendering stability', () => {
     expect(service).toContain('extractCalendarWeekListenSeconds')
     expect(service).toContain('const daysSinceMonday = (weekStart.getDay() + 6) % 7')
     expect(view).toContain(
-      'extractTodayListenSeconds(currentMonth) ?? extractTodayListenSeconds(week)'
+      'extractTodayListenSeconds(currentMonth, currentDate, true) ??'
     )
-    expect(view).toContain('extractCalendarWeekListenSeconds(currentMonth)')
+    expect(view).toContain('extractCalendarWeekListenSeconds(currentMonth, currentDate')
     expect(view).toContain('isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))')
     expect(view).toContain('todayDataConflict')
     expect(view).toContain('class="sync-status-panel"')

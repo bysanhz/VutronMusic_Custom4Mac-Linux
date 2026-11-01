@@ -167,12 +167,8 @@
               </div>
             </div>
           </div>
-          <div
-            v-if="monthReportAvailable === false && totalAwaitingSeconds > 0"
-            class="sync-report-unavailable"
-            role="status"
-          >
-            {{ t('insights.footprint.reportUnavailable') }}
+          <div v-if="monthReportAvailable === false" class="sync-report-unavailable" role="status">
+            {{ monthReportMessage }}
           </div>
         </div>
       </div>
@@ -191,6 +187,12 @@
                 duration: formatDisplayListenDuration(displayTodaySeconds)
               })
             }}</small>
+            <small
+              v-if="monthReportHealth && displayTodaySeconds === undefined"
+              class="metric-warning"
+            >
+              {{ t('insights.footprint.todayDurationPending') }}
+            </small>
             <small v-if="todayDataConflict" class="metric-warning">{{
               t('insights.footprint.todayDataConflict')
             }}</small>
@@ -529,6 +531,7 @@ import {
   extractTodayListenSeconds,
   extractTodaySongCount,
   extractTotalListenSeconds,
+  getNeteaseMonthReportHealth,
   isRealtimeListenReportForMonth,
   isSuccessfulResponse
 } from '../services/neteaseModern'
@@ -632,6 +635,20 @@ const weekPeriodKey = computed(() => `week:${localDateKey(startOfWeek.value)}`)
 const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).slice(0, 7)}`)
 const totalPeriodKey = 'total'
 const monthReportAvailable = ref<boolean | null>(null)
+const monthReportHealth = ref<ReturnType<typeof getNeteaseMonthReportHealth> | null>(null)
+const monthReportMessage = computed(() => {
+  const health = monthReportHealth.value
+  if (health?.state === 'stale') {
+    return t('insights.footprint.reportDelayed', {
+      date: health.latestDate ?? health.reportedMonth
+    })
+  }
+  return t(
+    health?.state === 'invalid'
+      ? 'insights.footprint.reportInvalid'
+      : 'insights.footprint.reportUnavailable'
+  )
+})
 // Remote report snapshots are only retained in memory for the rolling 7-day chart.
 // The durable local upload ledger is not a substitute for all cloud listening history.
 const trendMonthReport = shallowRef<unknown>(undefined)
@@ -640,7 +657,6 @@ const recentSevenDayTrend = computed(() =>
   buildNeteaseLastSevenDays(new Date(clockNow.value), trendMonthReport.value, trendWeekReport.value)
 )
 const sevenDaySpansLastMonth = computed(() => new Date(clockNow.value).getDate() <= 6)
-
 
 const ledgerTotals = (start: number, end: number, periodKey: string) => {
   // 显式读取两个 ref，使日期范围和账本变化都能触发 computed 更新。
@@ -653,7 +669,11 @@ const todayLedger = computed(() =>
 const earlierMonthLedger = computed(() =>
   ledgerTotals(startOfMonth.value, startOfToday.value - 1, monthPeriodKey.value)
 )
-const ledgerUnconfirmedSeconds = (value: { pending: number; accepted: number; provisional: number }) =>
+const ledgerUnconfirmedSeconds = (value: {
+  pending: number
+  accepted: number
+  provisional: number
+}) =>
   value.pending + value.accepted + (provisionalNeteaseListen.value.eligible ? value.provisional : 0)
 // 状态栏展示今天和本月此前，避免把整周未确认时长误作今天新增。
 // listen/total 的累计值更新较慢，仅用于后台轮询，不能代替本月状态。
@@ -914,6 +934,10 @@ const reportListenSyncHealth = (monthReportSeconds?: number): void => {
   window.mainApi?.send('listen-sync-health', {
     ...diagnosis,
     monthReportAvailable: monthReportAvailable.value === true,
+    monthReportState: monthReportHealth.value?.state ?? null,
+    monthReportLatestDate: monthReportHealth.value?.latestDate ?? null,
+    monthReportExpectedMonth: monthReportHealth.value?.expectedMonth ?? null,
+    todayDurationAvailable: footprint.todaySeconds !== undefined,
     monthReportSeconds: monthReportSeconds ?? null,
     monthReportRegressionSeconds: diagnosis.monthReportRegressionSeconds,
     monthBaselineSeconds: diagnosis.monthBaselineSeconds
@@ -965,28 +989,30 @@ const loadFootprint = async (): Promise<void> => {
       : undefined
     trendMonthReport.value = currentMonth
     trendWeekReport.value = week
+    monthReportHealth.value = getNeteaseMonthReportHealth(month, new Date(clockNow.value))
 
     // 今日歌曲数继续使用专用接口；时长从 month 的逐日详情读取，避免周边界歧义。
     const nextTodayCount = extractTodaySongCount(today, week)
     if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
-    const nextTodaySeconds =
-      extractTodayListenSeconds(currentMonth) ?? extractTodayListenSeconds(week)
-    if (nextTodaySeconds !== undefined) footprint.todaySeconds = nextTodaySeconds
-    // Inferred index-based dates are display compatibility only, never
-    // evidence to confirm uploads for a particular calendar day.
     const currentDate = new Date(clockNow.value)
-    const confirmedTodaySeconds =
+    const nextTodaySeconds =
       extractTodayListenSeconds(currentMonth, currentDate, true) ??
       extractTodayListenSeconds(week, currentDate, true)
+    footprint.todaySeconds = nextTodaySeconds
+    const confirmedTodaySeconds = nextTodaySeconds
 
     // UI 的“本周”固定定义为周一 00:00 至今天，不直接采用网易云 week 周期边界。
-    const nextRemoteWeekSeconds =
-      extractCalendarWeekListenSeconds(currentMonth) ?? extractRealtimeListenSeconds(week)
-    if (nextRemoteWeekSeconds !== undefined) footprint.weekSeconds = nextRemoteWeekSeconds
+    const nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth, currentDate, week)
+    footprint.weekSeconds = nextRemoteWeekSeconds
     const nextMonthSeconds = extractRealtimeListenSeconds(currentMonth)
     monthReportAvailable.value = nextMonthSeconds !== undefined
     footprint.monthSeconds = nextMonthSeconds
-    reportRetryAfter = !today || !currentMonth ? Date.now() + FAILED_REPORT_RETRY_MS : 0
+    reportRetryAfter =
+      !isSuccessfulResponse(today) ||
+      nextMonthSeconds === undefined ||
+      extractTotalListenSeconds(total) === undefined
+        ? Date.now() + FAILED_REPORT_RETRY_MS
+        : 0
 
     reconcileNeteaseListenReport({
       accountId: accountId.value,
@@ -1057,7 +1083,6 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
 
     const nextTodayCount = extractTodaySongCount(today)
     if (nextTodayCount !== undefined) footprint.todayCount = nextTodayCount
-    reportRetryAfter = !today || !currentMonth || !total ? Date.now() + FAILED_REPORT_RETRY_MS : 0
 
     const nextTotalSeconds = extractTotalListenSeconds(total)
     if (nextTotalSeconds !== undefined) {
@@ -1070,36 +1095,42 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         remoteSeconds: nextTotalSeconds
       })
     }
-    if (!currentMonth) {
-      monthReportAvailable.value = false
-      footprint.monthSeconds = undefined
-      reportListenSyncHealth()
-      return
-    }
-
-    let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth)
+    monthReportHealth.value = getNeteaseMonthReportHealth(month, new Date(clockNow.value))
     const nextMonthSeconds = extractRealtimeListenSeconds(currentMonth)
     monthReportAvailable.value = nextMonthSeconds !== undefined
-    const nextTodaySeconds = extractTodayListenSeconds(currentMonth)
-    const confirmedTodaySeconds = extractTodayListenSeconds(
-      currentMonth,
-      new Date(clockNow.value),
-      true
-    )
+    footprint.monthSeconds = nextMonthSeconds
+    reportRetryAfter =
+      !isSuccessfulResponse(today) ||
+      nextMonthSeconds === undefined ||
+      nextTotalSeconds === undefined
+        ? Date.now() + FAILED_REPORT_RETRY_MS
+        : 0
+    const currentDate = new Date(clockNow.value)
+    let week: any
+    let nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth, currentDate)
+    let nextTodaySeconds = extractTodayListenSeconds(currentMonth, currentDate, true)
 
-    // month 缺逐日明细，或今日专用接口临时不可用时，才补请求 week report。
-    // 这样既保留自然周兜底，也能避免今日首数因为单个接口失败长期停留在旧值。
-    if (nextRemoteWeekSeconds === undefined || nextTodayCount === undefined || sevenDaySpansLastMonth.value) {
-      const week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
+    // A delayed/missing month report must not suppress the independent week
+    // request. It may already contain today's explicitly dated duration.
+    if (
+      !currentMonth ||
+      nextTodaySeconds === undefined ||
+      nextRemoteWeekSeconds === undefined ||
+      nextTodayCount === undefined ||
+      sevenDaySpansLastMonth.value
+    ) {
+      week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
       trendWeekReport.value = week
-      if (nextRemoteWeekSeconds === undefined) {
-        nextRemoteWeekSeconds = extractRealtimeListenSeconds(week)
-      }
+      nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth, currentDate, week)
+      nextTodaySeconds ??= extractTodayListenSeconds(week, currentDate, true)
       if (nextTodayCount === undefined) {
         const fallbackCount = extractTodaySongCount(today, week)
         if (fallbackCount !== undefined) footprint.todayCount = fallbackCount
       }
     }
+    const confirmedTodaySeconds = nextTodaySeconds
+    footprint.todaySeconds = nextTodaySeconds
+    footprint.weekSeconds = nextRemoteWeekSeconds
 
     if (nextRemoteWeekSeconds !== undefined) {
       footprint.weekSeconds = nextRemoteWeekSeconds
@@ -1397,6 +1428,12 @@ watch(accountId, () => {
   trendMonthReport.value = undefined
   trendWeekReport.value = undefined
   monthReportAvailable.value = null
+  monthReportHealth.value = null
+  footprint.todayCount = undefined
+  footprint.todaySeconds = undefined
+  footprint.weekSeconds = undefined
+  footprint.monthSeconds = undefined
+  footprint.totalSeconds = undefined
   setActiveNeteaseListenAccount(accountId.value)
   void loadFootprint()
 })
@@ -1416,6 +1453,11 @@ onMounted(() => {
       trendMonthReport.value = undefined
       trendWeekReport.value = undefined
       monthReportAvailable.value = null
+      monthReportHealth.value = null
+      footprint.todayCount = undefined
+      footprint.todaySeconds = undefined
+      footprint.weekSeconds = undefined
+      footprint.monthSeconds = undefined
       void loadFootprint()
       return
     }
