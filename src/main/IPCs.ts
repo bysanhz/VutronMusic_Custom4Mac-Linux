@@ -1,3 +1,4 @@
+import { resolveRuntimeProxyUrl } from '../shared/proxySettings'
 import { app, ipcMain, IpcMainEvent, BrowserWindow } from 'electron'
 import type { OpenDialogOptions } from 'electron'
 import { YPMTray } from './tray'
@@ -283,13 +284,11 @@ function initTrayIpcMain(win: BrowserWindow, tray: YPMTray): void {
           cacheWorker.postMessage({ type: 'quit' })
         }
       } else if (key === 'proxy') {
-        const map = { 1: 'http', 2: 'https' }
-        if (value.type === 0) {
-          win.webContents.session.setProxy({})
-        } else {
-          const proxyRules = `${map[value.type]}://${value.address}:${value.port}`
-          win.webContents.session.setProxy({ proxyRules })
-        }
+        const proxyRules = resolveRuntimeProxyUrl(
+          value, Constants.IS_DEV_ENV,
+          process.env.HTTPS_PROXY || process.env.https_proxy
+        )
+        await win.webContents.session.setProxy(proxyRules ? { proxyRules } : {})
       }
     }
   })

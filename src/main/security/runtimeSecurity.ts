@@ -13,7 +13,7 @@ import fs from 'fs'
 import path from 'path'
 import { isPathInside, parseSafeExternalUrl } from './validation'
 import { assertPublicRemoteUrl } from './remoteUrl'
-import { parseAudioProxyUrl } from '../../shared/neteaseAssetUrl'
+import { parseAudioProxyUrl, isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 import { beginAudioDiagnostic, audioFailureCode } from '../utils/audioDiagnostics'
 
 const INSTALL_KEY = '__VUTRON_RUNTIME_SECURITY_INSTALLED__'
@@ -48,7 +48,8 @@ const KNOWN_ATOM_HOSTS = new Set([
   'get-color',
   'local-asset',
   'local-resource',
-  'get-online-music'
+  'get-online-music',
+  'get-image'
 ])
 const AUDIO_FILE_EXTENSIONS = new Set([
   '.mp3',
@@ -557,6 +558,17 @@ const validateAtomRequest = async (requestUrl: string): Promise<Response | null>
 
   if (!KNOWN_ATOM_HOSTS.has(request.host)) {
     return new Response('Not Found', { status: 404 })
+  }
+
+  if (request.host === 'get-image') {
+    try {
+      const source = decodeURIComponent(request.pathname.slice(1))
+      if (!isNeteaseAssetUrl(source) || (await getRemoteUrlRejection(source))) {
+        return new Response('Forbidden', { status: 403 })
+      }
+    } catch {
+      return new Response('Bad Request', { status: 400 })
+    }
   }
 
   if (request.host === 'get-online-music') {

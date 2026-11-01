@@ -46,3 +46,26 @@ export const buildProxyUrl = (value: unknown): string => {
     return ''
   }
 }
+
+/** Match the existing NetEase API development proxy fallback for media and artwork too. */
+export const resolveRuntimeProxyUrl = (
+  value: unknown,
+  development: boolean,
+  environmentProxy: string | undefined
+): string => {
+  const custom = buildProxyUrl(value)
+  if (custom || !development || !environmentProxy) return custom
+  try {
+    const parsed = new URL(environmentProxy)
+    return ['http:', 'https:'].includes(parsed.protocol) &&
+      parsed.hostname &&
+      parsed.port &&
+      parsed.pathname === '/' &&
+      !parsed.search &&
+      !parsed.hash
+      ? parsed.href.replace(/\/$/, '')
+      : ''
+  } catch {
+    return ''
+  }
+}

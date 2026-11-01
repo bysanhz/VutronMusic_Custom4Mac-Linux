@@ -26,7 +26,9 @@ test('both actions share a fresh and localized diagnostics snapshot', () => {
   expect(source).toContain('const text = TEXTS[resolveFeatureLanguage()]')
   expect(source).toContain("window.mainApi?.invoke('get-runtime-diagnostics')")
   expect(source).toContain('collectRendererDiagnostics()')
-  expect(source).toContain('navigator.clipboard.writeText(output)')
+  expect(source).toContain('export const copyDiagnosticsSnapshot = async')
+  expect(source).toContain('await copyDiagnosticsSnapshot()')
+  expect(source).toContain('navigator.clipboard.writeText(')
   expect(source).toContain('getNeteaseListenSyncDiagnostics(activeNeteaseListenAccountId.value)')
 })
 

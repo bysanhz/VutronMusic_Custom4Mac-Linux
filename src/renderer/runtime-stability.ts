@@ -1,3 +1,7 @@
+import { installI18nTimingCleanup } from './utils/i18nPerformance'
+
+installI18nTimingCleanup()
+
 /**
  * Renderer runtime error reporting.
  *

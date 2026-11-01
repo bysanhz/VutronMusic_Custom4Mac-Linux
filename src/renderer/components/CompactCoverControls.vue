@@ -6,7 +6,13 @@
     @mouseenter="isHover = true"
     @mouseleave="isHover = false"
   >
-    <img class="compact-cover" :src="coverUrl" :alt="text.coverAlt" draggable="false" />
+    <img
+      v-cover-fallback="coverUrl"
+      class="compact-cover"
+      :src="coverUrl"
+      :alt="text.coverAlt"
+      draggable="false"
+    />
 
     <div class="compact-control-grid">
       <button
@@ -70,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { vCoverFallback } from '../utils/coverImageFallback'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'

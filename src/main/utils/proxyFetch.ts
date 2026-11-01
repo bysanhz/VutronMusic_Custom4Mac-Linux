@@ -1,10 +1,14 @@
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import store from '../store'
 import { fetchValidatedStream } from './remoteStream'
-import { buildProxyUrl } from '../../shared/proxySettings'
+import { resolveRuntimeProxyUrl } from '../../shared/proxySettings'
 
 const getProxyAgent = () => {
-  const proxyUrl = buildProxyUrl(store.get('settings.proxy'))
+  const proxyUrl = resolveRuntimeProxyUrl(
+    store.get('settings.proxy'),
+    process.env.NODE_ENV === 'development',
+    process.env.HTTPS_PROXY || process.env.https_proxy
+  )
   return proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined
 }
 

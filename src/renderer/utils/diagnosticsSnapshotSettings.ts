@@ -1,3 +1,4 @@
+import { getI18nTimingDiagnostics } from './i18nPerformance'
 import { redactDiagnosticText } from '../../shared/diagnosticRedaction'
 import {
   createV327SettingsItem,
@@ -102,6 +103,7 @@ const collectRendererDiagnostics = () => {
           limitMiB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
         }
       : null,
+    i18nTimings: getI18nTimingDiagnostics(),
     resourceMemory: window.mainApi?.getResourceDiagnostics?.() || null,
     playback: {
       trackId: player.currentTrack?.id ?? null,

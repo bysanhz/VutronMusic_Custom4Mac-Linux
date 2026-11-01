@@ -1,0 +1,1704 @@
+{
+  "baselineCommit": "e1c21c1b7ff8d072f09314ba4f8ba59969a738b9",
+  "capturedAt": "2026-11-01T05:15:29.953Z",
+  "runtime": {
+    "platform": "linux",
+    "arch": "x64",
+    "osRelease": "6.8.0-134-generic",
+    "osVersion": "#134~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Jun 30 14:05:04 UTC ",
+    "electron": "37.10.3",
+    "chrome": "138.0.7204.251",
+    "node": "22.21.1",
+    "locale": "en-US",
+    "hardwareAccelerationDisabled": false
+  },
+  "installedVueI18n": "9.14.5",
+  "initial": {
+    "renderer": {
+      "pid": 2947814,
+      "parentPid": 2947739,
+      "electronReported": true,
+      "residentMiB": 10677.65,
+      "proportionalMiB": 10581.32,
+      "virtualMiB": 1442337.02,
+      "anonymousMiB": 10541.29,
+      "privateMiB": 10542.03,
+      "mappingResidentMiB": {
+        "v8": 9930.09,
+        "partitionAlloc": 458.65,
+        "anonymous": 144.28,
+        "file": 144.46,
+        "other": 0.17
+      }
+    },
+    "heap": {
+      "available": true,
+      "usedBytes": 72194240,
+      "allocatedBytes": 76607488,
+      "embedderBytes": 2604884760,
+      "backingStorageBytes": 19069756
+    },
+    "resourceMemory": {
+      "resources": {
+        "images": {
+          "count": 41,
+          "size": 29734905,
+          "liveSize": 27440640
+        },
+        "scripts": {
+          "count": 0,
+          "size": 0,
+          "liveSize": 0
+        },
+        "cssStyleSheets": {
+          "count": 1,
+          "size": 6015,
+          "liveSize": 1030
+        },
+        "xslStyleSheets": {
+          "count": 0,
+          "size": 0,
+          "liveSize": 0
+        },
+        "fonts": {
+          "count": 1,
+          "size": 4622,
+          "liveSize": 0
+        },
+        "other": {
+          "count": 0,
+          "size": 0,
+          "liveSize": 0
+        }
+      },
+      "heapKiB": {
+        "totalHeapSize": 74044,
+        "totalHeapSizeExecutable": 3840,
+        "totalPhysicalSize": 74044,
+        "totalAvailableSize": 4125789,
+        "usedHeapSize": 69874,
+        "heapSizeLimit": 4194048,
+        "mallocedMemory": 276,
+        "peakMallocedMemory": 7372,
+        "doesZapGarbage": false
+      },
+      "blinkKiB": {
+        "allocated": 2543840,
+        "total": 10700547
+      }
+    },
+    "coverImages": {
+      "sourceCount": 21,
+      "missingSourceCount": 0,
+      "neteaseSourceCount": 21,
+      "successCount": 0,
+      "failureCount": 0,
+      "recentFailures": []
+    },
+    "recentProxyFailures": [
+      {
+        "id": 1833,
+        "at": "2026-11-01T01:54:23.479Z",
+        "kind": "source",
+        "trackId": "3433267939",
+        "source": "netease",
+        "phase": "resolved",
+        "apiAttempts": 1,
+        "level": "hires",
+        "status": 200,
+        "available": true,
+        "restricted": false,
+        "elapsedMs": 155,
+        "host": "m701.music.126.net"
+      },
+      {
+        "id": 1834,
+        "at": "2026-11-01T01:54:24.161Z",
+        "kind": "proxy",
+        "trackId": "3433267939",
+        "revision": 736,
+        "host": "m701.music.126.net",
+        "phase": "request-error",
+        "redirects": 0,
+        "error": "TimeoutError",
+        "elapsedMs": 5016,
+        "interrupted": false
+      },
+      {
+        "id": 1835,
+        "at": "2026-11-01T01:54:29.262Z",
+        "kind": "source",
+        "trackId": "3433267939",
+        "source": "netease",
+        "phase": "resolved",
+        "apiAttempts": 1,
+        "level": "hires",
+        "status": 200,
+        "available": true,
+        "restricted": false,
+        "elapsedMs": 177,
+        "host": "m801.music.126.net",
+        "urlChanged": true
+      },
+      {
+        "id": 1836,
+        "at": "2026-11-01T01:54:29.951Z",
+        "kind": "proxy",
+        "trackId": "3433267939",
+        "revision": 737,
+        "host": "m801.music.126.net",
+        "phase": "request-error",
+        "redirects": 0,
+        "error": "TimeoutError",
+        "elapsedMs": 5019,
+        "interrupted": false
+      },
+      {
+        "id": 1837,
+        "at": "2026-11-01T01:54:35.568Z",
+        "kind": "source",
+        "trackId": "1986743401",
+        "source": "netease",
+        "phase": "resolved",
+        "apiAttempts": 1,
+        "level": "hires",
+        "status": 200,
+        "available": true,
+        "restricted": false,
+        "elapsedMs": 173,
+        "host": "m801.music.126.net"
+      },
+      {
+        "id": 1838,
+        "at": "2026-11-01T01:54:36.266Z",
+        "kind": "proxy",
+        "trackId": "1986743401",
+        "revision": 738,
+        "host": "m801.music.126.net",
+        "phase": "request-error",
+        "redirects": 0,
+        "error": "TimeoutError",
+        "elapsedMs": 5015,
+        "interrupted": false
+      },
+      {
+        "id": 1839,
+        "at": "2026-11-01T01:54:41.374Z",
+        "kind": "source",
+        "trackId": "1986743401",
+        "source": "netease",
+        "phase": "resolved",
+        "apiAttempts": 1,
+        "level": "hires",
+        "status": 200,
+        "available": true,
+        "restricted": false,
+        "elapsedMs": 151,
+        "host": "m701.music.126.net",
+        "urlChanged": true
+      },
+      {
+        "id": 1840,
+        "at": "2026-11-01T01:54:42.036Z",
+        "kind": "proxy",
+        "trackId": "1986743401",
+        "revision": 739,
+        "host": "m701.music.126.net",
+        "phase": "request-error",
+        "redirects": 0,
+        "error": "TimeoutError",
+        "elapsedMs": 5020,
+        "interrupted": false
+      }
+    ]
+  },
+  "heapSummary": {
+    "before": {
+      "backingStorageSize": 19063234,
+      "embedderHeapUsedSize": 2462043136,
+      "totalSize": 73199616,
+      "usedSize": 71003740
+    },
+    "after": {
+      "backingStorageSize": 19063211,
+      "embedderHeapUsedSize": 2452063608,
+      "totalSize": 72937472,
+      "usedSize": 70937592
+    },
+    "snapshotBytes": 1275684623,
+    "nodeCount": 17839092,
+    "edgeCount": 45034408,
+    "byBytes": [
+      {
+        "type": "native",
+        "count": 16746894,
+        "selfBytes": 2294929104,
+        "name": "PerformanceMeasure"
+      },
+      {
+        "type": "native",
+        "count": 3499,
+        "selfBytes": 18976644,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "object",
+        "count": 221756,
+        "selfBytes": 10644288,
+        "name": "Dep"
+      },
+      {
+        "type": "object",
+        "count": 222762,
+        "selfBytes": 9801528,
+        "name": "Link"
+      },
+      {
+        "type": "string",
+        "count": 77609,
+        "selfBytes": 8428946,
+        "name": "string"
+      },
+      {
+        "type": "array",
+        "count": 53796,
+        "selfBytes": 8103380,
+        "name": "array"
+      },
+      {
+        "type": "code",
+        "count": 71617,
+        "selfBytes": 6974460,
+        "name": "code"
+      },
+      {
+        "type": "object",
+        "count": 44677,
+        "selfBytes": 2044144,
+        "name": "Object"
+      },
+      {
+        "type": "closure",
+        "count": 56799,
+        "selfBytes": 1612084,
+        "name": "closure"
+      },
+      {
+        "type": "object shape",
+        "count": 21143,
+        "selfBytes": 1089804,
+        "name": "object shape"
+      },
+      {
+        "type": "object",
+        "count": 39227,
+        "selfBytes": 905036,
+        "name": "system / Context"
+      },
+      {
+        "type": "number",
+        "count": 54097,
+        "selfBytes": 649056,
+        "name": "number"
+      },
+      {
+        "type": "hidden",
+        "count": 34207,
+        "selfBytes": 547312,
+        "name": "system / JSProxy"
+      },
+      {
+        "type": "native",
+        "count": 12653,
+        "selfBytes": 506120,
+        "name": "V8EventListener"
+      },
+      {
+        "type": "native",
+        "count": 1852,
+        "selfBytes": 474112,
+        "name": "PerformanceEventTiming"
+      },
+      {
+        "type": "object",
+        "count": 29259,
+        "selfBytes": 468144,
+        "name": "Array"
+      },
+      {
+        "type": "object",
+        "count": 26086,
+        "selfBytes": 417436,
+        "name": "Map"
+      },
+      {
+        "type": "hidden",
+        "count": 5697,
+        "selfBytes": 364480,
+        "name": "system / FunctionTemplateInfo"
+      },
+      {
+        "type": "hidden",
+        "count": 387,
+        "selfBytes": 345684,
+        "name": "system / ArrayList"
+      },
+      {
+        "type": "native",
+        "count": 12657,
+        "selfBytes": 303832,
+        "name": "EventListener"
+      },
+      {
+        "type": "native",
+        "count": 3253,
+        "selfBytes": 234216,
+        "name": "CSSStyleRule"
+      },
+      {
+        "type": "hidden",
+        "count": 7573,
+        "selfBytes": 226528,
+        "name": "system / PropertyArray"
+      },
+      {
+        "type": "object",
+        "count": 11262,
+        "selfBytes": 180252,
+        "name": "WeakRef"
+      },
+      {
+        "type": "hidden",
+        "count": 12424,
+        "selfBytes": 149088,
+        "name": "system / AccessorPair"
+      },
+      {
+        "type": "native",
+        "count": 3253,
+        "selfBytes": 130120,
+        "name": "StylePropertyMap"
+      },
+      {
+        "type": "hidden",
+        "count": 1085,
+        "selfBytes": 120884,
+        "name": "system / WeakArrayList"
+      },
+      {
+        "type": "hidden",
+        "count": 3421,
+        "selfBytes": 109472,
+        "name": "system / SourceTextModuleInfoEntry"
+      },
+      {
+        "type": "native",
+        "count": 3145,
+        "selfBytes": 100640,
+        "name": "CSSRuleList"
+      },
+      {
+        "type": "native",
+        "count": 1563,
+        "selfBytes": 100032,
+        "name": "SVGAnimatedLength"
+      },
+      {
+        "type": "hidden",
+        "count": 3765,
+        "selfBytes": 75300,
+        "name": "system / PropertyCell"
+      },
+      {
+        "type": "object",
+        "count": 1030,
+        "selfBytes": 65920,
+        "name": "ComputedRefImpl"
+      },
+      {
+        "type": "native",
+        "count": 973,
+        "selfBytes": 55496,
+        "name": "SVGAnimatedString"
+      },
+      {
+        "type": "native",
+        "count": 257,
+        "selfBytes": 53432,
+        "name": "SVGSVGElement"
+      },
+      {
+        "type": "hidden",
+        "count": 1,
+        "selfBytes": 49160,
+        "name": "system / DoubleStringCache"
+      },
+      {
+        "type": "concatenated string",
+        "count": 2366,
+        "selfBytes": 47320,
+        "name": "concatenated string"
+      },
+      {
+        "type": "native",
+        "count": 125,
+        "selfBytes": 42000,
+        "name": "SVGUseElement"
+      },
+      {
+        "type": "native",
+        "count": 640,
+        "selfBytes": 40960,
+        "name": "SVGAnimatedTransformList"
+      },
+      {
+        "type": "native",
+        "count": 250,
+        "selfBytes": 38000,
+        "name": "PerformanceResourceTiming"
+      },
+      {
+        "type": "native",
+        "count": 405,
+        "selfBytes": 35504,
+        "name": "Text"
+      },
+      {
+        "type": "native",
+        "count": 244,
+        "selfBytes": 35152,
+        "name": "SVGPathElement"
+      },
+      {
+        "type": "object",
+        "count": 681,
+        "selfBytes": 31216,
+        "name": "Generator"
+      },
+      {
+        "type": "native",
+        "count": 200,
+        "selfBytes": 30400,
+        "name": "PerformanceLongAnimationFrameTiming"
+      },
+      {
+        "type": "object",
+        "count": 1855,
+        "selfBytes": 29692,
+        "name": "PerformanceEventTiming"
+      },
+      {
+        "type": "object",
+        "count": 533,
+        "selfBytes": 27716,
+        "name": "ReactiveEffect"
+      },
+      {
+        "type": "native",
+        "count": 200,
+        "selfBytes": 27200,
+        "name": "TaskAttributionTiming"
+      },
+      {
+        "type": "native",
+        "count": 152,
+        "selfBytes": 25536,
+        "name": "LayoutShift"
+      },
+      {
+        "type": "hidden",
+        "count": 337,
+        "selfBytes": 24264,
+        "name": "system / SourceTextModule"
+      },
+      {
+        "type": "native",
+        "count": 200,
+        "selfBytes": 24000,
+        "name": "PerformanceLongTaskTiming"
+      },
+      {
+        "type": "hidden",
+        "count": 1436,
+        "selfBytes": 22976,
+        "name": "system / ModuleRequest"
+      },
+      {
+        "type": "hidden",
+        "count": 2151,
+        "selfBytes": 22128,
+        "name": "system / AccessorInfo"
+      },
+      {
+        "type": "native",
+        "count": 129,
+        "selfBytes": 21672,
+        "name": "ShadowRoot"
+      },
+      {
+        "type": "native",
+        "count": 337,
+        "selfBytes": 21568,
+        "name": "ModuleMap::Entry"
+      },
+      {
+        "type": "native",
+        "count": 335,
+        "selfBytes": 21440,
+        "name": "SVGAnimatedRect"
+      },
+      {
+        "type": "native",
+        "count": 335,
+        "selfBytes": 21440,
+        "name": "SVGAnimatedPreserveAspectRatio"
+      },
+      {
+        "type": "native",
+        "count": 104,
+        "selfBytes": 18304,
+        "name": "CSSStyleSheet"
+      },
+      {
+        "type": "native",
+        "count": 326,
+        "selfBytes": 18256,
+        "name": "DOMRectReadOnly"
+      },
+      {
+        "type": "object",
+        "count": 563,
+        "selfBytes": 18016,
+        "name": "ObjectRefImpl"
+      },
+      {
+        "type": "native",
+        "count": 258,
+        "selfBytes": 16512,
+        "name": "SVGAnimatedNumber"
+      },
+      {
+        "type": "native",
+        "count": 287,
+        "selfBytes": 16456,
+        "name": "CSSStyleDeclaration"
+      },
+      {
+        "type": "object",
+        "count": 351,
+        "selfBytes": 15444,
+        "name": "EffectScope"
+      }
+    ],
+    "byCount": [
+      {
+        "type": "native",
+        "count": 16746894,
+        "selfBytes": 2294929104,
+        "name": "PerformanceMeasure"
+      },
+      {
+        "type": "object",
+        "count": 222762,
+        "selfBytes": 9801528,
+        "name": "Link"
+      },
+      {
+        "type": "object",
+        "count": 221756,
+        "selfBytes": 10644288,
+        "name": "Dep"
+      },
+      {
+        "type": "string",
+        "count": 77609,
+        "selfBytes": 8428946,
+        "name": "string"
+      },
+      {
+        "type": "code",
+        "count": 71617,
+        "selfBytes": 6974460,
+        "name": "code"
+      },
+      {
+        "type": "closure",
+        "count": 56799,
+        "selfBytes": 1612084,
+        "name": "closure"
+      },
+      {
+        "type": "number",
+        "count": 54097,
+        "selfBytes": 649056,
+        "name": "number"
+      },
+      {
+        "type": "array",
+        "count": 53796,
+        "selfBytes": 8103380,
+        "name": "array"
+      },
+      {
+        "type": "object",
+        "count": 44677,
+        "selfBytes": 2044144,
+        "name": "Object"
+      },
+      {
+        "type": "object",
+        "count": 39227,
+        "selfBytes": 905036,
+        "name": "system / Context"
+      },
+      {
+        "type": "hidden",
+        "count": 34207,
+        "selfBytes": 547312,
+        "name": "system / JSProxy"
+      },
+      {
+        "type": "object",
+        "count": 29259,
+        "selfBytes": 468144,
+        "name": "Array"
+      },
+      {
+        "type": "object",
+        "count": 26086,
+        "selfBytes": 417436,
+        "name": "Map"
+      },
+      {
+        "type": "native",
+        "count": 25343,
+        "selfBytes": 0,
+        "name": "InternalNode"
+      },
+      {
+        "type": "object shape",
+        "count": 21143,
+        "selfBytes": 1089804,
+        "name": "object shape"
+      },
+      {
+        "type": "native",
+        "count": 12657,
+        "selfBytes": 303832,
+        "name": "EventListener"
+      },
+      {
+        "type": "native",
+        "count": 12653,
+        "selfBytes": 506120,
+        "name": "V8EventListener"
+      },
+      {
+        "type": "hidden",
+        "count": 12424,
+        "selfBytes": 149088,
+        "name": "system / AccessorPair"
+      },
+      {
+        "type": "object",
+        "count": 11262,
+        "selfBytes": 180252,
+        "name": "WeakRef"
+      },
+      {
+        "type": "hidden",
+        "count": 7573,
+        "selfBytes": 226528,
+        "name": "system / PropertyArray"
+      },
+      {
+        "type": "hidden",
+        "count": 5697,
+        "selfBytes": 364480,
+        "name": "system / FunctionTemplateInfo"
+      },
+      {
+        "type": "hidden",
+        "count": 3765,
+        "selfBytes": 75300,
+        "name": "system / PropertyCell"
+      },
+      {
+        "type": "native",
+        "count": 3499,
+        "selfBytes": 18976644,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "hidden",
+        "count": 3421,
+        "selfBytes": 109472,
+        "name": "system / SourceTextModuleInfoEntry"
+      },
+      {
+        "type": "native",
+        "count": 3253,
+        "selfBytes": 234216,
+        "name": "CSSStyleRule"
+      },
+      {
+        "type": "native",
+        "count": 3253,
+        "selfBytes": 130120,
+        "name": "StylePropertyMap"
+      },
+      {
+        "type": "native",
+        "count": 3145,
+        "selfBytes": 100640,
+        "name": "CSSRuleList"
+      },
+      {
+        "type": "concatenated string",
+        "count": 2366,
+        "selfBytes": 47320,
+        "name": "concatenated string"
+      },
+      {
+        "type": "hidden",
+        "count": 2151,
+        "selfBytes": 22128,
+        "name": "system / AccessorInfo"
+      },
+      {
+        "type": "object",
+        "count": 1855,
+        "selfBytes": 29692,
+        "name": "PerformanceEventTiming"
+      },
+      {
+        "type": "native",
+        "count": 1852,
+        "selfBytes": 474112,
+        "name": "PerformanceEventTiming"
+      },
+      {
+        "type": "native",
+        "count": 1563,
+        "selfBytes": 100032,
+        "name": "SVGAnimatedLength"
+      },
+      {
+        "type": "hidden",
+        "count": 1436,
+        "selfBytes": 22976,
+        "name": "system / ModuleRequest"
+      },
+      {
+        "type": "hidden",
+        "count": 1085,
+        "selfBytes": 120884,
+        "name": "system / WeakArrayList"
+      },
+      {
+        "type": "object",
+        "count": 1030,
+        "selfBytes": 65920,
+        "name": "ComputedRefImpl"
+      },
+      {
+        "type": "hidden",
+        "count": 991,
+        "selfBytes": 7928,
+        "name": "system / Cell"
+      },
+      {
+        "type": "native",
+        "count": 973,
+        "selfBytes": 55496,
+        "name": "SVGAnimatedString"
+      },
+      {
+        "type": "object",
+        "count": 681,
+        "selfBytes": 31216,
+        "name": "Generator"
+      },
+      {
+        "type": "native",
+        "count": 640,
+        "selfBytes": 40960,
+        "name": "SVGAnimatedTransformList"
+      },
+      {
+        "type": "hidden",
+        "count": 588,
+        "selfBytes": 9872,
+        "name": "system / ProtectedFixedArray"
+      },
+      {
+        "type": "hidden",
+        "count": 587,
+        "selfBytes": 4696,
+        "name": "system / SharedFunctionInfoWrapper"
+      },
+      {
+        "type": "object",
+        "count": 563,
+        "selfBytes": 18016,
+        "name": "ObjectRefImpl"
+      },
+      {
+        "type": "object",
+        "count": 533,
+        "selfBytes": 27716,
+        "name": "ReactiveEffect"
+      },
+      {
+        "type": "hidden",
+        "count": 498,
+        "selfBytes": 11928,
+        "name": "system / ContextCell"
+      },
+      {
+        "type": "object",
+        "count": 431,
+        "selfBytes": 13792,
+        "name": "RefImpl"
+      },
+      {
+        "type": "hidden",
+        "count": 418,
+        "selfBytes": 11704,
+        "name": "system / ObjectTemplateInfo"
+      },
+      {
+        "type": "native",
+        "count": 405,
+        "selfBytes": 35504,
+        "name": "Text"
+      },
+      {
+        "type": "hidden",
+        "count": 387,
+        "selfBytes": 345684,
+        "name": "system / ArrayList"
+      },
+      {
+        "type": "object",
+        "count": 351,
+        "selfBytes": 15444,
+        "name": "EffectScope"
+      },
+      {
+        "type": "hidden",
+        "count": 337,
+        "selfBytes": 24264,
+        "name": "system / SourceTextModule"
+      }
+    ],
+    "largest": [
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 689260,
+        "id": 3197567,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 679500,
+        "id": 3198395,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 674816,
+        "id": 3197177,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "array",
+        "nameIndex": -1,
+        "size": 524308,
+        "id": 3019491,
+        "name": "array"
+      },
+      {
+        "type": "array",
+        "nameIndex": -1,
+        "size": 524308,
+        "id": 3019615,
+        "name": "array"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 478600,
+        "id": 3197383,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 473014,
+        "id": 4213287,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 457924,
+        "id": 3198241,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 446978,
+        "id": 3197595,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 373388,
+        "id": 3782683,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 368852,
+        "id": 3197349,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 307312,
+        "id": 3198387,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 264114,
+        "id": 3199227,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 261628,
+        "id": 4213289,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 250122,
+        "id": 3199391,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 247840,
+        "id": 4213291,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 247608,
+        "id": 3197787,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "string",
+        "nameIndex": -1,
+        "size": 238592,
+        "id": 44073,
+        "name": "string"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 230312,
+        "id": 3198409,
+        "name": "system / ExternalStringData"
+      },
+      {
+        "type": "native",
+        "nameIndex": 33657,
+        "size": 195836,
+        "id": 3198477,
+        "name": "system / ExternalStringData"
+      }
+    ]
+  },
+  "measureOrigin": {
+    "counts": {
+      "intlify message resolve": 10,
+      "intlify message compilation": 10,
+      "intlify message evaluation": 10
+    },
+    "stacks": {
+      "intlify message resolve": [
+        "    at performance.measure (<anonymous>:1:190)",
+        "    at measure ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:51:12)",
+        "    at resolveMessageFormat ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3029:9)",
+        "    at translate ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:2914:65)",
+        "    at [local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3952:46"
+      ],
+      "intlify message compilation": [
+        "    at performance.measure (<anonymous>:1:190)",
+        "    at measure ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:51:12)",
+        "    at compileMessageFormat ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3089:7)",
+        "    at translate ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:2938:45)",
+        "    at [local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3952:46"
+      ],
+      "intlify message evaluation": [
+        "    at performance.measure (<anonymous>:1:190)",
+        "    at measure ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:51:12)",
+        "    at evaluateMessage ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3121:7)",
+        "    at translate ([local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:2944:20)",
+        "    at [local]/@fs/home/pcbysan/Projects/VutronMusic/node_modules/.vite/deps/vue-i18n.js?v=e1bcc802:3952:46"
+      ]
+    }
+  },
+  "sameFailedCoverViaProxy": [
+    {
+      "mode": "direct-http",
+      "error": "timeout",
+      "elapsed": 8001
+    },
+    {
+      "mode": "proxy-http",
+      "status": 200,
+      "type": "image/jpg",
+      "bytes": 215178,
+      "signature": "89504e470d0a1a0a",
+      "elapsed": 76
+    },
+    {
+      "mode": "proxy-https",
+      "status": 200,
+      "type": "image/jpg",
+      "bytes": 215178,
+      "signature": "89504e470d0a1a0a",
+      "elapsed": 66
+    }
+  ],
+  "sameFailedCoverDirectCandidates": [
+    {
+      "variant": "original",
+      "error": "AbortError",
+      "elapsed": 8000
+    },
+    {
+      "variant": "sibling-1",
+      "error": "AbortError",
+      "elapsed": 8000
+    },
+    {
+      "variant": "sibling-2",
+      "error": "AbortError",
+      "elapsed": 8000
+    },
+    {
+      "variant": "sibling-3",
+      "error": "AbortError",
+      "elapsed": 8000
+    },
+    {
+      "variant": "sibling-4",
+      "error": "AbortError",
+      "elapsed": 8000
+    },
+    {
+      "variant": "without-size",
+      "error": "AbortError",
+      "elapsed": 8000
+    }
+  ],
+  "targetedCleanupWithoutRestart": {
+    "before": {
+      "heap": {
+        "backingStorageSize": 19064010,
+        "embedderHeapUsedSize": 2471123600,
+        "totalSize": 73199616,
+        "usedSize": 71263400
+      },
+      "memory": {
+        "workingSetSize": 10865744,
+        "peakWorkingSetSize": 20199920
+      }
+    },
+    "afterOneSecond": {
+      "heap": {
+        "backingStorageSize": 19064687,
+        "embedderHeapUsedSize": 2471516880,
+        "totalSize": 73199616,
+        "usedSize": 71322280
+      },
+      "memory": {
+        "workingSetSize": 10866904,
+        "peakWorkingSetSize": 20199920
+      }
+    },
+    "afterTenSeconds": {
+      "heap": {
+        "backingStorageSize": 19064687,
+        "embedderHeapUsedSize": 2472188928,
+        "totalSize": 73461760,
+        "usedSize": 71548380
+      },
+      "memory": {
+        "workingSetSize": 10868064,
+        "peakWorkingSetSize": 20199920
+      },
+      "stats": {
+        "stats": {
+          "removedNewEntries": 144,
+          "batches": 6
+        },
+        "remaining": [
+          {
+            "name": "intlify message resolve",
+            "count": 0
+          },
+          {
+            "name": "intlify message compilation",
+            "count": 0
+          },
+          {
+            "name": "intlify message evaluation",
+            "count": 0
+          }
+        ]
+      }
+    }
+  },
+  "controlledTranslations": {
+    "before": {
+      "heap": {
+        "usedSize": 3334484,
+        "totalSize": 4489216,
+        "embedderHeapUsedSize": 1253032,
+        "backingStorageSize": 1268415
+      },
+      "memory": {
+        "workingSetSize": 103360,
+        "peakWorkingSetSize": 103360
+      }
+    },
+    "baseline": {
+      "heap": {
+        "usedSize": 4553192,
+        "totalSize": 8683520,
+        "embedderHeapUsedSize": 42248056,
+        "backingStorageSize": 1268680
+      },
+      "memory": {
+        "workingSetSize": 162464,
+        "peakWorkingSetSize": 162464
+      }
+    },
+    "baselineCounts": [
+      20000,
+      20000,
+      20000
+    ],
+    "fixed": {
+      "heap": {
+        "usedSize": 3137976,
+        "totalSize": 8421376,
+        "embedderHeapUsedSize": 11144840,
+        "backingStorageSize": 1101290
+      },
+      "memory": {
+        "workingSetSize": 179276,
+        "peakWorkingSetSize": 179276
+      }
+    },
+    "stats": {
+      "active": true,
+      "releasedEntries": 300000
+    }
+  },
+  "liveAfterCompilerRestart": {
+    "at": "2026-11-01T05:49:39.466Z",
+    "pid": 816777,
+    "state": {
+      "trackId": 1986743401,
+      "playing": false,
+      "cover": {
+        "host": "p4.music.126.net",
+        "complete": true,
+        "naturalWidth": 512,
+        "naturalHeight": 512
+      },
+      "measureCount": 0,
+      "vuePerformance": false
+    },
+    "http": {
+      "apiStatus": 200,
+      "apiCode": 200,
+      "sourceAvailable": true,
+      "status": 206,
+      "contentType": "audio/mpeg",
+      "contentRange": "bytes 0-1023/4698741",
+      "head": "4944330400000000",
+      "playerUnchanged": true
+    },
+    "timings": {
+      "active": true,
+      "releasedEntries": 1536
+    },
+    "heap": {
+      "backingStorageSize": 19100984,
+      "embedderHeapUsedSize": 9735712,
+      "totalSize": 44888064,
+      "usedSize": 42597264
+    },
+    "dom": {
+      "documents": 2,
+      "jsEventListeners": 468,
+      "nodes": 2210
+    },
+    "proxy": "PROXY 127.0.0.1:7890",
+    "memory": {
+      "workingSetSize": 261172,
+      "peakWorkingSetSize": 359176
+    }
+  },
+  "stabilityAfterRestart": [
+    {
+      "at": "2026-11-01T05:52:11.103Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 19130722,
+        "embedderHeapUsedSize": 7231096,
+        "totalSize": 45936640,
+        "usedSize": 42297220
+      },
+      "memory": {
+        "workingSetSize": 261680,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 3078
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 153.1630859375
+    },
+    {
+      "at": "2026-11-01T05:52:26.167Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 19143186,
+        "embedderHeapUsedSize": 13668352,
+        "totalSize": 45412352,
+        "usedSize": 42577340
+      },
+      "memory": {
+        "workingSetSize": 267312,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 3654
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 174.919921875
+    },
+    {
+      "at": "2026-11-01T05:52:41.222Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20044725,
+        "embedderHeapUsedSize": 11818176,
+        "totalSize": 69681152,
+        "usedSize": 48138648
+      },
+      "memory": {
+        "workingSetSize": 296412,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5022
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 200.263671875
+    },
+    {
+      "at": "2026-11-01T05:52:56.279Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20045004,
+        "embedderHeapUsedSize": 12420040,
+        "totalSize": 69681152,
+        "usedSize": 48345948
+      },
+      "memory": {
+        "workingSetSize": 296732,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5055
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 200.5068359375
+    },
+    {
+      "at": "2026-11-01T05:53:11.331Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20045283,
+        "embedderHeapUsedSize": 12420040,
+        "totalSize": 69681152,
+        "usedSize": 48356296
+      },
+      "memory": {
+        "workingSetSize": 296776,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5055
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 200.5439453125
+    },
+    {
+      "at": "2026-11-01T05:53:26.383Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20045562,
+        "embedderHeapUsedSize": 12420040,
+        "totalSize": 69681152,
+        "usedSize": 48375728
+      },
+      "memory": {
+        "workingSetSize": 296784,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5055
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 200.544921875
+    },
+    {
+      "at": "2026-11-01T05:53:41.435Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20161315,
+        "embedderHeapUsedSize": 13033592,
+        "totalSize": 69681152,
+        "usedSize": 52184368
+      },
+      "memory": {
+        "workingSetSize": 297892,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5949
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 201.6259765625
+    },
+    {
+      "at": "2026-11-01T05:53:56.486Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20161594,
+        "embedderHeapUsedSize": 13034688,
+        "totalSize": 69681152,
+        "usedSize": 52203348
+      },
+      "memory": {
+        "workingSetSize": 297836,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5949
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 201.5732421875
+    },
+    {
+      "at": "2026-11-01T05:54:11.539Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20161873,
+        "embedderHeapUsedSize": 13090208,
+        "totalSize": 69681152,
+        "usedSize": 52213812
+      },
+      "memory": {
+        "workingSetSize": 297732,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5949
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 201.4736328125
+    },
+    {
+      "at": "2026-11-01T05:54:26.592Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20162152,
+        "embedderHeapUsedSize": 13090208,
+        "totalSize": 69681152,
+        "usedSize": 52232832
+      },
+      "memory": {
+        "workingSetSize": 297736,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 5949
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 201.4736328125
+    },
+    {
+      "at": "2026-11-01T05:54:41.641Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20162551,
+        "embedderHeapUsedSize": 13684592,
+        "totalSize": 69681152,
+        "usedSize": 55503932
+      },
+      "memory": {
+        "workingSetSize": 298448,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 6843
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 202.0048828125
+    },
+    {
+      "at": "2026-11-01T05:54:56.694Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20258384,
+        "embedderHeapUsedSize": 13703224,
+        "totalSize": 69681152,
+        "usedSize": 55992468
+      },
+      "memory": {
+        "workingSetSize": 298652,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 6843
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 202.2041015625
+    },
+    {
+      "at": "2026-11-01T05:55:11.749Z",
+      "pid": 816777,
+      "heap": {
+        "backingStorageSize": 20258663,
+        "embedderHeapUsedSize": 13756992,
+        "totalSize": 69681152,
+        "usedSize": 56002440
+      },
+      "memory": {
+        "workingSetSize": 298336,
+        "peakWorkingSetSize": 359176
+      },
+      "state": {
+        "timings": {
+          "active": true,
+          "releasedEntries": 6843
+        },
+        "measureCount": 0,
+        "playing": false,
+        "coverLoaded": true
+      },
+      "pssMiB": 201.8994140625
+    }
+  ],
+  "packaged": {
+    "lookupStatus": 200,
+    "cover": {
+      "status": 200,
+      "mime": "image/jpeg",
+      "bytes": 1481844,
+      "width": 2809,
+      "height": 2809,
+      "fallbackUsed": false
+    },
+    "blockedPrivateImage": 403,
+    "rendererIsProduction": true,
+    "media": {
+      "time": 0.664181,
+      "readyState": 4,
+      "error": null
+    },
+    "packaged": true,
+    "privacyPassed": true
+  },
+  "ledgerBeforeRestart": {
+    "entries": 1622,
+    "seconds": 334992.0559205963,
+    "digest": "2e76540b97276b95ceafbf096b4d12cc808b67607c84230f208d610ff4b49501"
+  },
+  "ledgerAfterRestart": {
+    "entries": 1622,
+    "seconds": 334992.0559205963,
+    "digest": "2e76540b97276b95ceafbf096b4d12cc808b67607c84230f208d610ff4b49501"
+  },
+  "tests": {
+    "relatedPassed": 54,
+    "fullRegressionPassed": 360,
+    "fullRegressionFailed": 22,
+    "excludedEnvironmentCheck": 1,
+    "newFailureNames": [],
+    "failures": [
+      "tests/feature-regression.spec.ts:531:7 › heart mode history-aware recommendations › wires explainability, steering, and safe session-learning reset into the player",
+      "tests/feature-regression.spec.ts:1049:7 › desktop feature integration › applies fade-in only after audio playback has started",
+      "tests/feature-regression.spec.ts:1164:7 › desktop feature integration › fully restores desktop lyric interaction after unlock",
+      "tests/feature-regression.spec.ts:1341:7 › desktop feature integration › keeps Heart Mode assistant draggable, theme-aware and visually consistent",
+      "tests/feature-regression.spec.ts:1371:7 › desktop feature integration › keeps Heart Mode controls in the assistant only and shares runtime state",
+      "tests/feature-regression.spec.ts:1439:7 › desktop feature integration › supports custom cache limits and keeps settings controls aligned",
+      "tests/feature-regression.spec.ts:1542:7 › desktop feature integration › uses one shared bottom lock and unlock action for normal and compact desktop lyrics",
+      "tests/feature-regression.spec.ts:1568:7 › desktop feature integration › keeps the desktop lyric drag handle large and dominant over resize hit zones",
+      "tests/feature-regression.spec.ts:1587:7 › desktop feature integration › shows an update prompt for manual packages and preserves native install flow",
+      "tests/feature-regression.spec.ts:1651:7 › modern NetEase API integration › exposes daily history, recommendation feedback, styles, new works, and cloud management",
+      "tests/feature-regression.spec.ts:1808:7 › virtual list and desktop lyric preview stability › previews the selected preset and keeps the canonical teal/pink palette",
+      "tests/feature-regression.spec.ts:1846:7 › OSD fallback palette and nested scroll ergonomics › keeps compact cover narrow and restores native nested wheel scrolling",
+      "tests/feature-regression.spec.ts:1963:7 › compact desktop lyric spacing › keeps cover controls flush left and lyrics adjacent",
+      "tests/feature-regression.spec.ts:1976:7 › native outer-scroll cover rendering › avoids per-frame JS windowing while skipping offscreen cover work",
+      "tests/liked-lyric-regression.spec.ts:9:7 › liked songs resilience › persists the last successful liked-song snapshot",
+      "tests/liked-lyric-regression.spec.ts:42:7 › liked songs resilience › compares track IDs by canonical string value when toggling likes",
+      "tests/monochrome-theme-design.spec.ts:56:5 › app controls and charts follow the solid hue while fullscreen actions remain neutral",
+      "tests/monochrome-theme-design.spec.ts:187:5 › liked heart, danger actions and connection quality remain semantic",
+      "tests/monochrome-theme-design.spec.ts:206:5 › every built-in solid preset keeps readable text against its light and dark chips",
+      "tests/netease-listen-duration.spec.ts:227:7 › Rolling seven-day NetEase duration trend › renders bars, a daily line and an average guide in hours with a full date",
+      "tests/osd-bottom-lock.spec.ts:8:7 › desktop lyric bottom lock control › shares one bottom control for lock and unlock in normal and compact modes",
+      "tests/sleep-timer-controls.spec.ts:51:7 › shared sleep-timer button › shows the timer beside playback rate on all player surfaces"
+    ],
+    "baselineFailuresNoLongerFailing": [
+      "tests/app.spec.ts:24:5 › Environment check ─────────────────────────────────────────────────────",
+      "tests/cover-network-diagnostics.spec.ts:22:5 › one-click diagnostics collects image failures and triggers a bounded CDN probe ",
+      "tests/cover-network-diagnostics.spec.ts:60:5 › corrupted artwork query is stripped but ordinary URLs and authentication are preserved "
+    ],
+    "mainTsc": {
+      "status": "failed",
+      "baselineDiagnostics": 365,
+      "currentDiagnostics": 362,
+      "newUniqueCodeMessagePairs": 0,
+      "note": "Compared diagnostic codes/messages after normalizing workspace paths and the equivalent Buffer<ArrayBufferLike>/Buffer alias; import-owner locations can differ."
+    },
+    "vueTypeCheck": "passed",
+    "lint": "passed",
+    "buildPre": "passed",
+    "buildDir": "passed",
+    "packagedIntegration": "passed"
+  },
+  "limitations": [
+    "Low post-restart RSS is a cold-start observation, not a controlled attribution of the entire historical 10 GiB RSS.",
+    "No forced GC is used in production or in the translation fixture; diagnostic heap snapshots may themselves trigger collection and temporarily increased renderer RSS.",
+    "No raw heap snapshot was persisted. Only object-class aggregates were retained; first attempt exceeded its in-memory budget and was discarded.",
+    "macOS/Windows native runs and 24-hour stability are unverified.",
+    "Browser process historical 1.1 GiB resident memory has not been uniquely attributed.",
+    "Automatic audio cache and embedded-cover worker proxy routing were not changed or independently validated in this follow-up."
+  ],
+  "finalRestoredState": {
+    "hasApp": true,
+    "overlay": false,
+    "coverWidth": 512,
+    "coverHeight": 512,
+    "playing": false,
+    "timings": {
+      "active": true,
+      "releasedEntries": 3006
+    },
+    "coverDiagnostics": {
+      "currentImages": {
+        "total": 22,
+        "loaded": 12,
+        "broken": 0,
+        "pending": 10
+      },
+      "sourceCount": 21,
+      "missingSourceCount": 0,
+      "neteaseSourceCount": 21,
+      "successCount": 13,
+      "failureCount": 0,
+      "recentFailures": []
+    }
+  },
+  "finalLedger": {
+    "entries": 1622,
+    "seconds": 334992.0559205963,
+    "digest": "2e76540b97276b95ceafbf096b4d12cc808b67607c84230f208d610ff4b49501"
+  }
+}

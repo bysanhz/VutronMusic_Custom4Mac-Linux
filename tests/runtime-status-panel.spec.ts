@@ -12,6 +12,7 @@ const errors: string[] = []
 test.beforeAll(async () => {
   directory = mkdtempSync(join(tmpdir(), 'vutron-runtime-status-'))
   server = await createServer({
+    cacheDir: join(directory, 'vite-cache'),
     configFile: false,
     root: resolve('tests/fixtures/runtime-status'),
     plugins: [Vue()],

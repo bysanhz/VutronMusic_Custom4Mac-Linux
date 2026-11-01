@@ -89,7 +89,12 @@ const handleImageError = () => {
   if (!recoveredImageUrl.value && isNeteaseAssetUrl(current)) {
     try {
       const parsed = new URL(current)
-      if (parsed.search && !parsed.username && !parsed.password) {
+      if (
+        parsed.search &&
+        !parsed.username &&
+        !parsed.password &&
+        [...parsed.searchParams.keys()].every((key) => key === 'param')
+      ) {
         parsed.search = ''
         parsed.hash = ''
         recoveredImageUrl.value = parsed.toString()

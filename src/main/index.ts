@@ -42,7 +42,7 @@ import { registerGlobalShortcuts } from './globalShortcut'
 import { initAutoUpdater } from './checkUpdate'
 import log from './log'
 import { lyricLine } from '@/types/music'
-import { buildProxyUrl } from '../shared/proxySettings'
+import { resolveRuntimeProxyUrl } from '../shared/proxySettings'
 import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 import { getUsableTrackCoverUrl } from '../shared/trackCover'
 import { sanitizeWindowScaleBaseline } from './windowScaleBaseline'
@@ -260,6 +260,12 @@ class BackGround {
     }
 
     this.win = new BrowserWindow(option)
+    const proxyRules = resolveRuntimeProxyUrl(
+      store.get('settings.proxy'), Constants.IS_DEV_ENV,
+      process.env.HTTPS_PROXY || process.env.https_proxy
+    )
+    await this.win.webContents.session.setProxy(proxyRules ? { proxyRules } : {})
+
     installMainWindowMinimumSizeGuard(this.win)
     this.win.setMenuBarVisibility(false)
 
@@ -693,7 +699,7 @@ class BackGround {
           })
         }
 
-        const result = await getPicFromApi(remoteUrl)
+        const result = await getPicFromApi(remoteUrl, request.signal)
         if (!result.pic) {
           const pic = fs.readFileSync(defaultImagePath)
           return new Response(new Uint8Array(pic), {
@@ -1022,12 +1028,6 @@ class BackGround {
       IPCs.initialize(this.win, this.tray, this.mpris, lrc)
       this.initOSDWindow()
 
-      const proxyRules = buildProxyUrl(store.get('settings.proxy'))
-      if (proxyRules) {
-        void this.win.webContents.session.setProxy({ proxyRules })
-      } else {
-        void this.win.webContents.session.setProxy({})
-      }
 
       createMenu(this.win)
       if (Constants.IS_MAC) {

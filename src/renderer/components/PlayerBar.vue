@@ -28,7 +28,7 @@
     </div>
     <div class="controls" @click="switchLyricPage">
       <div class="left">
-        <img :src="pic" loading="lazy" @click.stop="goToAlbum" />
+        <img v-cover-fallback="pic" :src="pic" loading="lazy" @click.stop="goToAlbum" />
         <div class="track-info">
           <div
             :class="['title', { haslist: hasListSource() }]"
@@ -38,7 +38,11 @@
             <span>{{ currentTrack?.name }}</span>
           </div>
           <div class="albumAndLyric">
-            <span v-for="(ar, index) in artists" :key="`${ar.id ?? 'unknown'}-${index}`" class="artist">
+            <span
+              v-for="(ar, index) in artists"
+              :key="`${ar.id ?? 'unknown'}-${index}`"
+              class="artist"
+            >
               <span :class="{ ar: ar.matched !== false }" @click.stop="goToArtist(ar)">
                 {{ ar.name }}
               </span>
@@ -175,6 +179,7 @@
 </template>
 
 <script setup lang="ts">
+import { vCoverFallback } from '../utils/coverImageFallback'
 import SliderVue from 'vue-3-slider-component'
 import VueSlider from './VueSlider.vue'
 import PlaybackSpeedButton from './PlaybackSpeedButton.vue'

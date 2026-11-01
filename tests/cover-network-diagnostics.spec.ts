@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { describeCoverImageSource, getCoverLoadDiagnostics } from '../src/renderer/utils/coverNetworkDiagnostics'
-import { getNeteaseImageCandidateUrls, normalizeNeteaseAssetUrl, buildNeteaseImageUrl } from '../src/shared/neteaseAssetUrl'
+import {
+  describeCoverImageSource,
+  getCoverLoadDiagnostics
+} from '../src/renderer/utils/coverNetworkDiagnostics'
+import {
+  getNeteaseImageCandidateUrls,
+  normalizeNeteaseAssetUrl,
+  buildNeteaseImageUrl
+} from '../src/shared/neteaseAssetUrl'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -34,14 +41,14 @@ test('one-click diagnostics collects image failures and triggers a bounded CDN p
   expect(readSource('src/renderer/components/CoverBox.vue')).toContain('recordCoverSource(url)')
   expect(observer).toContain('MAX_RECENT_FAILURES = 12')
   expect(main).toContain('.slice(0, 2)')
-  expect(main).toContain('.filter(isNeteaseAssetUrl)')
+  expect(main).toContain('.filter((value): value is string =>')
   expect(main).toContain('COVER_PROBE_TIMEOUT_MS = 3500')
   expect(main).toContain('without_size_param')
   expect(main).toContain('urlShape: describeCoverUrlShape(url)')
   expect(main).toContain('sizeVariantAvailable: Boolean(withoutSize)')
   expect(main).toContain('hasOtherQueryParameters:')
   expect(main).toContain('repeatedQueryKeyCount:')
-  expect(main).toContain("without_query_diagnostic")
+  expect(main).toContain('without_query_diagnostic')
   expect(main).not.toContain('return { url, status:')
 })
 
@@ -76,15 +83,15 @@ test('corrupted artwork query is stripped but ordinary URLs and authentication a
   expect(normalizeNeteaseAssetUrl('https://p1.music.126.net/audio.mp3?x=1?x=2?x=3')).toBe(
     'https://p1.music.126.net/audio.mp3?x=1?x=2?x=3'
   )
-  expect(readSource('src/renderer/components/CoverBox.vue')).toContain(':src="safeImageUrl"')
+  expect(readSource('src/renderer/components/CoverBox.vue')).toContain(':src="displayImageUrl"')
 })
 
 test('shared cover card retries only a failing NetEase URL once', () => {
   const cover = readSource('src/renderer/components/CoverBox.vue')
   expect(cover).toContain(':src="displayImageUrl"')
-  expect(cover).toContain("recoveredImageUrl.value = parsed.toString()")
+  expect(cover).toContain('recoveredImageUrl.value = parsed.toString()')
   expect(cover).toContain('!recoveredImageUrl.value && isNeteaseAssetUrl(current)')
   expect(cover).toContain("recoveredImageUrl.value = ''")
   const main = readSource('src/main/utils/index.ts')
-  expect(main).toContain('if (!candidates.includes(bare)) candidates.push(bare)')
+  expect(main).toContain('fetchNeteaseCover(url')
 })

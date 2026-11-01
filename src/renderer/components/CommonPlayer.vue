@@ -11,7 +11,7 @@
           }"
         >
           <div class="img-wrap">
-            <img :src="pic" loading="lazy" />
+            <img v-cover-fallback="pic" :src="pic" loading="lazy" />
           </div>
           <div class="shadow" :style="{ backgroundImage: `url(${pic})` }"></div>
         </div>
@@ -86,7 +86,10 @@
                   opacy: 0.8
                 }"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-                :process-style="{ backgroundColor: 'var(--color-playback-accent, var(--color-text))', opacity: 0.8 }"
+                :process-style="{
+                  backgroundColor: 'var(--color-playback-accent, var(--color-text))',
+                  opacity: 0.8
+                }"
                 tooltip="none"
               ></vue-slider>
             </div>
@@ -144,7 +147,10 @@
                 :height="4"
                 :wheel-step="0.05"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-                :process-style="{ backgroundColor: 'var(--color-volume-accent, var(--color-text))', opacity: 0.8 }"
+                :process-style="{
+                  backgroundColor: 'var(--color-volume-accent, var(--color-text))',
+                  opacity: 0.8
+                }"
                 tooltip="none"
               />
             </div>
@@ -211,6 +217,7 @@
 </template>
 
 <script setup lang="ts">
+import { vCoverFallback } from '../utils/coverImageFallback'
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'

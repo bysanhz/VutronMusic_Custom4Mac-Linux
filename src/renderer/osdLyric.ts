@@ -1,3 +1,6 @@
+import { installI18nTimingCleanup } from './utils/i18nPerformance'
+import './utils/coverNetworkDiagnostics'
+
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import en from './locales/en.json'
@@ -16,6 +19,8 @@ import { initializeOsdCoverControlsVisibility } from './utils/osdCoverControlsVi
 import { initializeOsdLyricSyncGuard } from './utils/osdLyricSyncGuard'
 import { useOsdLyricStore } from './store/osdLyric'
 // =========== newADD end ========
+
+installI18nTimingCleanup()
 
 declare global {
   // eslint-disable-next-line no-unused-vars

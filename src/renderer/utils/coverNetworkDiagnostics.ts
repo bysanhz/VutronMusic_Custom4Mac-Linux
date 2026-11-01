@@ -39,7 +39,9 @@ export const recordCoverSource = (value: unknown): void => {
 }
 
 /** Deliberately exclude path, query, fragment, credentials and song IDs. */
-export const describeCoverImageSource = (source: string): Omit<CoverFailure, 'time' | 'hasSource'> => {
+export const describeCoverImageSource = (
+  source: string
+): Omit<CoverFailure, 'time' | 'hasSource'> => {
   try {
     const parsed = new URL(source)
     return {
@@ -53,10 +55,14 @@ export const describeCoverImageSource = (source: string): Omit<CoverFailure, 'ti
 }
 
 const isCoverImage = (target: EventTarget | null): target is HTMLImageElement =>
-  target instanceof HTMLImageElement && Boolean(target.closest('.cover-container'))
+  target instanceof HTMLImageElement &&
+  Boolean(
+    target.closest('.cover-container') ||
+      target.matches('[data-vutron-cover], .compact-cover, .player .left img')
+  )
 
 if (typeof window !== 'undefined') {
-  window.addEventListener(
+  document.addEventListener(
     'load',
     (event) => {
       if (isCoverImage(event.target)) loadCount += 1
@@ -64,7 +70,7 @@ if (typeof window !== 'undefined') {
     true
   )
 
-  window.addEventListener(
+  document.addEventListener(
     'error',
     (event) => {
       if (!isCoverImage(event.target)) return
@@ -87,7 +93,24 @@ if (typeof window !== 'undefined') {
   )
 }
 
+const currentCoverImages = (): HTMLImageElement[] =>
+  typeof document === 'undefined'
+    ? []
+    : [
+        ...document.querySelectorAll<HTMLImageElement>(
+          '.cover-container img, img[data-vutron-cover], img.compact-cover, .player .left img'
+        )
+      ]
+
 export const getCoverLoadDiagnostics = () => ({
+  currentImages: {
+    total: currentCoverImages().length,
+    loaded: currentCoverImages().filter((image) => image.complete && image.naturalWidth > 0).length,
+    broken: currentCoverImages().filter(
+      (image) => image.complete && image.naturalWidth === 0 && image.getAttribute('src')
+    ).length,
+    pending: currentCoverImages().filter((image) => !image.complete).length
+  },
   sourceCount,
   missingSourceCount,
   neteaseSourceCount,
@@ -97,4 +120,13 @@ export const getCoverLoadDiagnostics = () => ({
 })
 
 /** Internal-only URLs are sent to a domain-restricted main-process probe. */
-export const getFailedNeteaseCoverProbeUrls = (): string[] => privateProbeUrls.slice(0, 2)
+export const getFailedNeteaseCoverProbeUrls = (): string[] =>
+  [
+    ...new Set([
+      ...currentCoverImages()
+        .filter((image) => image.complete && image.naturalWidth === 0)
+        .map((image) => image.currentSrc || image.src)
+        .filter(isNeteaseAssetUrl),
+      ...privateProbeUrls
+    ])
+  ].slice(0, 2)

@@ -1,3 +1,4 @@
+import { fetchNeteaseCover } from './coverFetch'
 import { createHash } from 'node:crypto'
 import {
   beginAudioDiagnostic,
@@ -20,7 +21,6 @@ import { db, Tables } from '../db'
 import log from '../log'
 import { Worker } from 'worker_threads'
 import { TrackInfoOrder, lyricLine } from '@/types/music'
-import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 import { isNeteaseTransportFailure, summarizeNeteaseFailure } from './neteaseFailure'
 
 export const isFileExist = (file: string) => {
@@ -153,42 +153,9 @@ const getLyricFromPath = async (filePath: string) => {
 }
 
 // new
-export const getPicFromApi = async (url: string) => {
+export const getPicFromApi = async (url: string, signal?: AbortSignal) => {
   if (!url) return { pic: null as Buffer | null, format: '' }
-
-  const candidates = getNeteaseImageCandidateUrls(url)
-  // Preserve normal query parameters first. If all CDN attempts fail, retry the
-  // same public resource without a corrupted query string, as verified by diagnostics.
-  if (isNeteaseAssetUrl(url)) {
-    try {
-      const parsed = new URL(url)
-      if (parsed.search && !parsed.username && !parsed.password) {
-        parsed.search = ''
-        parsed.hash = ''
-        const bare = parsed.toString()
-        if (!candidates.includes(bare)) candidates.push(bare)
-      }
-    } catch {
-      // Invalid URLs will be handled by the existing candidate loop.
-    }
-  }
-  for (const candidate of candidates) {
-    try {
-      const response = await net.fetch(candidate)
-      if (!response.ok) continue
-
-      const format = String(response.headers.get('Content-Type') || '')
-      if (format && !format.toLowerCase().startsWith('image/')) continue
-
-      const pic = Buffer.from(await response.arrayBuffer())
-      if (pic.length > 0) return { pic, format: format || 'image/jpeg' }
-    } catch {
-      // Try the next NetEase CDN sibling.
-    }
-  }
-
-  log.warn('[Cover] 网易云封面全部 CDN 节点加载失败', { url })
-  return { pic: null as Buffer | null, format: '' }
+  return fetchNeteaseCover(url, (source, options) => net.fetch(source, options), signal)
 }
 
 export const getPicFromEmbedded = async (filePath: string) => {
