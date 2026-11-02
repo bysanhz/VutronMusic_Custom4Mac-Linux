@@ -36,7 +36,7 @@ const getIconPath = () => {
   const themeId = (store.get('settings.trayColor') as number) || 0
 
   // ======== newADD start======
-  // 默认托盘主题使用 new_icon.png 生成的 24x24 透明图标。
+  // 默认托盘主题使用03圆角人物图的24px彩色导出。
   // 用户明确选择纯白、纯黑或跟随系统主题时，仍保留原来的单色托盘图标。
   if (themeId === 0) {
     return nativeImage.createFromPath(Constants.APP_TRAY_ICON_PATH)

@@ -1,0 +1,79 @@
+{
+  "colorMatches03": true,
+  "templateGeometry": "white and black share one SVG mask; alpha verified identical at all four sizes",
+  "outputs": [
+    {
+      "kind": "color",
+      "size": 16,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.938
+    },
+    {
+      "kind": "white",
+      "size": 16,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.399
+    },
+    {
+      "kind": "black",
+      "size": 16,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.399
+    },
+    {
+      "kind": "color",
+      "size": 20,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.943
+    },
+    {
+      "kind": "white",
+      "size": 20,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.412
+    },
+    {
+      "kind": "black",
+      "size": 20,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.412
+    },
+    {
+      "kind": "color",
+      "size": 24,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.943
+    },
+    {
+      "kind": "white",
+      "size": 24,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.383
+    },
+    {
+      "kind": "black",
+      "size": 24,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.383
+    },
+    {
+      "kind": "color",
+      "size": 32,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.944
+    },
+    {
+      "kind": "white",
+      "size": 32,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.377
+    },
+    {
+      "kind": "black",
+      "size": 32,
+      "cornerAlpha": 0,
+      "inkCoverage": 0.377
+    }
+  ],
+  "scope": "review only; actual OS tray untested"
+}

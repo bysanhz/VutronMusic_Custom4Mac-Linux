@@ -2,7 +2,7 @@
   <div class="login">
     <div class="login-container">
       <div class="section-1">
-        <img src="../assets/images/vutronmusic-icon.png" />
+        <img src="../assets/branding/app-icon.png" />
         <svg-icon icon-class="x"></svg-icon>
         <img src="../assets/images/netease-music.png" />
       </div>

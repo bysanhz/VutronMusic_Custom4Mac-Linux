@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root,
 [data-theme='light'] {
   --color-body-bg: #fbfbfd;
@@ -35,6 +42,7 @@
 #app,
 input {
   font-family:
+    'Inter',
     -apple-system,
     BlinkMacSystemFont,
     'SF Pro Text',

@@ -1,0 +1,7 @@
+{
+  "mode": "built-in image_gen",
+  "status": "rounded_corner_revision_for_review",
+  "editTarget": "assets/app-icon-maple-v11.png",
+  "output": "assets/app-icon-maple-rounded-v12.png",
+  "prompt": "Use case: precise-object-edit / app icon corner mask. Make ONLY a geometric transparency/corner change to this exact approved square app icon artwork. Preserve the entire existing red maple canopy, the NetEase spiral-note formed by leaf-free sky, the blue-haired young man, exact youthful face and gaze, headphones, narrow shoulders, shirt, the small foreground maple twig crossing the lower chest, colors, light, scale, framing and position. DO NOT redesign, repaint, retouch, beautify, simplify, shift, zoom or recrop any content inside the visible tile. Apply a clean symmetrical ROUNDED-SQUARE ALPHA MASK to the existing square: corner radius approximately 22 percent of image width, so the four outer corners become genuinely fully transparent and the rest of the painting remains opaque. Smooth clean anti-aliased geometric corner edges, no border, no frame, no drop shadow, no additional background outside the rounded square. The image canvas remains square, artwork is not squeezed or shrunk into a smaller central square. This is the existing approved icon with rounded corners only, not a new interpretation. No text, no watermark, no checkerboard painted in the image. Transparent outer corners required."
+}

@@ -26,7 +26,7 @@
       :data-tip="`${$t('nav.home')}`"
       @click="handleRoute('/')"
     >
-      <svg-icon class="icon" icon-class="logo" />
+      <svg-icon class="icon" icon-class="brand-logo" />
     </button-icon>
     <button-icon
       class="rainbow-nav rainbow-nav-explore"

@@ -1,7 +1,7 @@
 <template>
   <div class="linux-titlebar">
     <div class="logo">
-      <img src="../assets/images/vutronmusic-white.png" />
+      <SvgIcon icon-class="logo" />
     </div>
     <div class="title">{{ title }}</div>
     <div class="controls">
@@ -24,6 +24,7 @@ import 'vscode-codicons/dist/codicon.css'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { ref } from 'vue'
+import SvgIcon from './SvgIcon.vue'
 
 const isMaximized = ref(false)
 
@@ -61,7 +62,7 @@ const windowClose = () => {
     padding-left: 30px;
     width: 114px;
     align-items: center;
-    img {
+    .svg-icon {
       height: 18px;
       width: 18px;
     }

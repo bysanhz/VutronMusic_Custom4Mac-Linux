@@ -1,0 +1,32 @@
+[
+  {
+    "name": "numbered-review",
+    "height": 2429,
+    "broken": [],
+    "overflow": false
+  },
+  {
+    "name": "symbols-review",
+    "height": 1478,
+    "broken": [],
+    "overflow": false
+  },
+  {
+    "name": "tray-review",
+    "height": 707,
+    "broken": [],
+    "overflow": false
+  },
+  {
+    "name": "scene-gallery",
+    "height": 1031,
+    "broken": [],
+    "overflow": false
+  },
+  {
+    "name": "icon-review",
+    "height": 670,
+    "broken": [],
+    "overflow": false
+  }
+]

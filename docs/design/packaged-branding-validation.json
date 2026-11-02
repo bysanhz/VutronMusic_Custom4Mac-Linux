@@ -1,0 +1,23 @@
+{
+  "linuxUnpacked": true,
+  "asarVerified": [
+    "dist/images/default.jpg",
+    "dist/images/branding/recommend-beach.jpg",
+    "dist/images/branding/recommend-snow.jpg",
+    "dist/images/branding/recommend-sakura.jpg",
+    "dist/images/tray/vutronmusic-color.png",
+    "dist/images/tray/vutronmusic-white.png",
+    "dist/images/tray/vutronmusic-black.png"
+  ],
+  "loginArtworkHashMatches": true,
+  "interBundled": true,
+  "oldRendererBrandAssets": [],
+  "appIcon": [
+    1024,
+    1024
+  ],
+  "trayIcon": [
+    24,
+    24
+  ]
+}

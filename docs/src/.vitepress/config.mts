@@ -9,7 +9,7 @@ export default defineConfig({
   description,
   outDir: '../dist',
   head: [
-    ['link', { rel: 'icon', href: '/logo.png' }],
+    ['link', { rel: 'icon', href: '/icon.png' }],
     ['link', { rel: 'shortcut icon', href: '/favicon.ico' }]
   ],
   cleanUrls: true,

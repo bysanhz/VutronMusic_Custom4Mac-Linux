@@ -1,13 +1,15 @@
 <template>
   <div class="daily-recommend-card" @click="goToDailyTracks">
-    <img :src="coverUrl" :class="{ paused }" loading="lazy" :alt="t('dailyCard.coverAlt')" />
+    <img
+      v-cover-fallback="coverUrl"
+      :src="coverUrl"
+      :class="{ paused }"
+      loading="lazy"
+      :alt="t('dailyCard.coverAlt')"
+    />
     <div class="container">
       <div class="title-box">
-        <div
-          v-if="isCjkGridTitle"
-          class="title title--cjk-grid"
-          :aria-label="t('dailyCard.title')"
-        >
+        <div v-if="isCjkGridTitle" class="title title--cjk-grid" :aria-label="t('dailyCard.title')">
           <span v-for="(char, index) in cjkTitleCharacters" :key="index" class="cjk-char">
             {{ char }}
           </span>
@@ -37,12 +39,15 @@ import { dailyRecommendTracks } from '../api/playlist'
 import { useI18n } from 'vue-i18n'
 import _ from 'lodash'
 import { buildNeteaseImageUrl } from '../../shared/neteaseAssetUrl'
+import { getUsableTrackCoverUrl } from '../../shared/trackCover'
+import { vCoverFallback } from '../utils/coverImageFallback'
 
 const defaultCovers = [
-  'https://p2.music.126.net/0-Ybpa8FrDfRgKYCTJD8Xg==/109951164796696795.jpg',
-  'https://p2.music.126.net/QxJA2mr4hhb9DZyucIOIQw==/109951165422200291.jpg',
-  'https://p1.music.126.net/AhYP9TET8l-VSGOpWAKZXw==/109951165134386387.jpg'
+  '/images/branding/recommend-beach.jpg',
+  '/images/branding/recommend-snow.jpg',
+  '/images/branding/recommend-sakura.jpg'
 ]
+const fallbackCover = _.sample(defaultCovers) || defaultCovers[0]
 
 const stateStore = useNormalStateStore()
 const { dailyTracks, showLyrics } = storeToRefs(stateStore)
@@ -82,8 +87,8 @@ const { replacePlaylist } = playerStore
 const paused = ref(document.visibilityState === 'hidden')
 
 const coverUrl = computed(() => {
-  const source = dailyTracks.value[0]?.al.picUrl || _.sample(defaultCovers) || ''
-  return buildNeteaseImageUrl(source, 256)
+  const source = getUsableTrackCoverUrl(dailyTracks.value[0])
+  return source ? buildNeteaseImageUrl(source, 256) : fallbackCover
 })
 
 const router = useRouter()

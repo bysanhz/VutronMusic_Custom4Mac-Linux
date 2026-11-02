@@ -1,0 +1,39 @@
+{
+  "headBaseline": {
+    "startTime": "2026-11-02T08:03:37.249Z",
+    "duration": 5708.122,
+    "expected": 81,
+    "skipped": 0,
+    "unexpected": 17,
+    "flaky": 0
+  },
+  "current": {
+    "startTime": "2026-11-02T08:03:38.372Z",
+    "duration": 5767.79,
+    "expected": 81,
+    "skipped": 0,
+    "unexpected": 17,
+    "flaky": 0
+  },
+  "sameFailingTests": true,
+  "newFailures": [],
+  "existingFailures": [
+    "tests/feature-regression.spec.ts :: applies fade-in only after audio playback has started",
+    "tests/feature-regression.spec.ts :: avoids per-frame JS windowing while skipping offscreen cover work",
+    "tests/feature-regression.spec.ts :: exposes daily history, recommendation feedback, styles, new works, and cloud management",
+    "tests/feature-regression.spec.ts :: fully restores desktop lyric interaction after unlock",
+    "tests/feature-regression.spec.ts :: keeps Heart Mode assistant draggable, theme-aware and visually consistent",
+    "tests/feature-regression.spec.ts :: keeps Heart Mode controls in the assistant only and shares runtime state",
+    "tests/feature-regression.spec.ts :: keeps compact cover narrow and restores native nested wheel scrolling",
+    "tests/feature-regression.spec.ts :: keeps cover controls flush left and lyrics adjacent",
+    "tests/feature-regression.spec.ts :: keeps the desktop lyric drag handle large and dominant over resize hit zones",
+    "tests/feature-regression.spec.ts :: previews the selected preset and keeps the canonical teal/pink palette",
+    "tests/feature-regression.spec.ts :: shows an update prompt for manual packages and preserves native install flow",
+    "tests/feature-regression.spec.ts :: supports custom cache limits and keeps settings controls aligned",
+    "tests/feature-regression.spec.ts :: uses one shared bottom lock and unlock action for normal and compact desktop lyrics",
+    "tests/feature-regression.spec.ts :: wires explainability, steering, and safe session-learning reset into the player",
+    "tests/monochrome-theme-design.spec.ts :: app controls and charts follow the solid hue while fullscreen actions remain neutral",
+    "tests/monochrome-theme-design.spec.ts :: every built-in solid preset keeps readable text against its light and dark chips",
+    "tests/monochrome-theme-design.spec.ts :: liked heart, danger actions and connection quality remain semantic"
+  ]
+}

@@ -6,7 +6,7 @@ const baseConfig = {
   // ======== newADD start======
   // 固定应用身份，避免不同构建回退到 electron-builder 默认标识。
   appId: 'com.bysanhz.vutronmusic',
-  // build:pre 会先从已校验的 buildAssets/icon-source 分片重建图标，并生成透明背景的标准图标。
+  // build:pre 会先从已校验的 src/renderer/assets/branding/app-icon.png 生成图标，并生成透明背景的标准图标。
   // 将通用应用图标与 24x24 托盘图标复制到 resources，供运行时直接读取。
   extraResources: [
     {
@@ -32,7 +32,7 @@ const baseConfig = {
     gatekeeperAssess: false,
     notarize: false,
     // ======== newADD start======
-    // build:pre 会根据 buildAssets/icon-source 生成实际尺寸和文件名一致的标准图标。
+    // build:pre 会根据 src/renderer/assets/branding/app-icon.png 生成实际尺寸和文件名一致的标准图标。
     icon: 'buildAssets/generated-icons/1024x1024.png',
     // =========== newADD end ========
     type: 'distribution',

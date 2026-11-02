@@ -17,9 +17,9 @@
     "url": "https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/issues"
   },
   "scripts": {
-    "dev": "node ensure-native-deps.js && vite --config vite.config.ts",
-    "dev:debug": "node ensure-native-deps.js && vite --config vite.config.ts -d",
-    "dev:debug:force": "node ensure-native-deps.js && vite --config vite.config.ts -d --force",
+    "dev": "npm run app:icons && node ensure-native-deps.js && vite --config vite.config.ts",
+    "dev:debug": "npm run app:icons && node ensure-native-deps.js && vite --config vite.config.ts -d",
+    "dev:debug:force": "npm run app:icons && node ensure-native-deps.js && vite --config vite.config.ts -d --force",
     "build": "npm run build:pre && electron-builder --config=buildAssets/builder/config.js",
     "build:pre": "npm run native:check && npm run app:icons && npm run vue:type-check && vite --config vite.config.ts build",
     "build:all": "npm run build:pre && electron-builder --config=buildAssets/builder/config.js -wml",
