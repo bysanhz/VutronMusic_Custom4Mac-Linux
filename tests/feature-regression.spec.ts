@@ -546,7 +546,9 @@ test.describe('heart mode history-aware recommendations', () => {
     expect(assistant).toContain('跳远一点')
     expect(assistant).toContain('重置本轮学习')
     expect(assistant).toContain('window.confirm')
-    expect(playPage).toContain('<HeartModeAssistant />')
+    // The assistant is global so it remains available outside the fullscreen player.
+    expect(readSource('src/renderer/App.vue')).toContain('<HeartModeAssistant />')
+    expect(playPage).not.toContain('<HeartModeAssistant />')
     expect(main).toContain('rankHeartModeCandidatesWithScores')
     expect(main).toContain('rerankHeartModeCandidatesWithDecisions')
     expect(main).toContain('recordHeartModeRecommendationReasons')
@@ -1054,7 +1056,7 @@ test.describe('desktop feature integration', () => {
     )
     const replaceCurrentTrack = player.slice(
       player.indexOf('const replaceCurrentTrack = async'),
-      player.indexOf('// const _scrobble')
+      player.indexOf('const resolveNeteaseScrobbleSourceID =')
     )
     const play = player.slice(
       player.indexOf('const play = async'),
@@ -1065,9 +1067,9 @@ test.describe('desktop feature integration', () => {
     expect(replaceCurrentTrack).not.toContain('await smoothGain(0, 0)')
     expect(player).toContain('await smoothGain(0, fade)')
     expect(play).toContain('await smoothGain(0, 0)')
-    expect(play).toContain('await audioNodes.audio.play()')
+    expect(play).toContain('await audio.play()')
     expect(play).toContain('void smoothGain(volume.value, fade)')
-    expect(play.indexOf('await audioNodes.audio.play()')).toBeLessThan(
+    expect(play.indexOf('await audio.play()')).toBeLessThan(
       play.indexOf('void smoothGain(volume.value, fade)')
     )
   })
@@ -1173,7 +1175,7 @@ test.describe('desktop feature integration', () => {
     expect(passthrough).toContain('temporaryIgnoreOverride')
     expect(passthrough).toContain('appliedLocked')
     expect(passthrough).toContain('setIgnoreMouse(state, false)')
-    expect(passthrough).toContain('setIgnoreMouse(state, true)')
+    expect(passthrough).toContain('setIgnoreMouse(state, !(insideLockButton || insideVisibleControls))')
     expect(passthrough).toContain('state.window.setVisibleOnAllWorkspaces(locked)')
     expect(passthrough).not.toContain('state.window.setFocusable(')
     expect(passthrough).not.toContain('state.window.setMovable(')
@@ -1350,7 +1352,7 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('settingsStore.theme.appearance')
     expect(assistant).toContain('.heart-mode-assistant.is-dark .heart-mode-trigger')
     expect(assistant).toContain('background: var(--color-primary)')
-    expect(assistant).toContain('class="heart-action-button"')
+    expect(assistant).toMatch(/class="heart-action-button(?:\s+[^"]*)?"/)
     expect(assistant).not.toContain('button:first-child')
     expect(assistant).not.toContain('button:last-child')
     expect(assistant).toContain('strategyScoreBullets')
@@ -1392,7 +1394,7 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain("type HeartModePanelPage = 'main' | 'settings' | 'guide'")
     expect(assistant).toContain('class="panel-tabs"')
     expect(assistant).toContain('role="tablist"')
-    expect(assistant).toContain('class="panel-tab"')
+    expect(assistant).toMatch(/class="panel-tab(?:\s+[^"]*)?"/)
     expect(assistant).toContain("panelPage = 'settings'")
     expect(assistant).toContain("panelPage = 'guide'")
     expect(assistant).toContain("panelPage = 'main'")
@@ -1453,7 +1455,8 @@ test.describe('desktop feature integration', () => {
     expect(settings).toContain('width: 100%')
     expect(settings).toContain('padding: 0 24px 10px 0')
     expect(settingsFluidLayout).toContain('justify-self: end')
-    expect(settingsFluidLayout).not.toContain('justify-self: stretch')
+    // Ordinary rows align right; wide preset groups deliberately fill their row.
+    expect(settingsFluidLayout).toMatch(/\.item\.vutronmusic-v327-settings-item > \.right\s*\{[^}]*justify-self: stretch/)
     expect(settingsFluidLayout).toContain('grid-template-columns: minmax(0, 1fr) auto;')
     expect(settingsFluidLayout).toContain('width: auto !important;')
     expect(settingsFluidLayout).toContain('padding-left: 0 !important;')
@@ -1550,7 +1553,7 @@ test.describe('desktop feature integration', () => {
     expect(osd).toContain('class="osd-lock-button"')
     expect(osd).toContain(':class="{ visible: hover }"')
     expect(osd).toContain(':class="{ disabled: isLock }"')
-    expect(osd).toContain("isLock ? '解锁桌面歌词' : '锁定桌面歌词'")
+    expect(osd).toContain("isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')")
     expect(osd).toContain(`:icon-class="isLock ? 'unlock' : 'lock'"`)
     expect(osd).toContain('@click.stop="handleLock"')
     expect(osd).toContain('width: 24px;')
@@ -1580,8 +1583,8 @@ test.describe('desktop feature integration', () => {
     expect(osd).toContain('width: 72%;')
     expect(osd).toContain('#main.is-custom-dragging .resize-edge')
     expect(osd).toContain('pointer-events: none !important;')
-    expect(osdCss).toContain('--resize-edge-size: 1px;')
-    expect(osdCss).toContain('--resize-corner-size: 5px;')
+    expect(osdCss).toContain('--resize-edge-size: var(--osd-resize-edge-hit-size, 3px);')
+    expect(osdCss).toContain('--resize-corner-size: var(--osd-resize-corner-hit-size, 6px);')
   })
 
   test('shows an update prompt for manual packages and preserves native install flow', () => {
@@ -1592,10 +1595,12 @@ test.describe('desktop feature integration', () => {
     const settings = readSource('src/renderer/views/SystemSettings.vue')
 
     expect(updater).toContain("import { compareVersions } from 'compare-versions'")
-    expect(updater).toContain('isUpdateAvailable: compareVersions')
+    expect(updater).toMatch(/isUpdateAvailable:\s*Boolean\(latestRelease\)\s*&&\s*compareVersions\(version, installedVersion\) > 0/)
     expect(updater).toContain('showManualUpdateDialog')
-    expect(updater).toContain("title: '发现新版本'")
-    expect(updater).toContain("buttons: ['打开下载安装页', '稍后']")
+    expect(updater).toContain('title: text.foundTitle')
+    expect(updater).toContain('buttons: [text.openDownload, text.later]')
+    expect(updater).toContain("foundTitle: '发现新版本'")
+    expect(updater).toContain("openDownload: '打开下载安装页'")
     expect(updater).toContain('autoUpdater.downloadUpdate()')
     expect(updater).toContain('autoUpdater.quitAndInstall(false, true)')
     expect(updater).toContain('PORTABLE_EXECUTABLE_FILE')
@@ -1668,7 +1673,7 @@ test.describe('modern NetEase API integration', () => {
     expect(explore).toContain('getRecommendPlayList(100, true)')
     expect(explore.match(/:is-end="!canLoadMore\(\)"/g)?.length).toBeGreaterThanOrEqual(2)
     expect(explore).toContain('class="load-more-state"')
-    expect(explore).toContain('class="buttons playlist-filter-bar"')
+    expect(explore).toMatch(/class="buttons playlist-filter-bar(?:\s+[^"]*)?"/)
     expect(explore).toContain('class="panel artist-filter-panel"')
     expect(explore).toContain("'artist-alpha-row': bigCat === '筛选'")
     expect(explore).toContain('grid-template-columns: 72px minmax(0, 1fr);')
@@ -1676,8 +1681,8 @@ test.describe('modern NetEase API integration', () => {
     expect(insights).toContain('const cloudBatchSongIds = ref<string[]>([])')
     expect(insights).not.toContain("const cloudBatchRangeStart = ref('')")
     expect(insights).not.toContain("const cloudBatchRangeEnd = ref('')")
-    expect(insights).toContain('const selectedIndexes = cloudTracks.value')
-    expect(insights).toContain('cloudTracks.value.slice(from, to + 1)')
+    expect(insights).toContain('const selectedIds = new Set(cloudBatchSongIds.value)')
+    expect(insights).toContain('filteredCloudBatchTracks.value.slice(from, to + 1)')
     expect(insights).toContain("t('insights.cloud.batchRangeNeedEndpoints')")
     expect(insights).toContain('cloudBatchSongIds.length < 2')
     expect(insights).toContain('const DELETE_CONCURRENCY = 3')
@@ -1817,7 +1822,8 @@ test.describe('virtual list and desktop lyric preview stability', () => {
     expect(transferPreview).toContain("schema: TEMPLATE_BUNDLE_SCHEMA")
     expect(transferPreview).toContain("version: 1")
     expect(transferPreview).toContain("option.value !== CURRENT_SETTINGS_OPTION_ID")
-    expect(transferPreview).toContain("sameSettings(currentSettings, template.settings)")
+    expect(transferPreview).toContain('const originalOverrides = loadBuiltInOverrides()')
+    expect(transferPreview).toContain('const nextOverrides = originalOverrides.map(')
     expect(transferPreview).toContain("const askConflictResolution =")
     expect(transferPreview).toContain("type ConflictResolution = 'replace' | 'skip'")
     expect(transferPreview).toContain(
@@ -1860,7 +1866,7 @@ test.describe('OSD fallback palette and nested scroll ergonomics', () => {
     expect(interaction).not.toContain(
       '.explore-page .infinite-list-container, .library .infinite-list-container'
     )
-    expect(virtualScroll).toContain('Math.min(720, Math.max(320, containerHeight * 0.8))')
+    expect(virtualScroll).toContain('Math.min(720, Math.max(320, currentContainerHeight * 0.8))')
     const app = readSource('src/renderer/App.vue')
     expect(app).toContain('let mainScrollFrame: number | null = null')
     expect(app).toContain('mainScrollFrame = window.requestAnimationFrame(syncMainScrollState)')
@@ -1964,7 +1970,7 @@ test.describe('compact desktop lyric spacing', () => {
     const osdCss = readSource('src/renderer/assets/css/osdlyric.scss')
     const preview = readSource('src/renderer/utils/osdPresetTransferPreview.ts')
 
-    expect(osdCss).toContain('column-gap: 2px !important;')
+    expect(osdCss).toContain('column-gap: 8px !important;')
     expect(osdCss).toContain('transform: none;')
     expect(osdCss).toContain('html:not(.osd-cover-controls-hidden)')
     expect(osdCss).toContain('text-align: left !important;')
@@ -1983,7 +1989,7 @@ test.describe('native outer-scroll cover rendering', () => {
     expect(virtualScroll).toContain(
       'const root = props.enableVirtualScroll ? element : mainRef.value'
     )
-    expect(virtualScroll).toContain('if (!props.enableVirtualScroll) return')
+    expect(virtualScroll).toContain('if (!props.enableVirtualScroll || props.isEnd) return')
     expect(coverRow).not.toContain('content-visibility: auto;')
     expect(coverRow).not.toContain('contain-intrinsic-size:')
     expect(coverRow).toContain('fixedColumnNumber')

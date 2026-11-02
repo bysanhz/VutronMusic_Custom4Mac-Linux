@@ -125,6 +125,7 @@ class DB {
         this.sqlite = new SQLite3(':memory:')
         this.sqlite.pragma('auto_vacuum = FULL')
         this.initTables()
+        this.migrate()
         log.warn('[DB] 已切换到临时内存数据库，本次运行不会持久化缓存数据')
       } catch (fallbackError) {
         log.error('[DB] 临时内存数据库初始化失败', fallbackError)

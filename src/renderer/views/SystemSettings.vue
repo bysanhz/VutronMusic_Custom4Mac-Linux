@@ -1,5 +1,5 @@
 <template>
-  <div class="system-settings" :style="mainStyle" @click="clickOutside">
+  <div ref="settingsRoot" class="system-settings" :style="mainStyle" @click="clickOutside">
     <div v-if="user.userId" class="user-info rainbow-surface-profile">
       <div class="left">
         <img class="avatar" :src="user.avatarUrl" loading="lazy" />
@@ -1167,7 +1167,11 @@ import { VueDraggable } from 'vue-draggable-plus'
 import imageUrl from '../utils/settingImg.dataurl?raw'
 import { useRouter } from 'vue-router'
 import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d'
-import { setFeatureLanguage, type SupportedLanguage } from '../utils/v327FeatureShared'
+import {
+  observeV327SettingsRoot,
+  setFeatureLanguage,
+  type SupportedLanguage
+} from '../utils/v327FeatureShared'
 
 const router = useRouter()
 const { locale, t } = useI18n()
@@ -1818,7 +1822,11 @@ const selectCustomizeColor = (value: string) => {
   changeColor(customizeColor.value)
 }
 
+const settingsRoot = ref<HTMLElement | null>(null)
+let stopObservingSettings: (() => void) | undefined
+
 onMounted(() => {
+  if (settingsRoot.value) stopObservingSettings = observeV327SettingsRoot(settingsRoot.value)
   mainStyle.value = {
     marginTop: isMac || !useCustomTitlebar.value ? '20px' : '0'
   }
@@ -1837,6 +1845,7 @@ onMounted(() => {
   })
 })
 onBeforeUnmount(() => {
+  stopObservingSettings?.()
   updatePadding(96)
   observer.disconnect()
   if (lyricWidthDebounceTimeout) clearTimeout(lyricWidthDebounceTimeout)

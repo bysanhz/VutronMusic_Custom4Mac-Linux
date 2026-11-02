@@ -943,6 +943,10 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
 }
 
 async function initMprisIpcMain(win: BrowserWindow, mpris: MprisImpl): Promise<void> {
+  let dbus: ReturnType<typeof import('./dbusClient')['createDBus']> | null = null
+  // This optional extension must always have an answer, including while its
+  // module is loading or when a desktop session has no supported D-Bus service.
+  ipcMain.handle('askExtensionStatus', async () => dbus?.status ?? false)
   if (!Constants.IS_LINUX || !mpris) return
 
   // 下面这一段注释请勿删除。它是本程序作为插件歌词服务端的实现方式，可供以后参考。
@@ -953,20 +957,18 @@ async function initMprisIpcMain(win: BrowserWindow, mpris: MprisImpl): Promise<v
   //   dbus.iface?.emit(signalNameEnum.currentLrc, data)
   // })
 
-  const createDBus = (await import('./dbusClient')).createDBus
-
-  const busName = 'org.gnome.Shell.TrayLyric'
-  const dbus = createDBus(busName, win)
-
-  ipcMain.handle('askExtensionStatus', async () => {
-    return dbus.status
-  })
+  try {
+    const createDBus = (await import('./dbusClient')).createDBus
+    dbus = createDBus('org.gnome.Shell.TrayLyric', win)
+  } catch (error) {
+    log.warn('[TrayLyric] 可选歌词扩展不可用，继续使用内置桌面歌词', error)
+  }
 
   ipcMain.on('updateLyricInfo', (event: IpcMainEvent, data: any) => {
     const [key, value] = Object.entries(data)[0] as [string, any]
     if (key === 'currentLyric') {
       value.sender = 'VutronMusic'
-      dbus.iface?.UpdateLyric(JSON.stringify(value))
+      dbus?.iface?.UpdateLyric(JSON.stringify(value))
     }
   })
 

@@ -66,7 +66,7 @@ test('app controls and charts follow the solid hue while fullscreen actions rema
     expect(css).toContain(needle)
   }
   expect(css).toContain('var(--mono-accent-ink)')
-  expect(css).toContain('var(--mono-glass)')
+  expect(css).toContain('--mono-glass: color-mix(')
   expect(css).toContain('@media (prefers-reduced-motion: reduce)')
 })
 
@@ -193,7 +193,7 @@ test('liked heart, danger actions and connection quality remain semantic', () =>
   expect(css).toContain('.like-button.liked:not(.disabled)')
   expect(css).toContain('color: var(--color-like) !important;')
   expect(css).toContain('.like-button.liked:not(.disabled) .svg-icon')
-  expect(css).toContain('.button-icon.disabled')
+  expect(css).toContain('.button-icon:is(.disabled, :disabled)')
   expect(css).toContain('.heart-mode-assistant .rainbow-heart-tab')
   expect(semantic).toContain('--color-danger: #d9534f;')
   expect(semantic).toContain('#app .shade .modal button.danger')
@@ -232,7 +232,7 @@ test('every built-in solid preset keeps readable text against its light and dark
   expect(darkFacePercentage).toBeGreaterThan(0)
 
   const colors = [...settings.matchAll(
-    /\{ name: '(blue|purple|orange|cyan|green|red|pink|gold)', color: 'rgba\((\d+), (\d+), (\d+), 1\)'/
+    /\{ name: '(blue|purple|orange|cyan|green|red|pink|gold)', color: 'rgba\((\d+), (\d+), (\d+), 1\)'/g
   )]
   expect(colors).toHaveLength(8)
 

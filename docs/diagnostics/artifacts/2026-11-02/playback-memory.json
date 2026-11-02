@@ -1,0 +1,1532 @@
+[
+  {
+    "phase": "baseline",
+    "heap": {
+      "usedSize": 5740828,
+      "totalSize": 9678848,
+      "embedderHeapUsedSize": 1597080,
+      "backingStorageSize": 4096742
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 19,
+      "jsEventListeners": 28
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 213176,
+            "peakWorkingSetSize": 213176
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78548,
+            "peakWorkingSetSize": 78548
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 129356,
+            "peakWorkingSetSize": 129356
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 110996,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 64760,
+            "peakWorkingSetSize": 64760
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 688.04,
+      "proportionalSumMiB": 208.74,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 208.08,
+          "proportionalMiB": 70.71,
+          "virtualMiB": 1425802.12,
+          "anonymousMiB": 42.4,
+          "privateMiB": 45.03,
+          "mappingResidentMiB": {
+            "v8": 0.82,
+            "partitionAlloc": 17,
+            "anonymous": 7.09,
+            "file": 182.96,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 126.32,
+          "proportionalMiB": 55.41,
+          "virtualMiB": 1442054.1,
+          "anonymousMiB": 33.15,
+          "privateMiB": 26.97,
+          "mappingResidentMiB": {
+            "v8": 1.63,
+            "partitionAlloc": 14.67,
+            "anonymous": 8.66,
+            "file": 101.27,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.39,
+          "proportionalMiB": 32.16,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.88,
+          "privateMiB": 15.36
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.71,
+          "proportionalMiB": 19.91,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.23,
+          "privateMiB": 12.75
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.24,
+          "proportionalMiB": 14.45,
+          "virtualMiB": 33598.99,
+          "anonymousMiB": 10.06,
+          "privateMiB": 10.21
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "switches-25",
+    "heap": {
+      "usedSize": 7576832,
+      "totalSize": 10989568,
+      "embedderHeapUsedSize": 2087864,
+      "backingStorageSize": 4103513
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 128
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 222772,
+            "peakWorkingSetSize": 222772
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78868,
+            "peakWorkingSetSize": 78868
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 144200,
+            "peakWorkingSetSize": 144200
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111008,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65084,
+            "peakWorkingSetSize": 65084
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 712.71,
+      "proportionalSumMiB": 227,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 217.6,
+          "proportionalMiB": 78.42,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 49.11,
+          "privateMiB": 51.75,
+          "mappingResidentMiB": {
+            "v8": 1.44,
+            "partitionAlloc": 17.68,
+            "anonymous": 12.5,
+            "file": 185.77,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 140.82,
+          "proportionalMiB": 65.94,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 40.8,
+          "privateMiB": 35.91,
+          "mappingResidentMiB": {
+            "v8": 2.52,
+            "partitionAlloc": 19.85,
+            "anonymous": 10.23,
+            "file": 108.11,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.14,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.89,
+          "privateMiB": 15.37
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 77.02,
+          "proportionalMiB": 19.89,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.23,
+          "privateMiB": 12.74
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.56,
+          "proportionalMiB": 14.51,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "switches-50",
+    "heap": {
+      "usedSize": 6913360,
+      "totalSize": 11513856,
+      "embedderHeapUsedSize": 2854088,
+      "backingStorageSize": 4110130
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 228
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 220692,
+            "peakWorkingSetSize": 220900
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78860,
+            "peakWorkingSetSize": 78860
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 145432,
+            "peakWorkingSetSize": 145432
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65096,
+            "peakWorkingSetSize": 65096
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 711.84,
+      "proportionalSumMiB": 226.14,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 215.53,
+          "proportionalMiB": 76.35,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.04,
+          "privateMiB": 49.68,
+          "mappingResidentMiB": {
+            "v8": 1.48,
+            "partitionAlloc": 17.89,
+            "anonymous": 10.18,
+            "file": 185.77,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 142.02,
+          "proportionalMiB": 67.14,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 42,
+          "privateMiB": 37.11,
+          "mappingResidentMiB": {
+            "v8": 3.13,
+            "partitionAlloc": 20.22,
+            "anonymous": 10.45,
+            "file": 108.12,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.15,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 77.01,
+          "proportionalMiB": 19.88,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.23,
+          "privateMiB": 12.73
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.57,
+          "proportionalMiB": 14.52,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "switches-75",
+    "heap": {
+      "usedSize": 7718720,
+      "totalSize": 11513856,
+      "embedderHeapUsedSize": 3212592,
+      "backingStorageSize": 4116583
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 328
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 220872,
+            "peakWorkingSetSize": 220900
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78760,
+            "peakWorkingSetSize": 78760
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 146244,
+            "peakWorkingSetSize": 146244
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65172,
+            "peakWorkingSetSize": 65172
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 712.79,
+      "proportionalSumMiB": 227,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 215.71,
+          "proportionalMiB": 76.51,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.16,
+          "privateMiB": 49.81,
+          "mappingResidentMiB": {
+            "v8": 1.51,
+            "partitionAlloc": 17.98,
+            "anonymous": 10.18,
+            "file": 185.84,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 142.82,
+          "proportionalMiB": 67.93,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 42.79,
+          "privateMiB": 37.9,
+          "mappingResidentMiB": {
+            "v8": 3.71,
+            "partitionAlloc": 20.24,
+            "anonymous": 10.64,
+            "file": 108.12,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.15,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.91,
+          "proportionalMiB": 19.78,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.13,
+          "privateMiB": 12.64
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.64,
+          "proportionalMiB": 14.53,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "switches-100",
+    "heap": {
+      "usedSize": 8405152,
+      "totalSize": 13611008,
+      "embedderHeapUsedSize": 3829472,
+      "backingStorageSize": 4123037
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 428
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 225032,
+            "peakWorkingSetSize": 225032
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 148560,
+            "peakWorkingSetSize": 148560
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65176,
+            "peakWorkingSetSize": 65176
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 719.19,
+      "proportionalSumMiB": 230.17,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 219.76,
+          "proportionalMiB": 77.82,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.33,
+          "privateMiB": 50.05,
+          "mappingResidentMiB": {
+            "v8": 1.53,
+            "partitionAlloc": 18.03,
+            "anonymous": 10.28,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 145.08,
+          "proportionalMiB": 69.76,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 45.05,
+          "privateMiB": 39.86,
+          "mappingResidentMiB": {
+            "v8": 4.29,
+            "partitionAlloc": 20.22,
+            "anonymous": 12.34,
+            "file": 108.12,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.15,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.65,
+          "proportionalMiB": 14.54,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "failures-10",
+    "heap": {
+      "usedSize": 9986688,
+      "totalSize": 14921728,
+      "embedderHeapUsedSize": 3947608,
+      "backingStorageSize": 4126350
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 472
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 235492,
+            "peakWorkingSetSize": 235492
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 157232,
+            "peakWorkingSetSize": 159384
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65180,
+            "peakWorkingSetSize": 65180
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 737.92,
+      "proportionalSumMiB": 248.66,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 229.98,
+          "proportionalMiB": 88.02,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 57.55,
+          "privateMiB": 60.27,
+          "mappingResidentMiB": {
+            "v8": 1.55,
+            "partitionAlloc": 21.4,
+            "anonymous": 17.11,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 153.59,
+          "proportionalMiB": 78.06,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 53.29,
+          "privateMiB": 48.1,
+          "mappingResidentMiB": {
+            "v8": 4.59,
+            "partitionAlloc": 26.84,
+            "anonymous": 13.66,
+            "file": 108.4,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.14,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.65,
+          "proportionalMiB": 14.54,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "failures-20",
+    "heap": {
+      "usedSize": 8190804,
+      "totalSize": 15183872,
+      "embedderHeapUsedSize": 4193672,
+      "backingStorageSize": 4128974
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 512
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 225132,
+            "peakWorkingSetSize": 232660
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 157968,
+            "peakWorkingSetSize": 159384
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65180,
+            "peakWorkingSetSize": 65180
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 728.48,
+      "proportionalSumMiB": 239.21,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 219.86,
+          "proportionalMiB": 77.89,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.43,
+          "privateMiB": 50.15,
+          "mappingResidentMiB": {
+            "v8": 1.55,
+            "partitionAlloc": 18.02,
+            "anonymous": 10.37,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 154.27,
+          "proportionalMiB": 78.74,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 53.97,
+          "privateMiB": 48.78,
+          "mappingResidentMiB": {
+            "v8": 4.79,
+            "partitionAlloc": 26.88,
+            "anonymous": 14.11,
+            "file": 108.4,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.14,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.65,
+          "proportionalMiB": 14.54,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "failures-30",
+    "heap": {
+      "usedSize": 9494020,
+      "totalSize": 15183872,
+      "embedderHeapUsedSize": 4450352,
+      "backingStorageSize": 4131434
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 552
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 225144,
+            "peakWorkingSetSize": 232660
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 158288,
+            "peakWorkingSetSize": 159384
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111016,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65180,
+            "peakWorkingSetSize": 65180
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 728.8,
+      "proportionalSumMiB": 239.53,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 219.87,
+          "proportionalMiB": 77.9,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.44,
+          "privateMiB": 50.16,
+          "mappingResidentMiB": {
+            "v8": 1.56,
+            "partitionAlloc": 18.02,
+            "anonymous": 10.37,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 154.58,
+          "proportionalMiB": 79.05,
+          "virtualMiB": 1442078.25,
+          "anonymousMiB": 54.28,
+          "privateMiB": 49.09,
+          "mappingResidentMiB": {
+            "v8": 4.98,
+            "partitionAlloc": 26.93,
+            "anonymous": 14.16,
+            "file": 108.4,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.41,
+          "proportionalMiB": 32.14,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.65,
+          "proportionalMiB": 14.54,
+          "virtualMiB": 33599.13,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "unmounted",
+    "heap": {
+      "usedSize": 9563768,
+      "totalSize": 15183872,
+      "embedderHeapUsedSize": 4450352,
+      "backingStorageSize": 4131434
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 566
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 225148,
+            "peakWorkingSetSize": 232660
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 158568,
+            "peakWorkingSetSize": 159384
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 111144,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65324,
+            "peakWorkingSetSize": 65324
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 729.35,
+      "proportionalSumMiB": 239.57,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 219.88,
+          "proportionalMiB": 77.9,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.45,
+          "privateMiB": 50.17,
+          "mappingResidentMiB": {
+            "v8": 1.57,
+            "partitionAlloc": 18.02,
+            "anonymous": 10.37,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 154.85,
+          "proportionalMiB": 79.04,
+          "virtualMiB": 1442078.23,
+          "anonymousMiB": 54.24,
+          "privateMiB": 49.05,
+          "mappingResidentMiB": {
+            "v8": 4.99,
+            "partitionAlloc": 26.88,
+            "anonymous": 14.17,
+            "file": 108.7,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.54,
+          "proportionalMiB": 32.16,
+          "virtualMiB": 33654.2,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.79,
+          "proportionalMiB": 14.57,
+          "virtualMiB": 33599.12,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.22
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  },
+  {
+    "phase": "unmounted-idle-15s",
+    "heap": {
+      "usedSize": 9563900,
+      "totalSize": 15183872,
+      "embedderHeapUsedSize": 4450352,
+      "backingStorageSize": 4131434
+    },
+    "dom": {
+      "documents": 2,
+      "nodes": 21,
+      "jsEventListeners": 566
+    },
+    "processes": {
+      "browserPid": 1111255,
+      "rendererPid": 1111381,
+      "metrics": [
+        {
+          "pid": 1111255,
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 225112,
+            "peakWorkingSetSize": 232660
+          }
+        },
+        {
+          "pid": 1111357,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 78836,
+            "peakWorkingSetSize": 78836
+          }
+        },
+        {
+          "pid": 1111381,
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 158020,
+            "peakWorkingSetSize": 159384
+          }
+        },
+        {
+          "pid": 1111477,
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 110656,
+            "peakWorkingSetSize": 131580
+          }
+        },
+        {
+          "pid": 1111528,
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 65252,
+            "peakWorkingSetSize": 65252
+          }
+        }
+      ]
+    },
+    "linux": {
+      "processCount": 7,
+      "electronReportedProcessCount": 5,
+      "residentSumMiB": 728.23,
+      "proportionalSumMiB": 238.89,
+      "proportionalMeasuredProcessCount": 7,
+      "largestProcesses": [
+        {
+          "pid": 1111255,
+          "parentPid": 1111205,
+          "electronReported": true,
+          "residentMiB": 219.84,
+          "proportionalMiB": 77.86,
+          "virtualMiB": 1425802.26,
+          "anonymousMiB": 47.41,
+          "privateMiB": 50.13,
+          "mappingResidentMiB": {
+            "v8": 1.57,
+            "partitionAlloc": 17.98,
+            "anonymous": 10.37,
+            "file": 189.71,
+            "other": 0.21
+          }
+        },
+        {
+          "pid": 1111381,
+          "parentPid": 1111265,
+          "electronReported": true,
+          "residentMiB": 154.32,
+          "proportionalMiB": 78.77,
+          "virtualMiB": 1442077.61,
+          "anonymousMiB": 54.24,
+          "privateMiB": 49.05,
+          "mappingResidentMiB": {
+            "v8": 4.99,
+            "partitionAlloc": 26.88,
+            "anonymous": 14.17,
+            "file": 108.17,
+            "other": 0.11
+          }
+        },
+        {
+          "pid": 1111477,
+          "parentPid": 1111264,
+          "electronReported": true,
+          "residentMiB": 108.06,
+          "proportionalMiB": 31.9,
+          "virtualMiB": 33653.57,
+          "anonymousMiB": 22.9,
+          "privateMiB": 15.38
+        },
+        {
+          "pid": 1111357,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 76.99,
+          "proportionalMiB": 19.8,
+          "virtualMiB": 33100.51,
+          "anonymousMiB": 12.14,
+          "privateMiB": 12.65
+        },
+        {
+          "pid": 1111528,
+          "parentPid": 1111255,
+          "electronReported": true,
+          "residentMiB": 63.72,
+          "proportionalMiB": 14.46,
+          "virtualMiB": 33343.12,
+          "anonymousMiB": 10.09,
+          "privateMiB": 10.19
+        },
+        {
+          "pid": 1111265,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.66,
+          "proportionalMiB": 8.03,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.66
+        },
+        {
+          "pid": 1111264,
+          "parentPid": 1111255,
+          "electronReported": false,
+          "residentMiB": 52.64,
+          "proportionalMiB": 8.07,
+          "virtualMiB": 33291.64,
+          "anonymousMiB": 9.18,
+          "privateMiB": 0.75
+        }
+      ]
+    }
+  }
+]

@@ -53,7 +53,8 @@ test.describe('shared sleep-timer button', () => {
     const creative = readSource('src/renderer/components/CreativePlayer.vue')
     const bar = readSource('src/renderer/components/PlayerBar.vue')
 
-    const adjacentControls = /<PlaybackSpeedButton\s*\/>\s*<SleepTimerButton\b/
+    // Both approved layouts are valid; the controls must remain adjacent.
+    const adjacentControls = /<PlaybackSpeedButton\b[^>]*\/>\s*<SleepTimerButton\b|<SleepTimerButton\b[^>]*\/>\s*<PlaybackSpeedButton\b/
     expect(common).toMatch(adjacentControls)
     expect(creative).toMatch(adjacentControls)
     expect(bar).toMatch(adjacentControls)

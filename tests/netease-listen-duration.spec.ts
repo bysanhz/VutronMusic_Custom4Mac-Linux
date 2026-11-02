@@ -303,7 +303,7 @@ test.describe('Rolling seven-day NetEase duration trend', () => {
     expect(component).toContain('class="trend-average"')
     expect(component).toContain('summarizeNeteaseSevenDayAverage(props.points)')
     expect(component).toContain('point.seconds / 3600')
-    expect(component).toContain('{{ formatHours(tick) }}')
+    expect(component).toContain('{{ formatHours(point.seconds / 3600) }}')
     expect(component).toContain('formatFullDate(selectedPoint.dateKey)')
     expect(component).toContain("year: 'numeric'")
     expect(component).toContain("month: 'long'")

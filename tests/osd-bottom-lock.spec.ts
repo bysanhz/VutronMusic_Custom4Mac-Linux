@@ -15,7 +15,7 @@ test.describe('desktop lyric bottom lock control', () => {
     expect(osd).toContain(':class="{ \'is-locked\': isLock }"')
     expect(osd).toContain('id="osd-lock"')
     expect(osd).toContain(':class="{ disabled: isLock }"')
-    expect(osd).toContain("isLock ? '解锁桌面歌词' : '锁定桌面歌词'")
+    expect(osd).toContain("isLock ? t('settings.osdLyric.unlockAction') : t('settings.osdLyric.lockAction')")
     expect(osd).toContain(":icon-class=\"isLock ? 'unlock' : 'lock'\"")
     expect(osd).toContain('@click.stop="handleLock"')
     expect(osd).toContain('.osd-drag-bar.disabled')

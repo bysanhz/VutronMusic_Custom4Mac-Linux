@@ -1,0 +1,219 @@
+{
+  "baseCommit": "8a7f14178330b40f9e074d5f9b2b8604ea734608",
+  "branch": "main",
+  "fullSuite": {
+    "startTime": "2026-11-02T09:40:22.411Z",
+    "duration": 61620.369,
+    "expected": 405,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "idleObservation": {
+    "playwright": {
+      "startTime": "2026-11-02T09:19:18.190Z",
+      "duration": 1801748.023,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "outerExitCode": 143,
+    "sampleCount": 121,
+    "cold": {
+      "elapsedSeconds": 0.042,
+      "renderer": {
+        "pid": 1019700,
+        "parentPid": 1019540,
+        "electronReported": true,
+        "residentMiB": 151.54,
+        "proportionalMiB": 97.22,
+        "virtualMiB": 1442071.64,
+        "anonymousMiB": 48.2,
+        "privateMiB": 69.84,
+        "mappingResidentMiB": {
+          "v8": 6.17,
+          "partitionAlloc": 19.83,
+          "anonymous": 13.98,
+          "file": 111.5,
+          "other": 0.14
+        }
+      },
+      "heap": {
+        "usedSize": 10175452,
+        "totalSize": 16285696,
+        "embedderHeapUsedSize": 4334736,
+        "backingStorageSize": 5027879
+      },
+      "dom": {
+        "documents": 13,
+        "nodes": 1578,
+        "jsEventListeners": 331
+      },
+      "appPssMiB": 437.55,
+      "browserMemory": {
+        "heap": {
+          "totalHeapSize": 117276,
+          "totalHeapSizeExecutable": 2976,
+          "totalPhysicalSize": 117276,
+          "totalAvailableSize": 4139062,
+          "usedHeapSize": 57997,
+          "heapSizeLimit": 4194048,
+          "mallocedMemory": 548,
+          "peakMallocedMemory": 18672,
+          "doesZapGarbage": false
+        },
+        "externalBytes": 4741645,
+        "arrayBufferBytes": 0
+      }
+    },
+    "warm120s": {
+      "elapsedSeconds": 120.433,
+      "renderer": {
+        "pid": 1019700,
+        "parentPid": 1019540,
+        "electronReported": true,
+        "residentMiB": 179.8,
+        "proportionalMiB": 115.45,
+        "virtualMiB": 1442272.85,
+        "anonymousMiB": 49.6,
+        "privateMiB": 85.39,
+        "mappingResidentMiB": {
+          "v8": 12.24,
+          "partitionAlloc": 19.36,
+          "anonymous": 9.75,
+          "file": 138.29,
+          "other": 0.16
+        }
+      },
+      "heap": {
+        "usedSize": 9152580,
+        "totalSize": 11304960,
+        "embedderHeapUsedSize": 7065168,
+        "backingStorageSize": 4221929
+      },
+      "dom": {
+        "documents": 2,
+        "nodes": 1764,
+        "jsEventListeners": 410
+      },
+      "appPssMiB": 398.03,
+      "browserMemory": {
+        "heap": {
+          "totalHeapSize": 62396,
+          "totalHeapSizeExecutable": 2976,
+          "totalPhysicalSize": 62392,
+          "totalAvailableSize": 4138569,
+          "usedHeapSize": 59208,
+          "heapSizeLimit": 4194048,
+          "mallocedMemory": 548,
+          "peakMallocedMemory": 18672,
+          "doesZapGarbage": false
+        },
+        "externalBytes": 4317522,
+        "arrayBufferBytes": 0
+      }
+    },
+    "end": {
+      "elapsedSeconds": 1800.035,
+      "renderer": {
+        "pid": 1019700,
+        "parentPid": 1019540,
+        "electronReported": true,
+        "residentMiB": 189.01,
+        "proportionalMiB": 125.37,
+        "virtualMiB": 1442295.18,
+        "anonymousMiB": 60.25,
+        "privateMiB": 96.05,
+        "mappingResidentMiB": {
+          "v8": 21.38,
+          "partitionAlloc": 19.95,
+          "anonymous": 10.68,
+          "file": 136.86,
+          "other": 0.16
+        }
+      },
+      "heap": {
+        "usedSize": 8676016,
+        "totalSize": 10518528,
+        "embedderHeapUsedSize": 9351208,
+        "backingStorageSize": 4131938
+      },
+      "dom": {
+        "documents": 2,
+        "nodes": 1764,
+        "jsEventListeners": 410
+      },
+      "appPssMiB": 409.61,
+      "browserMemory": {
+        "heap": {
+          "totalHeapSize": 61656,
+          "totalHeapSizeExecutable": 2976,
+          "totalPhysicalSize": 61648,
+          "totalAvailableSize": 4138409,
+          "usedHeapSize": 58033,
+          "heapSizeLimit": 4194048,
+          "mallocedMemory": 548,
+          "peakMallocedMemory": 18672,
+          "doesZapGarbage": false
+        },
+        "externalBytes": 4303138,
+        "arrayBufferBytes": 0
+      }
+    },
+    "maximumRendererUsedHeapBytes": 11757012,
+    "allOwnedI18nMeasuresZero": true,
+    "limitation": "Production bundle with fresh profile under Xvfb, not installer/live-account testing; full diagnostic IPC polled every 15s. Final focal-point CSS was separately validated but not re-soaked."
+  },
+  "cardNegativeControl": [
+    {
+      "initial": 1,
+      "maximum": 101,
+      "maximumAfterUnmount": 100,
+      "pausedWithLyrics": false,
+      "resumed": true,
+      "imageHeight": 560,
+      "cardHeight": 198
+    }
+  ],
+  "cardCurrent": [
+    {
+      "initial": 1,
+      "maximum": 1,
+      "maximumAfterUnmount": 0,
+      "pausedWithLyrics": true,
+      "resumed": true,
+      "imageHeight": 198,
+      "cardHeight": 198
+    }
+  ],
+  "databaseNegativeControl": {
+    "error": {
+      "code": "SQLITE_ERROR",
+      "message": "cannot start a transaction within a transaction"
+    },
+    "columns": ["id", "filePath", "isLocal", "deleted", "json", "updatedAt"]
+  },
+  "formatCheck": {
+    "exitCode": 1,
+    "reportedFiles": 104,
+    "baselineCheckConfirmed": 103,
+    "remainingReportedFileByteIdenticalToHead": "tests/player-bar-artist-keys.spec.ts",
+    "broadFormattingNotApplied": true
+  },
+  "validation": {
+    "frozenCleanInstall": true,
+    "dependencyIntegrity": true,
+    "nativeAbi": true,
+    "typecheck": true,
+    "lint": true,
+    "productionBuild": true,
+    "linuxDirectoryPackage": true,
+    "targetedFormatCheck": true,
+    "gitDiffCheck": true,
+    "windowsNative": false,
+    "macosNative": false,
+    "githubActionsTriggered": false,
+    "authenticatedNeteaseLongPlayback": false
+  }
+}

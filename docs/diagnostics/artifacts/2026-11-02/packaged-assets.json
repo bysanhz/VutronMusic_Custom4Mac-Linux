@@ -1,0 +1,44 @@
+{
+  "archiveBytes": 188412806,
+  "checks": [
+    {
+      "file": "images/default.jpg",
+      "identical": true,
+      "sha256": "1a31f9228199a7cc444431bc05a0a863b8ab6231bf9dfa62ee1fd18be9d44d52"
+    },
+    {
+      "file": "images/branding/recommend-beach.jpg",
+      "identical": true,
+      "sha256": "997f47c45f9c22090dd1449aa0cb32511d518993ef76dc499f057ea90628b575"
+    },
+    {
+      "file": "images/branding/recommend-snow.jpg",
+      "identical": true,
+      "sha256": "c37bbd92697486ca91b48207d338318991050cb06577ebcefaa0112bd8e9d78a"
+    },
+    {
+      "file": "images/branding/recommend-sakura.jpg",
+      "identical": true,
+      "sha256": "7d37ea89fbfbddd98979f2ca32da1d91a85538935824a9f2e237426bc1a08985"
+    },
+    {
+      "file": "images/tray/vutronmusic-color.png",
+      "identical": true,
+      "sha256": "e86994d9a2d9bca97fd62f81e9acd7d72f030db5812c700d8b2a4132c78926de"
+    },
+    {
+      "file": "images/tray/vutronmusic-white.png",
+      "identical": true,
+      "sha256": "c258358e7e9170727ae6622a2ea949f199822706067a30030010e9650a0dbda5"
+    },
+    {
+      "file": "images/tray/vutronmusic-black.png",
+      "identical": true,
+      "sha256": "ae27e194c7289bfd9ff7331a2ce0858b216978031cce572f303ad942c10ef304"
+    }
+  ],
+  "interFonts": [
+    "/dist/assets/InterVariable-DiVDrmQJ.woff2"
+  ],
+  "api": "4.40.1"
+}

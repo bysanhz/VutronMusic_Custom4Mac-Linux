@@ -1,15 +1,22 @@
-import { createApp, h } from 'vue'
+import { createApp, h, KeepAlive, ref } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createI18n } from 'vue-i18n'
 import 'virtual:svg-icons-register'
 import '../../../src/renderer/assets/css/global.scss'
-import DailyTracksCard from '../../../src/renderer/components/DailyTracksCard.vue'
+import DailyTracksCard from 'daily-card-under-test'
 import LinuxTitleBar from '../../../src/renderer/components/LinuxTitleBar.vue'
 import SvgIcon from '../../../src/renderer/components/SvgIcon.vue'
 import appIcon from '../../../src/renderer/assets/branding/app-icon.png'
 import { useNormalStateStore } from '../../../src/renderer/store/state'
+import {
+  observeV327SettingsControl,
+  observeV327SettingsRoot,
+  setFeatureLanguage
+} from '../../../src/renderer/utils/v327FeatureShared'
 
+const cardMounted = ref(true)
+const cardActive = ref(true)
 const pinia = createPinia()
 const router = createRouter({
   history: createMemoryHistory(),
@@ -43,7 +50,11 @@ const app = createApp({
             )
           )
         ]),
-        h('div', { style: 'width:560px' }, [h(DailyTracksCard)])
+        h('div', { style: 'width:560px' }, [
+          cardMounted.value
+            ? h(KeepAlive, null, { default: () => (cardActive.value ? h(DailyTracksCard) : null) })
+            : null
+        ])
       ])
     ])
 })
@@ -63,5 +74,14 @@ app.mount('#app')
 ;(window as any).brandingProbe = {
   setCover(picUrl: string) {
     useNormalStateStore().dailyTracks = [{ id: 1, al: { picUrl } }] as any
-  }
+  },
+  cardMounted,
+  cardActive,
+  setLyrics(value: boolean) {
+    useNormalStateStore().showLyrics = value
+  },
+  trackId: () => useNormalStateStore().dailyTracks[0]?.id,
+  observeV327SettingsControl,
+  observeV327SettingsRoot,
+  setFeatureLanguage
 }

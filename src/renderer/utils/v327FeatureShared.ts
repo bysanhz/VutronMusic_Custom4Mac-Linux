@@ -9,6 +9,7 @@ const STYLE_ID = 'vutronmusic-v327-feature-style'
 const SETTINGS_STORAGE_KEY = 'settings'
 const controlEnsurers = new Set<() => boolean>()
 let settingsObserver: MutationObserver | null = null
+let observedSettingsRoot: HTMLElement | null = null
 let pendingEnsureTimer: number | null = null
 let cleanupRegistered = false
 let controlsReady = false
@@ -440,6 +441,7 @@ export const createV327SettingsItem = (
 }
 
 const ensureAllControls = (): void => {
+  if (!observedSettingsRoot?.isConnected) return
   let allMounted = controlEnsurers.size > 0
 
   controlEnsurers.forEach((ensureControl) => {
@@ -455,7 +457,7 @@ const ensureAllControls = (): void => {
 }
 
 const scheduleEnsureAllControls = (): void => {
-  const settingsRoot = document.querySelector('#app .system-settings')
+  const settingsRoot = observedSettingsRoot
   if (!settingsRoot) {
     controlsReady = false
     return
@@ -469,33 +471,36 @@ const scheduleEnsureAllControls = (): void => {
 }
 
 const refreshInjectedControlsForLanguage = (): void => {
-  document
-    .querySelectorAll('.vutronmusic-v327-settings-item')
+  observedSettingsRoot
+    ?.querySelectorAll('.vutronmusic-v327-settings-item')
     .forEach((element) => element.remove())
   controlsReady = false
   ensureAllControls()
 }
 
-const initializeSharedObserver = (): void => {
-  if (settingsObserver) return
+// The settings view owns this observer. Unrelated lyric/list mutations should
+// never schedule settings work, and leaving the route releases its DOM root.
+export const observeV327SettingsRoot = (root: HTMLElement): (() => void) => {
+  settingsObserver?.disconnect()
+  observedSettingsRoot = root
+  controlsReady = false
 
   settingsObserver = new MutationObserver(scheduleEnsureAllControls)
-  settingsObserver.observe(document.documentElement, {
+  settingsObserver.observe(root, {
     childList: true,
     subtree: true
   })
-  window.addEventListener(FEATURE_LANGUAGE_CHANGE_EVENT, refreshInjectedControlsForLanguage)
-  ;[0, 100, 300, 800, 1600].forEach((delay) => {
-    window.setTimeout(ensureAllControls, delay)
-  })
+  ensureAllControls()
 
   if (!cleanupRegistered) {
     cleanupRegistered = true
+    window.addEventListener(FEATURE_LANGUAGE_CHANGE_EVENT, refreshInjectedControlsForLanguage)
     window.addEventListener(
       'beforeunload',
       () => {
         settingsObserver?.disconnect()
         settingsObserver = null
+        observedSettingsRoot = null
         window.removeEventListener(
           FEATURE_LANGUAGE_CHANGE_EVENT,
           refreshInjectedControlsForLanguage
@@ -510,6 +515,18 @@ const initializeSharedObserver = (): void => {
       { once: true }
     )
   }
+
+  return () => {
+    if (observedSettingsRoot !== root) return
+    settingsObserver?.disconnect()
+    settingsObserver = null
+    observedSettingsRoot = null
+    controlsReady = false
+    if (pendingEnsureTimer !== null) {
+      window.clearTimeout(pendingEnsureTimer)
+      pendingEnsureTimer = null
+    }
+  }
 }
 
 export const observeV327SettingsControl = (ensureControl: () => boolean): void => {
@@ -517,5 +534,4 @@ export const observeV327SettingsControl = (ensureControl: () => boolean): void =
   controlEnsurers.add(ensureControl)
   controlsReady = false
   ensureAllControls()
-  initializeSharedObserver()
 }

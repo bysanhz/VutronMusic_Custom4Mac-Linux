@@ -326,7 +326,8 @@ test('monthly report discrepancy details are not rendered in listening insights'
   expect(page).not.toContain('monthReportReadings')
   expect(page).not.toContain('monthReportRegressionSeconds.value')
   expect(page).not.toContain('reportDiagnosticLabel')
-  expect(page).toContain("t('insights.footprint.reportUnavailable')")
+  expect(page).toContain("'insights.footprint.reportUnavailable'")
+  expect(page).toContain('const monthReportMessage = computed(')
 })
 
 test('the configured threshold is validated, stored and shared by playback and scrobble', () => {

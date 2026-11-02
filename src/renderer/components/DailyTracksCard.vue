@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, ref, watch } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { useRouter } from 'vue-router'
 import { useNormalStateStore } from '../store/state'
@@ -84,7 +84,11 @@ const isCjkGridTitle = computed(() => {
 const playerStore = usePlayerStore()
 const { _shuffle } = storeToRefs(playerStore)
 const { replacePlaylist } = playerStore
-const paused = ref(document.visibilityState === 'hidden')
+const pageHidden = ref(document.visibilityState === 'hidden')
+const active = ref(true)
+const paused = computed(() => !active.value || pageHidden.value || showLyrics.value)
+let disposed = false
+let loadRevision = 0
 
 const coverUrl = computed(() => {
   const source = getUsableTrackCoverUrl(dailyTracks.value[0])
@@ -110,29 +114,40 @@ const playDailyTracks = () => {
   replacePlaylist('url', '/daily/songs', trackIDs, idx)
 }
 
-const loadDailyTracks = () => {
+const loadDailyTracks = async () => {
   if (!isAccountLoggedIn()) return
-  dailyRecommendTracks().then((result) => {
-    dailyTracks.value = result?.data?.dailySongs ?? []
-  })
+  const revision = ++loadRevision
+  try {
+    const result = await dailyRecommendTracks()
+    if (!disposed && revision === loadRevision) {
+      dailyTracks.value = result?.data?.dailySongs ?? []
+    }
+  } catch {
+    // Keep the last successful recommendation when the network is unavailable.
+  }
 }
-
-watch(showLyrics, (value) => {
-  paused.value = value
-})
 
 const handleVisibleChange = () => {
-  paused.value = document.visibilityState === 'hidden'
+  pageHidden.value = document.visibilityState === 'hidden'
 }
 
-document.addEventListener('visibilitychange', handleVisibleChange)
+onMounted(() => document.addEventListener('visibilitychange', handleVisibleChange))
 
 onActivated(() => {
-  loadDailyTracks()
+  active.value = true
+  handleVisibleChange()
+  void loadDailyTracks()
 })
 
 onDeactivated(() => {
-  paused.value = true
+  active.value = false
+  loadRevision++
+})
+
+onBeforeUnmount(() => {
+  disposed = true
+  loadRevision++
+  document.removeEventListener('visibilitychange', handleVisibleChange)
 })
 </script>
 
@@ -167,8 +182,9 @@ img {
   top: 0;
   left: 0;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center;
   animation: move 38s infinite;
   animation-direction: alternate;
   animation-play-state: running;
@@ -176,6 +192,24 @@ img {
 
   &.paused {
     animation-play-state: paused;
+  }
+
+  // Local square scenes need individual focal points in this wide card.
+  // Real album artwork retains the centered crop.
+  &[src$='/recommend-beach.jpg'] {
+    object-position: center 32%;
+  }
+
+  &[src$='/recommend-snow.jpg'] {
+    object-position: center 75%;
+  }
+
+  &[src$='/recommend-sakura.jpg'] {
+    object-position: center 64%;
+  }
+
+  &[data-vutron-cover-state='fallback'] {
+    object-position: center 65%;
   }
 }
 
@@ -302,10 +336,16 @@ img {
 
 @keyframes move {
   0% {
-    transform: translateY(0);
+    transform: scale(1);
   }
   100% {
-    transform: translateY(-50%);
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img {
+    animation: none;
   }
 }
 </style>

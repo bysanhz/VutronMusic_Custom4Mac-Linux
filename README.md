@@ -262,7 +262,7 @@ Heart Mode 需要登录网易云账号，并且“我喜欢的音乐”中至少
 建议使用：
 
 ```text
-Node.js >= 22.6.0
+Node.js >= 22.12.0
 Yarn 1.22.22
 Python 3
 ```
@@ -270,7 +270,7 @@ Python 3
 安装依赖：
 
 ```bash
-yarn install
+yarn install --frozen-lockfile
 ```
 
 开发运行：

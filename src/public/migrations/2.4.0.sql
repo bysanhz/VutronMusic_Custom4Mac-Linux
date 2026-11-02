@@ -1,5 +1,3 @@
-BEGIN TRANSACTION;
-
 UPDATE Track
 SET json = json_set(
   json_set(
@@ -21,5 +19,3 @@ SET json = json_set(
 WHERE
   json_extract(json, '$.matched') = 0
   OR json_extract(json, '$.album.matched') = 0;
-
-COMMIT;

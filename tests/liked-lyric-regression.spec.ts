@@ -11,7 +11,7 @@ test.describe('liked songs resilience', () => {
 
     expect(dataStore).toContain("'liked.songs'")
     expect(dataStore).toContain('const syncLikedSongs =')
-    expect(dataStore).toContain('liked.songs = normalizeTrackIDs(ids)')
+    expect(dataStore).toContain('liked.value.songs = normalizeTrackIDs(ids)')
   })
 
   test('resolves the real NetEase liked playlist instead of assuming playlist zero', () => {
@@ -44,7 +44,7 @@ test.describe('liked songs resilience', () => {
 
     expect(dataStore).toContain('const sameTrackID =')
     expect(dataStore).toContain('String(left) === String(right)')
-    expect(dataStore).toContain('liked.songs.some((item) => sameTrackID(item, id))')
+    expect(dataStore).toContain('liked.value.songs.some((item) => sameTrackID(item, id))')
   })
 })
 

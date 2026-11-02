@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies without native rebuild
         run: yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 
+      - name: Verify installed dependency integrity
+        run: yarn check --integrity --ignore-scripts
+
       - name: Check formatting
         run: yarn run format:check
 
@@ -46,11 +49,45 @@ jobs:
         run: >-
           yarn playwright test tests/audio-playback-health.spec.ts tests/netease-listen-ledger.spec.ts tests/player-track-state-race.spec.ts tests/diagnostics-settings.spec.ts tests/netease-listen-duration.spec.ts tests/netease-scrobble-timing.spec.ts tests/sleep-timer-controls.spec.ts
 
+
       - name: Run security and feature regression tests
         if: ${{ always() }}
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts tests/netease-scrobble-lifecycle.spec.ts
 
+
+      - name: Verify solid theme contracts
+        if: ${{ always() }}
+        run: yarn playwright test tests/monochrome-theme-design.spec.ts
+
       - name: Build renderer and main process
         if: ${{ always() }}
         run: yarn vite --config vite.config.ts build
+
+  electron:
+    name: Cold startup and Electron resource regressions
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: yarn
+      - name: Install frozen dependencies and Electron binary
+        run: |
+          yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+          node node_modules/electron/install.js
+          yarn check --integrity --ignore-scripts
+      - name: Validate native ABI and build production assets
+        run: yarn build:pre
+      - name: Run isolated Electron regressions
+        run: >-
+          dbus-run-session -- xvfb-run --auto-servernum -- yarn playwright test --workers=2
+
+
+      - name: Save failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-regression-results
+          path: tests/results

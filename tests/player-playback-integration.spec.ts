@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path'
 import { createServer, type ViteDevServer } from 'vite'
 import Vue from '@vitejs/plugin-vue'
 import { buildSync } from 'esbuild'
+import { readLinuxAppProcessMemory } from '../src/main/linuxProcessMemory'
 
 let server: ViteDevServer
 let directory: string
@@ -221,10 +222,28 @@ test('100 switches and 30 failures keep one context and release source, listener
   test.setTimeout(120000)
   const cdp = await page.context().newCDPSession(page)
   const samples: unknown[] = []
+  const sample = async (phase: string) => {
+    const [heap, dom, processes] = await Promise.all([
+      cdp.send('Runtime.getHeapUsage'),
+      cdp.send('Memory.getDOMCounters'),
+      app.evaluate(({ app, BrowserWindow }) => ({
+        browserPid: process.pid,
+        rendererPid: BrowserWindow.getAllWindows()[0].webContents.getOSProcessId(),
+        metrics: app.getAppMetrics().map((entry) => ({ pid: entry.pid, type: entry.type, memory: entry.memory }))
+      }))
+    ])
+    samples.push({
+      phase, heap, dom, processes,
+      linux: process.platform === 'linux'
+        ? readLinuxAppProcessMemory(processes.browserPid, processes.metrics.map((entry) => entry.pid))
+        : null
+    })
+  }
+  await sample('baseline')
   for (let i = 0; i < 100; i++) {
     await play([1 + (i % 2)])
     await expect.poll(trackId).toBe(1 + (i % 2))
-    if (i % 25 === 0) samples.push(await cdp.send('Runtime.getHeapUsage'))
+    if ((i + 1) % 25 === 0) await sample(`switches-${i + 1}`)
   }
   for (let i = 0; i < 30; i++) {
     await setMode(3, 'unsupported')
@@ -232,6 +251,7 @@ test('100 switches and 30 failures keep one context and release source, listener
     await expect
       .poll(() => page.evaluate(() => (window as any).vutronmusic.media.lastEvent))
       .toBe('failure-limit-stop')
+    if ((i + 1) % 10 === 0) await sample(`failures-${i + 1}`)
   }
   expect(await page.evaluate(() => (window as any).playbackProbe.audioElements.length)).toBe(1)
   expect(await page.evaluate(() => (window as any).playbackProbe.contextCount())).toBe(1)
@@ -251,11 +271,16 @@ test('100 switches and 30 failures keep one context and release source, listener
   expect(
     await page.evaluate(() => (window as any).playbackProbe.audioElements[0].getAttribute('src'))
   ).toBeNull()
-  samples.push(await cdp.send('Runtime.getHeapUsage'))
+  await sample('unmounted')
+  // Deliberate idle observation, not a synchronization delay or forced GC.
+  await new Promise((resolve) => setTimeout(resolve, 15000))
+  await sample('unmounted-idle-15s')
   await testInfo.attach('memory-samples', {
     body: JSON.stringify(samples),
     contentType: 'application/json'
   })
+  await cdp.send('Runtime.releaseObject', { objectId: result.objectId })
+  await cdp.detach()
   expect(errors).toEqual([])
 })
 
