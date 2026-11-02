@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
-test('shows the existing diagnostics action in both General and Software Update', () => {
+test('keeps the settings diagnostics action only in Software Update', () => {
   const settings = readSource('src/renderer/views/SystemSettings.vue')
   const diagnostics = readSource('src/renderer/utils/diagnosticsSnapshotSettings.ts')
 
@@ -12,16 +12,17 @@ test('shows the existing diagnostics action in both General and Software Update'
   expect(settings.indexOf('vutronmusic-update-diagnostics-anchor')).toBeGreaterThan(
     settings.indexOf('key="update"')
   )
-  expect(diagnostics).toContain("const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'")
+  expect(diagnostics).not.toContain('vutronmusic-diagnostics-snapshot-setting')
+  expect(diagnostics).not.toContain('generalAnchor')
+  expect(diagnostics).not.toContain('.settings-container .item:last-of-type')
   expect(diagnostics).toContain(
     "const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'"
   )
-  expect(diagnostics).toContain('mountControl(CONTROL_ID, generalAnchor')
   expect(diagnostics).toContain('mountControl(UPDATE_CONTROL_ID, updateAnchor)')
   expect(diagnostics).toContain("anchor.insertAdjacentElement('afterend', item)")
 })
 
-test('both actions share a fresh and localized diagnostics snapshot', () => {
+test('the remaining entries share a fresh and localized diagnostics snapshot', () => {
   const source = readSource('src/renderer/utils/diagnosticsSnapshotSettings.ts')
   expect(source).toContain('const text = TEXTS[resolveFeatureLanguage()]')
   expect(source).toContain("window.mainApi?.invoke('get-runtime-diagnostics')")

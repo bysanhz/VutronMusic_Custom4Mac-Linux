@@ -20,7 +20,6 @@ import {
 import request from './request'
 import { getCoverLoadDiagnostics, getFailedNeteaseCoverProbeUrls } from './coverNetworkDiagnostics'
 
-const CONTROL_ID = 'vutronmusic-diagnostics-snapshot-setting'
 const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'
 const MAX_RECENT_ERRORS = 20
 
@@ -209,7 +208,7 @@ export const copyDiagnosticsSnapshot = async (
   )
 }
 
-/** Mount the same snapshot action in each settings section, without duplicating its logic. */
+/** Mount the snapshot action in Software Update; the runtime status panel shares its logic. */
 const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
   if (!anchor?.parentElement) return false
   const existing = document.getElementById(id)
@@ -251,14 +250,9 @@ const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
 }
 
 const ensureControl = (): boolean => {
-  const generalAnchor =
-    document.getElementById('vutronmusic-settings-backup-setting') ||
-    document.querySelector<HTMLElement>('.settings-container .item:last-of-type')
-  const mountedGeneral = mountControl(CONTROL_ID, generalAnchor as HTMLElement | null)
   const updateAnchor = document.getElementById('vutronmusic-update-diagnostics-anchor')
   // The software update tab exists only in Electron.
-  const mountedUpdate = updateAnchor ? mountControl(UPDATE_CONTROL_ID, updateAnchor) : true
-  return mountedGeneral && mountedUpdate
+  return updateAnchor ? mountControl(UPDATE_CONTROL_ID, updateAnchor) : true
 }
 
 observeV327SettingsControl(ensureControl)
