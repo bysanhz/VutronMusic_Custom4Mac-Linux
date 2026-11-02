@@ -115,9 +115,19 @@ contextBridge.exposeInMainWorld('mainApi', {
     assertMainChannel(channel)
     ipcRenderer.send(channel, ...data)
   },
-  on: (channel: string, listener: RendererListener): void => {
+  on: (channel: string, listener: RendererListener): (() => void) => {
     assertRendererChannel(channel)
-    ipcRenderer.on(channel, getWrappedListener(channel, listener))
+    const wrapped = getWrappedListener(channel, listener)
+    ipcRenderer.on(channel, wrapped)
+    // Callback proxies change identity when passed across contextBridge again.
+    // Cancel in the preload world using this exact registered wrapper.
+    let active = true
+    return () => {
+      if (!active) return
+      active = false
+      ipcRenderer.off(channel, wrapped)
+      removeWrappedListener(channel, listener)
+    }
   },
   once: (channel: string, listener: RendererListener): void => {
     assertRendererChannel(channel)

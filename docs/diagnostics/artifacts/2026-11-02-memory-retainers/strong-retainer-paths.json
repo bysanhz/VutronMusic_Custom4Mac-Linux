@@ -1,0 +1,216 @@
+{
+  "nodeCount": 85697,
+  "edgeCount": 396128,
+  "classes": {
+    "hidden:system / NativeContext": 4,
+    "object:XMLHttpRequest": 2,
+    "object:XMLHttpRequestEventTarget": 1,
+    "native:V8EventListener": 6
+  },
+  "target": {
+    "id": "31317",
+    "type": "closure",
+    "name": ""
+  },
+  "captured": [
+    {
+      "variable": "buildOsdFallbackTrackInfo",
+      "id": "112417",
+      "type": "closure",
+      "name": "buildOsdFallbackTrackInfo"
+    },
+    {
+      "variable": "playing",
+      "id": "112183",
+      "type": "object",
+      "name": "RefImpl"
+    },
+    {
+      "variable": "lyrics",
+      "id": "112233",
+      "type": "object",
+      "name": "RefImpl"
+    },
+    {
+      "variable": "pic",
+      "id": "112189",
+      "type": "object",
+      "name": "RefImpl"
+    },
+    {
+      "variable": "audioNodes",
+      "id": "112507",
+      "type": "object",
+      "name": "Object"
+    },
+    {
+      "variable": "currentTrack",
+      "id": "112215",
+      "type": "object",
+      "name": "RefImpl"
+    }
+  ],
+  "strongPaths": [
+    [
+      {
+        "id": "7121",
+        "type": "object",
+        "name": "Window / http://127.0.0.1:5173"
+      },
+      {
+        "via": "global_proxy",
+        "edgeType": "internal",
+        "id": "32053",
+        "type": "native",
+        "name": "Window"
+      },
+      {
+        "via": 22,
+        "edgeType": "element",
+        "id": "1620",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1026",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1024",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1010",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 2,
+        "edgeType": "element",
+        "id": "1014",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1522",
+        "type": "native",
+        "name": "EventListener"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1082",
+        "type": "native",
+        "name": "V8EventListener"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "31317",
+        "type": "closure",
+        "name": ""
+      }
+    ],
+    [
+      {
+        "id": "1",
+        "type": "synthetic",
+        "name": ""
+      },
+      {
+        "via": 6,
+        "edgeType": "element",
+        "id": "2022",
+        "type": "synthetic",
+        "name": "C++ Persistent roots"
+      },
+      {
+        "via": 7,
+        "edgeType": "element",
+        "id": "738",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 3,
+        "edgeType": "element",
+        "id": "504",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 22,
+        "edgeType": "element",
+        "id": "32053",
+        "type": "native",
+        "name": "Window"
+      },
+      {
+        "via": 22,
+        "edgeType": "element",
+        "id": "1620",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1026",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1024",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1010",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 2,
+        "edgeType": "element",
+        "id": "1014",
+        "type": "native",
+        "name": "InternalNode"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1522",
+        "type": "native",
+        "name": "EventListener"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "1082",
+        "type": "native",
+        "name": "V8EventListener"
+      },
+      {
+        "via": 1,
+        "edgeType": "element",
+        "id": "31317",
+        "type": "closure",
+        "name": ""
+      }
+    ]
+  ]
+}

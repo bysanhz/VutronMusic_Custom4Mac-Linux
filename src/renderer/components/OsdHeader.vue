@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { subscribeMainEvent } from '../utils/ipcSubscription'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useOsdLyricStore } from '../store/osdLyric'
 import { storeToRefs } from 'pinia'
@@ -50,6 +51,8 @@ const switchMode = () => {
   type.value = type.value === 'small' ? 'normal' : 'small'
 }
 
+let stopPlayingSubscription = () => {}
+
 const handlePlayingStatus = (_event: unknown, value: boolean) => {
   isPlaying.value = value
 }
@@ -61,11 +64,11 @@ onMounted(() => {
   } catch {
     isPlaying.value = false
   }
-  window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
+  stopPlayingSubscription = subscribeMainEvent('update-osd-playing-status', handlePlayingStatus)
 })
 
 onBeforeUnmount(() => {
-  window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
+  stopPlayingSubscription()
 })
 </script>
 

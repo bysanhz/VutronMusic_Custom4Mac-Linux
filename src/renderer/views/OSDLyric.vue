@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { subscribeMainEvent } from '../utils/ipcSubscription'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -381,8 +382,8 @@ document.addEventListener('mouseleave', handleDocumentMouseLeave)
 window.addEventListener('message', handleOsdStatusMessage)
 window.addEventListener('storage', handleStorageChange)
 
-window.mainApi?.on('mouseInWindow', handleMouseInWindow)
-window.mainApi?.on('set-isLock', handleSetIsLock)
+const stopMouseSubscription = subscribeMainEvent('mouseInWindow', handleMouseInWindow)
+const stopLockSubscription = subscribeMainEvent('set-isLock', handleSetIsLock)
 
 onMounted(() => {
   if (isLinux) {
@@ -416,8 +417,8 @@ onBeforeUnmount(() => {
 
   window.removeEventListener('blur', stopCustomOsdDrag)
 
-  window.mainApi?.off('mouseInWindow', handleMouseInWindow)
-  window.mainApi?.off('set-isLock', handleSetIsLock)
+  stopMouseSubscription()
+  stopLockSubscription()
 })
 </script>
 

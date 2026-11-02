@@ -1,0 +1,59 @@
+[
+  {
+    "phase": "baseline",
+    "path": "/tmp/vutron-retainer-baseline-results/tests-player-playback-inte-ee2d1--from-live-window-listeners/baseline.heapsnapshot",
+    "before": {
+      "documents": 3,
+      "nodes": 34,
+      "jsEventListeners": 55
+    },
+    "after": {
+      "documents": 1,
+      "nodes": 15,
+      "jsEventListeners": 21
+    },
+    "xhr": {
+      "allocated": 1,
+      "alive": 0,
+      "completed": 0
+    }
+  },
+  {
+    "phase": "switched",
+    "path": "/tmp/vutron-retainer-baseline-results/tests-player-playback-inte-ee2d1--from-live-window-listeners/switched.heapsnapshot",
+    "before": {
+      "documents": 1,
+      "nodes": 17,
+      "jsEventListeners": 141
+    },
+    "after": {
+      "documents": 1,
+      "nodes": 18,
+      "jsEventListeners": 21
+    },
+    "xhr": {
+      "allocated": 31,
+      "alive": 0,
+      "completed": 0
+    }
+  },
+  {
+    "phase": "unmounted",
+    "path": "/tmp/vutron-retainer-baseline-results/tests-player-playback-inte-ee2d1--from-live-window-listeners/unmounted.heapsnapshot",
+    "before": {
+      "documents": 1,
+      "nodes": 18,
+      "jsEventListeners": 35
+    },
+    "after": {
+      "documents": 1,
+      "nodes": 17,
+      "jsEventListeners": 7
+    },
+    "xhr": {
+      "allocated": 31,
+      "alive": 0,
+      "completed": 0
+    }
+  }
+]

@@ -1192,7 +1192,7 @@ test.describe('desktop feature integration', () => {
     expect(preload).toContain("'updateOsdState'")
     expect(preload).toContain("'set-isLock'")
     expect(osd).toContain("window.mainApi?.send('updateOsdState', { isLock: nextLocked })")
-    expect(osd).toContain("window.mainApi?.on('set-isLock', handleSetIsLock)")
+    expect(osd).toContain("subscribeMainEvent('set-isLock', handleSetIsLock)")
     expect(osd).toContain("window.mainApi?.send('osd-control-hit-region'")
     expect(header).not.toContain('@click="lockLyrics"')
     expect(header).not.toContain("window.mainApi?.send('updateOsdState', { isLock: true })")
@@ -1206,8 +1206,8 @@ test.describe('desktop feature integration', () => {
     expect(ipcs).toContain("message === 'playOrPauseFromOsd'")
     expect(ipcs).toContain("win.webContents.send('play-from-osd')")
     expect(preload).toContain("'play-from-osd'")
-    expect(player).toContain("window.mainApi?.on('play-from-osd'")
-    expect(player).toContain("window.mainApi?.on('play', () => {")
+    expect(player).toContain("onPlayerIpc('play-from-osd'")
+    expect(player).toContain("onPlayerIpc('play', () => {")
   })
 
   test('shows the Windows tray context menu without requiring the main window', () => {
@@ -1249,7 +1249,7 @@ test.describe('desktop feature integration', () => {
     expect(constants).not.toContain("import '../osdPlaybackBridge'")
     expect(ipcs).toContain("message === 'playOrPauseFromOsd'")
     expect(ipcs).toContain("win.webContents.send('play-from-osd')")
-    expect(player).toContain("window.mainApi?.on('play-from-osd'")
+    expect(player).toContain("onPlayerIpc('play-from-osd'")
     expect(player).toContain('watch(playing, (value) => {')
   })
 

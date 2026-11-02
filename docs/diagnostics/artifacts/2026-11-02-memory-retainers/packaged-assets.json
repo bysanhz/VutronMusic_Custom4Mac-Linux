@@ -1,0 +1,42 @@
+{
+  "checked": [
+    {
+      "source": "src/public/images/default.jpg",
+      "entry": "/dist/images/default.jpg",
+      "sha256": "1a31f9228199a7cc444431bc05a0a863b8ab6231bf9dfa62ee1fd18be9d44d52"
+    },
+    {
+      "source": "src/public/images/branding/recommend-beach.jpg",
+      "entry": "/dist/images/branding/recommend-beach.jpg",
+      "sha256": "997f47c45f9c22090dd1449aa0cb32511d518993ef76dc499f057ea90628b575"
+    },
+    {
+      "source": "src/public/images/branding/recommend-sakura.jpg",
+      "entry": "/dist/images/branding/recommend-sakura.jpg",
+      "sha256": "7d37ea89fbfbddd98979f2ca32da1d91a85538935824a9f2e237426bc1a08985"
+    },
+    {
+      "source": "src/public/images/branding/recommend-snow.jpg",
+      "entry": "/dist/images/branding/recommend-snow.jpg",
+      "sha256": "c37bbd92697486ca91b48207d338318991050cb06577ebcefaa0112bd8e9d78a"
+    },
+    {
+      "source": "src/public/images/tray/vutronmusic-color.png",
+      "entry": "dist/images/tray/vutronmusic-color.png",
+      "sha256": "e86994d9a2d9bca97fd62f81e9acd7d72f030db5812c700d8b2a4132c78926de"
+    },
+    {
+      "source": "src/public/images/tray/vutronmusic-white.png",
+      "entry": "dist/images/tray/vutronmusic-white.png",
+      "sha256": "c258358e7e9170727ae6622a2ea949f199822706067a30030010e9650a0dbda5"
+    },
+    {
+      "source": "src/public/images/tray/vutronmusic-black.png",
+      "entry": "dist/images/tray/vutronmusic-black.png",
+      "sha256": "ae27e194c7289bfd9ff7331a2ce0858b216978031cce572f303ad942c10ef304"
+    }
+  ],
+  "fonts": [
+    "/dist/assets/InterVariable-DiVDrmQJ.woff2"
+  ]
+}

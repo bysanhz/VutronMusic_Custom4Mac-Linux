@@ -28,6 +28,13 @@ test.beforeAll(async ({}, testInfo) => {
   await new Promise<void>((done, reject) =>
     socket.close((error) => (error ? reject(error) : done()))
   )
+  // The optional Amuse server also needs a private port during paired runs.
+  const amuseSocket = createServer()
+  await new Promise<void>((done) => amuseSocket.listen(0, '127.0.0.1', done))
+  const amusePort = (amuseSocket.address() as { port: number }).port
+  await new Promise<void>((done, reject) =>
+    amuseSocket.close((error) => (error ? reject(error) : done()))
+  )
   cpSync(resolve('dist'), join(directory, 'dist'), { recursive: true })
   const remapPort = (root: string) => {
     for (const file of readdirSync(root, { withFileTypes: true })) {
@@ -35,7 +42,12 @@ test.beforeAll(async ({}, testInfo) => {
       if (file.isDirectory()) remapPort(path)
       else if (file.name.endsWith('.js')) {
         const source = readFileSync(path, 'utf8')
-        if (source.includes('41830')) writeFileSync(path, source.replaceAll('41830', String(port)))
+        if (source.includes('41830') || source.includes('9863')) {
+          writeFileSync(
+            path,
+            source.replace(/\b41830\b/g, String(port)).replace(/\b9863\b/g, String(amusePort))
+          )
+        }
       }
     }
   }

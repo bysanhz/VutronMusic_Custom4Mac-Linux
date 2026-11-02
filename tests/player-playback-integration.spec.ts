@@ -1,5 +1,5 @@
 import { expect, test, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, rmSync, appendFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createServer, type ViteDevServer } from 'vite'
@@ -35,6 +35,7 @@ test.beforeAll(async () => {
     },
     optimizeDeps: { entries: ['index.html'] },
     server: {
+      watch: null,
       host: '127.0.0.1',
       port: 0,
       fs: { allow: [resolve('.'), resolve(process.env.VUTRON_PLAYER_SOURCE_ROOT || '.')] }
@@ -127,6 +128,20 @@ const play = async (ids: number[]) =>
   }, ids)
 const trackId = () => page.evaluate(() => (window as any).playbackProbe.player.currentTrack?.id)
 const playing = () => page.evaluate(() => (window as any).vutronmusic.playing)
+const ownedPlayerChannels = [
+  'resume',
+  'play-from-osd',
+  'play',
+  'previous',
+  'next',
+  'repeat',
+  'repeat-shuffle',
+  'like',
+  'fm-trash',
+  'setPosition',
+  'increaseVolume',
+  'decreaseVolume'
+]
 const setMode = (id: number, mode: string) =>
   app.evaluate(
     (_, { id, mode }) => {
@@ -229,14 +244,23 @@ test('100 switches and 30 failures keep one context and release source, listener
       app.evaluate(({ app, BrowserWindow }) => ({
         browserPid: process.pid,
         rendererPid: BrowserWindow.getAllWindows()[0].webContents.getOSProcessId(),
-        metrics: app.getAppMetrics().map((entry) => ({ pid: entry.pid, type: entry.type, memory: entry.memory }))
+        metrics: app
+          .getAppMetrics()
+          .map((entry) => ({ pid: entry.pid, type: entry.type, memory: entry.memory }))
       }))
     ])
     samples.push({
-      phase, heap, dom, processes,
-      linux: process.platform === 'linux'
-        ? readLinuxAppProcessMemory(processes.browserPid, processes.metrics.map((entry) => entry.pid))
-        : null
+      phase,
+      heap,
+      dom,
+      processes,
+      linux:
+        process.platform === 'linux'
+          ? readLinuxAppProcessMemory(
+              processes.browserPid,
+              processes.metrics.map((entry) => entry.pid)
+            )
+          : null
     })
   }
   await sample('baseline')
@@ -280,6 +304,180 @@ test('100 switches and 30 failures keep one context and release source, listener
     contentType: 'application/json'
   })
   await cdp.send('Runtime.releaseObject', { objectId: result.objectId })
+  await cdp.detach()
+  expect(errors).toEqual([])
+})
+
+test('unmount unregisters global messages, all IPC callbacks, asynchronous watches and MediaSession actions', async ({}, testInfo) => {
+  const result = await page.evaluate(async (ownedChannels) => {
+    const p = (window as any).playbackProbe
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
+    p.osd.show = true
+    await tick()
+    p.osdMessages.length = 0
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'get-seek' } }))
+    const ownedIpcCount = () =>
+      ownedChannels.reduce(
+        (sum: number, channel: string) =>
+          sum +
+          (p.subscriptions.get(channel)?.size || 0) -
+          (p.initialSubscriptions.get(channel) || 0),
+        0
+      )
+    const before = {
+      messages: p.osdMessages.length,
+      ipc: ownedIpcCount(),
+      mediaActions: p.mediaActions.size
+    }
+    p.unmount()
+    await tick()
+    p.osdMessages.length = 0
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'get-seek' } }))
+    p.player.currentIndex = 20
+    await tick()
+    return {
+      before,
+      after: {
+        messages: p.osdMessages.length,
+        ipc: ownedIpcCount(),
+        mediaActions: p.mediaActions.size
+      },
+      metadataCleared: navigator.mediaSession.metadata === null
+    }
+  }, ownedPlayerChannels)
+  await testInfo.attach('player-lifecycle', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+  expect(result.before).toEqual({ messages: 1, ipc: 12, mediaActions: 8 })
+  expect(result.after).toEqual({ messages: 0, ipc: 0, mediaActions: 0 })
+  expect(result.metadataCleared).toBe(true)
+  expect(errors).toEqual([])
+})
+
+test('unmount during asynchronous initialization cannot install late audio resources or global handlers', async ({}, testInfo) => {
+  await page.addInitScript(() => {
+    ;(window as any).startupGate = new Promise((resolve) => {
+      ;(window as any).releaseStartup = resolve
+    })
+  })
+  await page.reload()
+  await page.waitForFunction(() => Boolean((window as any).playbackProbe))
+  await page.evaluate(() => {
+    ;(window as any).playbackProbe.unmount()
+    ;(window as any).releaseStartup(null)
+  })
+  await page.waitForTimeout(100)
+  const result = await page.evaluate((ownedChannels) => {
+    const p = (window as any).playbackProbe
+    return {
+      contexts: p.contextCount(),
+      ipc: ownedChannels.reduce(
+        (sum: number, channel: string) =>
+          sum +
+          (p.subscriptions.get(channel)?.size || 0) -
+          (p.initialSubscriptions.get(channel) || 0),
+        0
+      ),
+      media: p.mediaActions.size
+    }
+  }, ownedPlayerChannels)
+  await testInfo.attach('late-initialization', {
+    body: JSON.stringify(result),
+    contentType: 'application/json'
+  })
+  expect(result).toEqual({ contexts: 0, ipc: 0, media: 0 })
+  expect(errors).toEqual([])
+})
+
+test('opt-in retainer audit separates completed XHR callbacks from live window listeners', async ({}, testInfo) => {
+  test.skip(
+    process.env.VUTRON_RETAINER_AUDIT !== '1',
+    'Heap snapshots are intrusive diagnostic measurements'
+  )
+  test.setTimeout(120000)
+  await page.addInitScript(() => {
+    const NativeXHR = window.XMLHttpRequest
+    const refs: WeakRef<XMLHttpRequest>[] = []
+    ;(window as any).xhrAudit = refs
+    window.XMLHttpRequest = class extends NativeXHR {
+      constructor() {
+        super()
+        refs.push(new WeakRef(this))
+      }
+    }
+  })
+  await page.reload()
+  await expect
+    .poll(() => page.evaluate(() => (window as any).vutronmusic?.media?.contextState))
+    .toBe('suspended')
+  const cdp = await page.context().newCDPSession(page)
+  const counts = () => cdp.send('Memory.getDOMCounters')
+  const audit: unknown[] = []
+  const snapshot = async (phase: string) => {
+    const path = testInfo.outputPath(`${phase}.heapsnapshot`)
+    writeFileSync(path, '')
+    let size = 0
+    const listener = ({ chunk }: { chunk: string }) => {
+      size += Buffer.byteLength(chunk)
+      if (size < 64 * 1024 * 1024) appendFileSync(path, chunk)
+    }
+    const before = await counts()
+    cdp.on('HeapProfiler.addHeapSnapshotChunk', listener)
+    try {
+      await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false })
+    } finally {
+      cdp.off('HeapProfiler.addHeapSnapshotChunk', listener)
+    }
+    expect(size).toBeLessThan(64 * 1024 * 1024)
+    const after = await counts()
+    const xhr = await page.evaluate(() => {
+      const alive = (window as any).xhrAudit
+        .map((ref: WeakRef<XMLHttpRequest>) => ref.deref())
+        .filter(Boolean) as XMLHttpRequest[]
+      return {
+        allocated: (window as any).xhrAudit.length,
+        alive: alive.length,
+        completed: alive.filter((xhr) => xhr.readyState === 4).length
+      }
+    })
+    audit.push({ phase, path, before, after, xhr })
+    writeFileSync(testInfo.outputPath('retainer-audit.json'), JSON.stringify(audit, null, 2))
+  }
+  await snapshot('baseline')
+  for (let i = 0; i < 30; i++) {
+    await play([1 + (i % 2)])
+    await expect.poll(trackId).toBe(1 + (i % 2))
+  }
+  await snapshot('switched')
+  await page.evaluate(() => (window as any).playbackProbe.unmount())
+  await snapshot('unmounted')
+  const win = await cdp.send('Runtime.evaluate', {
+    expression: 'window',
+    objectGroup: 'retainer-audit'
+  })
+  const listeners = await cdp.send('DOMDebugger.getEventListeners', {
+    objectId: win.result.objectId!
+  })
+  writeFileSync(testInfo.outputPath('window-listeners.json'), JSON.stringify(listeners, null, 2))
+  const owned = listeners.listeners.find(
+    (listener: any) =>
+      listener.type === 'message' && listener.handler?.description?.includes('init-from-osd')
+  )
+  if (owned?.handler?.objectId) {
+    const identity = await cdp.send('HeapProfiler.getHeapObjectId', {
+      objectId: owned.handler.objectId
+    })
+    writeFileSync(
+      testInfo.outputPath('owned-message-handler.json'),
+      JSON.stringify(
+        { ...identity, scriptId: owned.scriptId, lineNumber: owned.lineNumber },
+        null,
+        2
+      )
+    )
+  }
+  await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'retainer-audit' })
   await cdp.detach()
   expect(errors).toEqual([])
 })
@@ -415,7 +613,7 @@ test('a null source advances without opening an empty media URL', async () => {
 
 test('missing artwork stays empty during detail recovery and uses the default only after its finite budget', async () => {
   let lookups = 0
-  await page.route('**/netease/song/detail?*', async route => {
+  await page.route('**/netease/song/detail?*', async (route) => {
     lookups++
     await route.fulfill({ json: { code: 200, songs: [] } })
   })
@@ -426,7 +624,9 @@ test('missing artwork stays empty during detail recovery and uses the default on
   await page.evaluate(() => (window as any).playbackProbe.player.playOrPause())
   expect(await page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('')
   for (const [index, delay] of [2000, 5000, 10000, 20000, 40000].entries()) {
-    const response = page.waitForResponse(response => response.url().includes('/netease/song/detail?'))
+    const response = page.waitForResponse((response) =>
+      response.url().includes('/netease/song/detail?')
+    )
     await page.clock.fastForward(delay + 100)
     await response
     await expect.poll(() => lookups).toBe(index + 1)
@@ -434,7 +634,9 @@ test('missing artwork stays empty during detail recovery and uses the default on
       expect(await page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('')
     }
   }
-  await expect.poll(() => page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('atom://get-default-pic')
+  await expect
+    .poll(() => page.evaluate(() => (window as any).playbackProbe.player.pic))
+    .toBe('atom://get-default-pic')
   await page.clock.fastForward(60000)
   expect(lookups).toBe(5)
   expect(errors).toEqual([])

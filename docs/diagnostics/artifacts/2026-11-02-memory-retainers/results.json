@@ -1,0 +1,729 @@
+{
+  "baselineCommit": "2d85700a2ea83a3749bb1d5af5d64634d8951583",
+  "platform": "linux",
+  "unit": "MiB",
+  "tests": {
+    "vutron-memory-full-final": {
+      "startTime": "2026-11-02T11:58:39.563Z",
+      "duration": 78908.253,
+      "expected": 415,
+      "skipped": 2,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "vutron-memory-full-watch-limit": {
+      "startTime": "2026-11-02T11:56:08.321Z",
+      "duration": 61489.131,
+      "expected": 397,
+      "skipped": 15,
+      "unexpected": 5,
+      "flaky": 0
+    },
+    "vutron-real-preload-baseline": {
+      "startTime": "2026-11-02T11:48:57.004Z",
+      "duration": 2885.13,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 3,
+      "flaky": 0
+    },
+    "vutron-real-preload-final": {
+      "startTime": "2026-11-02T11:34:08.594Z",
+      "duration": 2345.65,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "vutron-player-lifecycle-baseline": {
+      "startTime": "2026-11-02T11:05:19.137Z",
+      "duration": 2561.038,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "vutron-player-lifecycle-fixed": {
+      "startTime": "2026-11-02T11:05:20.334Z",
+      "duration": 2080.51,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "vutron-player-stress-baseline": {
+      "startTime": "2026-11-02T11:49:56.099Z",
+      "duration": 25977.132,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "vutron-player-stress-fixed": {
+      "startTime": "2026-11-02T11:49:57.313Z",
+      "duration": 27109.82,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "vutron-actual-samplers": {
+      "startTime": "2026-11-02T10:43:50.209Z",
+      "duration": 2702.443,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "attachments": {
+    "vutron-memory-full-final": [
+      {
+        "test": "real contextBridge cancellation releases only player callbacks and preserves the settings resume listener",
+        "name": "real-preload-callbacks",
+        "data": {
+          "before": {
+            "resume": 2,
+            "play-from-osd": 1,
+            "play": 1,
+            "previous": 1,
+            "next": 1,
+            "repeat": 1,
+            "repeat-shuffle": 1,
+            "like": 1,
+            "fm-trash": 1,
+            "setPosition": 1,
+            "increaseVolume": 1,
+            "decreaseVolume": 1
+          },
+          "after": {
+            "resume": 1,
+            "play-from-osd": 0,
+            "play": 0,
+            "previous": 0,
+            "next": 0,
+            "repeat": 0,
+            "repeat-shuffle": 0,
+            "like": 0,
+            "fm-trash": 0,
+            "setPosition": 0,
+            "increaseVolume": 0,
+            "decreaseVolume": 0
+          }
+        }
+      },
+      {
+        "test": "index preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "osdWin preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "unmount unregisters global messages, all IPC callbacks, asynchronous watches and MediaSession actions",
+        "name": "player-lifecycle",
+        "data": {
+          "before": {
+            "messages": 1,
+            "ipc": 12,
+            "mediaActions": 8
+          },
+          "after": {
+            "messages": 0,
+            "ipc": 0,
+            "mediaActions": 0
+          },
+          "metadataCleared": true
+        }
+      },
+      {
+        "test": "unmount during asynchronous initialization cannot install late audio resources or global handlers",
+        "name": "late-initialization",
+        "data": {
+          "contexts": 0,
+          "ipc": 0,
+          "media": 0
+        }
+      }
+    ],
+    "vutron-memory-full-watch-limit": [
+      {
+        "test": "real contextBridge cancellation releases only player callbacks and preserves the settings resume listener",
+        "name": "real-preload-callbacks",
+        "data": {
+          "before": {
+            "resume": 2,
+            "play-from-osd": 1,
+            "play": 1,
+            "previous": 1,
+            "next": 1,
+            "repeat": 1,
+            "repeat-shuffle": 1,
+            "like": 1,
+            "fm-trash": 1,
+            "setPosition": 1,
+            "increaseVolume": 1,
+            "decreaseVolume": 1
+          },
+          "after": {
+            "resume": 1,
+            "play-from-osd": 0,
+            "play": 0,
+            "previous": 0,
+            "next": 0,
+            "repeat": 0,
+            "repeat-shuffle": 0,
+            "like": 0,
+            "fm-trash": 0,
+            "setPosition": 0,
+            "increaseVolume": 0,
+            "decreaseVolume": 0
+          }
+        }
+      },
+      {
+        "test": "index preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "osdWin preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "unmount unregisters global messages, all IPC callbacks, asynchronous watches and MediaSession actions",
+        "name": "player-lifecycle",
+        "data": {
+          "before": {
+            "messages": 1,
+            "ipc": 12,
+            "mediaActions": 8
+          },
+          "after": {
+            "messages": 0,
+            "ipc": 0,
+            "mediaActions": 0
+          },
+          "metadataCleared": true
+        }
+      },
+      {
+        "test": "unmount during asynchronous initialization cannot install late audio resources or global handlers",
+        "name": "late-initialization",
+        "data": {
+          "contexts": 0,
+          "ipc": 0,
+          "media": 0
+        }
+      }
+    ],
+    "vutron-real-preload-baseline": [
+      {
+        "test": "real contextBridge cancellation releases only player callbacks and preserves the settings resume listener",
+        "name": "real-preload-callbacks",
+        "data": {
+          "before": {
+            "resume": 2,
+            "play-from-osd": 1,
+            "play": 1,
+            "previous": 1,
+            "next": 1,
+            "repeat": 1,
+            "repeat-shuffle": 1,
+            "like": 1,
+            "fm-trash": 1,
+            "setPosition": 1,
+            "increaseVolume": 1,
+            "decreaseVolume": 1
+          },
+          "after": {
+            "resume": 2,
+            "play-from-osd": 1,
+            "play": 1,
+            "previous": 1,
+            "next": 1,
+            "repeat": 1,
+            "repeat-shuffle": 1,
+            "like": 1,
+            "fm-trash": 1,
+            "setPosition": 1,
+            "increaseVolume": 1,
+            "decreaseVolume": 1
+          }
+        }
+      },
+      {
+        "test": "index preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": false,
+          "withForeign": 101,
+          "after": 101
+        }
+      },
+      {
+        "test": "osdWin preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": false,
+          "withForeign": 101,
+          "after": 101
+        }
+      }
+    ],
+    "vutron-real-preload-final": [
+      {
+        "test": "real contextBridge cancellation releases only player callbacks and preserves the settings resume listener",
+        "name": "real-preload-callbacks",
+        "data": {
+          "before": {
+            "resume": 2,
+            "play-from-osd": 1,
+            "play": 1,
+            "previous": 1,
+            "next": 1,
+            "repeat": 1,
+            "repeat-shuffle": 1,
+            "like": 1,
+            "fm-trash": 1,
+            "setPosition": 1,
+            "increaseVolume": 1,
+            "decreaseVolume": 1
+          },
+          "after": {
+            "resume": 1,
+            "play-from-osd": 0,
+            "play": 0,
+            "previous": 0,
+            "next": 0,
+            "repeat": 0,
+            "repeat-shuffle": 0,
+            "like": 0,
+            "fm-trash": 0,
+            "setPosition": 0,
+            "increaseVolume": 0,
+            "decreaseVolume": 0
+          }
+        }
+      },
+      {
+        "test": "index preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "index preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-weak-references",
+        "data": {
+          "allocated": 100,
+          "aliveAfterSnapshot": 0,
+          "intrusive": true
+        }
+      },
+      {
+        "test": "osdWin preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-cycle-counts",
+        "data": {
+          "supported": true,
+          "withForeign": 1,
+          "after": 0
+        }
+      },
+      {
+        "test": "osdWin preload disposers survive 100 cycles and preserve an unrelated listener",
+        "name": "bridge-weak-references",
+        "data": {
+          "allocated": 100,
+          "aliveAfterSnapshot": 0,
+          "intrusive": true
+        }
+      }
+    ],
+    "vutron-player-lifecycle-baseline": [
+      {
+        "test": "unmount unregisters global messages, all IPC callbacks, asynchronous watches and MediaSession actions",
+        "name": "player-lifecycle",
+        "data": {
+          "before": {
+            "messages": 1,
+            "ipc": 12,
+            "mediaActions": 8
+          },
+          "after": {
+            "messages": 2,
+            "ipc": 12,
+            "mediaActions": 8
+          },
+          "metadataCleared": true
+        }
+      },
+      {
+        "test": "unmount during asynchronous initialization cannot install late audio resources or global handlers",
+        "name": "late-initialization",
+        "data": {
+          "contexts": 1,
+          "ipc": 12,
+          "media": 8
+        }
+      }
+    ],
+    "vutron-player-lifecycle-fixed": [
+      {
+        "test": "unmount unregisters global messages, all IPC callbacks, asynchronous watches and MediaSession actions",
+        "name": "player-lifecycle",
+        "data": {
+          "before": {
+            "messages": 1,
+            "ipc": 12,
+            "mediaActions": 8
+          },
+          "after": {
+            "messages": 0,
+            "ipc": 0,
+            "mediaActions": 0
+          },
+          "metadataCleared": true
+        }
+      },
+      {
+        "test": "unmount during asynchronous initialization cannot install late audio resources or global handlers",
+        "name": "late-initialization",
+        "data": {
+          "contexts": 0,
+          "ipc": 0,
+          "media": 0
+        }
+      }
+    ]
+  },
+  "nativeSampler": [
+    {
+      "run": 0,
+      "mode": "baseline",
+      "ownership": {
+        "attaches": 500,
+        "detaches": 500
+      },
+      "delta": {
+        "residentMiB": 7.19,
+        "proportionalMiB": 7.06,
+        "privateMiB": 7.04,
+        "anonymousMiB": 7.05
+      },
+      "embedderDeltaMiB": 3.6855316162109375
+    },
+    {
+      "run": 1,
+      "mode": "fixed",
+      "ownership": {
+        "attaches": 1,
+        "detaches": 0
+      },
+      "delta": {
+        "residentMiB": 0.63,
+        "proportionalMiB": 0.06,
+        "privateMiB": 0.07,
+        "anonymousMiB": 0.07
+      },
+      "embedderDeltaMiB": 0.0
+    },
+    {
+      "run": 2,
+      "mode": "fixed",
+      "ownership": {
+        "attaches": 1,
+        "detaches": 0
+      },
+      "delta": {
+        "residentMiB": 0.56,
+        "proportionalMiB": 0.06,
+        "privateMiB": 0.06,
+        "anonymousMiB": 0.07
+      },
+      "embedderDeltaMiB": 0.0
+    },
+    {
+      "run": 3,
+      "mode": "baseline",
+      "ownership": {
+        "attaches": 500,
+        "detaches": 500
+      },
+      "delta": {
+        "residentMiB": 7.2,
+        "proportionalMiB": 7.07,
+        "privateMiB": 7.05,
+        "anonymousMiB": 7.06
+      },
+      "embedderDeltaMiB": 3.6855316162109375
+    }
+  ],
+  "idle": {
+    "baseline-final": {
+      "status": {
+        "exitCode": 0,
+        "startedAt": 1793619288.436853,
+        "elapsedSeconds": 1802.4507682323456,
+        "command": [
+          "dbus-run-session",
+          "--",
+          "xvfb-run",
+          "-a",
+          "./node_modules/.bin/playwright",
+          "test",
+          "tests/app.spec.ts",
+          "--grep",
+          "opt-in production idle",
+          "--workers=1",
+          "--reporter=json",
+          "--output=/tmp/vutron-memory-baseline-final-idle-results"
+        ],
+        "cwd": "/tmp/vutron-memory-baseline-yjn9ul9_"
+      },
+      "count": 121,
+      "samples": [
+        {
+          "elapsedSeconds": 0.057,
+          "residentMiB": 148.52,
+          "proportionalMiB": 66.98,
+          "privateMiB": 35.4,
+          "anonymousMiB": 42.46,
+          "usedSize": 9.0095,
+          "totalSize": 12.2812,
+          "embedderHeapUsedSize": 3.3784,
+          "backingStorageSize": 4.1286,
+          "dom": {
+            "documents": 9,
+            "nodes": 944,
+            "jsEventListeners": 223
+          }
+        },
+        {
+          "elapsedSeconds": 120.384,
+          "residentMiB": 183.59,
+          "proportionalMiB": 90.49,
+          "privateMiB": 55.14,
+          "anonymousMiB": 48.96,
+          "usedSize": 8.4589,
+          "totalSize": 10.2812,
+          "embedderHeapUsedSize": 6.44,
+          "backingStorageSize": 4.0263,
+          "dom": {
+            "documents": 2,
+            "nodes": 1762,
+            "jsEventListeners": 398
+          }
+        },
+        {
+          "elapsedSeconds": 601.783,
+          "residentMiB": 192.59,
+          "proportionalMiB": 99.5,
+          "privateMiB": 64.22,
+          "anonymousMiB": 59.7,
+          "usedSize": 8.9548,
+          "totalSize": 9.7812,
+          "embedderHeapUsedSize": 7.0706,
+          "backingStorageSize": 4.0263,
+          "dom": {
+            "documents": 2,
+            "nodes": 1762,
+            "jsEventListeners": 398
+          }
+        },
+        {
+          "elapsedSeconds": 1203.507,
+          "residentMiB": 193.88,
+          "proportionalMiB": 100.71,
+          "privateMiB": 65.36,
+          "anonymousMiB": 60.77,
+          "usedSize": 8.371,
+          "totalSize": 9.7812,
+          "embedderHeapUsedSize": 11.2596,
+          "backingStorageSize": 3.9406,
+          "dom": {
+            "documents": 2,
+            "nodes": 1762,
+            "jsEventListeners": 398
+          }
+        },
+        {
+          "elapsedSeconds": 1790.193,
+          "residentMiB": 192.02,
+          "proportionalMiB": 99.57,
+          "privateMiB": 64.99,
+          "anonymousMiB": 60.47,
+          "usedSize": 8.0283,
+          "totalSize": 9.2812,
+          "embedderHeapUsedSize": 6.5836,
+          "backingStorageSize": 3.9405,
+          "dom": {
+            "documents": 2,
+            "nodes": 1762,
+            "jsEventListeners": 398
+          }
+        },
+        {
+          "elapsedSeconds": 1800.046,
+          "residentMiB": 192.06,
+          "proportionalMiB": 127.3,
+          "privateMiB": 96.81,
+          "anonymousMiB": 60.52,
+          "usedSize": 8.1548,
+          "totalSize": 9.5312,
+          "embedderHeapUsedSize": 7.0366,
+          "backingStorageSize": 3.9405,
+          "dom": {
+            "documents": 2,
+            "nodes": 1762,
+            "jsEventListeners": 398
+          }
+        }
+      ]
+    },
+    "fixed-final": {
+      "status": {
+        "exitCode": 0,
+        "startedAt": 1793619288.4398239,
+        "elapsedSeconds": 1802.0971925258636,
+        "command": [
+          "dbus-run-session",
+          "--",
+          "xvfb-run",
+          "-a",
+          "./node_modules/.bin/playwright",
+          "test",
+          "tests/app.spec.ts",
+          "--grep",
+          "opt-in production idle",
+          "--workers=1",
+          "--reporter=json",
+          "--output=/tmp/vutron-memory-fixed-final-idle-results"
+        ],
+        "cwd": "/tmp/vutron-memory-fixed-to_gxi2o"
+      },
+      "count": 121,
+      "samples": [
+        {
+          "elapsedSeconds": 0.043,
+          "residentMiB": 146.62,
+          "proportionalMiB": 69.53,
+          "privateMiB": 39.53,
+          "anonymousMiB": 41.43,
+          "usedSize": 8.3165,
+          "totalSize": 11.7812,
+          "embedderHeapUsedSize": 3.0303,
+          "backingStorageSize": 4.0417,
+          "dom": {
+            "documents": 3,
+            "nodes": 642,
+            "jsEventListeners": 169
+          }
+        },
+        {
+          "elapsedSeconds": 120.392,
+          "residentMiB": 184.11,
+          "proportionalMiB": 90.57,
+          "privateMiB": 55.02,
+          "anonymousMiB": 48.92,
+          "usedSize": 8.4569,
+          "totalSize": 10.5312,
+          "embedderHeapUsedSize": 6.291,
+          "backingStorageSize": 4.0268,
+          "dom": {
+            "documents": 2,
+            "nodes": 1757,
+            "jsEventListeners": 397
+          }
+        },
+        {
+          "elapsedSeconds": 601.736,
+          "residentMiB": 191.64,
+          "proportionalMiB": 98.11,
+          "privateMiB": 62.62,
+          "anonymousMiB": 59.19,
+          "usedSize": 8.7419,
+          "totalSize": 10.0312,
+          "embedderHeapUsedSize": 6.4719,
+          "backingStorageSize": 4.0268,
+          "dom": {
+            "documents": 2,
+            "nodes": 1757,
+            "jsEventListeners": 397
+          }
+        },
+        {
+          "elapsedSeconds": 1203.395,
+          "residentMiB": 192.42,
+          "proportionalMiB": 98.79,
+          "privateMiB": 63.21,
+          "anonymousMiB": 59.75,
+          "usedSize": 8.1315,
+          "totalSize": 10.0312,
+          "embedderHeapUsedSize": 9.7822,
+          "backingStorageSize": 3.9411,
+          "dom": {
+            "documents": 2,
+            "nodes": 1757,
+            "jsEventListeners": 397
+          }
+        },
+        {
+          "elapsedSeconds": 1790.006,
+          "residentMiB": 190.19,
+          "proportionalMiB": 97.31,
+          "privateMiB": 62.53,
+          "anonymousMiB": 59.08,
+          "usedSize": 8.2666,
+          "totalSize": 10.2812,
+          "embedderHeapUsedSize": 4.8474,
+          "backingStorageSize": 3.9411,
+          "dom": {
+            "documents": 2,
+            "nodes": 1757,
+            "jsEventListeners": 397
+          }
+        },
+        {
+          "elapsedSeconds": 1800.038,
+          "residentMiB": 190.18,
+          "proportionalMiB": 97.29,
+          "privateMiB": 62.52,
+          "anonymousMiB": 59.07,
+          "usedSize": 8.3931,
+          "totalSize": 10.5312,
+          "embedderHeapUsedSize": 5.1422,
+          "backingStorageSize": 3.9411,
+          "dom": {
+            "documents": 2,
+            "nodes": 1757,
+            "jsEventListeners": 397
+          }
+        }
+      ]
+    }
+  }
+}

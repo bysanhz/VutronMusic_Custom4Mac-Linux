@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { subscribeMainEvent } from '../utils/ipcSubscription'
 import { getUsableTrackCoverUrl } from '../../shared/trackCover'
 import { vCoverFallback } from '../utils/coverImageFallback'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -317,6 +318,8 @@ const handleOsdStatusMessage = (event: MessageEvent) => {
   }
 }
 
+let stopPlayingSubscription = () => {}
+
 const handlePlayingStatus = (_event: unknown, value: boolean) => {
   isPlaying.value = value
 }
@@ -329,7 +332,7 @@ onMounted(async () => {
   window.addEventListener('storage', handleStorage)
   window.addEventListener('message', handleOsdStatusMessage)
   window.addEventListener('resize', scheduleControlHitRegionReport)
-  window.mainApi?.on('update-osd-playing-status', handlePlayingStatus)
+  stopPlayingSubscription = subscribeMainEvent('update-osd-playing-status', handlePlayingStatus)
 
   await nextTick()
   if (rootRef.value) {
@@ -351,7 +354,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorage)
   window.removeEventListener('message', handleOsdStatusMessage)
   window.removeEventListener('resize', scheduleControlHitRegionReport)
-  window.mainApi?.off('update-osd-playing-status', handlePlayingStatus)
+  stopPlayingSubscription()
   window.mainApi?.send('osd-control-hit-region', {
     enabled: false,
     locked: readOsdLocked(),

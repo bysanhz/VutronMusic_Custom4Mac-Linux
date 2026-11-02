@@ -1,4 +1,4 @@
-import { app, ipcMain, net, webContents, type WebContents } from 'electron'
+import { app, ipcMain, net, webContents } from 'electron'
 import os from 'os'
 import path from 'path'
 import { name, version } from '../../package.json'
@@ -6,6 +6,7 @@ import store from './store'
 import { getAudioRequestDiagnostics } from './utils/audioDiagnostics'
 import { MemoryTrendSampler, summarizeRuntimeMemory } from './utils/memoryTrend'
 import { readLinuxAppProcessMemory } from './linuxProcessMemory'
+import { readRendererHeapUsage } from './utils/rendererHeapSampler'
 import { getNeteaseImageCandidateUrls, isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 
 const INSTALL_KEY = '__vutronRuntimeDiagnosticsInstalled'
@@ -70,38 +71,6 @@ const describeCoverUrlShape = (value: string) => {
     queryParameterCount: queryKeys.length,
     hasOtherQueryParameters: queryKeys.some((key) => key !== 'param'),
     hasFragment: Boolean(url.hash)
-  }
-}
-
-/** Main-world V8/backing storage, unavailable rather than invented when DevTools owns the target. */
-const readRendererHeapUsage = async (contents: WebContents) => {
-  if (contents.isDevToolsOpened()) return { available: false, reason: 'devtools_open' }
-  const debuggerApi = contents.debugger
-  let owned = false
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    if (!debuggerApi.isAttached()) {
-      debuggerApi.attach('1.3')
-      owned = true
-    }
-    const usage = await Promise.race([
-      debuggerApi.sendCommand('Runtime.getHeapUsage'),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error('timeout')), 1500)
-      })
-    ])
-    return {
-      available: true,
-      usedBytes: usage.usedSize,
-      allocatedBytes: usage.totalSize,
-      embedderBytes: usage.embedderHeapUsedSize ?? null,
-      backingStorageBytes: usage.backingStorageSize ?? null
-    }
-  } catch {
-    return { available: false, reason: 'unavailable' }
-  } finally {
-    if (timer) clearTimeout(timer)
-    if (owned && debuggerApi.isAttached()) debuggerApi.detach()
   }
 }
 

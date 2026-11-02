@@ -1,0 +1,14 @@
+{
+  "stable": {
+    "profile": {
+      "samples": [],
+      "modules": []
+    }
+  },
+  "churn": {
+    "profile": {
+      "samples": [],
+      "modules": []
+    }
+  }
+}

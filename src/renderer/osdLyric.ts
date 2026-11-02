@@ -27,7 +27,7 @@ declare global {
   interface Window {
     mainApi?: {
       send: (channel: string, ...data: any[]) => void
-      on: (channel: string, func: (...data: any[]) => void) => void
+      on: (channel: string, func: (...data: any[]) => void) => (() => void) | void
       once: (channel: string, func: (...data: any[]) => void) => void
       off: (channel: string, func: (...data: any[]) => void) => void
       invoke: (channel: string, ...data: any[]) => Promise<any>

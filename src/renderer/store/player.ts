@@ -1,4 +1,5 @@
 import { redactDiagnosticText } from '../../shared/diagnosticRedaction'
+import { subscribeMainEvent } from '../utils/ipcSubscription'
 import { defineStore } from 'pinia'
 import shuffleFn from 'lodash/shuffle'
 import cloneDeep from 'lodash/cloneDeep'
@@ -2642,109 +2643,125 @@ export const usePlayerStore = defineStore(
       }
     }
 
-    const handleIpcRenderer = () => {
-      window.addEventListener('message', (event) => {
-        if (event.data.type === 'init-from-osd') {
-          const track = currentTrack.value
-          const artists = track?.artists ?? track?.ar ?? []
-          const currentTime = audioNodes.audio?.currentTime || 0
-          const osdLyrics = _.cloneDeep(lyrics.value)
-          const fallbackTrackInfo = buildOsdFallbackTrackInfo()
+    const ipcCleanups: Array<() => void> = []
+    let disposed = false
+    const onPlayerIpc = (channel: string, listener: (...args: any[]) => void) => {
+      ipcCleanups.push(subscribeMainEvent(channel, listener))
+    }
 
-          if (!osdLyrics.length) {
-            osdLyrics[0] = {
-              start: 0,
-              end: 0,
-              lyric: {
-                text: fallbackTrackInfo.fallbackTrackText
-              }
+    const handleOsdMessage = (event: MessageEvent) => {
+      if (event.data.type === 'init-from-osd') {
+        const track = currentTrack.value
+        const artists = track?.artists ?? track?.ar ?? []
+        const currentTime = audioNodes.audio?.currentTime || 0
+        const osdLyrics = _.cloneDeep(lyrics.value)
+        const fallbackTrackInfo = buildOsdFallbackTrackInfo()
+
+        if (!osdLyrics.length) {
+          osdLyrics[0] = {
+            start: 0,
+            end: 0,
+            lyric: {
+              text: fallbackTrackInfo.fallbackTrackText
             }
           }
-
-          window.mainApi?.sendMessage({
-            type: 'update-osd-status',
-            data: {
-              lyrics: toRaw(osdLyrics),
-              isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
-              fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
-              line: [currentIndex.value, currentTime],
-              playing: playing.value,
-              seek: currentTime,
-              rate: playbackRate.value,
-              lyricOffset: [lyricOffset.value, currentTime],
-              title: track
-                ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
-                : '听你想听的音乐',
-              isLiked: isLiked.value,
-              pic: pic.value
-            }
-          })
-        } else if (event.data.type === 'get-seek') {
-          window.mainApi?.sendMessage({
-            type: 'update-osd-status',
-            data: {
-              seek: audioNodes.audio?.currentTime || 0,
-              syncGuard: event.data.source === 'osd-sync-guard'
-            }
-          })
         }
-      })
 
-      watch(currentIndex, (value) => {
-        if (!osdLyricStore.show) return
         window.mainApi?.sendMessage({
           type: 'update-osd-status',
-          data: { line: [value, audioNodes.audio?.currentTime || 0] }
-        })
-      })
-
-      watch(backRate, (value) => {
-        if (osdLyricStore.show)
-          window.mainApi?.sendMessage({
-            type: 'update-osd-status',
-            data: { rate: value }
-          })
-      })
-
-      watch(lyrics, (value) => {
-        if (osdLyricStore.show) {
-          const newLyric = _.cloneDeep(value)
-          const fallbackTrackInfo = buildOsdFallbackTrackInfo()
-
-          if (!newLyric.length) {
-            newLyric[0] = {
-              start: 0,
-              end: 0,
-              lyric: {
-                text: fallbackTrackInfo.fallbackTrackText
-              }
-            }
+          data: {
+            lyrics: toRaw(osdLyrics),
+            isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
+            fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
+            line: [currentIndex.value, currentTime],
+            playing: playing.value,
+            seek: currentTime,
+            rate: playbackRate.value,
+            lyricOffset: [lyricOffset.value, currentTime],
+            title: track
+              ? `${artists[0]?.name || '未知歌手'} - ${track.name}`
+              : '听你想听的音乐',
+            isLiked: isLiked.value,
+            pic: pic.value
           }
+        })
+      } else if (event.data.type === 'get-seek') {
+        window.mainApi?.sendMessage({
+          type: 'update-osd-status',
+          data: {
+            seek: audioNodes.audio?.currentTime || 0,
+            syncGuard: event.data.source === 'osd-sync-guard'
+          }
+        })
+      }
+    }
 
-          const currentTime = audioNodes.audio?.currentTime || 0
+    const handleIpcRenderer = () => {
+      window.addEventListener('message', handleOsdMessage)
+
+      ipcCleanups.push(
+        watch(currentIndex, (value) => {
+          if (!osdLyricStore.show) return
           window.mainApi?.sendMessage({
             type: 'update-osd-status',
-            data: {
-              lyrics: toRaw(newLyric),
-              isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
-              fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
-              // 歌词与当前行/seek 必须原子同步。否则换歌时 OSD sync guard 可能拿
-              // 上一首歌的时间锚点去计算新歌词，短暂把新歌词误判为“已播放”。
-              line: [currentIndex.value, currentTime],
-              seek: currentTime
-            }
+            data: { line: [value, audioNodes.audio?.currentTime || 0] }
           })
-        }
-      })
-
-      watch(
-        () => osdLyricStore.show,
-        (value) => {
-          if (!value) window.mainApi?.closeMessagePort()
-        }
+        })
       )
 
-      window.mainApi?.on('resume', async () => {
+      ipcCleanups.push(
+        watch(backRate, (value) => {
+          if (osdLyricStore.show)
+            window.mainApi?.sendMessage({
+              type: 'update-osd-status',
+              data: { rate: value }
+            })
+        })
+      )
+
+      ipcCleanups.push(
+        watch(lyrics, (value) => {
+          if (osdLyricStore.show) {
+            const newLyric = _.cloneDeep(value)
+            const fallbackTrackInfo = buildOsdFallbackTrackInfo()
+
+            if (!newLyric.length) {
+              newLyric[0] = {
+                start: 0,
+                end: 0,
+                lyric: {
+                  text: fallbackTrackInfo.fallbackTrackText
+                }
+              }
+            }
+
+            const currentTime = audioNodes.audio?.currentTime || 0
+            window.mainApi?.sendMessage({
+              type: 'update-osd-status',
+              data: {
+                lyrics: toRaw(newLyric),
+                isFallbackTrackInfo: fallbackTrackInfo.isFallbackTrackInfo,
+                fallbackTrackText: fallbackTrackInfo.fallbackTrackText,
+                // 歌词与当前行/seek 必须原子同步。否则换歌时 OSD sync guard 可能拿
+                // 上一首歌的时间锚点去计算新歌词，短暂把新歌词误判为“已播放”。
+                line: [currentIndex.value, currentTime],
+                seek: currentTime
+              }
+            })
+          }
+        })
+      )
+
+      ipcCleanups.push(
+        watch(
+          () => osdLyricStore.show,
+          (value) => {
+            if (!value) window.mainApi?.closeMessagePort()
+          }
+        )
+      )
+
+      onPlayerIpc('resume', async () => {
         if (!currentTrack.value) return
         const trackId = currentTrack.value.id
         const savedProgress = _progress.value
@@ -2757,11 +2774,11 @@ export const usePlayerStore = defineStore(
         }
       })
 
-      window.mainApi?.on('play-from-osd', () => {
+      onPlayerIpc('play-from-osd', () => {
         playOrPause()
       })
 
-      window.mainApi?.on('play', () => {
+      onPlayerIpc('play', () => {
         if (
           document.activeElement?.tagName === 'INPUT' ||
           document.activeElement?.classList?.contains('comment-input')
@@ -2770,18 +2787,18 @@ export const usePlayerStore = defineStore(
         }
         playOrPause()
       })
-      window.mainApi?.on('previous', () => {
+      onPlayerIpc('previous', () => {
         if (!isPersonalFM.value) playPrev()
         else moveToFMTrash()
       })
-      window.mainApi?.on('next', () => _playNextTrack(isPersonalFM.value))
-      window.mainApi?.on('repeat', (_: any, value: string) => {
+      onPlayerIpc('next', () => _playNextTrack(isPersonalFM.value))
+      onPlayerIpc('repeat', (_: any, value: string) => {
         repeatMode.value = value
       })
-      window.mainApi?.on('repeat-shuffle', (_: any, value: boolean) => {
+      onPlayerIpc('repeat-shuffle', (_: any, value: boolean) => {
         shuffle.value = value
       })
-      window.mainApi?.on('like', () => {
+      onPlayerIpc('like', () => {
         if (!currentTrack.value) return
         if (currentTrack.value?.type === 'stream') {
           const op = currentTrack.value.starred ? 'unstar' : 'star'
@@ -2790,17 +2807,17 @@ export const usePlayerStore = defineStore(
           likeATrack(currentTrack.value.id)
         }
       })
-      window.mainApi?.on('fm-trash', () => {
+      onPlayerIpc('fm-trash', () => {
         moveToFMTrash()
       })
-      window.mainApi?.on('setPosition', (_: any, value: number) => {
+      onPlayerIpc('setPosition', (_: any, value: number) => {
         seek.value = value
       })
-      window.mainApi?.on('increaseVolume', () => {
+      onPlayerIpc('increaseVolume', () => {
         if (volume.value + 0.1 >= 1) return (volume.value = 1)
         volume.value += 0.1
       })
-      window.mainApi?.on('decreaseVolume', () => {
+      onPlayerIpc('decreaseVolume', () => {
         if (volume.value - 0.1 <= 0) return (volume.value = 0)
         volume.value -= 0.1
       })
@@ -3088,9 +3105,15 @@ export const usePlayerStore = defineStore(
     onMounted(async () => {
       // Restore the independent disk mirror BEFORE sending any pending records.
       await recoverNeteaseListenLedgerBackup()
+      if (disposed) return
       await Promise.all([fetchLocalMusic(), fetchStreamMusic()])
       await nextTick()
+      if (disposed) return
       await setupAudioNode()
+      if (disposed) {
+        destroAudioNode()
+        return
+      }
       startPlaybackHealthWatchdog()
       playing.value = false
       title.value = 'VutronMusic'
@@ -3117,6 +3140,7 @@ export const usePlayerStore = defineStore(
           }
         }
         replaceCurrentTrack(currentTrack.value!.id, false).then(() => {
+          if (disposed) return
           playDiscordPresence(currentTrack.value!, audioNodes.audio!.currentTime)
           setTimeout(() => {
             window.mainApi?.send('updatePlayerState', {
@@ -3137,6 +3161,7 @@ export const usePlayerStore = defineStore(
       ) {
         personalFM()
           .then((result: any) => {
+            if (disposed) return
             const tracks = Array.isArray(result?.data) ? result.data : []
             if (!tracks.length) return
             _personalFMTrack.value = tracks[0] ?? { id: 0 }
@@ -3161,6 +3186,19 @@ export const usePlayerStore = defineStore(
     }
 
     onBeforeUnmount(() => {
+      disposed = true
+      window.removeEventListener('message', handleOsdMessage)
+      for (const cleanup of ipcCleanups.splice(0).reverse()) cleanup()
+      if ('mediaSession' in navigator) {
+        for (const action of [
+          'play', 'pause', 'previoustrack', 'nexttrack', 'stop', 'seekto',
+          'seekbackward', 'seekforward'
+        ] as const) {
+          navigator.mediaSession.setActionHandler(action, null)
+        }
+        navigator.mediaSession.metadata = null
+      }
+      window.mainApi?.closeMessagePort()
       neteasePauseUpload.cancel()
       clearCoverRetryTimer()
       if (currentTrack.value) {
