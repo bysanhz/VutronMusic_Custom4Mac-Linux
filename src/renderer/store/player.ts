@@ -116,10 +116,7 @@ export const usePlayerStore = defineStore(
     // 保存接口返回的原始副歌时间，最终位置统一叠加有效歌词偏移。
     const chorusStartTime = ref(0)
     // =========== newADD end ========
-    const pic = ref<string>(
-      currentTrack.value?.album?.picUrl ||
-        'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
-    )
+    const pic = ref<string>('')
     const playlistSource = ref<{
       type: string
       id: number | string
@@ -1114,7 +1111,7 @@ export const usePlayerStore = defineStore(
       chorusStartTime.value = 0
       chorus.value = 0
       if (pic.value.startsWith('blob:')) URL.revokeObjectURL(pic.value)
-      pic.value = new URL('../assets/images/default.jpg', import.meta.url).href
+      pic.value = ''
       seek.value = resumePosition
 
       if (track.type === 'online') {
@@ -2458,7 +2455,7 @@ export const usePlayerStore = defineStore(
         return getStreamPic(track, size)!
       } else {
         const url = getUsableTrackCoverUrl(track)
-        return buildNeteaseImageUrl(url, size) || 'atom://get-default-pic'
+        return buildNeteaseImageUrl(url, size)
       }
     }
 
@@ -2497,7 +2494,7 @@ export const usePlayerStore = defineStore(
           title: track.name,
           artist: artists.join(','),
           album: track.album?.name ?? track.al?.name,
-          artwork,
+          artwork: artwork.filter((item) => item.src),
           length: ~~((track.dt || track.duration || 1000) / 1000),
           trackId: track.id,
           url: '/trackid/' + track.id,
@@ -2571,7 +2568,11 @@ export const usePlayerStore = defineStore(
     }
 
     const scheduleCoverRetry = (revision: number): void => {
-      if (coverRetryTimer !== null || coverRetryAttempts >= COVER_RETRY_DELAYS_MS.length) return
+      if (coverRetryTimer !== null) return
+      if (coverRetryAttempts >= COVER_RETRY_DELAYS_MS.length) {
+        if (revision === trackLoadRevision) pic.value = 'atom://get-default-pic'
+        return
+      }
       coverRetryTimer = window.setTimeout(() => {
         coverRetryTimer = null
         void recoverCurrentTrackCover(revision)
@@ -2612,8 +2613,9 @@ export const usePlayerStore = defineStore(
       chorus.value = 0
       if (pic.value.startsWith('blob:')) {
         URL.revokeObjectURL(pic.value)
-        pic.value = new URL(`../assets/images/default.jpg`, import.meta.url).href
       }
+
+      pic.value = ''
 
       if (resetBiq) {
         volume.value = 1

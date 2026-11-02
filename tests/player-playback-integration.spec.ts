@@ -387,3 +387,30 @@ test('a null source advances without opening an empty media URL', async () => {
   expect(await app.evaluate(() => (globalThis as any).fixture.requests)).toEqual([1, 2])
   expect(await app.evaluate(() => (globalThis as any).fixture.audioRequests)).toEqual([2])
 })
+
+test('missing artwork stays empty during detail recovery and uses the default only after its finite budget', async () => {
+  let lookups = 0
+  await page.route('**/netease/song/detail?*', async route => {
+    lookups++
+    await route.fulfill({ json: { code: 200, songs: [] } })
+  })
+  await page.clock.install()
+  await play([1])
+  await expect.poll(trackId).toBe(1)
+  await expect.poll(playing).toBe(true)
+  await page.evaluate(() => (window as any).playbackProbe.player.playOrPause())
+  expect(await page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('')
+  for (const [index, delay] of [2000, 5000, 10000, 20000, 40000].entries()) {
+    const response = page.waitForResponse(response => response.url().includes('/netease/song/detail?'))
+    await page.clock.fastForward(delay + 100)
+    await response
+    await expect.poll(() => lookups).toBe(index + 1)
+    if (index < 4) {
+      expect(await page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('')
+    }
+  }
+  await expect.poll(() => page.evaluate(() => (window as any).playbackProbe.player.pic)).toBe('atom://get-default-pic')
+  await page.clock.fastForward(60000)
+  expect(lookups).toBe(5)
+  expect(errors).toEqual([])
+})

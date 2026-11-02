@@ -1,3 +1,4 @@
+import { serveCoverImage } from '../src/main/utils/coverImageResponse'
 import { test, expect } from '@playwright/test'
 import { fetchNeteaseCover } from '../src/main/utils/coverFetch'
 import { resolveRuntimeProxyUrl } from '../src/shared/proxySettings'
@@ -108,4 +109,34 @@ test('media and artwork use the established development environment proxy withou
   ).toBe('http://proxy.test:8080')
   for (const source of ['file:///tmp/file', 'http://proxy.test/path', 'invalid'])
     expect(resolveRuntimeProxyUrl({}, true, source)).toBe('')
+})
+
+test('image protocol reports genuine failures instead of a successful default cover', async () => {
+  let requests = 0
+  const source = 'https://p1.music.126.net/fixture.png'
+  const load = async () => {
+    requests++
+    return { pic: null, format: '' }
+  }
+  expect((await serveCoverImage('http://127.0.0.1/private.png', load)).status).toBe(403)
+  expect(requests).toBe(0)
+  const failed = await serveCoverImage(source, load)
+  expect(failed.status).toBe(502)
+  expect(failed.headers.get('cache-control')).toBe('no-store')
+  expect((await failed.arrayBuffer()).byteLength).toBe(0)
+  const ok = await serveCoverImage(source, async () => ({ pic: png, format: 'image/png' }))
+  expect(ok.status).toBe(200)
+  expect(Buffer.from(await ok.arrayBuffer())).toEqual(png)
+  expect(ok.headers.get('content-type')).toBe('image/png')
+  expect(
+    (
+      await serveCoverImage(source, async () => {
+        throw Error('network unavailable')
+      })
+    ).status
+  ).toBe(502)
+  const controller = new AbortController()
+  controller.abort()
+  expect((await serveCoverImage(source, load, controller.signal)).status).toBe(499)
+  expect(requests).toBe(1)
 })

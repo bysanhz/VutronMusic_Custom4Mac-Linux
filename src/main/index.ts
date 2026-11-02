@@ -43,8 +43,8 @@ import { initAutoUpdater } from './checkUpdate'
 import log from './log'
 import { lyricLine } from '@/types/music'
 import { resolveRuntimeProxyUrl } from '../shared/proxySettings'
-import { isNeteaseAssetUrl } from '../shared/neteaseAssetUrl'
 import { getUsableTrackCoverUrl } from '../shared/trackCover'
+import { serveCoverImage } from './utils/coverImageResponse'
 import { sanitizeWindowScaleBaseline } from './windowScaleBaseline'
 import { resolveMainWindowGeometry, type SavedMainWindowGeometry } from './mainWindowGeometry'
 
@@ -692,27 +692,7 @@ class BackGround {
         return new Response(new Uint8Array(pic))
       } else if (host === 'get-image') {
         const remoteUrl = decodeURIComponent(pathname.slice(1))
-        if (!isNeteaseAssetUrl(remoteUrl)) {
-          const pic = fs.readFileSync(defaultImagePath)
-          return new Response(new Uint8Array(pic), {
-            headers: { 'Content-Type': 'image/jpeg' }
-          })
-        }
-
-        const result = await getPicFromApi(remoteUrl, request.signal)
-        if (!result.pic) {
-          const pic = fs.readFileSync(defaultImagePath)
-          return new Response(new Uint8Array(pic), {
-            headers: { 'Content-Type': 'image/jpeg' }
-          })
-        }
-
-        return new Response(new Uint8Array(result.pic), {
-          headers: {
-            'Content-Type': result.format || 'image/jpeg',
-            'Cache-Control': 'public, max-age=86400'
-          }
-        })
+        return serveCoverImage(remoteUrl, getPicFromApi, request.signal)
       } else if (host === 'get-pic-path') {
         const filePath = pathname.slice(1)
         const track = { matched: false, filePath, album: { picUrl: 'atom://get-default-pic' } }

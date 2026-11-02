@@ -14,12 +14,8 @@ test.beforeAll(async () => {
     cacheDir: join(directory, 'vite-cache'),
     configFile: false,
     root: resolve('tests/fixtures/renderer-resources'),
-    plugins: [Vue()],
+    plugins: [Vue(), {name:'broken-image-route', configureServer(server) { server.middlewares.use('/broken', (_req,res)=>{res.writeHead(503);res.end('unavailable')}) } }],
     server: { host: '127.0.0.1', port: 0, fs: { allow: [resolve('.')] } }
-  })
-  server.middlewares.use('/broken', (_req, res) => {
-    res.writeHead(503)
-    res.end('unavailable')
   })
   await server.listen()
   await build({
@@ -52,6 +48,7 @@ test.beforeAll(async () => {
       }
     ]
   })
+  await build({ entryPoints: ['src/main/utils/coverImageResponse.ts'], platform: 'node', bundle: true, outfile: join(directory, 'cover-response.cjs') })
   writeFileSync(
     join(directory, 'bootstrap.cjs'),
     `
@@ -59,13 +56,15 @@ test.beforeAll(async () => {
     app.setPath('userData',${JSON.stringify(join(directory, 'profile'))}+'-'+process.pid);
     protocol.registerSchemesAsPrivileged([{scheme:'atom',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
     const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=','base64');
-    globalThis.probe={requests:[]};
+    globalThis.probe={requests:[],fail:false};
     app.whenReady().then(()=>{
       require('node:dns/promises').lookup=async()=>[{address:'8.8.8.8',family:4}];
       require('./security.cjs');
+      const {serveCoverImage}=require('./cover-response.cjs');
       protocol.handle('atom',request=>{
         globalThis.probe.requests.push(request.url);
-        return new Response(png,{headers:{'content-type':'image/png'}});
+        if(new URL(request.url).host==='get-default-pic')return new Response(png,{headers:{'content-type':'image/png'}});
+        return serveCoverImage(decodeURIComponent(new URL(request.url).pathname.slice(1)),async()=>({pic:globalThis.probe.fail?null:png,format:'image/png'}),request.signal);
       });
       session.defaultSession.webRequest.onBeforeRequest({urls:['https://p1.music.126.net/*']},(details,callback)=>callback({redirectURL:${JSON.stringify(server.resolvedUrls!.local[0])}+'broken'}));
       new BrowserWindow({show:true,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}}).loadURL(${JSON.stringify(server.resolvedUrls!.local[0])});
@@ -171,4 +170,37 @@ test('cover protocol still rejects private or unrelated remote resources', async
   })
   expect(statuses).toEqual([403, 403])
   expect(await app.evaluate(() => (globalThis as any).probe.requests)).toEqual([])
+})
+
+test('default artwork appears only after CDN and proxy failure, then a new real cover replaces it', async () => {
+  await app.evaluate(() => { (globalThis as any).probe.fail = true })
+  await page.evaluate(() => (window as any).resourceProbe.image('https://p1.music.126.net/failed.png?param=512y512'))
+  const image = page.locator('img')
+  await expect(image).toHaveAttribute('data-vutron-cover-state', 'fallback')
+  await expect(image).toHaveCSS('visibility', 'visible')
+  expect(await image.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1)
+  expect((await page.evaluate(() => (window as any).resourceProbe.diagnostics())).currentImages.fallback).toBe(1)
+  let requests = await app.evaluate(() => (globalThis as any).probe.requests)
+  expect(requests.map((url: string) => new URL(url).host)).toEqual(['get-image', 'get-default-pic'])
+  // Even a failed default image must terminate, without a retry loop.
+  await image.dispatchEvent('error')
+  expect(await app.evaluate(() => (globalThis as any).probe.requests.length)).toBe(2)
+  await app.evaluate(() => { (globalThis as any).probe.fail = false })
+  await page.evaluate(() => (window as any).resourceProbe.image('https://p1.music.126.net/real.png?param=512y512'))
+  await expect(image).toHaveAttribute('data-vutron-cover-state', 'loaded')
+  await expect(image).toHaveCSS('visibility', 'visible')
+  expect(await image.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1)
+  requests = await app.evaluate(() => (globalThis as any).probe.requests)
+  expect(requests.map((url: string) => new URL(url).host)).toEqual(['get-image', 'get-default-pic', 'get-image'])
+  expect(errors).toEqual([])
+})
+
+test('legacy default sources are suppressed and do not block the next real cover', async () => {
+  await page.evaluate(() => (window as any).resourceProbe.image('https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'))
+  await expect(page.locator('img')).toHaveAttribute('data-vutron-cover-state', 'empty')
+  await expect(page.locator('img')).not.toHaveAttribute('src')
+  await expect(page.locator('img')).toHaveCSS('visibility', 'hidden')
+  await page.evaluate(() => (window as any).resourceProbe.image('https://p1.music.126.net/real-after-legacy.png'))
+  await expect(page.locator('img')).toHaveAttribute('data-vutron-cover-state', 'loaded')
+  expect(errors).toEqual([])
 })

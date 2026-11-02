@@ -29,7 +29,7 @@ test.describe('player track-state race guards', () => {
     expect(replaceCurrentTrack).toContain('chorusStartTime.value = 0')
     expect(replaceCurrentTrack).toContain('chorus.value = 0')
     expect(replaceCurrentTrack).toContain(
-      "pic.value = new URL('../assets/images/default.jpg', import.meta.url).href"
+      "pic.value = ''"
     )
   })
 

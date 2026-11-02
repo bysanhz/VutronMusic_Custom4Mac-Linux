@@ -105,6 +105,7 @@ const currentCoverImages = (): HTMLImageElement[] =>
 export const getCoverLoadDiagnostics = () => ({
   currentImages: {
     total: currentCoverImages().length,
+    fallback: currentCoverImages().filter((image) => image.dataset.vutronCoverState === 'fallback').length,
     loaded: currentCoverImages().filter((image) => image.complete && image.naturalWidth > 0).length,
     broken: currentCoverImages().filter(
       (image) => image.complete && image.naturalWidth === 0 && image.getAttribute('src')

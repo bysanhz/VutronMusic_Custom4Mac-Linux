@@ -20,6 +20,7 @@
         <span class="cover-loading-spinner"></span>
       </div>
       <img
+        v-cover-fallback="safeImageUrl"
         :src="displayImageUrl"
         :style="imageStyles"
         :loading="imageLoading"
@@ -36,6 +37,8 @@
 
 <script setup lang="ts">
 import SvgIcon from './SvgIcon.vue'
+import { vCoverFallback } from '../utils/coverImageFallback'
+import { getUsableTrackCoverUrl } from '../../shared/trackCover'
 import { ref, computed, PropType, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../store/player'
@@ -48,7 +51,7 @@ import { getAlbum } from '../api/album'
 import { serviceName } from '@/types/music.d'
 import { observeCoverVisibility } from '../utils/coverVisibility'
 import { recordCoverSource } from '../utils/coverNetworkDiagnostics'
-import { normalizeNeteaseAssetUrl, isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
+import { normalizeNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
 const props = defineProps({
   id: { type: [Number, String], required: true },
@@ -69,14 +72,17 @@ const props = defineProps({
   }
 })
 
-const safeImageUrl = computed(() => normalizeNeteaseAssetUrl(props.imageUrl))
-const recoveredImageUrl = ref('')
-const displayImageUrl = computed(() => recoveredImageUrl.value || safeImageUrl.value)
+const safeImageUrl = computed(() =>
+  normalizeNeteaseAssetUrl(getUsableTrackCoverUrl({ picUrl: props.imageUrl }))
+)
+const displayImageUrl = computed(() => safeImageUrl.value)
 const focus = ref(false)
 const coverContainerRef = ref<HTMLElement>()
 const imageLoaded = ref(false)
 const isNearViewport = ref(false)
-const showImageLoading = computed(() => isNearViewport.value && !imageLoaded.value)
+const showImageLoading = computed(() =>
+  Boolean(safeImageUrl.value) && isNearViewport.value && !imageLoaded.value
+)
 let stopObservingCover: (() => void) | null = null
 
 const handleImageLoad = () => {
@@ -84,26 +90,6 @@ const handleImageLoad = () => {
 }
 
 const handleImageError = () => {
-  // Retry only the same public NetEase artwork without the query string, at most once.
-  const current = displayImageUrl.value
-  if (!recoveredImageUrl.value && isNeteaseAssetUrl(current)) {
-    try {
-      const parsed = new URL(current)
-      if (
-        parsed.search &&
-        !parsed.username &&
-        !parsed.password &&
-        [...parsed.searchParams.keys()].every((key) => key === 'param')
-      ) {
-        parsed.search = ''
-        parsed.hash = ''
-        recoveredImageUrl.value = parsed.toString()
-        return
-      }
-    } catch {
-      // Let malformed sources fail normally.
-    }
-  }
   imageLoaded.value = true
 }
 
@@ -111,7 +97,6 @@ watch(
   () => props.imageUrl,
   (url) => {
     recordCoverSource(url)
-    recoveredImageUrl.value = ''
     imageLoaded.value = false
   },
   { immediate: true }

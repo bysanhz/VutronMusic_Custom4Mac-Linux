@@ -76,12 +76,13 @@
 </template>
 
 <script setup lang="ts">
+import { getUsableTrackCoverUrl } from '../../shared/trackCover'
 import { vCoverFallback } from '../utils/coverImageFallback'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { resolveFeatureLanguage } from '../utils/v327FeatureShared'
 
-const DEFAULT_COVER = 'https://p2.music.126.net/UeTuwE7pvjBpypWLudqukA==/3132508627578625.jpg'
+const DEFAULT_COVER = 'atom://get-default-pic'
 const HEART_MODE_CHANNEL = 'vutronmusic-heart-mode-control'
 const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const OSD_STORAGE_KEY = 'osdLyric'
@@ -139,7 +140,7 @@ const rootRef = ref<HTMLElement | null>(null)
 const isHover = ref(false)
 const isPlaying = ref(false)
 const isLiked = ref(false)
-const coverUrl = ref(DEFAULT_COVER)
+const coverUrl = ref('')
 const heartModeLoading = ref(false)
 const heartModeState = ref<'idle' | 'loading' | 'timeout' | 'success' | 'error'>('idle')
 const heartModeTitle = computed(() => {
@@ -210,9 +211,11 @@ const updatePlayerSnapshot = () => {
   try {
     const player = JSON.parse(localStorage.getItem('player') || '{}')
     const track = player.currentTrack
-    const album = track?.album ?? track?.al
 
-    coverUrl.value = player.pic || album?.picUrl || track?.picUrl || DEFAULT_COVER
+    coverUrl.value =
+      getUsableTrackCoverUrl({ picUrl: player.pic }) ||
+      getUsableTrackCoverUrl(track) ||
+      (player.pic === DEFAULT_COVER ? DEFAULT_COVER : '')
     isPlaying.value = Boolean(player.playing)
   } catch (error) {
     console.warn('[CompactCoverControls] 读取播放器状态失败：', error)
@@ -271,7 +274,10 @@ const handleControlMessage = (event: MessageEvent) => {
     const data = event.data.data ?? {}
     if (typeof data.playing === 'boolean') isPlaying.value = data.playing
     if (typeof data.isLiked === 'boolean') isLiked.value = data.isLiked
-    if (typeof data.pic === 'string' && data.pic.length > 0) coverUrl.value = data.pic
+    if (typeof data.pic === 'string') {
+      coverUrl.value = getUsableTrackCoverUrl({ picUrl: data.pic }) ||
+        (data.pic === DEFAULT_COVER ? DEFAULT_COVER : '')
+    }
     return
   }
 
@@ -305,7 +311,10 @@ const handleOsdStatusMessage = (event: MessageEvent) => {
 
   if (typeof data.isLiked === 'boolean') isLiked.value = data.isLiked
   if (typeof data.playing === 'boolean') isPlaying.value = data.playing
-  if (typeof data.pic === 'string' && data.pic.length > 0) coverUrl.value = data.pic
+  if (typeof data.pic === 'string') {
+    coverUrl.value = getUsableTrackCoverUrl({ picUrl: data.pic }) ||
+      (data.pic === DEFAULT_COVER ? DEFAULT_COVER : '')
+  }
 }
 
 const handlePlayingStatus = (_event: unknown, value: boolean) => {
