@@ -159,6 +159,29 @@
         180
       ],
       "zoomFactor": 2.588765656026872
+    },
+    {
+      "file": "desktop-lyrics-small-controls.webp",
+      "width": 1100,
+      "height": 180,
+      "bytes": 46654,
+      "sha256": "8c6d35a4a9e45cd120c6784e00bb56d11d96fa08e5e1fdbbb4f859485628d949",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1100,
+        180
+      ],
+      "zoomFactor": 2.588765656026872,
+      "interaction": "Pointer hovering over the cover; six control buttons visible; no button clicked",
+      "buttonTitles": [
+        "上一首",
+        "播放",
+        "下一首",
+        "显示或隐藏主窗口",
+        "根据我喜欢的音乐开启心动模式",
+        "加入喜欢"
+      ]
     }
   ]
 }
