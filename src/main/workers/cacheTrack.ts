@@ -4,6 +4,9 @@ import { extname, join } from 'node:path'
 import { fileTypeFromBuffer } from 'file-type'
 import { downloadPublicBuffer } from '../security/workerHttp'
 import { resizeCover } from '../utils/resizeCover'
+import { parseBuffer } from 'music-metadata'
+import { audioIdentityMismatch } from '../../shared/audioIdentity'
+import { metadataIdentity } from '../utils/cachedAudioIdentity'
 
 const MAX_AUDIO_CACHE_BYTES = 1536 * 1024 * 1024
 const MAX_COVER_BYTES = 20 * 1024 * 1024
@@ -151,6 +154,9 @@ const runCacheTask = async (track: Record<string, any>, url: string, audioCacheP
   // HTTP 200 并不等于拿到了音频。错误页/登录页送进 TagLib 会产生 INVALID_FORMAT。
   // 先结合 Content-Type、文件头与 file-type 做快速校验，再进入元数据写入。
   const validatedContentType = await validateAudioPayload(audio.buffer, audio.contentType)
+  const metadata = await parseBuffer(audio.buffer, { mimeType: validatedContentType }, { skipCovers: true })
+  const mismatch = audioIdentityMismatch(track, metadataIdentity(metadata), false)
+  if (mismatch) throw new Error(`AUDIO_IDENTITY_${mismatch.toUpperCase()}`)
   const resolvedUrl = new URL(audio.url)
   const filePath = getFilePath(track, resolvedUrl, validatedContentType, audioCachePath)
   const modifiedBuffer = await updateMetadata(audio.buffer, track)

@@ -1,0 +1,25 @@
+{
+  "fullSuite": {
+    "startTime": "2026-11-03T02:58:17.898Z",
+    "duration": 81138.027,
+    "expected": 424,
+    "skipped": 2,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "focusedIdentityTests": 8,
+  "typeCheck": "passed",
+  "lint": "passed",
+  "buildPre": "passed",
+  "liveBodian": "rejected wrong candidate",
+  "existingCache": "title_mismatch; file preserved",
+  "pausedResumeBaseline": {
+    "startTime": "2026-11-03T02:59:09.289Z",
+    "duration": 11610.707,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "pausedResumeFixed": "passed"
+}

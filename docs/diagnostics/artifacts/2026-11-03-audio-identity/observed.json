@@ -1,0 +1,37 @@
+{
+  "trackId": 1900247879,
+  "displayName": "落日微风",
+  "artists": ["张德伊玲"],
+  "catalogDurationMs": 188672,
+  "source": "bodian",
+  "cacheDuringReportedPlayback": false,
+  "audioHost": "bd-er.kuwo.cn",
+  "mediaDurationSeconds": 259.5,
+  "trackLoadRevision": 8,
+  "mediaLoadRevision": 8,
+  "sourceRetryCount": 0,
+  "recoveryCount": 0,
+  "actualMediaMetadata": {
+    "duration": 259.5,
+    "format": "flac",
+    "tags": {
+      "TITLE": "雨爱",
+      "ARTIST": "张德伊玲",
+      "ALBUM": "雨爱"
+    }
+  },
+  "legacyCacheCheck": {
+    "trackId": 1900247879,
+    "expectedName": "落日微风",
+    "expectedDurationMs": 188672,
+    "cacheFileExists": true,
+    "actualTitle": "雨爱",
+    "actualArtist": "张德伊玲",
+    "actualDurationMs": 259500,
+    "rejection": "title_mismatch"
+  },
+  "liveFixedBodianCheck": {
+    "trackId": 1900247879,
+    "status": "rejected_no_matching_candidate"
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "installedAsarMatchesBuild": true,
+  "sourceRecords": [
+    {
+      "id": 1,
+      "at": "2026-11-03T03:04:34.778Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "cache",
+      "phase": "identity-rejected",
+      "error": "title_mismatch"
+    },
+    {
+      "id": 2,
+      "at": "2026-11-03T03:04:34.778Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "pyncmd",
+      "phase": "resolved",
+      "apiAttempts": 1,
+      "error": "ERR_BAD_RESPONSE",
+      "available": true,
+      "elapsedMs": 13065,
+      "host": "m801.music.126.net"
+    },
+    {
+      "id": 3,
+      "at": "2026-11-03T03:04:36.285Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "bodian",
+      "phase": "candidate-rejected",
+      "error": "candidate_identity_mismatch"
+    },
+    {
+      "id": 4,
+      "at": "2026-11-03T03:04:36.326Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "kuwo",
+      "phase": "candidate-rejected",
+      "error": "candidate_identity_mismatch"
+    },
+    {
+      "id": 5,
+      "at": "2026-11-03T03:04:36.675Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "kugou",
+      "phase": "candidate-rejected",
+      "error": "candidate_identity_mismatch"
+    },
+    {
+      "id": 6,
+      "at": "2026-11-03T03:04:45.366Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "ytdlp",
+      "phase": "candidate-rejected",
+      "error": "source_unavailable_or_unverified"
+    },
+    {
+      "id": 7,
+      "at": "2026-11-03T03:04:46.202Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "qq",
+      "phase": "candidate-rejected",
+      "error": "source_unavailable_or_unverified"
+    },
+    {
+      "id": 8,
+      "at": "2026-11-03T03:04:46.576Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "bilibili",
+      "phase": "candidate-rejected",
+      "error": "candidate_identity_mismatch"
+    },
+    {
+      "id": 9,
+      "at": "2026-11-03T03:04:47.773Z",
+      "kind": "source",
+      "trackId": "1900247879",
+      "source": "pyncmd",
+      "phase": "direct-id-source"
+    },
+    {
+      "id": 10,
+      "at": "2026-11-03T03:04:47.920Z",
+      "kind": "proxy",
+      "trackId": "1900247879",
+      "revision": 1,
+      "host": "m801.music.126.net",
+      "phase": "cancelled",
+      "redirects": 0,
+      "status": 206,
+      "elapsedMs": 54,
+      "contentType": "audio/mpeg",
+      "contentLength": "37248827",
+      "acceptRanges": null,
+      "contentRange": "bytes 0-37248826/37248827",
+      "contentEncoding": "identity",
+      "decoded": false,
+      "firstByteMs": 48,
+      "signature": "flac",
+      "bytes": 118516,
+      "interrupted": true,
+      "error": "ERR_INVALID_STATE"
+    },
+    {
+      "id": 11,
+      "at": "2026-11-03T03:04:47.975Z",
+      "kind": "proxy",
+      "trackId": "1900247879",
+      "revision": 1,
+      "host": "m801.music.126.net",
+      "phase": "cancelled",
+      "redirects": 0,
+      "status": 206,
+      "elapsedMs": 15082,
+      "contentType": "audio/mpeg",
+      "contentLength": "13786939",
+      "acceptRanges": null,
+      "contentRange": "bytes 23461888-37248826/37248827",
+      "contentEncoding": "identity",
+      "decoded": false,
+      "firstByteMs": 68,
+      "signature": "unknown",
+      "bytes": 4177544,
+      "interrupted": true
+    }
+  ],
+  "verifiedNewCache": {
+    "id": 1900247879,
+    "name": "落日微风",
+    "source": "pyncmd",
+    "cache": true,
+    "expectedDurationMs": 188672,
+    "actualTitle": "落日微风",
+    "actualArtist": "张德伊玲",
+    "actualDurationMs": 188672,
+    "rejection": null
+  },
+  "sameCachePathAsBefore": true,
+  "diagnosticBind": "127.0.0.1"
+}

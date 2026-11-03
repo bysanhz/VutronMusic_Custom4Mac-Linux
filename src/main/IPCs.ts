@@ -792,13 +792,14 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
    * 歌曲id，用来获取track信息，url 是歌曲链接，可能是官方链接也可能是解灰链接，
    * 用来获取歌曲音频流
    */
-  ipcMain.on('cacheATrack', async (event, da: { id: number; url: string }) => {
+  ipcMain.on('cacheATrack', async (event, da: { id: number; url: string; source?: string }) => {
     const res = await getTrackDetail(da.id.toString())
     if (!res || !res.songs?.length) {
       log.error('Get track failed, id = ', da.id)
       return
     }
     const track = res.songs[0]
+    track.source = typeof da.source === 'string' ? da.source.slice(0, 32) : 'unknown'
     const audioCachePath =
       (store.get('settings.autoCacheTrack.path') as string) ||
       path.join(app.getPath('userData'), 'audioCache')

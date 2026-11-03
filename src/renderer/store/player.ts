@@ -882,7 +882,7 @@ export const usePlayerStore = defineStore(
         currentPlayingPath: track.filePath
       })
       if (track.type === 'online' && !track.cache && settingsStore.autoCacheTrack.enable) {
-        window.mainApi?.send('cacheATrack', { id: track.id, url: track.url })
+        window.mainApi?.send('cacheATrack', { id: track.id, url: track.url, source: track.source })
       }
 
       await getCurrentTrackInfo(track, revision)
@@ -1128,7 +1128,12 @@ export const usePlayerStore = defineStore(
 
       if (!source) {
         showToast(track.reason || t('toast.audioSourceUnavailable', { name: track.name }))
-        advanceAfterPlaybackFailure()
+        const shouldAdvance = autoPlay && playbackWanted
+        audioNodes.audio?.pause()
+        audioNodes.audio?.removeAttribute('src')
+        audioNodes.audio?.load()
+        playing.value = false
+        if (shouldAdvance) advanceAfterPlaybackFailure()
         return false
       }
 
@@ -1517,7 +1522,7 @@ export const usePlayerStore = defineStore(
 
     const getLocalMusic = async (id: number): Promise<Track | undefined> => {
       let matchTrack = getALocalTrack({ id })
-      if (matchTrack) {
+      if (matchTrack?.type === 'local') {
         if (!isLocalList.value) {
           showToast(t('toast.usingLocalFile'))
         }

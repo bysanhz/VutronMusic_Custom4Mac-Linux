@@ -37,7 +37,8 @@ import {
 import { CacheAPIs } from './utils/CacheApis'
 import { proxyFetch } from './utils/proxyFetch'
 import { serveAudioProxy } from './utils/audioProxyResponse'
-import { audioFailureCode } from './utils/audioDiagnostics'
+import { audioFailureCode, beginAudioDiagnostic } from './utils/audioDiagnostics'
+import { cachedAudioMismatch } from './utils/cachedAudioIdentity'
 import { registerGlobalShortcuts } from './globalShortcut'
 import { initAutoUpdater } from './checkUpdate'
 import log from './log'
@@ -820,6 +821,15 @@ class BackGround {
               res = cache.get(CacheAPIs.Track, { ids })
               if (res) {
                 let track = res.songs[0]
+                if (track.type !== 'local' && track.cache) {
+                  const mismatch = await cachedAudioMismatch(track)
+                  if (mismatch) {
+                    beginAudioDiagnostic({ kind: 'source', trackId: String(track.id),
+                      source: 'cache', phase: 'identity-rejected', error: mismatch })
+                    // Keep the user's file; never replay mismatched bytes under this song ID.
+                    track = { ...track, cache: false, url: '' }
+                  }
+                }
                 const hasCover = Boolean(getUsableTrackCoverUrl(track))
 
                 if (track?.type !== 'local' && !hasCover) {

@@ -641,3 +641,24 @@ test('missing artwork stays empty during detail recovery and uses the default on
   expect(lookups).toBe(5)
   expect(errors).toEqual([])
 })
+
+test('an unavailable paused resume clears old bytes without advancing or starting the next song', async () => {
+  await play([1, 2])
+  await expect.poll(playing).toBe(true)
+  await page.evaluate(() => (window as any).playbackProbe.player.playOrPause())
+  await expect.poll(playing).toBe(false)
+  await setMode(1, 'unavailable')
+  await page.evaluate(() => (window as any).playbackProbe.handlers.resume())
+  await expect.poll(() => app.evaluate(() => (globalThis as any).fixture.requests)).toEqual([1, 1])
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as any).playbackProbe.audioElements[0].getAttribute('src'))
+    )
+    .toBeNull()
+  await expect.poll(trackId).toBe(1)
+  expect(await playing()).toBe(false)
+  expect(await page.evaluate(() => (window as any).playbackProbe.audioElements[0].paused)).toBe(
+    true
+  )
+  expect(errors).toEqual([])
+})

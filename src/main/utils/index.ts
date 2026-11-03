@@ -1,4 +1,5 @@
 import { fetchNeteaseCover } from './coverFetch'
+import { matchVerifiedUnblock } from './unblockMatcher'
 import { createHash } from 'node:crypto'
 import {
   beginAudioDiagnostic,
@@ -748,8 +749,6 @@ export const getAudioSourceFromUnblock = async (track: any) => {
   process.env.ENABLE_FLAC = enableFlac ? 'true' : 'false'
   process.env.FOLLOW_SOURCE_ORDER = orderFirst ? 'true' : 'false'
 
-  const match = require('@unblockneteasemusic/server')
-
   const proxy = store.get('settings.proxy') as { type: 0 | 1 | 2; address: string; port: string }
   const map = { 1: 'http', 2: 'https' }
   const url =
@@ -757,7 +756,7 @@ export const getAudioSourceFromUnblock = async (track: any) => {
 
   global.proxy = url
 
-  return match(track.id, sourceList).catch((error) => {
+  return matchVerifiedUnblock(track, sourceList).catch((error) => {
     log.warn('[AudioSource] UNM lookup failed', { code: audioFailureCode(error) })
     return null
   })
