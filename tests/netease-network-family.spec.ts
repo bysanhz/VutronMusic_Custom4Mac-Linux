@@ -82,15 +82,24 @@ test('embedded API applies the policy to its real transport, rechecks interfaces
     writeFileSync(
       script,
       `
-      const assert=require('node:assert/strict'),os=require('node:os');
+      const assert=require('node:assert/strict'),os=require('node:os'),dns=require('node:dns');
       const ipv4={family:'IPv4',address:'192.168.1.2',internal:false};
       const ipv6={family:'IPv6',address:'2001:db8::1',internal:false};
       let interfaces={eth:[ipv4,{family:'IPv6',address:'fe80::1',internal:false}]};
       os.networkInterfaces=()=>interfaces;
       const axios=require(require.resolve('axios',{paths:[require.resolve('@neteasecloudmusicapienhanced/api')]}));
       const seen=[];let fail=false;
+      const ipv4Answer={address:'127.0.0.2',family:4},ipv6Answer={address:'::1',family:6};
+      let dnsAnswers=[ipv6Answer,ipv4Answer];
+      const originalLookup=dns.lookup;
+      dns.lookup=(host,options,cb)=>{
+        if(host!=='interfacepc.music.163.com')return originalLookup(host,options,cb);
+        assert.equal(options.order,'ipv4first');
+        const addresses=dnsAnswers.slice().sort((a,b)=>a.family-b.family);
+        if(options.all)cb(null,addresses);else cb(null,addresses[0].address,addresses[0].family);
+      };
       axios.defaults.adapter=async config=>{
-        seen.push({family:config.family,timeout:config.timeout,host:new URL(config.url).hostname});
+        seen.push({family:config.family,timeout:config.timeout,lookup:config.lookup,host:new URL(config.url).hostname});
         if(fail)throw Object.assign(Error('connect ETIMEDOUT'),{code:'ETIMEDOUT'});
         return {config,status:200,statusText:'OK',headers:{},data:{code:200,data:{}}};
       };
@@ -104,6 +113,23 @@ test('embedded API applies the policy to its real transport, rechecks interfaces
         }
         interfaces={eth:[ipv4,ipv6]};
         await api.listen_data_total({cookie:{}});assert.equal(seen.at(-1).family,undefined);
+        const dualLookup=seen.at(-1).lookup;
+        assert.equal(typeof dualLookup,'function');
+        const resolveAll=()=>new Promise((resolve,reject)=>dualLookup('interfacepc.music.163.com',{all:true},(err,result)=>err?reject(err):resolve(result)));
+        assert.deepEqual(await resolveAll(),[ipv4Answer,ipv6Answer]);
+        dnsAnswers=[ipv6Answer];assert.deepEqual(await resolveAll(),[ipv6Answer]);
+        dnsAnswers=[ipv6Answer,ipv4Answer];
+        // Exercise Node's real fallback: IPv4 is refused, IPv6 remains usable.
+        const net=require('node:net'),server=net.createServer(socket=>socket.end());
+        await new Promise((resolve,reject)=>server.once('error',reject).listen(0,'::1',resolve));
+        try{
+          await new Promise((resolve,reject)=>{
+            const socket=net.connect({host:'interfacepc.music.163.com',port:server.address().port,lookup:dualLookup});
+            socket.setTimeout(3000,()=>socket.destroy(Error('fallback timeout')));
+            socket.once('error',reject);
+            socket.once('connect',()=>{assert.equal(socket.remoteFamily,'IPv6');socket.destroy();resolve()});
+          });
+        }finally{await new Promise(resolve=>server.close(resolve))}
         interfaces={eth:[ipv6]};
         await api.listen_data_total({cookie:{}});assert.equal(seen.at(-1).family,6);
         await api.listen_data_total({cookie:{},timeout:5000});assert.equal(seen.at(-1).timeout,5000);

@@ -1,6 +1,23 @@
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os'
 import { Agent as HttpsAgent } from 'node:https'
-import type { AxiosInstance } from 'axios'
+import type { AxiosInstance, AxiosRequestConfig } from 'axios'
+import { lookup } from 'node:dns'
+
+// NetEase's IPv6 path can accept TCP/TLS and reset the HTTP exchange. Prefer
+// IPv4 on dual-stack networks, retaining AAAA candidates for Node's fallback.
+const lookupIpv4First: NonNullable<AxiosRequestConfig['lookup']> = (
+  hostname,
+  options,
+  callback
+) => {
+  lookup(hostname, { ...options, all: true, order: 'ipv4first' }, (error, addresses) => {
+    // Axios normalizes this list for Node's all/single-address lookup contracts.
+    callback(
+      error,
+      (addresses || []).map(({ address, family }) => ({ address, family: family === 6 ? 6 : 4 }))
+    )
+  })
+}
 
 /** Link-local IPv6 does not provide a route to NetEase's public AAAA addresses. */
 export const getNeteaseDirectFamily = (
@@ -50,6 +67,7 @@ export const installNeteaseNetworkFamily = (client: AxiosInstance): (() => void)
     // usable address before a delayed TCP handshake/retransmission completes.
     const family = getNeteaseDirectFamily()
     if (family !== undefined) config.family = family
+    else config.lookup = lookupIpv4First
     // The renderer gives up after 15s; keep the upstream request bounded too
     // instead of leaving an OS TCP connect alive after its caller has timed out.
     if (!config.timeout) config.timeout = 15_000
