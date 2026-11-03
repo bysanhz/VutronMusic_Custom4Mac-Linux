@@ -12,6 +12,7 @@ import { summarizeNeteaseFailure } from '../utils/neteaseFailure'
 import { getDevSystemProxy, withDevSystemProxy } from './devSystemProxy'
 import { prepareNeteaseRequestParams } from './neteaseRequestParams'
 import Constants from '../utils/Constants'
+import { installNeteaseNetworkFamily } from './neteaseNetworkFamily'
 
 const configureSystemTrustedCAs = () => {
   const getCACertificates = (tls as any).getCACertificates as
@@ -86,6 +87,13 @@ async function netease(fastify: FastifyInstance) {
     log.warn('[Netease] 上游日志格式已变化，将仅对应用日志做脱敏')
   }
   const NeteaseCloudMusicApi = require('@neteasecloudmusicapienhanced/api')
+  // Use the dependency's actual Axios instance (the app's bundled instance may
+  // differ). Leave explicit proxies, custom lookup and other clients unchanged.
+  const apiAxios = require(
+    require.resolve('axios', { paths: [require.resolve('@neteasecloudmusicapienhanced/api')] })
+  )
+  const removeNetworkFamily = installNeteaseNetworkFamily(apiAxios.default || apiAxios)
+  fastify.addHook('onClose', async () => removeNetworkFamily())
   const getHandler = (name: string, neteaseApi: (params: any) => any) => {
     return async (
       req: FastifyRequest<{ Querystring: { [key: string]: string } }>,
