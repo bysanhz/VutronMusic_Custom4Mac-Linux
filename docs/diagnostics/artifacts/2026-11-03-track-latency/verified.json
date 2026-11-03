@@ -49,7 +49,7 @@
     },
     "mainChunk": "dist/main/index-BiAEqkCf.js"
   },
-  "installedRuntimeVerification": "pending application restart",
+  "installedRuntimeVerification": "completed; see installed-verification.json",
   "finalFocusedTests": {
     "passed": 11,
     "failed": 0
