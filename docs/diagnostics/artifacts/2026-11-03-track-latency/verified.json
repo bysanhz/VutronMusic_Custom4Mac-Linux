@@ -1,0 +1,57 @@
+{
+  "baseCommit": "ddc6e5e9bd5b0b0175f3df09e3f112107c514267",
+  "date": "2026-11-03",
+  "environment": {
+    "platform": "Linux",
+    "electron": "37.10.3",
+    "neteaseApi": "4.40.1",
+    "unblock": "0.28.0"
+  },
+  "officialProtocolComparison": [
+    {
+      "crypto": "xeapi",
+      "http": 500,
+      "code": 500,
+      "available": false,
+      "trial": false,
+      "ms": 6,
+      "message": "xeapi public key is missing"
+    },
+    {
+      "crypto": "eapi",
+      "http": 200,
+      "code": 200,
+      "available": true,
+      "trial": false,
+      "level": "hires",
+      "itemCode": 200,
+      "ms": 190,
+      "message": ""
+    }
+  ],
+  "observedPriorSourceResolutionMs": [16358, 13435, 14552, 26855],
+  "priorSourceDurationsAreControlledBenchmark": false,
+  "fullPlaywright": {
+    "passed": 427,
+    "skipped": 2,
+    "failed": 0
+  },
+  "lint": "passed",
+  "buildPre": "passed",
+  "typeCheck": "passed (build:pre)",
+  "changedFileFormatting": "passed",
+  "package": {
+    "file": "release/local-track-latency-ddc6e5e/VutronMusic-4.0.0-beta.1_linux_amd64.deb",
+    "sha256": "6d6f7b1fa657ba34f2480440d7f258384bb0d7b50da4c50b98603f350f78f771",
+    "checks": {
+      "mainFilesMatchBuild": true,
+      "unverifiableSkipEmbedded": true
+    },
+    "mainChunk": "dist/main/index-BiAEqkCf.js"
+  },
+  "installedRuntimeVerification": "pending application restart",
+  "finalFocusedTests": {
+    "passed": 11,
+    "failed": 0
+  }
+}

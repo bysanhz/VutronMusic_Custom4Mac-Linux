@@ -187,7 +187,7 @@ for (const mode of ['baseline', 'verified']) {
   })
 }
 
-test('parallel providers cannot borrow another provider validation receipt; unverified video hits are rejected', async () => {
+test('parallel providers cannot borrow another provider validation receipt', async () => {
   const dir = mkdtempSync(resolve('tmp/unblock-isolation-'))
   try {
     const adapter = join(dir, 'adapter.cjs')
@@ -203,8 +203,8 @@ test('parallel providers cannot borrow another provider validation receipt; unve
       `
       process.env.FOLLOW_SOURCE_ORDER='';const assert=require('assert/strict');
       const requestPath=require.resolve('@unblockneteasemusic/server/src/request');require(requestPath);
-      const spawnPath=require.resolve('@unblockneteasemusic/server/src/spawn');require(spawnPath);
-      require.cache[spawnPath].exports.spawnStdout=async()=>{await new Promise(r=>setTimeout(r,10));return {stdout:Buffer.from(JSON.stringify({id:'video',url:'https://example.com/unsafe.flac'}))}};
+      const qqPath=require.resolve('@unblockneteasemusic/server/src/provider/qq');require(qqPath);
+      require.cache[qqPath].exports.check=async()=>{await new Promise(r=>setTimeout(r,10));return 'https://example.com/unsafe.flac'};
       let unsafeProbes=0;
       require.cache[requestPath].exports=async(method,url)=>{
         if(url.includes('unsafe.flac'))unsafeProbes++;
@@ -215,12 +215,58 @@ test('parallel providers cannot borrow another provider validation receipt; unve
           return {};
         }};
       };
-      (async()=>{const result=await require(${JSON.stringify(adapter)}).matchVerifiedUnblock(${JSON.stringify(expected)},['bodian','ytdlp']);assert.equal(result.url,'https://example.com/safe.flac');assert.equal(unsafeProbes,0);console.log('receipt-isolation-passed')})().catch(e=>{console.error(e);process.exitCode=1});
+      (async()=>{const result=await require(${JSON.stringify(adapter)}).matchVerifiedUnblock(${JSON.stringify(expected)},['bodian','qq']);assert.equal(result.url,'https://example.com/safe.flac');assert.equal(unsafeProbes,0);console.log('receipt-isolation-passed')})().catch(e=>{console.error(e);process.exitCode=1});
     `
     )
     expect(
       execFileSync(process.execPath, [script], { encoding: 'utf8', timeout: 15000 })
     ).toContain('receipt-isolation-passed')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('ordered fallback skips unverifiable video searches before reaching the direct ID provider', async () => {
+  const dir = mkdtempSync(resolve('tmp/unblock-video-skip-'))
+  try {
+    const adapter = join(dir, 'adapter.cjs')
+    await build({
+      entryPoints: ['src/main/utils/unblockMatcher.ts'],
+      outfile: adapter,
+      bundle: true,
+      platform: 'node'
+    })
+    const script = join(dir, 'probe.cjs')
+    writeFileSync(
+      script,
+      `
+      process.env.FOLLOW_SOURCE_ORDER='true';const assert=require('node:assert/strict');
+      const requestPath=require.resolve('@unblockneteasemusic/server/src/request');require(requestPath);
+      const spawnPath=require.resolve('@unblockneteasemusic/server/src/spawn');require(spawnPath);
+      let spawned=0;const requested=[];
+      require.cache[spawnPath].exports.spawnStdout=async()=>{
+        spawned++;return {stdout:Buffer.from(JSON.stringify({id:'video',url:'https://example.com/unsafe.flac'}))};
+      };
+      require.cache[requestPath].exports=async(method,url)=>{
+        requested.push(url);
+        return {statusCode:200,url:new URL(url),headers:{'content-length':'8192'},
+          body:async()=>Buffer.alloc(8192),json:async()=>({url:'https://example.com/direct.flac',br:320})};
+      };
+      (async()=>{
+        const result=await require(${JSON.stringify(adapter)}).matchVerifiedUnblock(
+          ${JSON.stringify(expected)},['youtube','youtubedl','ytdlp','pyncmd']);
+        assert.equal(result.source,'pyncmd');
+        assert.equal(spawned,0);
+        assert.equal(requested.length,2);
+        assert.ok(requested[0].startsWith('https://music-api.gdstudio.xyz/'));
+        assert.equal(requested[1],'https://example.com/direct.flac');
+        console.log('ordered-unverifiable-sources-skipped');
+      })().catch(e=>{console.error(e);process.exitCode=1});
+      `
+    )
+    expect(
+      execFileSync(process.execPath, [script], { encoding: 'utf8', timeout: 15000 })
+    ).toContain('ordered-unverifiable-sources-skipped')
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

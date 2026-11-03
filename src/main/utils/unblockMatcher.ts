@@ -35,6 +35,18 @@ const loadVerifiedMatcher = () => {
   for (const [source, provider] of Object.entries(providers) as Array<[string, any]>) {
     const check = provider.check
     provider.check = async (info: SongInfo) => {
+      // UNM 0.28 discards the search metadata in these providers. Their URLs
+      // already fail our identity check; reject before spawning a slow search.
+      if (['youtube', 'youtubedl', 'ytdlp'].includes(source)) {
+        beginAudioDiagnostic({
+          kind: 'source',
+          trackId: String(info.id),
+          source,
+          phase: 'candidate-skipped',
+          error: 'provider_identity_unverifiable'
+        })
+        throw new Error('UNM_IDENTITY_UNVERIFIED')
+      }
       const key = JSON.stringify([info.id, info.name, info.duration, info.artists, info.keyword])
       let perSource = inputs.get(key)
       if (!perSource) {
