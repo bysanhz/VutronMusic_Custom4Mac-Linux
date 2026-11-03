@@ -1,47 +1,164 @@
 {
   "capturedOn": "2026-11-03",
   "timezone": "Asia/Shanghai",
-  "sourceCommit": "672ef633b11ee4751889db9cab994b0b23247bf9",
-  "platform": "Linux X11 (Xvfb)",
   "electron": "37.10.3",
-  "windowSize": [
-    1400,
-    980
-  ],
-  "zoomFactor": 1.5869792971156504,
-  "theme": "light / rainbow",
+  "platform": "Linux X11, isolated Xvfb for non-account screenshots",
+  "theme": "light / rainbow; desktop lyrics with user-selectable dark background",
   "locale": "zh",
-  "profile": "isolated, not signed in",
-  "media": "Self-generated silent FLAC, original LRC and project-owned scene artwork; path-first lyric priority",
-  "capture": "Electron webContents.capturePage, lossless WebP encoding, no content retouching",
+  "capture": "Electron capturePage / local CDP screenshot; lossless WebP, optional region crop, no content retouching",
+  "footprintAudioUnchanged": true,
+  "isolatedCaptureErrors": [],
   "images": [
     {
       "file": "home.webp",
       "width": 1400,
       "height": 980,
       "bytes": 565206,
-      "sha256": "9503e8665b0f36de7e59ad4de32347381a98b9d2e307dc37a92580c46fb5955c"
+      "sha256": "9503e8665b0f36de7e59ad4de32347381a98b9d2e307dc37a92580c46fb5955c",
+      "sourceCommit": "672ef633b11ee4751889db9cab994b0b23247bf9",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1400,
+        980
+      ],
+      "zoomFactor": 1.5869792971156504
     },
     {
       "file": "heart-mode.webp",
       "width": 1400,
       "height": 980,
       "bytes": 440928,
-      "sha256": "b6623b0481fa4925ce32465a3af060fdfb1aaeedabdb453b6189e530a72158f7"
+      "sha256": "b6623b0481fa4925ce32465a3af060fdfb1aaeedabdb453b6189e530a72158f7",
+      "sourceCommit": "672ef633b11ee4751889db9cab994b0b23247bf9",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1400,
+        980
+      ],
+      "zoomFactor": 1.5869792971156504
+    },
+    {
+      "file": "footprint.webp",
+      "width": 1405,
+      "height": 254,
+      "bytes": 16178,
+      "sha256": "2acf2b056a523dfd8f61c1c3b556700edbf5077478b5c2fb9f9b76b42ea60f80",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "existing logged-in app, aggregate region only",
+      "cropCss": {
+        "x": 155.993896484375,
+        "y": 130.2906494140625,
+        "width": 752.1989135742188,
+        "height": 135.99876403808594,
+        "innerWidth": 964,
+        "innerHeight": 535
+      }
+    },
+    {
+      "file": "footprint-trend.webp",
+      "width": 1405,
+      "height": 540,
+      "bytes": 23844,
+      "sha256": "b037f70a14a97a45d2481904f966fb03aa93d7d0ea554ad10cb61b9bcd672bce",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "existing logged-in app, aggregate region only",
+      "cropCss": {
+        "x": 155.993896484375,
+        "y": 130.0144500732422,
+        "width": 752.1989135742188,
+        "height": 289.14697265625,
+        "innerWidth": 964,
+        "innerHeight": 535
+      }
+    },
+    {
+      "file": "window-wide.webp",
+      "width": 1800,
+      "height": 1000,
+      "bytes": 702110,
+      "sha256": "b011b7d62bb46447bb413bbb3689a32e3217e5d03e5fbc29cc429de4608458ee",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1800,
+        1000
+      ],
+      "zoomFactor": 1.8173654556442096
+    },
+    {
+      "file": "window-narrow.webp",
+      "width": 900,
+      "height": 1000,
+      "bytes": 392334,
+      "sha256": "aba5177381b5ed35c246f2063e1b7830de135408051ddab3dbcbcd455125c906",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        900,
+        1000
+      ],
+      "zoomFactor": 1.2847553016170914
+    },
+    {
+      "file": "window-settings.webp",
+      "width": 780,
+      "height": 457,
+      "bytes": 19584,
+      "sha256": "e7cad6132c4ffd61908650149f8a373f6d67c2419f7f360afc9a55b7dba03804",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1400,
+        980
+      ],
+      "crop": {
+        "left": 492,
+        "top": 413,
+        "width": 780,
+        "height": 457
+      }
     },
     {
       "file": "lyrics.webp",
       "width": 1400,
       "height": 980,
       "bytes": 597474,
-      "sha256": "8a7c5fb2e9bf7315e44c3559e595f733b4675caca21f6b3930717dda96466e61"
+      "sha256": "8a7c5fb2e9bf7315e44c3559e595f733b4675caca21f6b3930717dda96466e61",
+      "sourceCommit": "672ef633b11ee4751889db9cab994b0b23247bf9",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1400,
+        980
+      ],
+      "zoomFactor": 1.5869792971156504
     },
     {
-      "file": "runtime-memory.webp",
-      "width": 1400,
-      "height": 980,
-      "bytes": 454384,
-      "sha256": "2d657e48f38406635cd6748864b63044eae6528459b0c209613fb6dd61c378f9"
+      "file": "desktop-lyrics-normal.webp",
+      "width": 1100,
+      "height": 400,
+      "bytes": 13412,
+      "sha256": "05a9bac8d9b018edd1f29710ee29555934e9b8388783b60532d8af70a4f7ca55",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1100,
+        400
+      ],
+      "zoomFactor": 1.310713069287096
+    },
+    {
+      "file": "desktop-lyrics-small.webp",
+      "width": 1100,
+      "height": 180,
+      "bytes": 93074,
+      "sha256": "aefe5e3c5aaee5f7adf1d9a6449df9a28aca1be81898f8fa3fd173c0f62299a6",
+      "sourceCommit": "ff04f31e26fa0e58d9b0f7e7f0ddcfd3cdbd5dea",
+      "profile": "isolated, not signed in",
+      "windowSize": [
+        1100,
+        180
+      ],
+      "zoomFactor": 2.588765656026872
     }
   ]
 }
