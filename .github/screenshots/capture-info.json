@@ -1,0 +1,47 @@
+{
+  "capturedOn": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "672ef633b11ee4751889db9cab994b0b23247bf9",
+  "platform": "Linux X11 (Xvfb)",
+  "electron": "37.10.3",
+  "windowSize": [
+    1400,
+    980
+  ],
+  "zoomFactor": 1.5869792971156504,
+  "theme": "light / rainbow",
+  "locale": "zh",
+  "profile": "isolated, not signed in",
+  "media": "Self-generated silent FLAC, original LRC and project-owned scene artwork; path-first lyric priority",
+  "capture": "Electron webContents.capturePage, lossless WebP encoding, no content retouching",
+  "images": [
+    {
+      "file": "home.webp",
+      "width": 1400,
+      "height": 980,
+      "bytes": 565206,
+      "sha256": "9503e8665b0f36de7e59ad4de32347381a98b9d2e307dc37a92580c46fb5955c"
+    },
+    {
+      "file": "heart-mode.webp",
+      "width": 1400,
+      "height": 980,
+      "bytes": 440928,
+      "sha256": "b6623b0481fa4925ce32465a3af060fdfb1aaeedabdb453b6189e530a72158f7"
+    },
+    {
+      "file": "lyrics.webp",
+      "width": 1400,
+      "height": 980,
+      "bytes": 597474,
+      "sha256": "8a7c5fb2e9bf7315e44c3559e595f733b4675caca21f6b3930717dda96466e61"
+    },
+    {
+      "file": "runtime-memory.webp",
+      "width": 1400,
+      "height": 980,
+      "bytes": 454384,
+      "sha256": "2d657e48f38406635cd6748864b63044eae6528459b0c209613fb6dd61c378f9"
+    }
+  ]
+}

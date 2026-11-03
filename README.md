@@ -1,485 +1,136 @@
-<div align="center">
-  <a href="https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux">
-    <img src=".github/resources/vutron-icon-v3.3.0.webp" alt="VutronMusic Logo" width="156" height="156">
-  </a>
-  <h2>VutronMusic Custom for macOS & Linux</h2>
-  <p>面向 macOS 与 Linux 持续适配的第三方网易云音乐桌面播放器</p>
+<p align="center">
+  <img src="src/renderer/assets/branding/app-icon.png" alt="VutronMusic 当前应用图标" width="128" height="128">
+</p>
 
-  [![Code Quality](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/ci.yml/badge.svg)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/ci.yml)
-  [![Release](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/build.yml/badge.svg)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/actions/workflows/build.yml)
-  [![Latest Release](https://img.shields.io/github/v/release/bysanhz/VutronMusic_Custom4Mac-Linux?display_name=tag)](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/latest)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-</div>
+# VutronMusic Custom
 
-> 本仓库基于 [stark81/VutronMusic](https://github.com/stark81/VutronMusic) 二次开发。
-> 原项目及其核心功能版权归原作者与相关贡献者所有。本仓库由
-> [bysanhz](https://github.com/bysanhz) 维护，重点完善 macOS/Linux/Windows 跨平台适配、
-> 主窗口连续缩放、桌面歌词交互、歌词时间校正、Heart Mode 个性化推荐与跨窗口播放控制。
+面向 Windows、macOS 与 Linux 的第三方网易云音乐桌面播放器，保留在线音乐、本地音乐和流媒体能力，持续完善心动推荐、歌词交互与跨窗口控制。
 
-## 项目定位
+[下载与安装](#下载与安装) · [功能一览](#功能一览) · [界面与使用](#界面与使用) · [从源码运行](#从源码运行) · [反馈问题](#反馈问题)
 
-VutronMusic Custom 保留上游的网易云账号、在线歌单、本地音乐、流媒体、歌词与音频处理能力，并针对以下场景持续维护：
+![当前首页：彩虹主题与新场景素材](.github/screenshots/home.webp)
 
-- macOS Apple Silicon 与 Intel 桌面环境；
-- Linux x86_64 与 ARM64 桌面环境；
-- Windows x64 与 ARM64；
-- 不同分辨率、DPI 和窗口宽高比；
-- 桌面歌词的拖动、缩放、锁定、局部穿透与紧凑控制；
-- 主窗口、桌面歌词、托盘歌词和副歌标记之间的状态同步；
-- 播放队列切换、心动模式、会话恢复和睡眠定时器之间的一致播放语义。
+> 本文与截图对应 `main` 分支的 **4.0 Beta** 开发版本。GitHub 上已发布的同版本号安装包可能早于当前提交；请以 Release 说明和源码提交为准，不把版本号相同视为内容完全一致。
 
-本项目不是网易云音乐官方客户端，也不代表上游作者。与本仓库定制功能相关的问题请提交到本仓库 Issues。
+## 功能一览
 
-## 下载与平台支持
+| 你想做的事 | 当前提供的能力 |
+| --- | --- |
+| 在线听歌与管理音乐 | 网易云账号、歌单、云盘、搜索、评论与歌词；本地歌曲与本地歌单；Navidrome、Jellyfin、Emby |
+| 调整推荐方向 | 心动模式浮动助手、五种风格预设、多兴趣分支、会话反馈、多样性排序与滚动队列 |
+| 看歌词、校正时间 | 普通与逐字歌词、主窗口与桌面歌词同步、单曲与全局时间校正 |
+| 在桌面继续控制播放 | 普通 / 紧凑桌面歌词、锁定与局部鼠标穿透、托盘控制、快捷键、Linux MPRIS |
+| 管理自己的播放节奏 | 队列历史与快照、睡眠定时器、歌曲缓存上限、变速、变调、均衡器与混响 |
+| 了解当前运行状态 | 网络与内存面板、播放错误记录、诊断快照导出、听歌上报与云端核对状态 |
 
-正式版本由 GitHub Actions 根据版本标签自动构建并发布到
-[Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)。
+本仓库基于 [stark81/VutronMusic](https://github.com/stark81/VutronMusic) 二次开发，由 [bysanhz](https://github.com/bysanhz) 维护。它不是网易云官方客户端；在线资源的可用性仍取决于账号权限、服务端和网络环境。
 
-**当前正式版本：[`v3.3.2`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.2)**（2026-09-11）。
+## 界面与使用
 
-| 平台 | 架构 | 正式 Release 安装包 | 更新方式 |
-| --- | --- | --- | --- |
-| Windows | x64 | `VutronMusic-*_win_x64.exe` | 应用内主动检查版本，跳转 Release 手动下载安装 |
-| Linux | x86_64 / amd64 | `VutronMusic-*_linux_amd64.deb` | 应用内主动检查版本，跳转 Release 手动下载安装 |
-| macOS | Apple Silicon / arm64 | `VutronMusic-*_mac_arm64.dmg` | 应用内主动检查版本，跳转 Release 手动下载安装 |
+### 心动模式：可以调整的推荐
 
-### v3.3.2 桌面歌词与跨平台稳定性更新
+点击界面右侧的 **✨** 打开心动助手。设置集中在同一个面板内，可选择连续、平衡、跳脱、探索或自定义风格，调整新鲜度、熟悉感、重复容忍度及兴趣分支。
 
-- 修复 Windows 锁定桌面歌词后鼠标穿透自动隐藏无法可靠恢复的问题；
-- 统一桌面歌词底部锁定 / 解锁入口，并继续优化拖动、拉伸命中区与底部拖动 Bar 的视觉干扰；
-- 修复逐字歌词第一词闪烁和时间轴零点不一致导致的系统性提前问题；
-- 修复 Windows 主窗口隐藏时托盘菜单无法正常打开的问题；
-- 修复 Linux 托盘菜单递归导致的主进程栈溢出及后续桌面歌词 / IPC 初始化失败；
-- 正式 Release 从本版本起固定只发布 Windows x64 EXE、Linux amd64 DEB、macOS arm64 DMG 三个安装包；应用内更新改为用户主动检查后跳转 Release 手动安装。
+自定义模式在网易云提供的候选上进行本地排序，并结合喜欢、跳过和实际播放反馈调整当前会话；“多来点这种”“跳远一点”用于临时改变推荐方向。关闭自定义算法后，新会话使用网易云原始推荐顺序，当前队列不会被立即替换。
 
-完整版本说明见 [`v3.3.2 Release`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.2)。
+![心动模式设置：风格、兴趣分支与推荐参数](.github/screenshots/heart-mode.webp)
 
-### v3.3.1 稳定性更新
+开始心动模式需要登录网易云账号，并在“我喜欢的音乐”中有可用歌曲。原队列可从“播放历史与队列”的快照恢复。
 
-- 优化桌面歌词底部拖拽 Bar：继续保持较大的鼠标命中区，同时缩短可见长度；拖动时禁用 resize 热区，减少误触窗口拉伸；
-- 修复 Windows 下 Heart Mode 助手“多来点这种”“跳远一点”等按钮无法稳定交互的问题；
-- Heart Mode 的 Seed 解析新增候选映射、推荐解释和 Seed 本身三级 fallback，修复部分会话点击后无反应；
-- 修复打开 / 关闭 DevTools 或窗口尺寸变化后 ✨ Heart Mode 浮动按钮不能重新贴回右侧的问题；
-- Windows x64 / ARM64 使用独立 updater metadata：`latest-win-x64.yml` 与 `latest-win-arm64.yml`，避免更新时拿到错误架构安装包；
-- Windows Portable 不再进入 NSIS 自动安装流程；Windows 安装版更新完成后明确要求重新启动应用。
+### 歌词与桌面控制
 
-完整版本说明见 [`v3.3.1 Release`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.1)。
+主窗口歌词、桌面歌词和托盘歌词共用有效时间偏移。单曲校正按歌曲保存，并与全局校正叠加；正值让歌词提前，负值让歌词延后。播放页右键菜单提供本曲校正入口。
 
-### v3.3.0 重点更新
+桌面歌词支持普通与紧凑模式，可拖动、缩放、锁定；紧凑模式锁定后，歌词区域可穿透，封面控制区仍能操作。样式可保存为预设，歌词字体继续由用户自行选择。
 
-- 使用新的 VutronMusic 应用图标，并统一由构建前图标生成脚本产出各平台图标资源；
-- Heart Mode 新增 ✨ 助手、五种风格 Profile、自定义算法总开关、多 Seed 候选、反馈学习、多样性重排与 Rolling Queue；
-- Heart Mode 配置统一收口到 ✨ 助手，移除系统设置页中的重复入口；
-- 软件启动时不再自动检查更新，只有用户在“软件更新”中主动点击“检查更新”后才联网检查；
-- 歌曲缓存新增 `0.1–1024 GB` 自定义上限，并继续沿用原有缓存淘汰逻辑；
-- 统一设置页选择器、输入框、按钮和开关的字体层级与右侧对齐方式，修复“音质选择”“顺序优先”等视觉不一致问题。
+![主窗口歌词页：本地演示曲目与原创示例歌词](.github/screenshots/lyrics.webp)
 
-完整版本说明见 [`v3.3.0 Release`](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v3.3.0)。
+上图使用自制静音音频、示例歌词与项目场景图，通过真实本地扫描和播放链路展示界面，不代表某首网易云歌曲的在线播放结果。本地未匹配曲目的歌词读取边界与临时配置，见[已知问题](docs/development.md#本地歌词的已知边界)。
 
-macOS Release 中的 DMG 当前未进行 Apple Developer ID 签名和公证，下载后可能被 Gatekeeper 判定为“已损坏”或阻止打开。你可以选择按下方“macOS 下载版安装”处理单个 VutronMusic 应用，也可以在自己的电脑上拉取源码并按本文“macOS 本机构建”一节生成与当前机器架构匹配的应用。仓库不会要求用户安装或配置签名证书。
+### 新素材与主题
 
-### macOS 下载版安装（未签名 DMG）
+当前应用使用统一的人物图标、彩色 / 白色 / 黑色托盘图标，以及森林、海边、雪地、樱花场景；主界面使用 Inter 字体并保留中文字体回退。浅色、深色、彩虹及自定义主题仍可切换。
 
-> 仅建议对从本仓库 [Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases) 下载、并且你确认来源可信的 VutronMusic 安装包执行以下操作。下面的方法只移除 VutronMusic 自身的下载隔离属性，不会关闭 macOS 全局 Gatekeeper。
+真实曲目封面优先。默认场景用于缺少封面或封面恢复最终失败的情况，不替代能够正常取得的专辑图。默认头像保持原样。
 
-当前正式 Release 仅提供 Apple Silicon（M1/M2/M3/M4/M5 等）的 `arm64` DMG。Intel Mac 暂不提供预构建 DMG，可继续按本文“macOS 本机构建”说明从源码构建。
+### 网络、内存与听歌记录
 
-不确定当前机器架构时，在“终端”中执行：
+左侧导航底部的运行状态入口提供“网络”和“内存”两个页签。内存页展示主窗口、桌面歌词与整个应用的工作集，单独列出 JS Heap，并在面板打开期间采样趋势；关闭面板后停止定时采样。
+
+![运行状态：工作集、JS Heap 与短期趋势](.github/screenshots/runtime-memory.webp)
+
+图中数值来自截图时的隔离测试进程，仅用于展示面板，不是内存上限或性能承诺。工作集和 JS Heap 是不同指标，不能仅凭差值判断泄漏。
+
+听歌记录区分本地有效播放、待上报、待核对和云端确认。网易云报表不可用、延迟或缺少累计值时，会显示对应状态；本地记录不能替代云端累计收听时长。
+
+## 下载与安装
+
+前往 [GitHub Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)，按自己的系统与架构选择安装包。当前已有 [4.0.0-beta.1 预发布版](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v4.0.0-beta.1)；如需当前 `main` 的最新修改，请从源码构建。
+
+| 系统 | 发布架构 | 安装包 |
+| --- | --- | --- |
+| Windows | x64 | `.exe` 安装版 |
+| Linux | amd64 / x86_64 | `.deb` |
+| macOS | Apple Silicon / arm64 | `.dmg` |
+
+这是当前发布工作流的矩阵。其他架构需自行在对应环境构建与验证；不能将存在构建配置视为已经实机测试。
+
+### Linux
+
+下载 DEB 后，在文件所在目录执行（将文件名替换为实际下载的文件）：
 
 ```bash
-uname -m
+sudo apt install ./VutronMusic-4.0.0-beta.1_linux_amd64.deb
 ```
 
-输出 `arm64` 表示 Apple Silicon；输出 `x86_64` 表示 Intel。
+若要替换同版本号的本地测试包，使用 `sudo apt install --reinstall ./文件名.deb`。安装后从应用菜单启动 VutronMusic。
 
-下载完成后：
+### Windows
 
-1. 双击打开 DMG；
-2. 将 `VutronMusic` 拖到 `Applications`（应用程序）文件夹；
-3. 如果首次启动时出现“VutronMusic 已损坏，无法打开”或被 macOS 阻止，请打开“终端”并执行：
+运行与架构匹配的 EXE 安装包，按安装向导完成安装。
+
+### macOS
+
+打开 DMG，将 VutronMusic 拖入“应用程序”。当前构建未做 Developer ID 签名与 Apple 公证；若下载版被 Gatekeeper 拦截，在确认来源可信后，仅移除本应用的下载隔离属性：
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/VutronMusic.app
 open /Applications/VutronMusic.app
 ```
 
-如果第一条命令提示权限不足，再执行：
+不需要关闭系统全局安全检查。Intel Mac 可参考[本机构建说明](docs/development.md#本地打包)。
+
+### 更新
+
+在“设置 → 软件更新”中主动检查版本。应用启动时不自动检查更新；DEB、未签名 DMG 等手动安装格式按提示前往 Release 下载。更新主进程或 preload 后，应完整退出再启动，才能使用新代码。
+
+## 从源码运行
+
+需要 **Node.js ≥ 22.12.0、Yarn 1.22.22、Python 3 与本平台 C/C++ 构建工具**。原生依赖会针对 Electron 重建。
 
 ```bash
-sudo xattr -dr com.apple.quarantine /Applications/VutronMusic.app
-open /Applications/VutronMusic.app
-```
-
-`sudo` 会要求输入当前 macOS 用户密码；终端输入密码时不会显示字符，这是正常现象。
-
-如果已经安装过旧版本，请确认实际应用路径仍为：
-
-```text
-/Applications/VutronMusic.app
-```
-
-也可以检查安装包架构是否与当前 Mac 匹配：
-
-```bash
-file /Applications/VutronMusic.app/Contents/MacOS/VutronMusic
-```
-
-Apple Silicon 版本应包含 `arm64`，Intel 版本应包含 `x86_64`。
-
-上述 `xattr` 命令的作用是删除 Chrome、Safari 等浏览器为互联网下载文件添加的 `com.apple.quarantine` 隔离属性。由于当前 GitHub Release 的 macOS 包没有 Developer ID 签名与 Apple 公证，Gatekeeper 可能因此拒绝启动。此方法仅针对 `/Applications/VutronMusic.app`，不会降低其他应用的系统安全检查级别。
-
-**不建议**为了运行本应用执行关闭全局 Gatekeeper 的命令，例如：
-
-```bash
-sudo spctl --master-disable
-```
-
-如果仍然无法启动，请保留终端中的错误信息，并在本仓库 Issues 中附上 macOS 版本、机器架构和 VutronMusic 版本。
-
-## 定制功能
-
-### 主窗口连续缩放
-
-- 字体、SVG 图标、封面、按钮、间距和圆角通过同一 Electron `zoomFactor` 连续缩放；
-- 窗口横向、纵向和对角拖动均会连续影响完整界面；
-- 对窗口拖动过程限频，降低频繁重排和栅格化造成的卡顿；
-- 极端宽高比使用较短轴保护，避免窄高窗口中的控件异常放大；
-- 首页、探索页、歌手、专辑、设置页和虚拟封面列表会根据内容区宽度自动重排。
-
-### 桌面歌词增强
-
-- 支持普通模式与紧凑模式；
-- 桌面歌词窗口具有独立的缩放参考值；
-- 歌词、封面、按钮、间距和圆角随窗口整体连续缩放；
-- 紧凑模式锁定后，歌词区域保持鼠标穿透，左侧封面控制区仍可正常操作；
-- 左侧封面与控制按钮是否显示由独立设置项控制；
-- 优化 macOS/Linux 下窗口拉伸、拖动和边缘控件命中区域；
-- 紧凑模式提供上一首、播放/暂停、下一首、主窗口显隐、心动模式和喜欢控制；
-- 样式预设支持覆盖内置预设、另存为、恢复默认、未保存提示和撤销修改；
-- 首次打开桌面歌词时同步当前歌曲、歌词行、偏移、封面和喜欢状态。
-
-### 歌词时间校正
-
-- 全局校正用于所有歌曲，单曲校正仅作用于当前歌曲；
-- 播放页右键菜单可打开“本曲歌词时间校正”，支持 `±0.1s`、`±0.5s`、直接输入和重置；
-- 单曲校正与全局校正相加，界面会显示本曲、全局和实际偏移；
-- 单曲校正按歌曲 ID 保存，切歌和重启后继续生效；
-- 歌曲原有 `offset` 不会被覆盖，用户校正作为独立增量叠加；
-- 正值表示歌词提前，负值表示歌词延后；
-- 主歌词、逐字歌词、桌面歌词、托盘歌词和副歌位置共用同一个有效偏移。
-
-### 播放起点与队列历史
-
-- 手动选歌、上一首、下一首、私人 FM 和心动模式统一从 `0:00` 开始；
-- 暂停后继续、同一歌曲音源刷新和应用启动恢复仍保留原进度；
-- 播放器菜单提供“播放历史与队列”，记录最近播放歌曲和最多 12 个队列快照；
-- 可恢复心动模式或临时播放前的队列；
-- 当前队列可直接保存为本地歌单；
-- 最近播放记录最多保存 50 首，并可一键清空。
-
-### Heart Mode / 网易云心动模式
-
-Heart Mode 仍以网易云 `/playmode/intelligence/list` 为候选来源，但在 v3.3.0 中加入了可选的本地个性化排序与会话学习层。
-
-- ✨ 助手是 Heart Mode 的唯一配置入口，顶部提供“当前 / 心动模式设置 / 操作说明”三个 Tab；
-- “使用自定义心动算法”是持久化总开关：
-  - 开启时启用多 Seed 候选、个性化 Scorer、播放反馈学习、Seed 分支偏好、多样性重排与 Rolling Queue；
-  - 关闭时绕过自定义 Scorer 与 Session 学习，下一次启动 Heart Mode 时按网易云单 Seed 原始推荐顺序播放；
-  - 关闭开关不会强制替换当前正在播放的队列；
-- 提供 Continuous、Balanced、Diverse、Explore、Custom 五种风格 Profile；
-- 可调参数包括风格跳脱度、新鲜度、熟悉感、重复容忍度、兴趣分支数、短/中/长期冷却以及同艺人、同 Seed 最小间隔；
-- “兴趣分支（Seed）”表示由一首 Seed 扩展出的推荐路线，而不是单首歌曲评分；
-- 支持“多来点这种”“跳远一点”等显式 steering，用于临时调整当前 Session 的推荐方向；
-- 播放时长、跳过、完整播放、喜欢等反馈用于更新当前会话偏好；seek 本身不会被直接当作有效收听时长；
-- Heart Mode 前的原队列仍可从“播放历史与队列”的快照中恢复。
-
-Heart Mode 需要登录网易云账号，并且“我喜欢的音乐”中至少存在一首可用歌曲。
-
-### 睡眠定时器
-
-- 提供 15、30、60、90 分钟快捷选项；
-- 支持 1–1440 分钟自定义时间；
-- 支持“本曲结束”和“队列结束”；
-- 结束动作可选择暂停播放或退出应用；
-- 可选择不淡出、淡出 5 秒、15 秒或 30 秒；
-- 定时设置会记住上一次使用的自定义时间、结束动作和淡出时长；
-- 播放页右键菜单实时显示剩余时间。
-
-### 歌曲缓存
-
-- 缓存上限除预设值外新增“自定义”选项；
-- 自定义范围为 `0.1–1024 GB`，设置会持久化保存；
-- 底层继续以 MB 计量，并沿用既有的缓存淘汰策略；
-- 缓存超过上限时自动清理较早的缓存歌曲，不改变现有播放与下载语义。
-
-### 设置页交互一致性
-
-- Heart Mode 配置不再同时出现在系统设置页和 ✨ 助手中，避免重复入口与状态歧义；
-- CustomSelect、输入框、按钮与开关统一右侧控件列宽、字号和字重；
-- 修复“音质选择”等控件字体层级与其他设置项不一致的问题；
-- 修复“顺序优先”等选择器与上方开关视觉未对齐的问题；
-- 右侧控件真正靠右对齐，同时保留安全边距，不贴近窗口边缘。
-
-### 更新与诊断
-
-- 软件启动时不会自动访问更新服务，也不会自动检查新版本；
-- 只有用户进入“软件更新”并点击“检查更新”后，应用才会主动联网检查；
-- Windows 安装版与 Linux AppImage 使用 `electron-updater` 处理可用更新的下载与安装；Windows Portable 版发现新版本后跳转 Release 手动下载；
-- Linux Deb / RPM、macOS 未签名 DMG 等手动安装格式在发现新版本后会提示用户，并提供打开 GitHub Release 下载页的入口；
-- 非 AppImage Linux 环境不会误调用 AppImage 更新器；
-- 设置页提供一键诊断快照，汇总版本、系统、GPU、播放状态、桌面歌词、定时器、队列和最近错误；
-- 诊断快照不会包含密码、Cookie 或完整本地路径；
-- 设置页仍可导出设置、打开日志文件和打开 Release 页面；
-- 主进程与渲染进程会捕获未处理 Promise，并对短时间内的重复错误去重；
-- Discord 未运行时只记录一次可忽略警告，不影响播放器启动。
-
-### 安全与稳定性加固
-
-- 主窗口与桌面歌词窗口启用 Electron 沙箱、严格 CSP、受信来源 IPC 校验和外部导航拦截；
-- Vue I18n 使用 CSP 安全的 JIT AST 编译模式，`script-src` 不再依赖 `unsafe-eval`；
-- `atom://` 本地资源读取限制到已登记音乐目录、应用资源、音频缓存和用户主动选择的文件或目录，并按资源类型校验扩展名与文件大小；
-- 流媒体密码、访问令牌、Last.fm 会话密钥和第三方 Cookie 使用系统安全存储加密，渲染进程只接收是否已保存密码，不接收明文密码；
-- SQLite 迁移按语义版本排序并在事务中执行，迁移前创建备份；持久化数据库不可用时会明确记录内存回退状态；
-- 本地音乐扫描会防止歌曲 ID 与已有缓存记录冲突，扫描失败会结束扫描状态并写入日志；
-- 重叠弹窗和右键菜单使用引用计数滚动锁，不会互相提前解除页面滚动限制；
-- CI 固定使用唯一的 `vite.config.ts`，并执行安全与功能回归测试、格式、Lint、类型检查和构建。
-
-## 上游功能
-
-本仓库继续保留上游项目的主要能力：
-
-- Vue 3、TypeScript、Pinia、Fastify 与 better-sqlite3；
-- 网易云账号、歌单、云盘、评论和歌词；
-- 本地歌曲、离线歌单与在线信息匹配；
-- 外挂 LRC、内嵌歌词和逐字歌词；
-- Navidrome、Jellyfin 和 Emby；
-- 均衡器、混响、变调、变速和淡入淡出；
-- macOS 状态栏歌词与 Touch Bar 歌词；
-- Linux MPRIS、托盘和桌面环境歌词扩展。
-
-## 开发环境
-
-建议使用：
-
-```text
-Node.js >= 22.12.0
-Yarn 1.22.22
-Python 3
-```
-
-安装依赖：
-
-```bash
+git clone https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux.git
+cd VutronMusic_Custom4Mac-Linux
 yarn install --frozen-lockfile
-```
-
-开发运行：
-
-```bash
 yarn dev
 ```
 
-只读质量检查：
+检查、测试、各平台本地打包及工作流说明见[开发与构建指南](docs/development.md)。
 
-```bash
-yarn run format:check
-yarn lint
-yarn run vue:type-check
-yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
-yarn vite --config vite.config.ts build
-```
+## 反馈问题
 
-### 同步源码
+请向[本仓库 Issues](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/issues)反馈定制版本的问题，并附上系统与架构、应用版本 / 提交、复现步骤及相关日志。
 
-仓库处于正常状态时：
+诊断快照可从运行状态内存页或“设置 → 软件更新”复制；导出前请自行检查内容，不要公开账号 Cookie、Token 或完整鉴权 URL。诊断不会自动上传。
 
-```bash
-git pull --ff-only origin main
-```
+播放与内存的修复范围、实测结果和未完成验证见[诊断记录](docs/diagnostics/2026-11-02-memory-retainers.md)。已验证的引用清理不等于历史数 GiB 内存异常已经完全解决；Windows/macOS 实机及真实长时间负载仍需持续验证。
 
-如果出现 `MERGE_HEAD exists`，说明之前的合并尚未结束。确认不需要保留这次未完成合并后，可执行：
+## 致谢与许可
 
-```bash
-git status
-git merge --abort
-git pull --ff-only origin main
-```
+- 原项目：[stark81/VutronMusic](https://github.com/stark81/VutronMusic)
+- UI 与功能参考：[YesPlayMusic](https://github.com/qier222/YesPlayMusic)、方格音乐
+- 本地音乐统计参考：[NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS)
+- 逐字歌词格式参考：[LDDC](https://github.com/chenmozhijin/LDDC)
+- Electron 脚手架：[vutron](https://github.com/jooy2/vutron)
 
-不要在不清楚本地修改内容时直接使用 `git reset --hard`。
-
-### macOS 本机构建
-
-先安装 Xcode Command Line Tools，并确认 Node.js 与 Yarn 版本：
-
-```bash
-xcode-select --install
-node --version
-yarn --version
-```
-
-安装冻结依赖并执行完整检查：
-
-```bash
-yarn install --frozen-lockfile --network-timeout 600000
-yarn run format:check
-yarn lint
-yarn run vue:type-check
-yarn playwright test tests/security-hardening.spec.ts tests/feature-regression.spec.ts
-yarn vite --config vite.config.ts build
-```
-
-Apple Silicon（M1/M2/M3/M4/M5）构建 ARM64 DMG：
-
-```bash
-rm -rf "release/$(node -p \"require('./package.json').version\")"
-yarn run build:mac -- --arm64 -p never
-```
-
-Intel Mac 构建 x64 DMG：
-
-```bash
-rm -rf "release/$(node -p \"require('./package.json').version\")"
-yarn run build:mac -- --x64 -p never
-```
-
-构建完成后查看产物：
-
-```bash
-VERSION="$(node -p \"require('./package.json').version\")"
-find "release/${VERSION}" -maxdepth 2 -type f -name '*.dmg' -print
-open "release/${VERSION}"
-```
-
-本机构建不会进行 Developer ID 签名或 Apple 公证。由于产物由本机生成，通常可以直接打开。若要跳过 DMG、直接检查 `.app`，可生成解包目录：
-
-```bash
-VERSION="$(node -p \"require('./package.json').version\")"
-rm -rf "release/${VERSION}"
-yarn run build:pre
-CSC_IDENTITY_AUTO_DISCOVERY=false ./node_modules/.bin/electron-builder \
-  --config=buildAssets/builder/config.js \
-  --mac --arm64 --dir -p never
-find "release/${VERSION}" -maxdepth 3 -name 'VutronMusic.app' -print
-```
-
-Intel Mac 将上面的 `--arm64` 替换为 `--x64`。
-
-### Linux 本地打包
-
-```bash
-yarn run build:linux
-```
-
-构建过程执行：
-
-```text
-vue-tsc 类型检查 → Vite 构建 → electron-builder 打包
-```
-
-构建过程不会自动改写源码。统一格式需显式执行：
-
-```bash
-yarn run format:fix
-```
-
-## 自动发布流程
-
-`.github/workflows/build.yml` 是唯一的版本标签发布工作流。推送 `v*.*.*` 标签时会：
-
-1. 校验标签版本与 `package.json` 一致；
-2. 使用冻结的 `yarn.lock` 安装依赖；
-3. 执行 Prettier、ESLint、Vue TypeScript、回归测试和 Vite 检查；
-4. 构建 Linux x64/ARM64、macOS ARM64/x64、Windows x64/ARM64；
-5. 汇总安装包和更新元数据；
-6. 使用 `.github/release-notes/vX.Y.Z.md` 发布正式 GitHub Release。
-
-发布新版本时先更新 `package.json`、`yarn.lock` 和对应的版本更新说明，完成本地验证后执行：
-
-```bash
-VERSION=x.y.z
-
-git add package.json yarn.lock ".github/release-notes/v${VERSION}.md"
-git commit -m "发布 VutronMusic ${VERSION}"
-git push origin main
-
-git tag -a "v${VERSION}" -m "VutronMusic ${VERSION}"
-git push origin "v${VERSION}"
-```
-
-标签版本必须和 `package.json` 的版本完全一致，否则发布工作流会立即停止。
-
-手动运行 `build.yml` 时：
-- 若填写已有的 `release_tag=vX.Y.Z`，会校验标签版本与 `package.json`，并将该标签发布为正式 Release；
-- 若不填写 `release_tag`，则创建带时间戳的 Draft Release，不覆盖正式版本标签。
-
-## 使用与排查
-
-- Heart Mode 需要登录网易云账号，并且“我喜欢的音乐”中至少有一首歌曲；关闭“使用自定义心动算法”后，新的 Heart Mode 会话回到网易云原始单 Seed 推荐顺序；
-- 修改 preload、桌面歌词窗口或 Electron 主进程后，需要完整退出并重新启动；
-- 播放页右键菜单包含本曲歌词时间校正、播放历史与队列、睡眠定时器等入口；
-- Linux Deb / RPM、Windows Portable 与未签名 macOS 构建只在用户主动点击“检查更新”后检查新版本，不执行静默安装；
-- macOS 下载版 DMG 被 Gatekeeper 拦截时，请按本文“macOS 下载版安装（未签名 DMG）”处理，或使用本机构建流程；
-- 出现问题时，可在设置页复制一键诊断快照并打开日志文件；
-- 网易云账号登录和通用功能可参考[上游 Wiki](https://github.com/stark81/VutronMusic/wiki/)。
-
-## 上游项目与致谢
-
-- 原项目：[stark81/VutronMusic](https://github.com/stark81/VutronMusic)；
-- UI 与部分功能参考：[YesPlayMusic](https://github.com/qier222/YesPlayMusic)；
-- 侧边导航栏设计参考“方格音乐”；
-- 本地音乐统计区域参考：[NSMusicS](https://github.com/Super-Badmen-Viper/NSMusicS)；
-- 逐字歌词格式支持参考：[LDDC](https://github.com/chenmozhijin/LDDC)；
-- Electron 脚手架：[vutron](https://github.com/jooy2/vutron)。
-
-感谢上游作者及所有相关开源项目贡献者。
-
-## 开源许可
-
-本仓库继承并保留上游项目中的许可证、版权声明和第三方依赖许可，项目代码基于 [MIT License](LICENSE) 开源。
-
-本项目仅用于个人学习与研究。请遵守所在地区法律法规、版权要求和相关服务条款，不得用于侵犯版权、绕过付费授权或其他非法用途。
-
-## 截图
-
-![本地音乐][localMusic-screenShot]
-
-![首页][home-screenShot]
-
-![探索][explore-screenShot]
-
-![音乐库][library-screenShot]
-
-![我喜欢的音乐][likepage-screenShot]
-
-![本地音乐][local-music-screenShot]
-
-![歌单][playlist-screenShot]
-
-![播放页][playpage-screenShot]
-
-![评论][comment-screenShot]
-
-![搜索][search-screenShot]
-
-![用户页][user-screenShot]
-
-![MV][mv-screenShot]
-
-![托盘歌词][tray-lyric-screenShot]
-
-![媒体控制][media-controls-screenShot]
-
-[localMusic-screenShot]: images/localMusic.jpg
-[home-screenShot]: images/home.jpg
-[explore-screenShot]: images/explore.jpg
-[library-screenShot]: images/library.jpg
-[likepage-screenShot]: images/like-page.jpg
-[local-music-screenShot]: images/local-music.jpg
-[playlist-screenShot]: images/playlists.jpg
-[playpage-screenShot]: images/play-page.jpg
-[comment-screenShot]: images/comment-page.jpg
-[search-screenShot]: images/search-lyric.jpg
-[user-screenShot]: images/user.jpg
-[tray-lyric-screenShot]: images/tray-TouchBar-lyric.jpg
-[mv-screenShot]: images/mv.jpg
-[media-controls-screenShot]: images/media-control-lyric.png
+代码沿用 [MIT License](LICENSE)，保留上游与第三方版权声明。[Inter 字体许可](src/renderer/assets/fonts/Inter-OFL.txt)随字体保留。截图中的在线专辑、艺人及活动图片来自对应服务，相关权利归原权利人；项目新素材的接入记录见[资源说明](docs/design/prism-review-20261102/README.md)。
