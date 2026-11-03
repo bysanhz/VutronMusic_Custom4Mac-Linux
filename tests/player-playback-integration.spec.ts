@@ -153,6 +153,10 @@ const setMode = (id: number, mode: string) =>
 test('plays a real media element through Web Audio, survives rapid switches and ignores stale lookups', async () => {
   await play([1])
   await expect.poll(playing).toBe(true)
+  expect(await page.title()).toBe('Fixture 1 · Fixture artist')
+  expect(await page.evaluate(() => (window as any).playbackProbe.player.title)).toBe(
+    'Fixture 1 · Fixture artist'
+  )
   await expect
     .poll(() => page.evaluate(() => (window as any).vutronmusic.progress))
     .toBeGreaterThan(0.2)

@@ -2028,7 +2028,7 @@ export const usePlayerStore = defineStore(
         notePlaybackProgress(audioNodes.audio.currentTime, true)
         void smoothGain(volume.value, fade)
 
-        title.value = `${currentTrack.value?.name} · ${arts[0].name} - VutronMusic`
+        title.value = `${currentTrack.value?.name} · ${arts[0].name}`
         if (!window.env?.isMac) {
           window.mainApi?.send('updateTooltip', title.value)
         }
