@@ -101,7 +101,7 @@
 
 ## 下载与安装
 
-前往 [GitHub Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)，按自己的系统与架构选择安装包。当前已有 [4.0.0-beta.1 预发布版](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v4.0.0-beta.1)；如需当前 `main` 的最新修改，请从源码构建。
+前往 [GitHub Releases](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases)，按自己的系统与架构选择安装包。当前 Beta 为 [4.0.0-beta.2 预发布版](https://github.com/bysanhz/VutronMusic_Custom4Mac-Linux/releases/tag/v4.0.0-beta.2)；如需发布后的 `main` 新增修改，请从源码构建。
 
 | 系统 | 发布架构 | 安装包 |
 | --- | --- | --- |
@@ -116,7 +116,7 @@
 下载 DEB 后，在文件所在目录执行（将文件名替换为实际下载的文件）：
 
 ```bash
-sudo apt install ./VutronMusic-4.0.0-beta.1_linux_amd64.deb
+sudo apt install ./VutronMusic-4.0.0-beta.2_linux_amd64.deb
 ```
 
 若要替换同版本号的本地测试包，使用 `sudo apt install --reinstall ./文件名.deb`。安装后从应用菜单启动 VutronMusic。
