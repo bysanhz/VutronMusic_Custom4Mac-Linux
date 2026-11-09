@@ -52,6 +52,16 @@
           </button>
           <button
             type="button"
+            class="panel-tab rainbow-heart-tab rainbow-heart-tab-4"
+            :class="{ active: panelPage === 'blocklist' }"
+            role="tab"
+            :aria-selected="panelPage === 'blocklist'"
+            @click="panelPage = 'blocklist'"
+          >
+            {{ texts.blocklistTab }}
+          </button>
+          <button
+            type="button"
             class="panel-tab rainbow-heart-tab rainbow-heart-tab-3"
             :class="{ active: panelPage === 'guide' }"
             role="tab"
@@ -102,6 +112,14 @@
               <span>{{ texts.goFurther }}</span>
             </button>
           </div>
+          <button
+            type="button"
+            class="blocklist-shortcut"
+            @pointerdown.stop
+            @click.stop="panelPage = 'blocklist'"
+          >
+            🚫 {{ texts.blocklistShortcut }}
+          </button>
 
           <div v-if="customAlgorithmEnabled && session" class="section session-section">
             <div class="section-title">{{ texts.session }}</div>
@@ -389,6 +407,76 @@
           </div>
         </template>
 
+        <template v-else-if="panelPage === 'blocklist'">
+          <div class="subpage-content blocklist-page">
+            <p class="blocklist-hint">{{ texts.blocklistHint }}</p>
+            <div class="settings-card">
+              <div class="blocklist-heading">{{ texts.blocklistCurrent }}</div>
+              <template v-if="currentTrack">
+                <div class="blocklist-current-name">{{ currentTrack.name }}</div>
+                <button
+                  type="button"
+                  class="blocklist-action"
+                  :class="{ active: currentSongBlocked }"
+                  @click.stop="toggleCurrentSong"
+                >
+                  {{ currentSongBlocked ? texts.unblockCurrentSong : texts.blockCurrentSong }}
+                </button>
+                <div class="blocklist-heading blocklist-artists-label">
+                  {{ texts.blocklistCurrentArtists }}
+                </div>
+                <div v-if="currentArtists.length" class="blocklist-artist-actions">
+                  <button
+                    v-for="artist in currentArtists"
+                    :key="artist.key"
+                    type="button"
+                    class="blocklist-action"
+                    :class="{ active: artist.blocked }"
+                    @click.stop="toggleCurrentArtist(artist)"
+                  >
+                    {{ artist.blocked ? texts.unblockArtist : texts.blockArtist }} {{ artist.name }}
+                  </button>
+                </div>
+                <div v-else class="blocklist-empty">{{ texts.blocklistNoArtist }}</div>
+              </template>
+              <div v-else class="blocklist-empty">{{ texts.blocklistNoTrack }}</div>
+            </div>
+
+            <div class="settings-card">
+              <div class="blocklist-heading">{{ texts.blocklistSongs }} ({{ blockedSongs.length }})</div>
+              <div v-if="!blockedSongs.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
+              <div v-for="item in blockedSongs" :key="item.key" class="blocklist-entry">
+                <div class="blocklist-entry-text">
+                  <strong>{{ item.name }}</strong>
+                  <small v-if="item.artist">{{ item.artist }}</small>
+                </div>
+                <button
+                  type="button"
+                  class="blocklist-remove"
+                  @click.stop="removeBlockedSong(item.key)"
+                >
+                  {{ texts.blocklistRemove }}
+                </button>
+              </div>
+            </div>
+
+            <div class="settings-card">
+              <div class="blocklist-heading">{{ texts.blocklistArtists }} ({{ blockedArtists.length }})</div>
+              <div v-if="!blockedArtists.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
+              <div v-for="item in blockedArtists" :key="item.key" class="blocklist-entry">
+                <div class="blocklist-entry-text"><strong>{{ item.name }}</strong></div>
+                <button
+                  type="button"
+                  class="blocklist-remove"
+                  @click.stop="removeBlockedArtist(item.key)"
+                >
+                  {{ texts.blocklistRemove }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+
         <template v-else>
           <div class="subpage-content guide-page">
             <div v-for="item in strategyItems" :key="item.title" class="guide-group">
@@ -412,6 +500,13 @@ import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { useSettingsStore } from '../store/settings'
+import {
+  useMusicBlocklistStore,
+  getSongBlockKey,
+  getArtistBlockKey,
+  getTrackBlockArtists,
+  type BlockableArtist
+} from '../store/musicBlocklist'
 import { getTrackDetail } from '../api/track'
 import {
   HEART_MODE_SESSION_CHANGE_EVENT,
@@ -553,6 +648,23 @@ const TEXTS = {
       '确认重置本轮心动学习？\n\n会清除本 Session 已记录的播放反馈、分支评分和临时控制；不会影响喜欢歌曲、长期 Profile、推荐历史和当前队列。',
     resetDone: '本轮学习已重置',
     removedFeedback: '已移除 {count} 条本轮播放反馈',
+    blocklistTab: '黑名单',
+    blocklistShortcut: '不想听？管理歌曲和歌手黑名单',
+    blocklistHint: '拉黑规则长期保存，自动过滤心动推荐与播放；不会删除原歌单或喜欢记录。',
+    blocklistCurrent: '当前歌曲',
+    blocklistCurrentArtists: '当前歌曲的歌手（合唱可单独选择）',
+    blocklistNoTrack: '请先播放一首歌，再从这里拉黑。',
+    blocklistNoArtist: '当前歌曲没有可识别的歌手信息。',
+    blockCurrentSong: '拉黑当前歌曲',
+    unblockCurrentSong: '解除当前歌曲的拉黑',
+    blockArtist: '拉黑歌手：',
+    unblockArtist: '解除歌手拉黑：',
+    blocklistSongs: '已拉黑歌曲',
+    blocklistArtists: '已拉黑歌手',
+    blocklistRemove: '解除',
+    blocklistEmpty: '暂无',
+    blocklistAdded: '已加入黑名单',
+    blocklistRemoved: '已解除拉黑',
     strongDown: '明显减少',
     down: '减少',
     neutral: '正常',
@@ -676,6 +788,23 @@ const TEXTS = {
       '確認重置本輪心動學習？\n\n會清除本 Session 已記錄的播放回饋、分支評分和暫時控制；不會影響喜歡歌曲、長期 Profile、推薦歷史和目前佇列。',
     resetDone: '本輪學習已重置',
     removedFeedback: '已移除 {count} 條本輪播放回饋',
+    blocklistTab: '黑名單',
+    blocklistShortcut: '不想聽？管理歌曲及歌手黑名單',
+    blocklistHint: '封鎖規則會持久保存，自動過濾心動推薦與播放；不會刪除原歌單或喜歡記錄。',
+    blocklistCurrent: '目前歌曲',
+    blocklistCurrentArtists: '目前歌曲的歌手（合唱可分別選擇）',
+    blocklistNoTrack: '請先播放一首歌，再由此封鎖。',
+    blocklistNoArtist: '目前歌曲沒有可識別的歌手資訊。',
+    blockCurrentSong: '封鎖目前歌曲',
+    unblockCurrentSong: '取消封鎖目前歌曲',
+    blockArtist: '封鎖歌手：',
+    unblockArtist: '取消封鎖歌手：',
+    blocklistSongs: '已封鎖歌曲',
+    blocklistArtists: '已封鎖歌手',
+    blocklistRemove: '移除',
+    blocklistEmpty: '暫無',
+    blocklistAdded: '已加入黑名單',
+    blocklistRemoved: '已取消封鎖',
     strongDown: '明顯減少',
     down: '減少',
     neutral: '正常',
@@ -822,6 +951,23 @@ const TEXTS = {
       'Reset learning for this Heart Mode session?\n\nThis removes recorded playback feedback, branch scores, and temporary steering for this session. Likes, long-term Profile, recommendation history, and the current queue remain unchanged.',
     resetDone: 'Session learning reset',
     removedFeedback: 'Removed {count} session feedback entries',
+    blocklistTab: 'Blocklist',
+    blocklistShortcut: 'Not for me? Manage blocked songs and artists',
+    blocklistHint: 'Blocks persist across sessions and filter recommendations and playback without deleting playlists or likes.',
+    blocklistCurrent: 'Current track',
+    blocklistCurrentArtists: 'Artists on this track (choose collaborators separately)',
+    blocklistNoTrack: 'Play a track to block it or its artists.',
+    blocklistNoArtist: 'No identifiable artists for the current track.',
+    blockCurrentSong: 'Block current track',
+    unblockCurrentSong: 'Unblock current track',
+    blockArtist: 'Block artist:',
+    unblockArtist: 'Unblock artist:',
+    blocklistSongs: 'Blocked tracks',
+    blocklistArtists: 'Blocked artists',
+    blocklistRemove: 'Remove',
+    blocklistEmpty: 'None yet',
+    blocklistAdded: 'Added to blocklist',
+    blocklistRemoved: 'Removed from blocklist',
     strongDown: 'Much less',
     down: 'Less',
     neutral: 'Normal',
@@ -833,7 +979,75 @@ const TEXTS = {
 const playerStore = usePlayerStore()
 const stateStore = useNormalStateStore()
 const settingsStore = useSettingsStore()
+const musicBlocklistStore = useMusicBlocklistStore()
 const { currentTrack } = storeToRefs(playerStore)
+const { blockedSongs, blockedArtists } = storeToRefs(musicBlocklistStore)
+
+const currentSongBlocked = computed(() =>
+  currentTrack.value ? musicBlocklistStore.isSongBlocked(currentTrack.value) : false
+)
+const currentArtists = computed(() => {
+  const track = currentTrack.value
+  if (!track) return []
+  return getTrackBlockArtists(track).flatMap((artist) => {
+    const key = getArtistBlockKey(artist, track)
+    if (!key) return []
+    return [{
+      id: artist.id,
+      name: String(artist.name || '#' + artist.id),
+      key,
+      blocked: musicBlocklistStore.isArtistBlocked(artist, track)
+    }]
+  })
+})
+
+const skipBlockedCurrentTrack = (): void => {
+  if (
+    currentTrack.value &&
+    playerStore.playing &&
+    musicBlocklistStore.isTrackBlocked(currentTrack.value)
+  ) {
+    void playerStore._playNextTrack(playerStore.isPersonalFM)
+  }
+}
+
+const toggleCurrentSong = (): void => {
+  const track = currentTrack.value
+  if (!track) return
+  const key = getSongBlockKey(track)
+  if (!key) return
+  if (musicBlocklistStore.isSongBlocked(track)) {
+    musicBlocklistStore.unblockSong(key)
+    stateStore.showToast(texts.value.blocklistRemoved)
+  } else if (musicBlocklistStore.blockSong(track)) {
+    stateStore.showToast(texts.value.blocklistAdded)
+    skipBlockedCurrentTrack()
+  }
+}
+
+const toggleCurrentArtist = (artist: BlockableArtist): void => {
+  const track = currentTrack.value
+  if (!track) return
+  const key = getArtistBlockKey(artist, track)
+  if (!key) return
+  if (musicBlocklistStore.isArtistBlocked(artist, track)) {
+    musicBlocklistStore.unblockArtist(key)
+    stateStore.showToast(texts.value.blocklistRemoved)
+  } else if (musicBlocklistStore.blockArtist(artist, track)) {
+    stateStore.showToast(texts.value.blocklistAdded)
+    skipBlockedCurrentTrack()
+  }
+}
+
+const removeBlockedSong = (key: string): void => {
+  musicBlocklistStore.unblockSong(key)
+  stateStore.showToast(texts.value.blocklistRemoved)
+}
+
+const removeBlockedArtist = (key: string): void => {
+  musicBlocklistStore.unblockArtist(key)
+  stateStore.showToast(texts.value.blocklistRemoved)
+}
 
 type HeartModeCoreField = 'diversity' | 'novelty' | 'familiarity' | 'repeatTolerance'
 type HeartModeAdvancedField =
@@ -951,7 +1165,7 @@ const updateProfileAdvanced = (field: HeartModeAdvancedField, event: Event) => {
   updateHeartModeProfile({ mode: 'custom', [field]: value })
 }
 
-type HeartModePanelPage = 'main' | 'settings' | 'guide'
+type HeartModePanelPage = 'main' | 'settings' | 'blocklist' | 'guide'
 
 const panelOpen = ref(false)
 const panelPage = ref<HeartModePanelPage>('main')
@@ -1463,7 +1677,7 @@ onBeforeUnmount(() => {
 
 .panel-tabs {
   display: grid;
-  grid-template-columns: 0.78fr 1.22fr 1fr;
+  grid-template-columns: 0.72fr 1.3fr 0.93fr 1fr;
   align-items: end;
   gap: 3px;
   margin: 14px -4px 0;
@@ -1517,6 +1731,122 @@ onBeforeUnmount(() => {
     outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
     outline-offset: -2px;
   }
+}
+
+.blocklist-shortcut {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.24);
+  border-radius: 9px;
+  color: var(--color-text);
+  background: var(--color-secondary-bg-for-transparent);
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.blocklist-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blocklist-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: 0.75;
+}
+
+.blocklist-heading {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.blocklist-current-name {
+  font-size: 13px;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+
+.blocklist-artists-label {
+  margin-top: 14px;
+}
+
+.blocklist-artist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.blocklist-action,
+.blocklist-remove {
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 8px;
+  background: var(--color-secondary-bg-for-transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 7px 10px;
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.blocklist-action.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.blocklist-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.blocklist-entry-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+  overflow-wrap: anywhere;
+
+  strong {
+    font-size: 12px;
+  }
+
+  small {
+    font-size: 11px;
+    opacity: 0.65;
+  }
+}
+
+.blocklist-remove {
+  flex-shrink: 0;
+}
+
+.blocklist-empty {
+  font-size: 12px;
+  opacity: 0.64;
 }
 
 .profile-card {

@@ -74,6 +74,7 @@ import {
 import { initializeSleepTimerPlayerBridge } from './utils/sleepTimerPlayerBridge'
 import { initializePlayerLyricWatchdog } from './utils/playerLyricWatchdog'
 import { usePlayerStore } from './store/player'
+import { useMusicBlocklistStore } from './store/musicBlocklist'
 import { useDataStore } from './store/data'
 import { useNormalStateStore } from './store/state'
 import { getPlaylistDetail, intelligencePlaylist } from './api/playlist'
@@ -194,6 +195,7 @@ initializeSleepTimerPlayerBridge(playerStore)
 initializePlayerLyricWatchdog(playerStore)
 const dataStore = useDataStore(pinia)
 const stateStore = useNormalStateStore(pinia)
+const musicBlocklistStore = useMusicBlocklistStore(pinia)
 let heartModeLoading = false
 let heartModeRollingLoading = false
 let heartModeLikedTrackIDsCache: number[] = []
@@ -233,7 +235,9 @@ const loadHeartModeLikedTrackIDs = async (playlistID: number) => {
     new Set<number>(
       (detail?.playlist?.trackIds || [])
         .map((item: any) => Number(item?.id ?? item))
-        .filter((id: number) => Number.isFinite(id) && id > 0)
+        .filter((id: number) =>
+          Number.isFinite(id) && id > 0 && !musicBlocklistStore.isNeteaseCandidateBlocked(id)
+        )
     )
   )
 
@@ -389,6 +393,43 @@ const completeHeartModeTrackMetadata = async (
   }
 }
 
+/**
+ * 黑名单属于硬约束，必须先于 Reranker / 入队执行。
+ * 歌手 ID 来自完整的 ar/artists（包含合唱），缺失时由最终播放入口再次校验。
+ */
+const hasBlockedNeteaseArtists = (): boolean =>
+  musicBlocklistStore.blockedArtists.some((item) => item.key.startsWith('netease:artist:'))
+
+const filterBlockedHeartModeTrackIDs = (
+  trackIDs: number[],
+  metadataByTrackID: ReadonlyMap<number, HeartModeTrackMetadata>
+): number[] =>
+  trackIDs.filter(
+    (id) =>
+      !musicBlocklistStore.isNeteaseCandidateBlocked(
+        id,
+        metadataByTrackID.get(id)?.artistIds ?? []
+      )
+  )
+
+const selectAvailableHeartModeSeedIDs = async (
+  likedTrackIDs: number[],
+  avoidedTrackIDs: number[],
+  count: number
+): Promise<number[]> => {
+  const needsArtistCheck = hasBlockedNeteaseArtists()
+  const seedCandidates = selectHeartModeSeedIDs(
+    likedTrackIDs,
+    avoidedTrackIDs,
+    needsArtistCheck ? Math.min(likedTrackIDs.length, Math.max(32, count * 8)) : count
+  )
+  if (!needsArtistCheck) return seedCandidates
+
+  const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
+  await completeHeartModeTrackMetadata(seedCandidates, metadataByTrackID)
+  return filterBlockedHeartModeTrackIDs(seedCandidates, metadataByTrackID).slice(0, count)
+}
+
 type HeartModeCandidatePool = {
   candidateTrackIDs: number[]
   candidateSeedByTrackID: Map<number, number>
@@ -491,7 +532,7 @@ const startBasicHeartModeQueue = async (
   playlistID: number,
   likedTrackIDs: number[]
 ): Promise<number[]> => {
-  const seedTrackID = selectHeartModeSeedIDs(likedTrackIDs, [], 1)[0]
+  const seedTrackID = (await selectAvailableHeartModeSeedIDs(likedTrackIDs, [], 1))[0]
   if (!seedTrackID) throw new Error('LIKED_PLAYLIST_EMPTY')
 
   const recommendations = await fetchHeartModeRecommendations(seedTrackID, playlistID)
@@ -500,9 +541,17 @@ const startBasicHeartModeQueue = async (
       seedTrackID,
       ...recommendations.map((item) => item.id).filter((id) => id !== seedTrackID)
     ])
-  ).slice(0, HEART_MODE_TARGET_COUNT)
+  )
 
-  if (trackIDs.length <= 1) {
+  const metadataByTrackID = new Map<number, HeartModeTrackMetadata>()
+  if (hasBlockedNeteaseArtists()) {
+    await completeHeartModeTrackMetadata(trackIDs, metadataByTrackID)
+  }
+  const playableTrackIDs = filterBlockedHeartModeTrackIDs(trackIDs, metadataByTrackID).slice(
+    0,
+    HEART_MODE_TARGET_COUNT
+  )
+  if (playableTrackIDs.length <= 1) {
     throw new Error('HEART_MODE_RECOMMENDATION_MISSING')
   }
 
@@ -514,8 +563,8 @@ const startBasicHeartModeQueue = async (
   playerStore.shuffle = false
   playerStore.repeatMode = 'off'
 
-  await playerStore.replacePlaylist('intelligence', playlistID, trackIDs, 0)
-  return trackIDs
+  await playerStore.replacePlaylist('intelligence', playlistID, playableTrackIDs, 0)
+  return playableTrackIDs
 }
 
 const startHeartModeFromLikes = async (requestId = '') => {
@@ -571,7 +620,7 @@ const startHeartModeFromLikes = async (requestId = '') => {
       .filter((entry) => now - entry.recommendedAt < longCooldownMs)
       .map((entry) => entry.id)
     const avoidedSeedTrackIDs = [...recentPlayedTrackIDs, ...recentHeartModeTrackIDs]
-    const seedTrackIDs = selectHeartModeSeedIDs(
+    const seedTrackIDs = await selectAvailableHeartModeSeedIDs(
       likedTrackIDs,
       avoidedSeedTrackIDs,
       heartModeProfile.value.seedCount
@@ -603,9 +652,13 @@ const startHeartModeFromLikes = async (requestId = '') => {
     const scoredHeartModeTrackIDs = scoredHeartModeCandidates.map((item) => item.id)
 
     await completeHeartModeTrackMetadata(scoredHeartModeTrackIDs, metadataByTrackID)
+    const playableHeartModeTrackIDs = filterBlockedHeartModeTrackIDs(
+      scoredHeartModeTrackIDs,
+      metadataByTrackID
+    )
 
     const initialRerankResult = rerankHeartModeCandidatesWithDecisions({
-      rankedTrackIDs: scoredHeartModeTrackIDs,
+      rankedTrackIDs: playableHeartModeTrackIDs,
       metadataByTrackID,
       sourceSeedByTrackID: candidateSeedByTrackID,
       likedTrackIDs,
@@ -622,14 +675,14 @@ const startHeartModeFromLikes = async (requestId = '') => {
     }
 
     const initialTrackSet = new Set(initialHeartModeTrackIDs)
-    const pendingTrackIDs = scoredHeartModeTrackIDs.filter(
+    const pendingTrackIDs = playableHeartModeTrackIDs.filter(
       (trackID) => !initialTrackSet.has(trackID)
     )
 
     // Session 保存完整候选归因，而不是只保存当前 12 首。后续 rolling refill
     // 才能在不重新解释 sourceSeedId 的前提下持续学习同一批 seed 分支。
     const sourceSeedByTrackID = Object.fromEntries(
-      scoredHeartModeTrackIDs.map((trackID) => [
+      playableHeartModeTrackIDs.map((trackID) => [
         String(trackID),
         trackID === seedTrackID ? seedTrackID : (candidateSeedByTrackID.get(trackID) ?? seedTrackID)
       ])
@@ -738,6 +791,14 @@ const refreshHeartModeRollingCandidates = async (): Promise<void> => {
   const { candidateTrackIDs, candidateSeedByTrackID, metadataByTrackID } =
     await fetchHeartModeCandidatePool(session.seedIds, session.playlistId)
 
+  if (hasBlockedNeteaseArtists()) {
+    await completeHeartModeTrackMetadata(candidateTrackIDs, metadataByTrackID)
+  }
+  const playableCandidateTrackIDs = filterBlockedHeartModeTrackIDs(
+    candidateTrackIDs,
+    metadataByTrackID
+  )
+
   for (const [trackID, metadata] of metadataByTrackID) {
     if (!heartModeMetadataCache.has(trackID)) {
       heartModeMetadataCache.set(trackID, metadata)
@@ -745,14 +806,14 @@ const refreshHeartModeRollingCandidates = async (): Promise<void> => {
   }
 
   const sourceSeedByTrackID: Record<string, number> = {}
-  for (const trackID of candidateTrackIDs) {
+  for (const trackID of playableCandidateTrackIDs) {
     const seedID = candidateSeedByTrackID.get(trackID)
     if (seedID) sourceSeedByTrackID[String(trackID)] = seedID
   }
 
   registerHeartModeCandidatePool({
     sourceSeedByTrackID,
-    pendingTrackIDs: candidateTrackIDs
+    pendingTrackIDs: playableCandidateTrackIDs
   })
 }
 
@@ -819,10 +880,14 @@ const replenishHeartModeRollingQueue = async (): Promise<void> => {
     const rankedPendingTrackIDs = rankedPendingCandidates.map((item) => item.id)
 
     await completeHeartModeTrackMetadata(rankedPendingTrackIDs, heartModeMetadataCache)
+    const playablePendingTrackIDs = filterBlockedHeartModeTrackIDs(
+      rankedPendingTrackIDs,
+      heartModeMetadataCache
+    )
 
     const contextTrackIDs = getHeartModeSpacingContext(playerStore.list, effectiveProfile)
     const refillRerankResult = rerankHeartModeCandidatesWithDecisions({
-      rankedTrackIDs: rankedPendingTrackIDs,
+      rankedTrackIDs: playablePendingTrackIDs,
       metadataByTrackID: heartModeMetadataCache,
       sourceSeedByTrackID: candidateSeedByTrackID,
       likedTrackIDs,

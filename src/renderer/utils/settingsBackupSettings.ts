@@ -19,7 +19,7 @@ const COVER_CONTROLS_STORAGE_KEY = 'vutronmusic-osd-cover-controls-visible'
 const MAX_BACKUP_FILE_SIZE = 2 * 1024 * 1024
 
 /**
- * 可安全迁移的独立 localStorage 设置。
+ * 可安全迁移的独立 localStorage 设置及音乐黑名单。
  *
  * 使用显式白名单而不是导出所有前缀键，避免未来新增的认证或隐私字段被
  * 无意写入备份。预览中的临时缩放值不在白名单中。
@@ -37,14 +37,16 @@ const UI_STORAGE_KEYS = [
   'osdNormalWindowScaleMinWidth',
   'osdNormalWindowScaleMinHeight',
   'osdNormalWindowScaleBaseFontSize',
-  'osdMiniControlBaseSize'
+  'osdMiniControlBaseSize',
+  // Pinia 持久化 store（仅歌曲、歌手标识及名称，不含登录凭据）。
+  'musicBlocklist'
 ] as const
 
 const TEXTS = {
   zh: {
     title: '设置备份与恢复',
     description:
-      '导出界面、桌面歌词、快捷键和播放偏好；不会导出登录凭据、Cookie、代理信息和本地目录',
+      '导出界面、桌面歌词、快捷键、播放偏好和音乐黑名单；不会导出登录凭据、Cookie、代理信息和本地目录',
     export: '导出配置',
     import: '导入配置',
     exporting: '正在导出…',
@@ -57,7 +59,7 @@ const TEXTS = {
   zht: {
     title: '設定備份與還原',
     description:
-      '匯出介面、桌面歌詞、快捷鍵和播放偏好；不會匯出登入憑證、Cookie、代理資訊和本機目錄',
+      '匯出介面、桌面歌詞、快捷鍵、播放偏好和音樂黑名單；不會匯出登入憑證、Cookie、代理資訊和本機目錄',
     export: '匯出設定',
     import: '匯入設定',
     exporting: '正在匯出…',
@@ -70,7 +72,7 @@ const TEXTS = {
   en: {
     title: 'Settings Backup and Restore',
     description:
-      'Exports UI, desktop lyrics, shortcuts and playback preferences. Credentials, cookies, proxy data and local paths are excluded.',
+      'Exports UI, desktop lyrics, shortcuts, playback preferences and music blocklist. Credentials, cookies, proxy data and local paths are excluded.',
     export: 'Export Settings',
     import: 'Import Settings',
     exporting: 'Exporting…',

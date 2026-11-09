@@ -17,6 +17,7 @@ import {
 import { useLocalMusicStore } from './localMusic'
 import { useStreamMusicStore } from './streamingMusic'
 import { useSettingsStore } from './settings'
+import { useMusicBlocklistStore } from './musicBlocklist'
 import { useNormalStateStore } from './state'
 import { useOsdLyricStore } from './osdLyric'
 import { useDataStore } from './data'
@@ -243,6 +244,7 @@ export const usePlayerStore = defineStore(
       likeAStreamTrack
     } = streamMusicStore
     const dataStore = useDataStore()
+    const musicBlocklistStore = useMusicBlocklistStore()
     const { likeATrack } = dataStore
     const { t } = useI18n()
 
@@ -1086,6 +1088,13 @@ export const usePlayerStore = defineStore(
       if (!track) {
         showToast(t('toast.trackMissingNext'))
         advanceAfterPlaybackFailure()
+        return false
+      }
+
+      // 不论来自心动模式、普通歌单、私人 FM 或手动点播，都在加载音源前拦截。
+      // 此处已有完整艺人元数据，因此还能兜底识别合唱以及候选阶段缺失的元数据。
+      if (musicBlocklistStore.isTrackBlocked(track)) {
+        if (autoPlay && playbackWanted) advanceAfterPlaybackFailure()
         return false
       }
 
@@ -2000,6 +2009,12 @@ export const usePlayerStore = defineStore(
 
     const play = async (): Promise<boolean> => {
       if (!audioNodes.audio) return false
+      // 已加载歌曲可能在暂停期间被加入黑名单；禁止直接恢复播放绕过过滤。
+      if (currentTrack.value && musicBlocklistStore.isTrackBlocked(currentTrack.value)) {
+        playbackWanted = false
+        audioNodes.audio.pause()
+        return false
+      }
       const audio = audioNodes.audio
       const revision = trackLoadRevision
       playbackWanted = true
