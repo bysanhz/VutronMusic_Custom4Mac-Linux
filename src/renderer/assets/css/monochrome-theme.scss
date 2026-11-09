@@ -238,6 +238,59 @@
   outline: 2px solid var(--mono-accent-ink);
   outline-offset: -2px;
 }
+
+/* Music blocklist follows the active solid/custom accent rather than
+   inheriting the neutral gray buttons used before the feature existed. */
+:root:not([data-accent-theme='rainbow']) .heart-mode-assistant {
+  .blocklist-shortcut,
+  .blocklist-page > .blocklist-hint,
+  .blocklist-page > .blocklist-card {
+    border-color: color-mix(in srgb, var(--mono-accent-ink) 30%, transparent);
+    background: color-mix(in srgb, var(--mono-accent-ink) 6%, var(--color-body-bg));
+  }
+
+  .blocklist-shortcut {
+    color: var(--mono-accent-ink);
+    box-shadow: inset 3px 0 var(--mono-accent-ink);
+    font-weight: 650;
+  }
+
+  .blocklist-page > .blocklist-hint,
+  .blocklist-page > .blocklist-card {
+    border-left: 3px solid var(--mono-accent-ink);
+  }
+
+  .blocklist-card .blocklist-heading {
+    color: var(--mono-accent-ink);
+    font-weight: 750;
+  }
+
+  .blocklist-page .blocklist-action,
+  .blocklist-page .blocklist-remove {
+    color: var(--mono-accent-ink);
+    border-color: color-mix(in srgb, var(--mono-accent-ink) 40%, transparent);
+    background: color-mix(in srgb, var(--mono-accent-ink) 10%, var(--color-body-bg));
+    font-weight: 650;
+  }
+
+  .blocklist-shortcut:is(:hover, :focus-visible),
+  .blocklist-page .blocklist-action:is(:hover, :focus-visible, .active),
+  .blocklist-page .blocklist-remove:is(:hover, :focus-visible) {
+    border-color: var(--mono-accent-ink);
+    background: color-mix(in srgb, var(--mono-accent-ink) 18%, var(--color-body-bg));
+  }
+
+  .blocklist-page :is(.blocklist-action, .blocklist-remove):focus-visible,
+  .blocklist-shortcut:focus-visible {
+    outline-color: var(--mono-accent-ink);
+  }
+
+  .blocklist-shortcut:focus-visible {
+    outline: 2px solid var(--mono-accent-ink);
+    outline-offset: 2px;
+  }
+}
+
 :root:not([data-accent-theme='rainbow']) #app .rainbow-liked-feature .title {
   color: var(--mono-accent-ink);
 }

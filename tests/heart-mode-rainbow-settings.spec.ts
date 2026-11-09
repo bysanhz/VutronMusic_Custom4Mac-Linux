@@ -57,3 +57,59 @@ test('custom dropdown closes accessibly, and its listeners are cleaned up', () =
     view.indexOf('watch([panelOpen, panelPage]')
   )
 })
+
+test('heart-mode navigation uses compact labels and each rainbow tab has a defined accent', () => {
+  const view = readSource('src/renderer/components/HeartModeAssistant.vue')
+  const rainbow = readSource('src/renderer/assets/css/rainbow-theme.scss')
+
+  for (const label of [
+    "profileSettings: '设置'",
+    "guideTitle: '说明'",
+    "profileSettings: '設定'",
+    "guideTitle: '說明'",
+    "profileSettings: 'Settings'",
+    "guideTitle: 'Guide'"
+  ]) {
+    expect(view).toContain(label)
+  }
+
+  expect(view).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));')
+  for (const index of [1, 2, 3, 4]) {
+    expect(view).toContain(`rainbow-heart-tab-${index}`)
+    expect(rainbow).toContain(`.rainbow-heart-tab-${index} {`)
+  }
+  expect(rainbow).toContain('--rainbow-heart-tab-color: var(--rainbow-2);')
+})
+
+test('blocklist has theme-scoped colored surfaces and accessible blocked states', () => {
+  const view = readSource('src/renderer/components/HeartModeAssistant.vue')
+  const rainbow = readSource('src/renderer/assets/css/rainbow-theme.scss')
+  const solid = readSource('src/renderer/assets/css/monochrome-theme.scss')
+
+  for (const card of ['current', 'songs', 'artists']) {
+    expect(view).toContain(`class="settings-card blocklist-card blocklist-card-${card}"`)
+    expect(rainbow).toContain(`.blocklist-card-${card} {`)
+  }
+
+  expect(view).toContain('class="blocklist-action blocklist-action-song"')
+  expect(view).toContain('class="blocklist-action blocklist-action-artist"')
+  expect(view).toContain(':aria-pressed="currentSongBlocked"')
+  expect(view).toContain(':aria-pressed="artist.blocked"')
+
+  for (const selector of [
+    '.blocklist-shortcut',
+    '.blocklist-page > .blocklist-hint',
+    '.blocklist-page > .blocklist-card',
+    '.blocklist-page .blocklist-action',
+    '.blocklist-card .blocklist-remove'
+  ]) {
+    expect(rainbow).toContain(selector)
+  }
+
+  expect(rainbow).toContain('--blocklist-hue: var(--rainbow-1)')
+  expect(rainbow).toContain('--blocklist-hue: var(--rainbow-5)')
+  expect(rainbow).toContain('--heart-rainbow-paper: #242424')
+  expect(solid).toContain(":root:not([data-accent-theme='rainbow']) .heart-mode-assistant")
+  expect(solid).toContain('.blocklist-page > .blocklist-card')
+  expect(solid).toContain('color: var(--mono-accent-ink)')
+})

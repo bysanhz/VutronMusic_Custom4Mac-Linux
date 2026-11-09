@@ -1051,6 +1051,9 @@
 :root[data-accent-theme='rainbow'] .heart-mode-assistant .rainbow-heart-tab-3 {
   --rainbow-heart-tab-color: var(--rainbow-7);
 }
+:root[data-accent-theme='rainbow'] .heart-mode-assistant .rainbow-heart-tab-4 {
+  --rainbow-heart-tab-color: var(--rainbow-2);
+}
 :root[data-accent-theme='rainbow'] .heart-mode-assistant .rainbow-heart-tab {
   color: var(--rainbow-heart-tab-color);
   background: color-mix(in srgb, var(--rainbow-heart-tab-color) 8%, var(--color-body-bg));
@@ -1858,6 +1861,99 @@
   }
   .guide-group > strong { color: var(--heart-guide-hue); }
 }
+/* Heart Mode music blocklist: use the established semantic rainbow palette.
+   Coral marks tracks, cyan marks artists, and orange marks the current-item
+   section. Keep the neutral reading surface and adapt through paper tokens for
+   both light and dark appearances. */
+:root[data-accent-theme='rainbow'] .heart-mode-assistant {
+  .blocklist-shortcut {
+    color: var(--rainbow-2);
+    border-color: color-mix(in srgb, var(--rainbow-2) 34%, transparent);
+    background: color-mix(in srgb, var(--rainbow-2) 9%, var(--heart-rainbow-paper));
+    box-shadow: inset 3px 0 var(--rainbow-2);
+    font-weight: 650;
+  }
+
+  .blocklist-shortcut:is(:hover, :focus-visible) {
+    border-color: var(--rainbow-2);
+    background: color-mix(in srgb, var(--rainbow-2) 16%, var(--heart-rainbow-paper));
+    outline-color: var(--rainbow-2);
+  }
+
+  .blocklist-shortcut:focus-visible {
+    outline: 2px solid var(--rainbow-2);
+    outline-offset: 2px;
+  }
+
+  .blocklist-page > .blocklist-hint {
+    padding: 9px 11px;
+    color: var(--color-text);
+    border: 1px solid color-mix(in srgb, var(--rainbow-6) 29%, transparent);
+    border-left: 3px solid var(--rainbow-6);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--rainbow-6) 7%, var(--heart-rainbow-paper));
+    opacity: 0.9;
+  }
+
+  .blocklist-card-current { --blocklist-hue: var(--rainbow-2); }
+  .blocklist-card-songs { --blocklist-hue: var(--rainbow-1); }
+  .blocklist-card-artists { --blocklist-hue: var(--rainbow-5); }
+
+  .blocklist-page > .blocklist-card {
+    border: 1px solid color-mix(in srgb, var(--blocklist-hue) 32%, transparent);
+    border-left: 3px solid var(--blocklist-hue);
+    background: color-mix(in srgb, var(--blocklist-hue) 6%, var(--heart-rainbow-paper));
+  }
+
+  .blocklist-card .blocklist-heading {
+    color: var(--blocklist-hue);
+    font-weight: 750;
+  }
+
+  .blocklist-card .blocklist-current-name {
+    font-weight: 700;
+  }
+
+  .blocklist-action-song { --blocklist-action-hue: var(--rainbow-1); }
+  .blocklist-action-artist { --blocklist-action-hue: var(--rainbow-5); }
+
+  .blocklist-page .blocklist-action {
+    color: var(--blocklist-action-hue);
+    border: 1px solid color-mix(in srgb, var(--blocklist-action-hue) 45%, transparent);
+    background: color-mix(in srgb, var(--blocklist-action-hue) 10%, var(--heart-rainbow-paper));
+    box-shadow: inset 0 -2px color-mix(in srgb, var(--blocklist-action-hue) 36%, transparent);
+    font-weight: 650;
+  }
+
+  .blocklist-page .blocklist-action:is(:hover, :focus-visible),
+  .blocklist-page .blocklist-action.active {
+    color: var(--blocklist-action-hue);
+    border-color: var(--blocklist-action-hue);
+    background: color-mix(in srgb, var(--blocklist-action-hue) 18%, var(--heart-rainbow-paper));
+  }
+
+  .blocklist-page .blocklist-action:focus-visible {
+    outline-color: var(--blocklist-action-hue);
+  }
+
+  .blocklist-card .blocklist-entry {
+    border-top-color: color-mix(in srgb, var(--blocklist-hue) 23%, transparent);
+  }
+
+  .blocklist-card .blocklist-remove {
+    color: var(--blocklist-hue);
+    border-color: color-mix(in srgb, var(--blocklist-hue) 39%, transparent);
+    background: color-mix(in srgb, var(--blocklist-hue) 9%, var(--heart-rainbow-paper));
+    font-weight: 650;
+  }
+
+  .blocklist-card .blocklist-remove:is(:hover, :focus-visible) {
+    border-color: var(--blocklist-hue);
+    background: color-mix(in srgb, var(--blocklist-hue) 17%, var(--heart-rainbow-paper));
+    outline-color: var(--blocklist-hue);
+  }
+}
+
 :root[data-accent-theme='rainbow'] .heart-mode-assistant.is-dark {
   --heart-rainbow-paper: #242424;
 }

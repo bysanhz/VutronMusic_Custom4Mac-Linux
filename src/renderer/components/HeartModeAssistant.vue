@@ -46,6 +46,7 @@
             :class="{ active: panelPage === 'settings' }"
             role="tab"
             :aria-selected="panelPage === 'settings'"
+            :title="texts.profileSettingsHint"
             @click="panelPage = 'settings'"
           >
             {{ texts.profileSettings }}
@@ -56,6 +57,7 @@
             :class="{ active: panelPage === 'blocklist' }"
             role="tab"
             :aria-selected="panelPage === 'blocklist'"
+            :title="texts.blocklistHint"
             @click="panelPage = 'blocklist'"
           >
             {{ texts.blocklistTab }}
@@ -66,6 +68,7 @@
             :class="{ active: panelPage === 'guide' }"
             role="tab"
             :aria-selected="panelPage === 'guide'"
+            :title="texts.guideHint"
             @click="panelPage = 'guide'"
           >
             {{ texts.guideTitle }}
@@ -410,14 +413,15 @@
         <template v-else-if="panelPage === 'blocklist'">
           <div class="subpage-content blocklist-page">
             <p class="blocklist-hint">{{ texts.blocklistHint }}</p>
-            <div class="settings-card">
+            <div class="settings-card blocklist-card blocklist-card-current">
               <div class="blocklist-heading">{{ texts.blocklistCurrent }}</div>
               <template v-if="currentTrack">
                 <div class="blocklist-current-name">{{ currentTrack.name }}</div>
                 <button
                   type="button"
-                  class="blocklist-action"
+                  class="blocklist-action blocklist-action-song"
                   :class="{ active: currentSongBlocked }"
+                  :aria-pressed="currentSongBlocked"
                   @click.stop="toggleCurrentSong"
                 >
                   {{ currentSongBlocked ? texts.unblockCurrentSong : texts.blockCurrentSong }}
@@ -430,8 +434,9 @@
                     v-for="artist in currentArtists"
                     :key="artist.key"
                     type="button"
-                    class="blocklist-action"
+                    class="blocklist-action blocklist-action-artist"
                     :class="{ active: artist.blocked }"
+                    :aria-pressed="artist.blocked"
                     @click.stop="toggleCurrentArtist(artist)"
                   >
                     {{ artist.blocked ? texts.unblockArtist : texts.blockArtist }} {{ artist.name }}
@@ -442,7 +447,7 @@
               <div v-else class="blocklist-empty">{{ texts.blocklistNoTrack }}</div>
             </div>
 
-            <div class="settings-card">
+            <div class="settings-card blocklist-card blocklist-card-songs">
               <div class="blocklist-heading">{{ texts.blocklistSongs }} ({{ blockedSongs.length }})</div>
               <div v-if="!blockedSongs.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
               <div v-for="item in blockedSongs" :key="item.key" class="blocklist-entry">
@@ -460,7 +465,7 @@
               </div>
             </div>
 
-            <div class="settings-card">
+            <div class="settings-card blocklist-card blocklist-card-artists">
               <div class="blocklist-heading">{{ texts.blocklistArtists }} ({{ blockedArtists.length }})</div>
               <div v-if="!blockedArtists.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
               <div v-for="item in blockedArtists" :key="item.key" class="blocklist-entry">
@@ -538,9 +543,9 @@ const TEXTS = {
     dragHint: '点击打开；拖动可移动位置',
     tabsLabel: '心动模式分页',
     currentTab: '当前',
-    profileSettings: '心动模式设置',
+    profileSettings: '设置',
     profileSettingsHint: '算法开关、风格和自定义参数',
-    guideTitle: '操作说明',
+    guideTitle: '说明',
     guideHint: '评分、播放反馈和快捷操作规则',
     modeContinuousDesc: '更强调熟悉和连贯，分支少、重复容忍更高，适合长时间顺听。',
     modeBalancedDesc: '在熟悉歌曲与新发现之间保持中间状态，适合作为稳妥的日常模式。',
@@ -678,9 +683,9 @@ const TEXTS = {
     dragHint: '點擊開啟；拖動可移動位置',
     tabsLabel: '心動模式分頁',
     currentTab: '目前',
-    profileSettings: '心動模式設定',
+    profileSettings: '設定',
     profileSettingsHint: '演算法開關、風格和自訂參數',
-    guideTitle: '操作說明',
+    guideTitle: '說明',
     guideHint: '評分、播放回饋和快捷操作規則',
     modeContinuousDesc: '更強調熟悉和連貫，分支少、重複容忍較高，適合長時間順聽。',
     modeBalancedDesc: '在熟悉歌曲與新發現之間保持中間狀態，適合作為穩妥的日常模式。',
@@ -818,9 +823,9 @@ const TEXTS = {
     dragHint: 'Click to open; drag to move',
     tabsLabel: 'Heart Mode tabs',
     currentTab: 'Current',
-    profileSettings: 'Heart Mode settings',
+    profileSettings: 'Settings',
     profileSettingsHint: 'Algorithm switch, style, and custom parameters',
-    guideTitle: 'How it works',
+    guideTitle: 'Guide',
     guideHint: 'Scoring, playback feedback, and quick-control rules',
     modeContinuousDesc:
       'Prioritizes familiarity and continuity with fewer branches and higher repeat tolerance; good for long listening sessions.',
@@ -1677,7 +1682,7 @@ onBeforeUnmount(() => {
 
 .panel-tabs {
   display: grid;
-  grid-template-columns: 0.72fr 1.3fr 0.93fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
   gap: 3px;
   margin: 14px -4px 0;
@@ -1689,7 +1694,7 @@ onBeforeUnmount(() => {
   position: relative;
   min-width: 0;
   height: 35px;
-  padding: 0 9px;
+  padding: 0 5px;
   overflow: hidden;
   border: 1px solid transparent;
   border-bottom: 0;
@@ -1698,7 +1703,7 @@ onBeforeUnmount(() => {
   color: var(--color-text);
   cursor: pointer;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
