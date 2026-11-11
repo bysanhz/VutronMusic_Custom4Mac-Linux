@@ -27,7 +27,7 @@ test('macOS icon is opaque and preserves all approved visible pixels', async () 
   let opaquePixels = 0
   let formerlyTransparentPixels = 0
   for (let i = 0; i < original.data.length; i += 4) {
-    expect(mac[i + 3]).toBe(255)
+    if (mac[i + 3] !== 255) throw new Error(`Mac icon contains alpha at index ${i / 4}`)
     if (original.data[i + 3] === 255) {
       opaquePixels += 1
       for (let channel = 0; channel < 3; channel += 1) {
