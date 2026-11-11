@@ -122,7 +122,7 @@ jobs:
             label: Linux amd64 DEB
             artifact: VutronMusic-release-linux-amd64-deb
             output: release/*/VutronMusic*_linux_amd64.deb
-          - os: macos-14
+          - os: macos-15
             platform: darwin
             arch: arm64
             label: macOS arm64 DMG
