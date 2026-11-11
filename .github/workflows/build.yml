@@ -100,6 +100,11 @@ jobs:
         run: >-
           yarn playwright test tests/security-hardening.spec.ts tests/netease-scrobble-lifecycle.spec.ts
 
+      - name: Verify generated macOS icon dimensions and artwork integrity
+        run: |
+          yarn app:icons
+          yarn playwright test tests/macos-app-icon.spec.ts
+
       - name: Build renderer and main process
         run: yarn vite --config vite.config.ts build
 
