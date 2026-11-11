@@ -29,11 +29,18 @@ const generateMacIcon = async (source) => {
   const middle = (macIconSize - 1) / 2
   const centerIndex = (Math.floor(middle) * macIconSize + Math.floor(middle)) * 4
   let maxAlpha = 0
-  for (let i = 3; i < data.length; i += 4) maxAlpha = Math.max(maxAlpha, data[i])
-  if (maxAlpha < 200) throw new Error('Approved icon has unexpectedly low opacity')
-  // Raster exports can have a 254/255 interior. Preserve these colors as-is.
-  const solidAlpha = maxAlpha - 1
-  console.log(`[AppIcon] Original alpha: max=${maxAlpha}, center=${data[centerIndex + 3]}`)
+  let visiblePixels = 0
+  for (let i = 3; i < data.length; i += 4) {
+    maxAlpha = Math.max(maxAlpha, data[i])
+    if (data[i] >= 200) visiblePixels += 1
+  }
+  if (maxAlpha < 200 || visiblePixels < (macIconSize * macIconSize) / 2) {
+    throw new Error('Approved icon alpha coverage is unexpectedly low')
+  }
+  // The illustration's main pixels have alpha around 250–253, not 255.
+  // Only extend genuinely translucent outer-edge pixels; keep visible RGB exact.
+  const solidAlpha = 200
+  console.log(`[AppIcon] Original alpha: max=${maxAlpha}, center=${data[centerIndex + 3]}, visible=${visiblePixels}`)
 
   for (let y = 0; y < macIconSize; y += 1) {
     for (let x = 0; x < macIconSize; x += 1) {
