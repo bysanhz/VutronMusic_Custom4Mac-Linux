@@ -7,5 +7,5 @@
     "linux-amd64-deb",
     "mac-arm64-dmg"
   ],
-  "note": "Publish v4.0.0-beta.4 with the macOS full-bleed icon correction. Rebuild after the source-alpha normalization fix and icon regression test update."
+  "note": "Publish v4.0.0-beta.4 with macOS full-bleed icon corrected for the approved semi-opaque alpha artwork; test all visible RGB pixels and three platform installers."
 }
