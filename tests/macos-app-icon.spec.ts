@@ -24,12 +24,9 @@ test('macOS icon is opaque and preserves all approved visible pixels', async () 
   expect(original.data[3]).toBe(0)
   expect(shared[3]).toBe(0)
   expect(mac[3]).toBe(255)
-  let maxAlpha = 0
-  for (let i = 3; i < original.data.length; i += 4) {
-    maxAlpha = Math.max(maxAlpha, original.data[i])
-  }
-  expect(maxAlpha).toBeGreaterThanOrEqual(200)
-  const solidAlpha = maxAlpha - 1
+  // The approved illustration is semi-opaque (often alpha 250–253).
+  // Preserve all visible RGB, not just the small number of alpha-255 pixels.
+  const solidAlpha = 200
   let opaquePixels = 0
   let formerlyTransparentPixels = 0
   for (let i = 0; i < original.data.length; i += 4) {
