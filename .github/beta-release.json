@@ -7,5 +7,5 @@
     "linux-amd64-deb",
     "mac-arm64-dmg"
   ],
-  "note": "Publish v4.0.0-beta.3 as a prerelease with Windows x64 EXE, Linux amd64 DEB and macOS arm64 DMG installers."
+  "note": "Publish v4.0.0-beta.3 prerelease with Windows x64 EXE, Linux amd64 DEB and macOS arm64 DMG; macOS packaging uses the supported macos-15 GitHub Actions runner."
 }
