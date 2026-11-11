@@ -33,7 +33,9 @@ const baseConfig = {
     notarize: false,
     // ======== newADD start======
     // build:pre 会根据 src/renderer/assets/branding/app-icon.png 生成实际尺寸和文件名一致的标准图标。
-    icon: 'buildAssets/generated-icons/1024x1024.png',
+    // macOS 26 masks opaque full-bleed artwork itself; do not double-inset the
+    // shared transparent rounded PNG used by Windows/Linux.
+    icon: 'buildAssets/generated-icons/macos-1024x1024.png',
     // =========== newADD end ========
     type: 'distribution',
     target: [{ target: 'dmg', arch: 'x64' }]
