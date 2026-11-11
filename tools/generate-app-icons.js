@@ -28,31 +28,35 @@ const generateMacIcon = async (source) => {
   const image = Buffer.alloc(macIconSize * macIconSize * 3)
   const middle = (macIconSize - 1) / 2
   const centerIndex = (Math.floor(middle) * macIconSize + Math.floor(middle)) * 4
-  if (data[centerIndex + 3] !== 255) {
-    throw new Error('Approved icon center must be opaque for macOS edge extension')
-  }
+  let maxAlpha = 0
+  for (let i = 3; i < data.length; i += 4) maxAlpha = Math.max(maxAlpha, data[i])
+  if (maxAlpha < 200) throw new Error('Approved icon has unexpectedly low opacity')
+  // Raster exports can have a 254/255 interior. Preserve these colors as-is.
+  const solidAlpha = maxAlpha - 1
+  console.log(`[AppIcon] Original alpha: max=${maxAlpha}, center=${data[centerIndex + 3]}`)
 
   for (let y = 0; y < macIconSize; y += 1) {
     for (let x = 0; x < macIconSize; x += 1) {
       const originalIndex = (y * macIconSize + x) * 4
       let colorIndex = originalIndex
-      if (data[originalIndex + 3] !== 255) {
+      if (data[originalIndex + 3] < solidAlpha) {
         // Extend the nearest opaque color inwards along a ray to the center.
         // The system-rounded corners hide these reconstructed outer pixels.
         const distance = Math.max(Math.abs(x - middle), Math.abs(y - middle))
+        let bestAlpha = data[originalIndex + 3]
         for (let step = 1; step <= Math.ceil(distance); step += 1) {
           const progress = Math.min(1, step / distance)
           const sx = Math.round(x + (middle - x) * progress)
           const sy = Math.round(y + (middle - y) * progress)
           const candidate = (sy * macIconSize + sx) * 4
-          if (data[candidate + 3] === 255) {
+          const alpha = data[candidate + 3]
+          if (alpha > bestAlpha) {
+            bestAlpha = alpha
             colorIndex = candidate
-            break
           }
+          if (alpha >= solidAlpha) break
         }
-        if (data[colorIndex + 3] !== 255) {
-          throw new Error('Failed to extend a transparent macOS icon corner')
-        }
+        if (bestAlpha === 0) throw new Error('No visible color along macOS edge ray')
       }
       const outputIndex = (y * macIconSize + x) * 3
       image[outputIndex] = data[colorIndex]
