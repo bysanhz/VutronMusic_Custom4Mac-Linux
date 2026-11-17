@@ -1,11 +1,11 @@
 {
-  "version": "4.0.0-beta.4",
+  "version": "4.0.0-beta.5",
   "channel": "beta",
-  "releaseNotes": ".github/release-notes/v4.0.0-beta.4.md",
+  "releaseNotes": ".github/release-notes/v4.0.0-beta.5.md",
   "platforms": [
     "win-x64-exe",
     "linux-amd64-deb",
     "mac-arm64-dmg"
   ],
-  "note": "Publish v4.0.0-beta.4 with macOS full-bleed icon corrected for the approved semi-opaque alpha artwork; test all visible RGB pixels and three platform installers."
+  "note": "Publish v4.0.0-beta.5 with final media-duration verification for fallback audio and three platform installers."
 }
