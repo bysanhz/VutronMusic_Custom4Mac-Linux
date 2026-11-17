@@ -674,7 +674,7 @@ const getAudioSourceFromNetease = async (
 
 const recentAudioUrlHashes = new Map<string, string>()
 
-export const getAudioSource = async (track: any) => {
+export const getAudioSource = async (track: any, excludedSource = '') => {
   const startedAt = Date.now()
   const diagnostic = beginAudioDiagnostic({
     kind: 'source',
@@ -687,11 +687,14 @@ export const getAudioSource = async (track: any) => {
   let source = 'netease'
 
   // 优先使用网易云官方 /song/url/v1，并逐级降低音质。
-  const trackInfo = await getAudioSourceFromNetease(track, diagnostic)
+  const trackInfo =
+    excludedSource === 'netease'
+      ? { url: '', br: 128000, gain: 0, peak: 1, level: 'standard' }
+      : await getAudioSourceFromNetease(track, diagnostic)
 
   // 官方音源不可用时才进入 UNM。UNM 失败会返回 null，不能再直接访问 res.url。
   if (!trackInfo.url && enableUNM) {
-    const res = await getAudioSourceFromUnblock(track)
+    const res = await getAudioSourceFromUnblock(track, excludedSource)
     if (res?.url) {
       // UNM 可能返回仅支持 HTTP 的第三方源；Renderer 不再直连，
       // 因此保留原始协议并交由主进程代理处理。
@@ -732,11 +735,14 @@ export const getTrackDetail = (ids: string) => {
   })
 }
 
-export const getAudioSourceFromUnblock = async (track: any) => {
+export const getAudioSourceFromUnblock = async (track: any, excludedSource = '') => {
   const source = (store.get('settings.unblockNeteaseMusic.source') as string) || ''
-  const sourceList = source
-    ? source.split(',').map((s) => s.trim().toLowerCase())
-    : ['bodian', 'kuwo', 'kugou', 'ytdlp', 'qq', 'bilibili', 'pyncmd', 'migu']
+  const sourceList = (
+    source
+      ? source.split(',').map((s) => s.trim().toLowerCase())
+      : ['bodian', 'kuwo', 'kugou', 'ytdlp', 'qq', 'bilibili', 'pyncmd', 'migu']
+  ).filter((candidate) => candidate !== excludedSource)
+  if (!sourceList.length) return null
 
   const qqCookie = (store.get('settings.unblockNeteaseMusic.qqCookie') as string) || ''
   const jooxCookie = store.get('settings.unblockNeteaseMusic.jooxCookie') as string

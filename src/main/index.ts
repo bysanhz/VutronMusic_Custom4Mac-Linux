@@ -817,10 +817,23 @@ class BackGround {
             })
           case 'track':
             ids = searchParams.get('id')
+            // A media-duration mismatch can disqualify one provider for this retry.
+            // Accept only a provider name, never a URL or arbitrary request input.
+            const rejectedSourceParam = searchParams.get('rejectSource') || ''
+            const rejectedSource = /^[a-z][a-z0-9_-]{0,20}$/.test(rejectedSourceParam)
+              ? rejectedSourceParam
+              : ''
             try {
               res = cache.get(CacheAPIs.Track, { ids })
               if (res) {
                 let track = res.songs[0]
+                if (
+                  track.type !== 'local' &&
+                  track.cache &&
+                  (rejectedSource === 'cache' || rejectedSource === track.source)
+                ) {
+                  track = { ...track, cache: false, url: '' }
+                }
                 if (track.type !== 'local' && track.cache) {
                   const mismatch = await cachedAudioMismatch(track)
                   if (mismatch) {
@@ -859,7 +872,10 @@ class BackGround {
                 }
 
                 if (track.type !== 'local' && !track.cache) {
-                  const { url, br, gain, peak, source } = await getAudioSource(track)
+                  const { url, br, gain, peak, source } = await getAudioSource(
+                    track,
+                    rejectedSource
+                  )
                   track.url = url
                   track.source = source
                   track.gain = gain
@@ -881,7 +897,7 @@ class BackGround {
               }
 
               const track = res.songs[0]
-              const { url, br, gain, peak, source } = await getAudioSource(track)
+              const { url, br, gain, peak, source } = await getAudioSource(track, rejectedSource)
               track.url = url
               track.source = source
               track.gain = gain

@@ -66,20 +66,25 @@ test.beforeAll(async () => {
     wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16)
     wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28)
     wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40)
-    globalThis.fixture = {requests:[], audioRequests:[], modes:{}, delays:{}, offline:false, activeStreams:0, cancelledStreams:0}
+    const wrongWav = Buffer.from(wav.subarray(0,44 + 44100 * 2 * 6))
+    wrongWav.writeUInt32LE(wrongWav.length-8,4);wrongWav.writeUInt32LE(wrongWav.length-44,40)
+    globalThis.fixture = {requests:[], rejectedSources:[], audioRequests:[], modes:{}, delays:{}, offline:false, activeStreams:0, cancelledStreams:0}
     app.whenReady().then(()=>{
       protocol.handle('atom', async request=>{
         const u = new URL(request.url), f=globalThis.fixture
         if(u.host==='local-asset') {
           const id=Number(u.searchParams.get('id')); f.requests.push(id)
+          const rejectedSource=u.searchParams.get('rejectSource')||'';f.rejectedSources.push(rejectedSource)
           await new Promise(r=>setTimeout(r,f.delays[id]||0))
-          return new Response(JSON.stringify({id,name:'Fixture '+id,type:'online',source:'netease',
-            url:f.modes[id]==='unavailable'?'':'http://audio.test/'+id+'.wav?v='+f.requests.length,
+          const wrong=f.modes[id]==='mismatched-qq'&&!rejectedSource
+          return new Response(JSON.stringify({id,name:'Fixture '+id,type:'online',source:wrong?'qq':rejectedSource?'pyncmd':'netease',
+            url:f.modes[id]==='unavailable'?'':'http://audio.test/'+id+(wrong?'-wrong':'')+'.wav?v='+f.requests.length,
             dt:20000,duration:20000,ar:[{name:'Fixture artist'}],al:{id:1,name:'Fixture album',picUrl:''}}),
             {headers:{'content-type':'application/json'}})
         }
         return serveAudioProxy(request,async(url,options)=>{
-          const id=Number(new URL(url).pathname.split('/')[1].split('.')[0]);f.audioRequests.push(id)
+          const pathname=new URL(url).pathname
+          const id=parseInt(pathname.split('/')[1],10);f.audioRequests.push(id)
           if(f.offline) throw Object.assign(new Error('fixture offline'),{code:'ENETUNREACH'})
           const mode=f.modes[id]
           if(mode==='stall-once' && f.requests.filter(x=>x===id).length===1) return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(wav.subarray(0,44+44100*2*3)))}}),{headers:{'content-type':'audio/wav','content-length':String(wav.length)}})
@@ -88,11 +93,12 @@ test.beforeAll(async () => {
           if(mode==='403') return new Response('denied',{status:403})
           if(mode==='unsupported'){const bad=Buffer.from(wav);bad.writeUInt16LE(65535,20);return new Response(new Uint8Array(bad),{headers:{'content-type':'audio/wav'}})}
           if(mode==='invalid-container')return new Response('this is not audio',{headers:{'content-type':'audio/mpeg'}})
+          const media=pathname.includes('-wrong')?wrongWav:wav
           const range=options.headers.get('range')
           const start=Number(range?.match(/bytes=(\\d+)-/)?.[1]||0)
-          return new Response(new Uint8Array(wav.subarray(start)),{status:range?206:200,headers:{
-            'content-type':'audio/wav','accept-ranges':'bytes','content-length':String(wav.length-start),
-            ...(range?{'content-range':'bytes '+start+'-'+(wav.length-1)+'/'+wav.length}:{})}})
+          return new Response(new Uint8Array(media.subarray(start)),{status:range?206:200,headers:{
+            'content-type':'audio/wav','accept-ranges':'bytes','content-length':String(media.length-start),
+            ...(range?{'content-range':'bytes '+start+'-'+(media.length-1)+'/'+media.length}:{})}})
         })
       })
       const win = new BrowserWindow({show:true,width:500,height:300,webPreferences:{sandbox:true,contextIsolation:true,backgroundThrottling:false}})
@@ -170,6 +176,26 @@ test('plays a real media element through Web Audio, survives rapid switches and 
   expect(await trackId()).toBe(3)
   expect(await playing()).toBe(true)
   expect(await page.evaluate(() => (window as any).playbackProbe.contextCount())).toBe(1)
+  expect(errors).toEqual([])
+})
+
+test('rejects a wrong-duration QQ file before playback and retries without QQ', async () => {
+  await setMode(1, 'mismatched-qq')
+  await play([1])
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as any).fixture.rejectedSources))
+    .toEqual(['', 'qq'])
+  await expect.poll(playing).toBe(true)
+  expect(await app.evaluate(() => (globalThis as any).fixture.requests)).toEqual([1, 1])
+  expect(await page.evaluate(() => (window as any).playbackProbe.player.currentTrack.source)).toBe(
+    'pyncmd'
+  )
+  const events = await page.evaluate(() => (window as any).vutronmusic.media.recentEvents)
+  expect(
+    events.some((entry: { event: string }) =>
+      entry.event.startsWith('identity-rejected:duration:20.00:6.00:qq')
+    )
+  ).toBe(true)
   expect(errors).toEqual([])
 })
 
@@ -525,7 +551,7 @@ test('pausing while a recovery lookup is pending preserves the user pause intent
   await setMode(2, 'healthy')
   await page.evaluate(async () => {
     const p = (window as any).playbackProbe.player
-    if (p.playing) await p.playOrPause()
+    await p.playOrPause()
   })
   await page.waitForTimeout(500)
   expect(await playing()).toBe(false)

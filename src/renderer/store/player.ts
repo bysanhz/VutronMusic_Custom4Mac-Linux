@@ -173,6 +173,26 @@ export const usePlayerStore = defineStore(
       metadataListenerController?.abort()
       metadataListenerController = null
     }
+    let cancelDurationProbe: (() => void) | null = null
+    const waitForMediaDuration = (audio: HTMLAudioElement): Promise<number | null> => {
+      if (audio.readyState >= 1) return Promise.resolve(audio.duration)
+      return new Promise((resolve) => {
+        const finish = (duration: number | null) => {
+          audio.removeEventListener('loadedmetadata', onMetadata)
+          audio.removeEventListener('error', onError)
+          window.clearTimeout(timer)
+          if (cancelDurationProbe === cancel) cancelDurationProbe = null
+          resolve(duration)
+        }
+        const onMetadata = () => finish(audio.duration)
+        const onError = () => finish(null)
+        const cancel = () => finish(null)
+        const timer = window.setTimeout(cancel, 12_000)
+        cancelDurationProbe = cancel
+        audio.addEventListener('loadedmetadata', onMetadata, { once: true })
+        audio.addEventListener('error', onError, { once: true })
+      })
+    }
     let playbackSourceRetryTrackId: string | null = null
     let playbackSourceRetryCount = 0
     const COVER_RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000, 40_000] as const
@@ -1042,10 +1062,12 @@ export const usePlayerStore = defineStore(
     const replaceCurrentTrack = async (
       trackID: number | string,
       autoPlay = true,
-      resumePositionOverride: number | null = null
+      resumePositionOverride: number | null = null,
+      rejectedSource = ''
     ) => {
       const revision = ++trackLoadRevision
       clearMetadataListener()
+      cancelDurationProbe?.()
       playbackWanted = autoPlay
       playbackHealthRecoveryInFlight = false
       trackLookupFailureRevision = -1
@@ -1075,7 +1097,7 @@ export const usePlayerStore = defineStore(
 
       let track: Track | undefined
       try {
-        track = await getLocalMusic(trackID as number)
+        track = await getLocalMusic(trackID as number, rejectedSource)
       } catch (error) {
         if (revision !== trackLoadRevision) return false
         trackLookupFailureRevision = revision
@@ -1488,6 +1510,47 @@ export const usePlayerStore = defineStore(
       audioNodes.audio!.src = source
       audioNodes.audio!.load()
 
+      const track = currentTrack.value
+      if (track && (track.type === 'online' || track.cache)) {
+        // Search-result metadata does not prove that a provider's final URL
+        // points to that recording. Check the actual media before fading in.
+        const mediaDuration = await waitForMediaDuration(audioNodes.audio!)
+        if (revision !== trackLoadRevision) return false
+        if (mediaDuration === null) {
+          if (autoPlay && playbackWanted) {
+            void handlePlaybackSourceFailure(new Error('media metadata unavailable'), revision, 'metadata-unavailable')
+          } else {
+            audioNodes.audio!.removeAttribute('src')
+            audioNodes.audio!.load()
+          }
+          return false
+        }
+        const expectedDuration = Number(track.dt || track.duration) / 1000
+        if (
+          Number.isFinite(expectedDuration) && expectedDuration > 0 &&
+          Number.isFinite(mediaDuration) && mediaDuration > 0 &&
+          Math.abs(mediaDuration - expectedDuration) > 5
+        ) {
+          const rejectedSource = String(track.source || (track.cache ? 'cache' : 'netease'))
+          recordPlaybackMediaEvent(
+            `identity-rejected:duration:${expectedDuration.toFixed(2)}:${mediaDuration.toFixed(2)}:${rejectedSource}`
+          )
+          handledFailureRevision = revision
+          audioNodes.audio!.pause()
+          audioNodes.audio!.removeAttribute('src')
+          audioNodes.audio!.load()
+          if (playbackSourceRetryCount < MAX_PLAYBACK_SOURCE_RETRIES) {
+            playbackSourceRetryCount += 1
+            showToast(t('toast.audioSourceRetrying', { name: track.name }))
+            await replaceCurrentTrack(track.id, autoPlay, 0, rejectedSource)
+          } else {
+            showToast(t('toast.audioPlaybackFailedNext', { name: track.name }))
+            if (autoPlay && playbackWanted) advanceAfterPlaybackFailure()
+          }
+          return false
+        }
+      }
+
       if (startAt > 0) {
         const applyResumePosition = () => {
           const audio = audioNodes.audio
@@ -1529,7 +1592,7 @@ export const usePlayerStore = defineStore(
       return true
     }
 
-    const getLocalMusic = async (id: number): Promise<Track | undefined> => {
+    const getLocalMusic = async (id: number, rejectedSource = ''): Promise<Track | undefined> => {
       let matchTrack = getALocalTrack({ id })
       if (matchTrack?.type === 'local') {
         if (!isLocalList.value) {
@@ -1546,7 +1609,8 @@ export const usePlayerStore = defineStore(
         let lastError: unknown = null
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
-            const response = await fetch(`atom://local-asset?type=track&id=${id}`)
+            const retry = rejectedSource ? `&rejectSource=${encodeURIComponent(rejectedSource)}` : ''
+            const response = await fetch(`atom://local-asset?type=track&id=${id}${retry}`)
             if (response.status === 200) {
               return (await response.json()) as Track
             }
@@ -2077,7 +2141,7 @@ export const usePlayerStore = defineStore(
     }
 
     const playOrPause = async () => {
-      if (playing.value) {
+      if (playing.value || playbackWanted) {
         playing.value = false
         await pause()
         audioNodes.audioContext?.suspend()
@@ -2277,6 +2341,7 @@ export const usePlayerStore = defineStore(
     const destroAudioNode = async () => {
       playbackWanted = false
       clearMetadataListener()
+      cancelDurationProbe?.()
       audioGraphRevision += 1
       pitchProcessor?.close()
       pitchProcessor = null
@@ -2604,6 +2669,7 @@ export const usePlayerStore = defineStore(
       playbackWanted = false
       playing.value = false
       clearMetadataListener()
+      cancelDurationProbe?.()
       audioNodes.audio?.pause()
       audioNodes.audio?.removeAttribute('src')
       audioNodes.audio?.load()
@@ -3237,6 +3303,7 @@ export const usePlayerStore = defineStore(
         neteaseRetryTimer = null
       }
       trackLoadRevision += 1
+      cancelDurationProbe?.()
       stopPlaybackHealthWatchdog()
       registerSleepTimerPauseHandler(null)
       progress.value = audioNodes.audio?.currentTime || 0
