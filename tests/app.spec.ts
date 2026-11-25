@@ -129,6 +129,108 @@ test('production settings survive repeated route changes without duplicate diagn
   expect(errors).toEqual([])
 })
 
+test('desktop lyric controls own their edge clicks while the window can still move and resize', async () => {
+  test.skip(
+    process.platform !== 'linux' ||
+      process.env.XDG_SESSION_TYPE === 'wayland' ||
+      Boolean(process.env.WAYLAND_DISPLAY),
+    'Verifies the Linux X11 desktop lyric window'
+  )
+  const opening = app.waitForEvent('window')
+  await page.evaluate(() => window.mainApi?.send('updateOsdState', { show: true }))
+  const osd = await opening
+  const controls = osd.locator('.compact-cover-controls')
+  const previous = controls.locator('.control-prev')
+  await expect(previous).toBeVisible()
+
+  try {
+    await expect.poll(() =>
+      app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((win) => win.webContents.getURL().includes('/osdlyric.html'))
+          ?.isAlwaysOnTop()
+      )
+    ).toBe(true)
+    expect(
+      await app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((win) => win.webContents.getURL().includes('/osdlyric.html'))!
+          .isResizable()
+      )
+    ).toBe(false)
+    await controls.hover()
+    const points = await controls.locator('.compact-control-button').evaluateAll((buttons) =>
+      buttons.map((button, index) => {
+        const rect = button.getBoundingClientRect()
+        return {
+          x: rect.left + rect.width / 2,
+          y: index < 3 ? rect.top + 1 : rect.bottom - 1,
+          expected: Array.from(button.classList).find((name) => name.startsWith('control-'))
+        }
+      })
+    )
+    for (const { x, y, expected } of points) {
+      const hit = await osd.evaluate(({ x, y }) => {
+        const element = document.elementFromPoint(x, y)
+        return {
+          classes: element?.closest('button')?.className,
+          cursor: element ? getComputedStyle(element).cursor : null
+        }
+      }, { x, y })
+      expect(hit, `button at (${x}, ${y})`).toMatchObject({
+        classes: expect.stringContaining(expected!),
+        cursor: 'pointer'
+      })
+    }
+
+    await previous.evaluate((button) => {
+      button.addEventListener('click', () => button.setAttribute('data-tested-click', 'true'), {
+        once: true
+      })
+    })
+    await osd.mouse.move(points[0].x, points[0].y)
+    await osd.mouse.down()
+    try {
+      await expect(previous).toHaveCSS('transform', 'none')
+    } finally {
+      await osd.mouse.up()
+    }
+    await expect(previous).toHaveAttribute('data-tested-click', 'true')
+
+    const readBounds = () =>
+      app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((win) => win.webContents.getURL().includes('/osdlyric.html'))!
+          .getBounds()
+      )
+    const start = await readBounds()
+    const drag = osd.locator('.osd-drag-bar')
+    const handle = (await drag.boundingBox())!
+    await osd.mouse.move(handle.x + handle.width / 2, handle.y + handle.height - 1)
+    await osd.mouse.down()
+    try {
+      await osd.mouse.move(handle.x + handle.width / 2 + 25, handle.y + handle.height - 1)
+      await expect.poll(async () => (await readBounds()).x).toBeGreaterThan(start.x + 10)
+    } finally {
+      await osd.mouse.up()
+    }
+    expect((await readBounds()).width).toBe(start.width)
+
+    const edge = (await osd.locator('.resize-edge-right').boundingBox())!
+    await osd.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2)
+    await osd.mouse.down()
+    try {
+      await osd.mouse.move(edge.x + edge.width / 2 + 30, edge.y + edge.height / 2)
+      await expect.poll(async () => (await readBounds()).width).toBeGreaterThan(start.width + 15)
+    } finally {
+      await osd.mouse.up()
+    }
+  } finally {
+    await page.evaluate(() => window.mainApi?.send('updateOsdState', { show: false }))
+    await expect.poll(() => osd.isClosed()).toBe(true)
+  }
+})
+
 test('opt-in production idle memory observation without forced GC', async ({}, testInfo) => {
   const seconds = Number(process.env.VUTRON_STABILITY_SECONDS || 0)
   test.skip(!seconds, 'Set VUTRON_STABILITY_SECONDS to run a controlled idle observation')

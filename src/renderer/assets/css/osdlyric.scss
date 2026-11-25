@@ -157,6 +157,16 @@ body,
   margin: 0;
 }
 
+/* Keep the cover full-bleed and reserve the outer resize strip outside the buttons. */
+#main.compact-mode:not(.is-lock) .compact-cover-controls {
+  pointer-events: none;
+}
+
+#main.compact-mode:not(.is-lock) .compact-control-grid {
+  inset: var(--resize-edge-size);
+  pointer-events: auto;
+}
+
 /*
  * 紧凑模式必须直接以“整个桌面歌词窗口高度”为歌词垂直布局基准。
  *
@@ -211,15 +221,12 @@ html:not(.osd-cover-controls-hidden)
 }
 
 /*
- * 拉伸热区必须始终位于桌面歌词内容层之上。
- *
- * resize 层高于紧凑封面/控制区，确保四条边与四个角不会被内容盖住。
+ * 拉伸区位于歌词上方，封面按钮与底部窗口工具区优先命中。
  * 具体尺寸由 baselineOsdWindowScale.ts 按当前 zoomFactor 反向补偿，
  * 因此窗口缩小后依旧保持约 3 DIP 的边缘命中宽度和 6 DIP 的角落命中尺寸。
  */
-#main:not(.is-lock) .resize-edge,
-#main:not(.is-lock) .resize-corner {
-  z-index: 10020 !important;
+#main:not(.is-lock):not(.is-custom-dragging) .resize-edge,
+#main:not(.is-lock):not(.is-custom-dragging) .resize-corner {
   pointer-events: auto !important;
   -webkit-app-region: no-drag !important;
 }
@@ -227,15 +234,6 @@ html:not(.osd-cover-controls-hidden)
 #main:not(.is-lock) {
   --resize-edge-size: var(--osd-resize-edge-hit-size, 3px);
   --resize-corner-size: var(--osd-resize-corner-hit-size, 6px);
-}
-
-/*
- * resize-corner 只负责最外侧几 DIP 的命中，不再通过 left/right/top/bottom
- * 去移动 3x2 网格里的四角按钮。按钮本身保持 Grid 原始位置，避免缩放时
- * 反向补偿后的 resize 尺寸把四个按钮向中心推乱。
- */
-#main.compact-mode .compact-control-button {
-  cursor: pointer !important;
 }
 
 #main.is-custom-resizing,

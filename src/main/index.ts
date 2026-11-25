@@ -286,6 +286,11 @@ class BackGround {
       osdTarget,
       store.get(type === 'small' ? 'osdWin.scaleBaselineSmall' : 'osdWin.scaleBaselineNormal')
     )
+    const ozonePlatform = app.commandLine.getSwitchValue('ozone-platform')
+    const usingWayland =
+      ozonePlatform === 'wayland' ||
+      (ozonePlatform !== 'x11' &&
+        (process.env.XDG_SESSION_TYPE === 'wayland' || Boolean(process.env.WAYLAND_DISPLAY)))
     const option = {
       title: '桌面歌词',
       show: false,
@@ -321,7 +326,9 @@ class BackGround {
       maximizable: false,
       // ======== newADD start======
       movable: true,
-      resizable: true,
+      // On X11 the native non-client border can steal clicks from the OSD controls.
+      // The HTML handles continue resizing with setBounds. Wayland still needs native resize.
+      resizable: !Constants.IS_LINUX || usingWayland,
       // =========== newADD end ========
       webPreferences: Constants.DEFAULT_OSD_PREFERENCES
     }
@@ -606,12 +613,14 @@ class BackGround {
   }
 
   handleOSDWindowEvents() {
-    this.lyricWin.once('ready-to-show', () => {
-      this.lyricWin.showInactive()
+    const lyricWin = this.lyricWin
+    if (!lyricWin) return
+    lyricWin.once('ready-to-show', () => {
+      lyricWin.showInactive()
     })
-    this.lyricWin.webContents.on('did-finish-load', () => {
+    lyricWin.webContents.on('did-finish-load', () => {
       this.initMessageChannel()
-      this.lyricWin.webContents.send('set-isLock', Boolean(store.get('osdWin.isLock')))
+      lyricWin.webContents.send('set-isLock', Boolean(store.get('osdWin.isLock')))
       this.checkOsdMouseLeave()
       setTimeout(() => {
         // 鼠标穿透与 focusable 状态统一由 osdPartialMousePassthrough.ts 管理。
@@ -619,7 +628,9 @@ class BackGround {
         // ======== newADD start======
         // 提高桌面歌词窗口层级。
         // screen-saver 是 macOS 上较高的窗口层级，通常用于悬浮窗、录屏遮罩、跨全屏窗口等场景。
-        this.lyricWin.setAlwaysOnTop(true, 'screen-saver')
+        if (this.lyricWin === lyricWin && !lyricWin.isDestroyed()) {
+          lyricWin.setAlwaysOnTop(true, 'screen-saver')
+        }
         // =========== newADD end ========
       }, 100)
     })

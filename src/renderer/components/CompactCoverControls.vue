@@ -399,13 +399,22 @@ onBeforeUnmount(() => {
   justify-items: stretch;
 
   border-radius: inherit;
+}
+
+.compact-cover-controls::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
   background: transparent;
   transition:
     background 0.16s ease,
     backdrop-filter 0.16s ease;
 }
 
-.controls-visible .compact-control-grid {
+.compact-cover-controls.controls-visible::before {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
 }
@@ -434,19 +443,19 @@ onBeforeUnmount(() => {
 
   transition:
     opacity 0.16s ease,
-    background 0.16s ease,
-    transform 0.12s ease;
+    background 0.16s ease;
 
   .svg-icon {
     width: 8px;
     height: 8px;
+    transition: transform 0.12s ease;
   }
 
   &:hover {
     background: rgba(255, 255, 255, 0.22);
   }
 
-  &:active {
+  &:active .svg-icon {
     transform: scale(0.88);
   }
 }
@@ -512,6 +521,9 @@ onBeforeUnmount(() => {
 
   &:hover {
     background: transparent;
+  }
+
+  &:hover:not(:active) .svg-icon {
     transform: scale(1.08);
   }
 

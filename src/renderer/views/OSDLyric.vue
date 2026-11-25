@@ -643,8 +643,7 @@ onBeforeUnmount(() => {
 
   transition:
     opacity 0.15s ease,
-    background-color 0.15s ease,
-    transform 0.12s ease;
+    background-color 0.15s ease;
 
   -webkit-app-region: no-drag;
 }
@@ -659,13 +658,14 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.14);
 }
 
-.osd-lock-button:active {
+.osd-lock-button:active :deep(.svg-icon) {
   transform: scale(0.9);
 }
 
 .osd-lock-button :deep(.svg-icon) {
   width: 15px;
   height: 15px;
+  transition: transform 0.12s ease;
 }
 
 /* 实际可见的底部移动细条。 */
