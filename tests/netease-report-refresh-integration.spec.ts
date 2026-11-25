@@ -56,6 +56,8 @@ test.beforeAll(async () => {
                       listenTimeDistributionBlock: { playDuration: null }
                     }
                   }
+                else if (mode === 'regressed')
+                  body = report(monthStart, [['2026-11-01', 12]])
                 else
                   body =
                     mode === 'ready'
@@ -172,5 +174,54 @@ test('lightweight refresh uses the week when month is stale or fails, then recov
   const entries = await page.evaluate(() => (window as any).listenProbe.entries())
   expect(entries).toHaveLength(1)
   expect(entries[0]).toMatchObject({ sessionId: 'fixture-session', seconds: 300 })
+  expect(errors).toEqual([])
+})
+
+test('folds history away from today and shows the latest check while the month report regresses', async () => {
+  mode = 'ready'
+  await page.clock.setSystemTime(new Date(2026, 10, 25, 12))
+  await page.reload()
+  await expect(page.locator('.rainbow-metric-month')).toContainText('15分')
+  await page.evaluate(() => (window as any).listenProbe.addHistoricalReceipt())
+  mode = 'regressed'
+  await page.clock.fastForward(3_661_000)
+
+  const notice = page.locator('.sync-report-unavailable')
+  await expect(notice).toContainText('等待网易云报表更新')
+  await expect(notice.locator('small')).toContainText('最近核对')
+  const checkedTime = await notice.locator('small').innerText()
+  const historical = page.locator('.historical-sync-details')
+  const summary = historical.locator('summary')
+  const replay = historical.locator('.historical-replay-button')
+  await expect(summary).toContainText('历史待核')
+  await expect(summary).toContainText('27秒')
+  await expect(historical).toHaveJSProperty('open', false)
+  await expect(replay).toBeHidden()
+  await expect(page.locator('.sync-light-row').filter({ hasText: '待核' })).toContainText('5分0秒')
+  await expect(page.locator('.sync-status-heading .clear-sync-button')).toBeEnabled()
+
+  await summary.click()
+  await expect(replay).toBeVisible()
+  const dialog = page.waitForEvent('dialog')
+  const click = replay.click()
+  const confirmation = await dialog
+  await confirmation.dismiss()
+  await click
+  expect(confirmation.message()).toContain('可能导致重复计时')
+  await summary.click()
+  await expect(historical).toHaveJSProperty('open', false)
+
+  await page.clock.fastForward(61_000)
+  await expect(notice.locator('small')).not.toHaveText(checkedTime)
+  mode = 'ready'
+  await page.clock.fastForward(61_000)
+  await expect(notice).toHaveCount(0)
+  await expect(summary).toContainText('27秒')
+  await expect(historical).toHaveJSProperty('open', false)
+  expect(
+    await page.evaluate(() =>
+      (window as any).listenProbe.entries().map(({ status }: { status: string }) => status)
+    )
+  ).toEqual(['accepted', 'accepted'])
   expect(errors).toEqual([])
 })

@@ -92,25 +92,6 @@
               {{ t('insights.footprint.clearAccepted') }}
             </button>
           </div>
-          <button
-            v-if="historicalReplayPreview.count > 0"
-            type="button"
-            class="clear-sync-button historical-replay-button"
-            :disabled="historicalReplayBusy"
-            @click="replayHistoricalAccepted"
-          >
-            {{ t('insights.footprint.historicalReplayButton', { count: historicalReplayPreview.count }) }}
-          </button>
-          <p v-if="historicalReplayDiagnostics.awaitingEntries > 0" class="historical-replay-diagnostics">
-            {{ t('insights.footprint.historicalReplayDiagnostics', {
-              awaiting: historicalReplayDiagnostics.awaitingEntries,
-              eligible: historicalReplayDiagnostics.eligibleEntries,
-              credited: historicalReplayDiagnostics.partiallyConfirmedEntries,
-              aggregate: historicalReplayDiagnostics.aggregateOnlyEntries,
-              retried: historicalReplayDiagnostics.alreadyReplayedEntries,
-              recent: historicalReplayDiagnostics.tooRecentEntries
-            }) }}
-          </p>
           <div class="sync-traffic-light">
             <div class="sync-light-row" :class="{ active: totalUnsubmittedSeconds > 0 }">
               <span class="sync-light red" aria-hidden="true">待发</span>
@@ -131,22 +112,15 @@
                 }}</small>
               </div>
             </div>
-            <div class="sync-light-row" :class="{ active: totalAwaitingSeconds > 0 }">
+            <div class="sync-light-row" :class="{ active: submittedNeteaseListenSeconds > 0 }">
               <span class="sync-light amber" aria-hidden="true">待核</span>
               <div class="sync-light-detail">
                 <span class="sync-screen-reader-only">{{
                   t('insights.footprint.pendingSubmittedLabel')
                 }}</span>
-                <strong>{{ formatPendingListenDuration(totalAwaitingSeconds) }}</strong>
+                <strong>{{ formatPendingListenDuration(submittedNeteaseListenSeconds) }}</strong>
                 <small v-if="submittedNeteaseListenSeconds > 0">{{
-                  t('insights.footprint.syncTodayDuration', {
-                    duration: formatPendingListenDuration(submittedNeteaseListenSeconds)
-                  })
-                }}</small>
-                <small v-if="earlierAcceptedNeteaseListenSeconds > 0">{{
-                  t('insights.footprint.syncEarlierDuration', {
-                    duration: formatPendingListenDuration(earlierAcceptedNeteaseListenSeconds)
-                  })
+                  t('insights.footprint.today')
                 }}</small>
               </div>
             </div>
@@ -167,9 +141,55 @@
               </div>
             </div>
           </div>
-          <div v-if="monthReportAvailable === false" class="sync-report-unavailable" role="status">
-            {{ monthReportMessage }}
+          <div
+            v-if="monthReportRegressionCheckedAt || monthReportAvailable === false"
+            class="sync-report-unavailable"
+            role="status"
+          >
+            <template v-if="monthReportRegressionCheckedAt">
+              <span>{{ t('insights.footprint.reportWaitingForUpdate') }}</span>
+              <small>{{
+                t('insights.footprint.reportLastChecked', {
+                  time: monthReportCheckFormatter.format(monthReportRegressionCheckedAt)
+                })
+              }}</small>
+            </template>
+            <template v-else>{{ monthReportMessage }}</template>
           </div>
+          <details
+            v-if="earlierAcceptedNeteaseListenSeconds > 0"
+            :key="`${accountId}:${monthPeriodKey}`"
+            class="historical-sync-details"
+          >
+            <summary>
+              <span>{{ t('insights.footprint.historicalAwaiting') }}</span>
+              <strong>{{ formatPendingListenDuration(earlierAcceptedNeteaseListenSeconds) }}</strong>
+            </summary>
+            <div class="historical-sync-content">
+              <p
+                v-if="historicalReplayDiagnostics.awaitingEntries > 0"
+                class="historical-replay-diagnostics"
+              >
+                {{ t('insights.footprint.historicalReplayDiagnostics', {
+                  awaiting: historicalReplayDiagnostics.awaitingEntries,
+                  eligible: historicalReplayDiagnostics.eligibleEntries,
+                  credited: historicalReplayDiagnostics.partiallyConfirmedEntries,
+                  aggregate: historicalReplayDiagnostics.aggregateOnlyEntries,
+                  retried: historicalReplayDiagnostics.alreadyReplayedEntries,
+                  recent: historicalReplayDiagnostics.tooRecentEntries
+                }) }}
+              </p>
+              <button
+                v-if="historicalReplayPreview.count > 0"
+                type="button"
+                class="clear-sync-button historical-replay-button"
+                :disabled="historicalReplayBusy"
+                @click="replayHistoricalAccepted"
+              >
+                {{ t('insights.footprint.historicalReplayButton', { count: historicalReplayPreview.count }) }}
+              </button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -500,6 +520,7 @@ import {
   getNeteaseListenLedgerTotals,
   getNeteaseHistoricalReplayPreview,
   getNeteaseHistoricalReplayDiagnostics,
+  getNeteaseListenReportStatus,
   getNeteaseListenSyncDiagnostics,
   localDateKey,
   neteaseListenEntries,
@@ -536,7 +557,7 @@ import {
   isSuccessfulResponse
 } from '../services/neteaseModern'
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const tabs = computed(() => [
   { id: 'footprint' as const, label: t('insights.tabs.footprint') },
@@ -636,6 +657,26 @@ const monthPeriodKey = computed(() => `month:${localDateKey(startOfMonth.value).
 const totalPeriodKey = 'total'
 const monthReportAvailable = ref<boolean | null>(null)
 const monthReportHealth = ref<ReturnType<typeof getNeteaseMonthReportHealth> | null>(null)
+const monthReportCheck = shallowRef<{
+  accountId: string
+  periodKey: string
+  checkedAt: number
+  regressed: boolean
+} | null>(null)
+const monthReportRegressionCheckedAt = computed(() => {
+  const check = monthReportCheck.value
+  const account = accountId.value
+  const period = monthPeriodKey.value
+  if (account === 'anonymous') return null
+  if (check?.accountId === account && check.periodKey === period) {
+    return check.regressed ? check.checkedAt : null
+  }
+  const status = getNeteaseListenReportStatus(account, period)
+  return status.regressionSeconds > 0 ? status.lastObservedAt : null
+})
+const monthReportCheckFormatter = computed(
+  () => new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short' })
+)
 const monthReportMessage = computed(() => {
   const health = monthReportHealth.value
   if (health?.state === 'stale') {
@@ -970,9 +1011,29 @@ const reconcileEarlierDaysFromMonthReport = (report: any): void => {
   }
 }
 
+const reconcileMonthReport = (remoteSeconds: number | undefined): void => {
+  if (remoteSeconds === undefined) return
+  const account = accountId.value
+  const period = monthPeriodKey.value
+  reconcileNeteaseListenReport({
+    accountId: account,
+    periodKey: period,
+    rangeStart: startOfMonth.value,
+    rangeEnd: endOfToday.value,
+    remoteSeconds
+  })
+  monthReportCheck.value = {
+    accountId: account,
+    periodKey: period,
+    checkedAt: Date.now(),
+    regressed: getNeteaseListenReportStatus(account, period).regressionSeconds > 0
+  }
+}
+
 const loadFootprint = async (): Promise<void> => {
   if (footprintRequestInFlight) return
   footprintRequestInFlight = true
+  const requestedAccount = accountId.value
 
   try {
     const uid = user.value.userId
@@ -984,6 +1045,7 @@ const loadFootprint = async (): Promise<void> => {
       uid ? safeRequest(userPlayRecord(uid, 1), '本周真实播放记录') : Promise.resolve(undefined),
       uid ? safeRequest(userPlayRecord(uid, 0), '历史真实播放记录') : Promise.resolve(undefined)
     ])
+    if (accountId.value !== requestedAccount) return
     const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
       ? month
       : undefined
@@ -1031,13 +1093,7 @@ const loadFootprint = async (): Promise<void> => {
       rangeEnd: endOfToday.value,
       remoteSeconds: confirmedTodaySeconds
     })
-    reconcileNeteaseListenReport({
-      accountId: accountId.value,
-      periodKey: monthPeriodKey.value,
-      rangeStart: startOfMonth.value,
-      rangeEnd: endOfToday.value,
-      remoteSeconds: nextMonthSeconds
-    })
+    reconcileMonthReport(nextMonthSeconds)
     reconcileEarlierDaysFromMonthReport(currentMonth)
     reconcileNeteaseListenReport({
       accountId: accountId.value,
@@ -1053,6 +1109,7 @@ const loadFootprint = async (): Promise<void> => {
     if (allRecord) footprint.allTracks = extractUserPlayRecord(allRecord, 'all')
   } finally {
     footprintRequestInFlight = false
+    if (accountId.value !== requestedAccount) void loadFootprint()
   }
 }
 
@@ -1069,6 +1126,7 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setT
 const refreshPendingRemoteDuration = async (): Promise<void> => {
   if (footprintSnapshotInFlight || footprintRequestInFlight || Date.now() < reportRetryAfter) return
   footprintSnapshotInFlight = true
+  const requestedAccount = accountId.value
 
   try {
     const [today, month, total] = await Promise.all([
@@ -1076,6 +1134,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
       safeRequest(listenRealtimeReport('month'), '确认听歌时长同步'),
       safeRequest(listenTotal(), '确认累计听歌时长同步')
     ])
+    if (accountId.value !== requestedAccount) return
     const currentMonth = isRealtimeListenReportForMonth(month, monthPeriodKey.value.slice(6))
       ? month
       : undefined
@@ -1120,6 +1179,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
       sevenDaySpansLastMonth.value
     ) {
       week = await safeRequest(listenRealtimeReport('week'), '确认本周听歌时长同步')
+      if (accountId.value !== requestedAccount) return
       trendWeekReport.value = week
       nextRemoteWeekSeconds = extractCalendarWeekListenSeconds(currentMonth, currentDate, week)
       nextTodaySeconds ??= extractTodayListenSeconds(week, currentDate, true)
@@ -1142,16 +1202,7 @@ const refreshPendingRemoteDuration = async (): Promise<void> => {
         remoteSeconds: nextRemoteWeekSeconds
       })
     }
-    if (nextMonthSeconds !== undefined) {
-      footprint.monthSeconds = nextMonthSeconds
-      reconcileNeteaseListenReport({
-        accountId: accountId.value,
-        periodKey: monthPeriodKey.value,
-        rangeStart: startOfMonth.value,
-        rangeEnd: endOfToday.value,
-        remoteSeconds: nextMonthSeconds
-      })
-    }
+    reconcileMonthReport(nextMonthSeconds)
     reconcileEarlierDaysFromMonthReport(currentMonth)
     if (nextTodaySeconds !== undefined) {
       footprint.todaySeconds = nextTodaySeconds
@@ -1429,6 +1480,7 @@ watch(accountId, () => {
   trendWeekReport.value = undefined
   monthReportAvailable.value = null
   monthReportHealth.value = null
+  monthReportCheck.value = null
   footprint.todayCount = undefined
   footprint.todaySeconds = undefined
   footprint.weekSeconds = undefined
@@ -1706,6 +1758,52 @@ button:disabled {
   gap: 5px;
 }
 
+.historical-sync-details {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--color-text) 9%, transparent);
+  border-radius: 10px;
+  color: var(--color-text);
+
+  summary {
+    display: grid;
+    grid-template-columns: 7px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 9px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 12px;
+    line-height: 1.4;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-right: 1px solid currentColor;
+      border-bottom: 1px solid currentColor;
+      transform: rotate(-45deg);
+    }
+
+    strong {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &[open] summary::before {
+    transform: rotate(45deg);
+  }
+}
+
+.historical-sync-content {
+  display: grid;
+  gap: 6px;
+  padding: 0 9px 9px;
+}
+
 .historical-replay-diagnostics {
   margin: 0;
   font-size: 12px;
@@ -1840,6 +1938,13 @@ button:disabled {
   color: #b45309;
   font-size: 11px;
   line-height: 1.45;
+
+  small {
+    display: block;
+    color: var(--color-text);
+    font-size: inherit;
+    opacity: 0.7;
+  }
 }
 
 .clear-sync-button:hover,

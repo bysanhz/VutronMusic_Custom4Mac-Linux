@@ -27,6 +27,21 @@ app.provide('scrollMainTo', () => {})
 ;(window as any).listenProbe = {
   entries: () => neteaseListenEntries.value,
   diagnostics: () => getNeteaseListenSyncDiagnostics('fixture'),
+  addHistoricalReceipt: () => {
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    yesterday.setHours(21, 0, 0, 0)
+    const startedAt = yesterday.getTime()
+    const [receipt] = recordNeteaseListenSegment({
+      accountId: 'fixture',
+      sessionId: 'fixture-historical',
+      startedAt,
+      endedAt: startedAt + 27_000,
+      seconds: 27,
+      params: { id: 2, sourceid: 2, total: 240, name: 'Historical fixture' }
+    })
+    markNeteaseListenEntryAccepted(receipt.id)
+  },
   unmount: () => app.unmount()
 }
 app.mount('#app')
