@@ -57,6 +57,7 @@ test.beforeAll(async () => {
     join(directory, 'bootstrap.cjs'),
     `
     const {app,BrowserWindow,ipcMain}=require('electron');
+    if(process.env.VUTRON_TEST_SOFTWARE==='1')app.disableHardwareAcceleration();
     app.setPath('userData',${JSON.stringify(join(directory, 'profile'))}+'-'+process.pid);
     globalThis.probe={calls:{},fail:false,delay:0,windows:false};
     const native=ipcMain.handle.bind(ipcMain);
@@ -104,6 +105,120 @@ const openMemory = async () => {
   await page.getByRole('tab', { name: '内存', exact: true }).click()
   await expect(page.locator('.memory-panel')).toContainText('主窗口工作集')
 }
+
+test('zoomed popover controls do not create hover overflow or move during live updates', async ({}, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    win.setSize(1300, 920)
+    win.webContents.setZoomFactor(1.5)
+  })
+  await page.evaluate(() => document.documentElement.setAttribute('data-accent-theme', 'rainbow'))
+  await page.locator('.network-button').click()
+  const panel = page.locator('.network-panel')
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('DOM.enable')
+  await cdp.send('CSS.enable')
+  const { root } = await cdp.send('DOM.getDocument')
+  const measurements: unknown[] = []
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => document.body.setAttribute('data-theme', value), theme)
+    for (const tab of ['网络', '内存']) {
+      await page.getByRole('tab', { name: tab, exact: true }).click()
+      if (tab === '内存') await expect(page.locator('.memory-panel')).toContainText('MiB')
+      const controls =
+        tab === '内存'
+          ? ['#runtime-memory-tab', '.memory-copy']
+          : ['#runtime-network-tab', '#runtime-memory-tab']
+      for (const selector of controls) {
+        await page.locator(selector).hover()
+        // Other Electron fixtures can move the OS pointer. Hold the target's
+        // CSS hover state while measuring its generated content and overflow.
+        const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector })
+        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] })
+        const frames = await panel.evaluate(async (element, selector) => {
+          const result: Array<{
+            x: number
+            y: number
+            width: number
+            bottom: number
+            viewportWidth: number
+            viewportHeight: number
+            overflow: number
+            generated: boolean
+          }> = []
+          for (let i = 0; i < 20; i++) {
+            window.dispatchEvent(
+              new CustomEvent('vutronmusic-netease-request-metric', {
+                detail: { elapsedMs: i % 2 ? 80 : 9999, ok: i % 3 !== 0 }
+              })
+            )
+            await new Promise(requestAnimationFrame)
+            const box = element.getBoundingClientRect()
+            const hovered = element.querySelector(selector)!
+            const after = getComputedStyle(hovered, '::after')
+            result.push({
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              bottom: box.bottom,
+              viewportWidth: innerWidth,
+              viewportHeight: innerHeight,
+              overflow: element.scrollWidth - element.clientWidth,
+              generated: after.display !== 'none' && !['none', 'normal'].includes(after.content)
+            })
+          }
+          return result
+        }, selector)
+        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] })
+        measurements.push({ theme, tab, selector, frames })
+        writeFileSync(
+          testInfo.outputPath('hover-measurements.json'),
+          JSON.stringify(measurements, null, 2)
+        )
+        await testInfo.attach(`hover-${theme}-${tab}-${selector}`, {
+          body: JSON.stringify(frames),
+          contentType: 'application/json'
+        })
+        expect(frames.every((frame) => frame.overflow === 0 && !frame.generated)).toBe(true)
+        expect(
+          frames.every(
+            (frame) =>
+              frame.x >= 0 &&
+              frame.y >= 0 &&
+              frame.x + frame.width <= frame.viewportWidth &&
+              frame.bottom <= frame.viewportHeight
+          )
+        ).toBe(true)
+        expect(new Set(frames.map(({ x, y, width }) => `${x},${y},${width}`)).size).toBe(1)
+        await expect(panel).toBeVisible()
+      }
+    }
+    // Native capture avoids CDP viewport cropping when webContents zoom is not 1.
+    const screenshot = await app.evaluate(async ({ BrowserWindow }) =>
+      (await BrowserWindow.getAllWindows()[0].webContents.capturePage()).toPNG().toString('base64')
+    )
+    writeFileSync(
+      testInfo.outputPath(`popover-zoom-${theme}.png`),
+      Buffer.from(screenshot, 'base64')
+    )
+  }
+  await testInfo.attach('hover-measurements', {
+    body: JSON.stringify(measurements),
+    contentType: 'application/json'
+  })
+  await cdp.detach()
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+  // Navigation tooltips still work outside the panel.
+  await page.locator('.side-nav > button[data-tip]').first().hover()
+  expect(
+    await page
+      .locator('.side-nav > button[data-tip]')
+      .first()
+      .evaluate((element) => getComputedStyle(element, '::after').display)
+  ).toBe('block')
+  expect(errors).toEqual([])
+})
 
 test('real preload and production IPC sample only on the visible memory page, and release timers on close', async () => {
   await page.clock.install()

@@ -125,6 +125,7 @@ const right = ref(-1)
 const timer = ref<any>(null)
 const show = ref(false)
 const loadRevision = ref(0)
+let active = false
 
 const personalizedTracks = ref<any[]>([])
 const recommendArtists = ref<{ items: any[]; indexs: any[] }>({
@@ -262,7 +263,15 @@ const loadData = async () => {
 
 const handleBanner = () => {
   if (timer.value) clearInterval(timer.value)
-  if (!banner.value.length) return
+  timer.value = null
+  if (
+    !active ||
+    document.hidden ||
+    showLyrics.value ||
+    !general.value.showBanner ||
+    !banner.value.length
+  )
+    return
   timer.value = setInterval(bannerNext, 8000)
 }
 
@@ -279,14 +288,21 @@ watch(showLyrics, (value) => {
 document.addEventListener('visibilitychange', handleVisibleChange)
 
 onActivated(() => {
+  active = true
   void loadData()
 })
 
 onDeactivated(() => {
+  active = false
+  loadRevision.value++
   clearInterval(timer.value)
+  timer.value = null
+  tricklingProgress.done()
 })
 
 onBeforeUnmount(() => {
+  active = false
+  loadRevision.value++
   clearInterval(timer.value)
   document.removeEventListener('visibilitychange', handleVisibleChange)
 })

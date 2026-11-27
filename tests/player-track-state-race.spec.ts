@@ -28,9 +28,7 @@ test.describe('player track-state race guards', () => {
     expect(replaceCurrentTrack).toContain('currentIndex.value = -1')
     expect(replaceCurrentTrack).toContain('chorusStartTime.value = 0')
     expect(replaceCurrentTrack).toContain('chorus.value = 0')
-    expect(replaceCurrentTrack).toContain(
-      "pic.value = ''"
-    )
+    expect(replaceCurrentTrack).toContain("pic.value = ''")
   })
 
   test('does not let an older fade operation replace the audio source', () => {
@@ -86,7 +84,7 @@ test.describe('player track-state race guards', () => {
     expect(player).toContain("addEventListener('stalled', _handleMediaStalled)")
     expect(player).toContain("addEventListener('error', _handleMediaError)")
     expect(player).toContain('const recoverStalledPlayback = async')
-    expect(player).toContain('replaceCurrentTrack(track.id, true, resumePosition)')
+    expect(player).toContain('replaceCurrentTrack(track.id, true, resumePosition, rejected)')
     expect(player).toContain('resumePositionOverride: number | null = null')
     expect(player).toContain('startPlaybackHealthWatchdog()')
     expect(player).toContain('stopPlaybackHealthWatchdog()')
@@ -96,7 +94,7 @@ test.describe('player track-state race guards', () => {
     const main = readSource('src/main/index.ts')
 
     expect(main).toContain("if (track.type !== 'local' && !track.cache)")
-    expect(main).toContain('await getAudioSource(track)')
+    expect(main).toMatch(/await getAudioSource\(\s*track,\s*rejectedSource,\s*request.signal\s*\)/)
     expect(main).toContain('serveAudioProxy(request, proxyFetch)')
     const handler = readSource('src/main/utils/audioProxyResponse.ts')
     expect(handler).toContain('signal: request.signal')

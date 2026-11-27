@@ -19,6 +19,9 @@ export class IncrementalSnapshotStorage<T extends Snapshot> {
   private revision = ''
   private baseEntries = new Map<string, string>()
   private lastOverlay: string | null = null
+  private baseMetadata = new Map<string, string>()
+  private baseCharacters = 0
+  private overlayCharactersWritten = 0
   readonly overlayKey: string
 
   constructor(
@@ -89,7 +92,11 @@ export class IncrementalSnapshotStorage<T extends Snapshot> {
       baseRevision: this.revision,
       entries: entries.filter((entry) => JSON.stringify(entry) !== this.baseEntries.get(entry.id)),
       removed: [...this.baseEntries.keys()].filter((id) => !currentIds.has(id)),
-      metadata
+      metadata: Object.fromEntries(
+        Object.entries(metadata).filter(
+          ([key, value]) => JSON.stringify(value) !== this.baseMetadata.get(key)
+        )
+      )
     }
     const serialized = JSON.stringify(overlay)
     if (serialized.length > this.maxOverlayCharacters) {
@@ -97,9 +104,16 @@ export class IncrementalSnapshotStorage<T extends Snapshot> {
       return
     }
     if (serialized === this.lastOverlay) return
+    // Repeated overlays must not broadcast old changed entries indefinitely.
+    // Compact only after their cumulative traffic exceeds two complete snapshots.
+    if (this.overlayCharactersWritten + serialized.length > this.baseCharacters * 2) {
+      this.compact(snapshot)
+      return
+    }
     this.backend.setItem(this.overlayKey, serialized)
     // Do not acknowledge failed writes in memory: a later checkpoint must retry.
     this.lastOverlay = serialized
+    this.overlayCharactersWritten += serialized.length
   }
 
   private compact(snapshot: T): void {
@@ -120,5 +134,13 @@ export class IncrementalSnapshotStorage<T extends Snapshot> {
     this.hasBase = true
     this.revision = revision
     this.baseEntries = new Map(snapshot.entries.map((entry) => [entry.id, JSON.stringify(entry)]))
+    const metadata = Object.fromEntries(
+      Object.entries(snapshot).filter(([key]) => key !== 'entries')
+    )
+    this.baseMetadata = new Map(
+      Object.entries(metadata).map(([key, value]) => [key, JSON.stringify(value)])
+    )
+    this.baseCharacters = JSON.stringify(snapshot).length
+    this.overlayCharactersWritten = 0
   }
 }

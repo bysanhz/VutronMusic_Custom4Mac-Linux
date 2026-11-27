@@ -69,6 +69,7 @@ import { OwnedObjectUrls } from '../utils/ownedObjectUrls'
 import { createNeteasePauseUploadScheduler } from '../../shared/neteasePauseUpload'
 import { getMinimumNeteaseListenSeconds } from '../../shared/neteaseListenThreshold'
 import { createNeteasePlaybackClock } from '../utils/neteasePlaybackClock'
+import { classifyPlaybackFailure, classifyRendererDelay, shouldRecoverPlayback, shouldRetryTrackLookup, type PlaybackRecovery } from '../../shared/playbackRecovery'
 
 interface biquadType {
   31: number
@@ -98,6 +99,8 @@ export const usePlayerStore = defineStore(
   'player',
   () => {
     const playing = ref(false)
+    const playbackRecovery = ref<PlaybackRecovery>({ phase: 'idle', attempt: 0 })
+    let trackLookupController: AbortController | null = null
     const playingNext = ref(false)
     const enabled = ref(false)
     const progress = ref(0)
@@ -211,6 +214,9 @@ export const usePlayerStore = defineStore(
     let rendererLoopLastTick = 0
     let rendererLoopDelayCount = 0
     let rendererLoopMaxDelayMs = 0
+    let backgroundTimerDelayCount = 0
+    let backgroundTimerMaxDelayMs = 0
+    let rendererLoopLastMediaTime = 0
     const audioHealthLogLastAt = new Map<string, number>()
 
     const PLAYBACK_STALL_CHECK_INTERVAL_MS = 2_000
@@ -1066,6 +1072,9 @@ export const usePlayerStore = defineStore(
       rejectedSource = ''
     ) => {
       const revision = ++trackLoadRevision
+      trackLookupController?.abort()
+      const lookupController = new AbortController()
+      trackLookupController = lookupController
       clearMetadataListener()
       cancelDurationProbe?.()
       playbackWanted = autoPlay
@@ -1086,6 +1095,7 @@ export const usePlayerStore = defineStore(
       }
 
       cancelSleepTimerForTrackChange(trackID)
+      playbackRecovery.value = { phase: playbackSourceRetryCount > 0 ? 'retrying' : 'loading', attempt: playbackSourceRetryCount }
       if (currentTrack.value?.name) {
         if (autoPlay) scrobbleFM(currentTrack.value, seek.value)
         // A user can switch tracks without auto-play. The old paused session
@@ -1097,9 +1107,11 @@ export const usePlayerStore = defineStore(
 
       let track: Track | undefined
       try {
-        track = await getLocalMusic(trackID as number, rejectedSource)
+        track = await getLocalMusic(trackID as number, rejectedSource, lookupController.signal)
       } catch (error) {
         if (revision !== trackLoadRevision) return false
+        if (lookupController.signal.aborted) return false
+        playbackRecovery.value = { phase: 'failed', failure: classifyPlaybackFailure(error), attempt: playbackSourceRetryCount }
         trackLookupFailureRevision = revision
         console.error(`[Player] 获取歌曲信息失败: ${trackID}`, error)
         showToast(t('toast.trackInfoFailed'))
@@ -1108,8 +1120,9 @@ export const usePlayerStore = defineStore(
       if (revision !== trackLoadRevision) return false
 
       if (!track) {
+        playbackRecovery.value = { phase: 'failed', failure: 'missing', attempt: playbackSourceRetryCount }
         showToast(t('toast.trackMissingNext'))
-        advanceAfterPlaybackFailure()
+        if (autoPlay && playbackWanted) advanceAfterPlaybackFailure()
         return false
       }
 
@@ -1158,6 +1171,7 @@ export const usePlayerStore = defineStore(
       if (revision !== trackLoadRevision) return false
 
       if (!source) {
+        playbackRecovery.value = { phase: 'failed', failure: 'unavailable', attempt: playbackSourceRetryCount }
         showToast(track.reason || t('toast.audioSourceUnavailable', { name: track.name }))
         const shouldAdvance = autoPlay && playbackWanted
         audioNodes.audio?.pause()
@@ -1170,6 +1184,8 @@ export const usePlayerStore = defineStore(
 
       const replaced = await playAudioSource(source, autoPlay, revision, resumePosition)
       if (revision !== trackLoadRevision) return false
+
+      if (replaced) playbackRecovery.value = { phase: 'ready', attempt: playbackSourceRetryCount }
 
       if (autoPlay && currentTrack.value?.type === 'stream') {
         scrobbleStream(track)
@@ -1535,6 +1551,7 @@ export const usePlayerStore = defineStore(
           recordPlaybackMediaEvent(
             `identity-rejected:duration:${expectedDuration.toFixed(2)}:${mediaDuration.toFixed(2)}:${rejectedSource}`
           )
+          playbackRecovery.value = { phase: 'failed', failure: 'identity', attempt: playbackSourceRetryCount }
           handledFailureRevision = revision
           audioNodes.audio!.pause()
           audioNodes.audio!.removeAttribute('src')
@@ -1542,7 +1559,7 @@ export const usePlayerStore = defineStore(
           if (playbackSourceRetryCount < MAX_PLAYBACK_SOURCE_RETRIES) {
             playbackSourceRetryCount += 1
             showToast(t('toast.audioSourceRetrying', { name: track.name }))
-            await replaceCurrentTrack(track.id, autoPlay, 0, rejectedSource)
+            await replaceCurrentTrack(track.id, autoPlay, startAt, rejectedSource)
           } else {
             showToast(t('toast.audioPlaybackFailedNext', { name: track.name }))
             if (autoPlay && playbackWanted) advanceAfterPlaybackFailure()
@@ -1592,7 +1609,8 @@ export const usePlayerStore = defineStore(
       return true
     }
 
-    const getLocalMusic = async (id: number, rejectedSource = ''): Promise<Track | undefined> => {
+    const getLocalMusic = async (id: number, rejectedSource = '', signal?: AbortSignal): Promise<Track | undefined> => {
+      signal?.throwIfAborted()
       let matchTrack = getALocalTrack({ id })
       if (matchTrack?.type === 'local') {
         if (!isLocalList.value) {
@@ -1610,26 +1628,29 @@ export const usePlayerStore = defineStore(
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
             const retry = rejectedSource ? `&rejectSource=${encodeURIComponent(rejectedSource)}` : ''
-            const response = await fetch(`atom://local-asset?type=track&id=${id}${retry}`)
+            signal?.throwIfAborted()
+            const response = await fetch(`atom://local-asset?type=track&id=${id}${retry}`, { signal })
             if (response.status === 200) {
               return (await response.json()) as Track
             }
             if (response.status === 404) return undefined
 
-            const details = await response.text().catch(() => '')
-            throw new Error(
-              `歌曲信息请求失败 (${response.status})${details ? `: ${details}` : ''}`
-            )
+            const details = await response.json().catch(() => null)
+            throw Object.assign(new Error(`歌曲信息请求失败 (${response.status})`), {
+              status: response.status,
+              response: { status: response.status, data: { code: details?.code } }
+            })
           } catch (error) {
             lastError = error
-            if (attempt === 0) await delay(400)
+            if (!shouldRetryTrackLookup(error, attempt) || signal?.aborted) throw error
+            await delay(400)
           }
         }
 
         throw lastError instanceof Error ? lastError : new Error('歌曲信息请求失败')
       }
 
-      const data = await getTrackDetail(id.toString())
+      const data = await getTrackDetail(id.toString(), signal)
       if (data?.code === 200 && data.songs?.length) return data.songs[0]
       return undefined
     }
@@ -1817,10 +1838,12 @@ export const usePlayerStore = defineStore(
           : code === 2 ? 'network-error' : code === 3 ? 'decode-error'
             : code === 4 ? 'media-open-failed' : 'source-failure'
       recordPlaybackMediaEvent(`failure:${category}:${kind}`)
+      playbackRecovery.value = { phase: 'failed', failure: category === 'decode-error' ? 'decode' : category === 'network-error' ? 'network' : 'unavailable', attempt: playbackSourceRetryCount }
       const resumePosition = Math.max(0, audioNodes.audio?.currentTime || seek.value || 0)
 
       if (playbackSourceRetryCount < MAX_PLAYBACK_SOURCE_RETRIES) {
         playbackSourceRetryCount += 1
+        playbackRecovery.value = { ...playbackRecovery.value, phase: 'retrying', attempt: playbackSourceRetryCount }
         playbackStallRecoveryCount = playbackSourceRetryCount
         playbackStallRecoveryAtProgress = resumePosition
         showToast(t('toast.audioSourceRetrying', { name: track.name }))
@@ -1831,7 +1854,9 @@ export const usePlayerStore = defineStore(
         }
         // Both media.error and the rejected play Promise arrive here. Only this revision's
         // first caller can refresh a URL; stale continuations cannot act on another track.
-        await replaceCurrentTrack(track.id, true, resumePosition)
+        const rejected = ['decode-error', 'media-open-failed'].includes(category) || kind === 'metadata-unavailable'
+          ? String(track.source || '') : ''
+        await replaceCurrentTrack(track.id, true, resumePosition, rejected)
         return
       }
 
@@ -1926,6 +1951,7 @@ export const usePlayerStore = defineStore(
 
     const checkPlaybackHealth = () => {
       const checkedAt = performance.now()
+      const checkGapMs = playbackHealthLastCheckAt > 0 ? checkedAt - playbackHealthLastCheckAt : 0
       if (playbackHealthLastCheckAt > 0 && playing.value) {
         playbackHealthMaxCheckDelayMs = Math.max(
           playbackHealthMaxCheckDelayMs,
@@ -1949,7 +1975,12 @@ export const usePlayerStore = defineStore(
       const currentTime = audio.currentTime
       notePlaybackProgress(currentTime)
       const stalledFor = Date.now() - playbackHealthLastAdvanceAt
-      if (stalledFor < PLAYBACK_STALL_TIMEOUT_MS) return
+      if (checkGapMs >= PLAYBACK_STALL_TIMEOUT_MS) {
+        // Sleep / throttled timers: establish a fresh baseline before deciding to retry.
+        playbackHealthLastAdvanceAt = Date.now()
+        return
+      }
+      if (!shouldRecoverPlayback(stalledFor, checkGapMs, PLAYBACK_STALL_TIMEOUT_MS)) return
 
       void recoverStalledPlayback(
         `watchdog-${playbackHealthLastEvent}-${Math.round(stalledFor)}ms`
@@ -1968,16 +1999,26 @@ export const usePlayerStore = defineStore(
       )
 
       rendererLoopLastTick = performance.now()
+      rendererLoopLastMediaTime = audioNodes.audio?.currentTime || 0
       rendererLoopTimer = window.setInterval(() => {
         const now = performance.now()
         const extraDelay = Math.max(0, now - rendererLoopLastTick - RENDERER_LOOP_PROBE_INTERVAL_MS)
         rendererLoopLastTick = now
+        const mediaTime = audioNodes.audio?.currentTime || 0
+        const advanced = mediaTime > rendererLoopLastMediaTime + PLAYBACK_PROGRESS_EPSILON_SECONDS
+        rendererLoopLastMediaTime = mediaTime
         if (!playing.value || audioNodes.audio?.paused) return
         if (extraDelay < RENDERER_LOOP_DELAY_THRESHOLD_MS) return
 
-        rendererLoopDelayCount += 1
-        rendererLoopMaxDelayMs = Math.max(rendererLoopMaxDelayMs, extraDelay)
-        sendAudioHealthEvent('main-thread-delay', extraDelay)
+        const kind = classifyRendererDelay(document.hidden, advanced)
+        if (document.hidden) {
+          backgroundTimerDelayCount += 1
+          backgroundTimerMaxDelayMs = Math.max(backgroundTimerMaxDelayMs, extraDelay)
+        } else {
+          rendererLoopDelayCount += 1
+          rendererLoopMaxDelayMs = Math.max(rendererLoopMaxDelayMs, extraDelay)
+        }
+        sendAudioHealthEvent(kind, extraDelay)
       }, RENDERER_LOOP_PROBE_INTERVAL_MS)
     }
 
@@ -1997,6 +2038,7 @@ export const usePlayerStore = defineStore(
       recordPlaybackMediaEvent('play')
       notePlaybackProgress(audioNodes.audio?.currentTime || 0, true)
       playing.value = true
+      startPlaybackHealthWatchdog()
     }
 
     const _handleMediaPlaying = () => {
@@ -2008,6 +2050,7 @@ export const usePlayerStore = defineStore(
     }
 
     const _handleMediaPause = () => {
+      stopPlaybackHealthWatchdog()
       collectCurrentNeteasePlayback()
       neteasePlaybackClock.suspend()
       recordPlaybackMediaEvent('pause')
@@ -2666,6 +2709,9 @@ export const usePlayerStore = defineStore(
     }
 
     const resetPlayer = (resetBiq = true) => {
+      trackLookupController?.abort()
+      playbackRecovery.value = { phase: 'idle', attempt: 0 }
+      stopPlaybackHealthWatchdog()
       playbackWanted = false
       playing.value = false
       clearMetadataListener()
@@ -2851,10 +2897,11 @@ export const usePlayerStore = defineStore(
         if (!currentTrack.value) return
         const trackId = currentTrack.value.id
         const savedProgress = _progress.value
+        const shouldResume = playbackWanted
 
         // replaceCurrentTrack(..., false) 会重新解析音源，并通过 getTrackSource()
         // 恢复 atom:// 主进程代理。不要再把原始 HTTP(S) URL 写回 <audio>.src。
-        const replaced = await replaceCurrentTrack(trackId, false)
+        const replaced = await replaceCurrentTrack(trackId, shouldResume, savedProgress)
         if (replaced && currentTrack.value?.id === trackId) {
           seek.value = savedProgress
         }
@@ -3109,6 +3156,8 @@ export const usePlayerStore = defineStore(
             maxWatchdogDelayMs: Math.round(playbackHealthMaxCheckDelayMs),
             rendererLoopDelayCount,
             rendererLoopMaxDelayMs: Math.round(rendererLoopMaxDelayMs),
+            backgroundTimerDelayCount,
+            backgroundTimerMaxDelayMs: Math.round(backgroundTimerMaxDelayMs),
             recentEvents: recentMediaEvents.map((event) => ({ ...event })),
             lastEvent: playbackHealthLastEvent,
             lastEventAt: new Date(playbackHealthLastEventAt).toISOString(),
@@ -3200,7 +3249,6 @@ export const usePlayerStore = defineStore(
         destroAudioNode()
         return
       }
-      startPlaybackHealthWatchdog()
       playing.value = false
       title.value = 'VutronMusic'
       handleIpcRenderer()
@@ -3303,6 +3351,7 @@ export const usePlayerStore = defineStore(
         neteaseRetryTimer = null
       }
       trackLoadRevision += 1
+      trackLookupController?.abort()
       cancelDurationProbe?.()
       stopPlaybackHealthWatchdog()
       registerSleepTimerPauseHandler(null)
@@ -3370,13 +3419,14 @@ export const usePlayerStore = defineStore(
       appendTracksToPlaylist,
       playPersonalFM,
       playNextFMTrack,
-      moveToFMTrash
+      moveToFMTrash,
+      playbackRecovery
     }
   },
   {
     persist: {
       // Rebuilt on every track load; broadcasting word arrays on each line change retains native StorageEvents.
-      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset', 'pitch', 'lyrics', 'currentIndex']
+      omit: ['pic', 'title', 'outputDevice', 'globalLyricOffset', 'pitch', 'lyrics', 'currentIndex', 'playbackRecovery']
     }
   }
 )

@@ -92,9 +92,10 @@ export async function likeTrack(params: { id: number; like?: boolean }) {
 /**
  * 获取歌曲详情。
  */
-export function getTrackDetail(ids: string) {
+export function getTrackDetail(ids: string, signal?: AbortSignal) {
   return request({
     url: '/song/detail',
+    signal,
     method: 'get',
     params: {
       ids

@@ -1,11 +1,6 @@
 import { getI18nTimingDiagnostics } from './i18nPerformance'
 import { redactDiagnosticText } from '../../shared/diagnosticRedaction'
-import {
-  createV327SettingsItem,
-  observeV327SettingsControl,
-  readJsonRecord,
-  resolveFeatureLanguage
-} from './v327FeatureShared'
+import { readJsonRecord } from './v327FeatureShared'
 import {
   sleepTimerAction,
   sleepTimerFadeSeconds,
@@ -19,8 +14,11 @@ import {
 } from './neteaseListenLedger'
 import request from './request'
 import { getCoverLoadDiagnostics, getFailedNeteaseCoverProbeUrls } from './coverNetworkDiagnostics'
+import { playbackInfo } from '../../shared/playbackInfo'
+import { playbackDiagnosis } from '../../shared/playbackDiagnosis'
+import { BUILD_INFO } from '../../shared/buildInfo'
+import { usePlayerStore } from '../store/player'
 
-const UPDATE_CONTROL_ID = 'vutronmusic-update-diagnostics-setting'
 const MAX_RECENT_ERRORS = 20
 
 const recentErrors: Array<{ time: string; message: string }> = []
@@ -37,33 +35,6 @@ const pushError = (message: unknown): void => {
 
 window.addEventListener('error', (event) => pushError(event.error || event.message))
 window.addEventListener('unhandledrejection', (event) => pushError(event.reason))
-
-const TEXTS = {
-  zh: {
-    title: '一键诊断快照',
-    description:
-      '复制版本、系统、播放状态、封面加载及 CDN 检测、最近错误；不会包含密码、Cookie 或完整图片 URL',
-    copy: '复制诊断快照',
-    copied: '诊断信息已复制到剪贴板',
-    failed: '生成诊断信息失败'
-  },
-  zht: {
-    title: '一鍵診斷快照',
-    description:
-      '複製版本、系統、播放狀態、封面載入及 CDN 偵測、最近錯誤；不包含密碼、Cookie 或完整圖片網址',
-    copy: '複製診斷快照',
-    copied: '診斷資訊已複製到剪貼簿',
-    failed: '產生診斷資訊失敗'
-  },
-  en: {
-    title: 'One-click Diagnostics',
-    description:
-      'Copies version, system, playback, recent cover failures and CDN probe status without passwords, cookies or full image URLs.',
-    copy: 'Copy diagnostics',
-    copied: 'Diagnostics copied to the clipboard',
-    failed: 'Could not generate diagnostics'
-  }
-} as const
 
 const redactPath = (value: unknown): string => {
   if (typeof value !== 'string' || !value) return ''
@@ -93,6 +64,8 @@ const collectRendererDiagnostics = () => {
 
   return {
     capturedAt: new Date().toISOString(),
+    build: BUILD_INFO,
+    audioQuality: playbackInfo(player.currentTrack),
     location: location.href,
     language: settings?.general?.language || document.documentElement.lang || '',
     jsHeap: memory
@@ -179,14 +152,21 @@ const formatDiagnostics = (main: Record<string, any>, renderer: Record<string, a
 }
 
 /** Share the existing full, redacted snapshot action with the runtime status panel. */
-export const copyDiagnosticsSnapshot = async (
+export const createDiagnosticsSnapshot = async (
   additionalRendererDiagnostics: Record<string, unknown> = {}
-): Promise<void> => {
+): Promise<string> => {
   const [main, neteaseScrobble] = await Promise.all([
-    window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({}),
-    getNeteaseScrobbleRuntimeDiagnostics()
+    (window.mainApi?.invoke('get-runtime-diagnostics') || Promise.resolve({})).catch(() => ({})),
+    getNeteaseScrobbleRuntimeDiagnostics().catch(() => ({ available: false }))
   ])
   const probeUrls = getFailedNeteaseCoverProbeUrls()
+  const player = usePlayerStore()
+  const diagnosis = playbackDiagnosis(
+    player.currentTrack?.id,
+    player.playbackRecovery,
+    (main as any)?.audioRequests || [],
+    navigator.onLine
+  )
   let coverNetwork: Record<string, unknown> = {
     checked: false,
     reason: 'no_recent_netease_failures'
@@ -198,61 +178,19 @@ export const copyDiagnosticsSnapshot = async (
       coverNetwork = { checked: false, reason: 'probe_unavailable' }
     }
   }
+  return formatDiagnostics(main || {}, {
+    ...collectRendererDiagnostics(),
+    playbackDiagnosis: diagnosis,
+    neteaseScrobble,
+    coverNetwork,
+    ...additionalRendererDiagnostics
+  })
+}
+
+export const copyDiagnosticsSnapshot = async (
+  additionalRendererDiagnostics: Record<string, unknown> = {}
+): Promise<void> => {
   await navigator.clipboard.writeText(
-    formatDiagnostics(main, {
-      ...collectRendererDiagnostics(),
-      neteaseScrobble,
-      coverNetwork,
-      ...additionalRendererDiagnostics
-    })
+    await createDiagnosticsSnapshot(additionalRendererDiagnostics)
   )
 }
-
-/** Mount the snapshot action in Software Update; the runtime status panel shares its logic. */
-const mountControl = (id: string, anchor: HTMLElement | null): boolean => {
-  if (!anchor?.parentElement) return false
-  const existing = document.getElementById(id)
-  if (existing) {
-    if (existing.previousElementSibling !== anchor) {
-      anchor.insertAdjacentElement('afterend', existing)
-    }
-    return true
-  }
-
-  const text = TEXTS[resolveFeatureLanguage()]
-  const item = createV327SettingsItem(id, text.title, text.description)
-  const controls = item.querySelector<HTMLElement>('.vutronmusic-v327-controls')!
-  const button = document.createElement('button')
-  const status = document.createElement('div')
-
-  button.type = 'button'
-  button.textContent = text.copy
-  status.className = 'vutronmusic-v327-status'
-  status.setAttribute('aria-live', 'polite')
-
-  button.addEventListener('click', async () => {
-    button.disabled = true
-    status.textContent = ''
-    try {
-      await copyDiagnosticsSnapshot()
-      status.textContent = text.copied
-    } catch (error) {
-      console.warn('[Diagnostics] 生成诊断快照失败：', error)
-      status.textContent = text.failed
-    } finally {
-      button.disabled = false
-    }
-  })
-
-  controls.append(button, status)
-  anchor.insertAdjacentElement('afterend', item)
-  return true
-}
-
-const ensureControl = (): boolean => {
-  const updateAnchor = document.getElementById('vutronmusic-update-diagnostics-anchor')
-  // The software update tab exists only in Electron.
-  return updateAnchor ? mountControl(UPDATE_CONTROL_ID, updateAnchor) : true
-}
-
-observeV327SettingsControl(ensureControl)

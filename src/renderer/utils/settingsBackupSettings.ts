@@ -278,11 +278,10 @@ const importBackup = async (file: File): Promise<void> => {
 }
 
 const ensureControl = (): boolean => {
-  const anchorItem = (
-    document.getElementById('real-ip') || document.getElementById('enableAmuseServer')
-  )?.closest<HTMLElement>('.item')
-  const parent = anchorItem?.parentElement
-  if (!anchorItem || !parent) return false
+  const anchorItem = document.getElementById('vutronmusic-settings-backup-anchor')
+  if (!anchorItem) return !window.env?.isElectron
+  const parent = anchorItem.parentElement
+  if (!parent) return false
   if (document.getElementById(CONTROL_ID)) return true
 
   const text = TEXTS[resolveFeatureLanguage()]
@@ -328,7 +327,7 @@ const ensureControl = (): boolean => {
   })
 
   controls.append(exportButton, importButton, input, status)
-  parent.appendChild(item)
+  anchorItem.insertAdjacentElement('afterend', item)
   return true
 }
 

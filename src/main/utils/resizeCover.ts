@@ -11,6 +11,7 @@ export const resizeCover = async (
   sourceFormat: string,
   size = 512
 ): Promise<{ pic: Buffer; format: string }> => {
+  if (!Number.isInteger(size) || size < 1 || size > 2048) throw new Error('封面输出尺寸无效或过大')
   const format = sourceFormat.split(';')[0].trim().toLowerCase()
   // Jimp does not decode WebP/AVIF. NetEase serves these at a bounded 1024px URL,
   // so keep the original image rather than loading native libvips in Electron.
@@ -22,21 +23,24 @@ export const resizeCover = async (
     throw new Error('封面尺寸无效或过大')
   }
 
-  const scale = Math.max(size / width, size / height)
-  image.resize(Math.max(size, Math.ceil(width * scale)), Math.max(size, Math.ceil(height * scale)))
-
-  const offsetX = Math.floor((image.bitmap.width - size) / 2)
-  const offsetY = Math.floor((image.bitmap.height - size) / 2)
-  const cropped = Buffer.alloc(size * size * 4)
-  for (let row = 0; row < size; row += 1) {
-    image.bitmap.data.copy(
-      cropped,
-      row * size * 4,
-      ((offsetY + row) * image.bitmap.width + offsetX) * 4,
-      ((offsetY + row) * image.bitmap.width + offsetX + size) * 4
-    )
+  // Crop before resizing: scaling a panoramic image by its short side can
+  // otherwise allocate billions of pixels before discarding almost all of them.
+  const side = Math.min(width, height)
+  if (width !== height) {
+    const offsetX = Math.floor((width - side) / 2)
+    const offsetY = Math.floor((height - side) / 2)
+    const cropped = Buffer.alloc(side * side * 4)
+    for (let row = 0; row < side; row += 1) {
+      image.bitmap.data.copy(
+        cropped,
+        row * side * 4,
+        ((offsetY + row) * width + offsetX) * 4,
+        ((offsetY + row) * width + offsetX + side) * 4
+      )
+    }
+    image.bitmap = { data: cropped, width: side, height: side }
   }
-  image.bitmap = { data: cropped, width: size, height: size }
+  image.resize(size, size)
 
   const outputFormat = image.getMIME() === Jimp.MIME_PNG ? Jimp.MIME_PNG : Jimp.MIME_JPEG
   return { pic: await image.getBufferAsync(outputFormat), format: outputFormat }

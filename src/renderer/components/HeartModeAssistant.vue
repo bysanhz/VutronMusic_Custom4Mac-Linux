@@ -106,6 +106,16 @@
             </button>
             <button
               type="button"
+              class="heart-action-button rainbow-heart-negative"
+              :disabled="!customAlgorithmEnabled || !session || !reason"
+              @pointerdown.stop
+              @click.stop="lessLikeThis"
+            >
+              <span class="heart-action-icon" aria-hidden="true">−</span>
+              <span>{{ t('playbackInfo.lessLikeThis') }}</span>
+            </button>
+            <button
+              type="button"
               class="heart-action-button rainbow-heart-explore"
               :disabled="!customAlgorithmEnabled || !session"
               @pointerdown.stop
@@ -115,6 +125,9 @@
               <span>{{ texts.goFurther }}</span>
             </button>
           </div>
+          <p v-if="currentFeedback" class="explicit-feedback" role="status"
+            >{{ currentFeedback }}<br /><small>{{ t('playbackInfo.feedbackScope') }}</small></p
+          >
           <button
             type="button"
             class="blocklist-shortcut"
@@ -144,11 +157,17 @@
             </div>
 
             <div class="queue-summary">
-              <span class="rainbow-heart-count rainbow-heart-count-played">{{ texts.played }} <strong>{{ session.playedTrackIDs.length }}</strong></span>
+              <span class="rainbow-heart-count rainbow-heart-count-played"
+                >{{ texts.played }} <strong>{{ session.playedTrackIDs.length }}</strong></span
+              >
               <span aria-hidden="true">·</span>
-              <span class="rainbow-heart-count rainbow-heart-count-queued">{{ texts.queued }} <strong>{{ session.enqueuedTrackIDs.length }}</strong></span>
+              <span class="rainbow-heart-count rainbow-heart-count-queued"
+                >{{ texts.queued }} <strong>{{ session.enqueuedTrackIDs.length }}</strong></span
+              >
               <span aria-hidden="true">·</span>
-              <span class="rainbow-heart-count rainbow-heart-count-pending">{{ texts.pending }} <strong>{{ session.pendingTrackIDs.length }}</strong></span>
+              <span class="rainbow-heart-count rainbow-heart-count-pending"
+                >{{ texts.pending }} <strong>{{ session.pendingTrackIDs.length }}</strong></span
+              >
             </div>
 
             <div class="branch-section-title">{{ texts.branchTitle }}</div>
@@ -255,7 +274,10 @@
                       type="button"
                       role="option"
                       class="rainbow-profile-option"
-                      :class="[`rainbow-profile-mode-${option.value}`, { selected: selectedProfileMode === option.value }]"
+                      :class="[
+                        `rainbow-profile-mode-${option.value}`,
+                        { selected: selectedProfileMode === option.value }
+                      ]"
                       :aria-selected="selectedProfileMode === option.value"
                       @click.stop="selectProfileMode(option.value)"
                       @keydown.down.prevent="focusProfileOption(index + 1)"
@@ -277,10 +299,18 @@
                 <strong class="rainbow-profile-mode-label">{{ currentProfileModeLabel }}</strong>
                 <p>{{ currentProfileModeDescription }}</p>
                 <div class="profile-summary">
-                  <span class="rainbow-heart-param rainbow-heart-param-novelty">{{ texts.noveltyShort }} {{ heartModeProfile.novelty }}</span>
-                  <span class="rainbow-heart-param rainbow-heart-param-diversity">{{ texts.diversityShort }} {{ heartModeProfile.diversity }}</span>
-                  <span class="rainbow-heart-param rainbow-heart-param-familiarity">{{ texts.familiarityShort }} {{ heartModeProfile.familiarity }}</span>
-                  <span class="rainbow-heart-param rainbow-heart-param-seed">{{ texts.seedShort }} {{ heartModeProfile.seedCount }}</span>
+                  <span class="rainbow-heart-param rainbow-heart-param-novelty"
+                    >{{ texts.noveltyShort }} {{ heartModeProfile.novelty }}</span
+                  >
+                  <span class="rainbow-heart-param rainbow-heart-param-diversity"
+                    >{{ texts.diversityShort }} {{ heartModeProfile.diversity }}</span
+                  >
+                  <span class="rainbow-heart-param rainbow-heart-param-familiarity"
+                    >{{ texts.familiarityShort }} {{ heartModeProfile.familiarity }}</span
+                  >
+                  <span class="rainbow-heart-param rainbow-heart-param-seed"
+                    >{{ texts.seedShort }} {{ heartModeProfile.seedCount }}</span
+                  >
                 </div>
               </div>
 
@@ -448,8 +478,12 @@
             </div>
 
             <div class="settings-card blocklist-card blocklist-card-songs">
-              <div class="blocklist-heading">{{ texts.blocklistSongs }} ({{ blockedSongs.length }})</div>
-              <div v-if="!blockedSongs.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
+              <div class="blocklist-heading"
+                >{{ texts.blocklistSongs }} ({{ blockedSongs.length }})</div
+              >
+              <div v-if="!blockedSongs.length" class="blocklist-empty">{{
+                texts.blocklistEmpty
+              }}</div>
               <div v-for="item in blockedSongs" :key="item.key" class="blocklist-entry">
                 <div class="blocklist-entry-text">
                   <strong>{{ item.name }}</strong>
@@ -466,10 +500,16 @@
             </div>
 
             <div class="settings-card blocklist-card blocklist-card-artists">
-              <div class="blocklist-heading">{{ texts.blocklistArtists }} ({{ blockedArtists.length }})</div>
-              <div v-if="!blockedArtists.length" class="blocklist-empty">{{ texts.blocklistEmpty }}</div>
+              <div class="blocklist-heading"
+                >{{ texts.blocklistArtists }} ({{ blockedArtists.length }})</div
+              >
+              <div v-if="!blockedArtists.length" class="blocklist-empty">{{
+                texts.blocklistEmpty
+              }}</div>
               <div v-for="item in blockedArtists" :key="item.key" class="blocklist-entry">
-                <div class="blocklist-entry-text"><strong>{{ item.name }}</strong></div>
+                <div class="blocklist-entry-text"
+                  ><strong>{{ item.name }}</strong></div
+                >
                 <button
                   type="button"
                   class="blocklist-remove"
@@ -502,6 +542,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { steppedRangeValue, wheelDirection } from '../utils/rangeWheel'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../store/player'
 import { useNormalStateStore } from '../store/state'
 import { useSettingsStore } from '../store/settings'
@@ -516,11 +557,13 @@ import { getTrackDetail } from '../api/track'
 import {
   HEART_MODE_SESSION_CHANGE_EVENT,
   boostHeartModeCurrentBranch,
+  reduceHeartModeCurrentBranch,
   getCurrentHeartModeSession,
   getEffectiveHeartModeProfile,
   resetCurrentHeartModeLearning,
   steerHeartModeFurther
 } from '../utils/heartModeSession'
+
 import {
   removePlaybackFeedbackForHeartModeSession,
   resetActivePlaybackFeedbackWindow
@@ -534,6 +577,8 @@ import {
   updateHeartModeProfile,
   type HeartModeMode
 } from '../utils/heartModeProfile'
+
+const { t } = useI18n()
 
 const TEXTS = {
   zh: {
@@ -958,7 +1003,8 @@ const TEXTS = {
     removedFeedback: 'Removed {count} session feedback entries',
     blocklistTab: 'Blocklist',
     blocklistShortcut: 'Not for me? Manage blocked songs and artists',
-    blocklistHint: 'Blocks persist across sessions and filter recommendations and playback without deleting playlists or likes.',
+    blocklistHint:
+      'Blocks persist across sessions and filter recommendations and playback without deleting playlists or likes.',
     blocklistCurrent: 'Current track',
     blocklistCurrentArtists: 'Artists on this track (choose collaborators separately)',
     blocklistNoTrack: 'Play a track to block it or its artists.',
@@ -997,12 +1043,14 @@ const currentArtists = computed(() => {
   return getTrackBlockArtists(track).flatMap((artist) => {
     const key = getArtistBlockKey(artist, track)
     if (!key) return []
-    return [{
-      id: artist.id,
-      name: String(artist.name || '#' + artist.id),
-      key,
-      blocked: musicBlocklistStore.isArtistBlocked(artist, track)
-    }]
+    return [
+      {
+        id: artist.id,
+        name: String(artist.name || '#' + artist.id),
+        key,
+        blocked: musicBlocklistStore.isArtistBlocked(artist, track)
+      }
+    ]
   })
 })
 
@@ -1086,9 +1134,8 @@ const profileSelectTriggerRef = ref<HTMLButtonElement | null>(null)
 const profileDropdownOpen = ref(false)
 
 const focusProfileOption = (index: number): void => {
-  const options = profileSelectRef.value?.querySelectorAll<HTMLButtonElement>(
-    '.rainbow-profile-option'
-  )
+  const options =
+    profileSelectRef.value?.querySelectorAll<HTMLButtonElement>('.rainbow-profile-option')
   if (!options?.length) return
   options[(index + options.length) % options.length]?.focus()
 }
@@ -1121,8 +1168,6 @@ const selectProfileMode = (value: HeartModeMode): void => {
 const closeProfileDropdownOnOutsideClick = (event: PointerEvent): void => {
   if (!profileSelectRef.value?.contains(event.target as Node)) closeProfileDropdown()
 }
-
-
 
 const profileCoreControls = computed<
   Array<{ key: HeartModeCoreField; label: string; value: number; hint: string }>
@@ -1275,6 +1320,18 @@ const reason = computed(() => {
   const trackId = Number(currentTrack.value?.id)
   if (!activeSession || !Number.isFinite(trackId) || trackId <= 0) return null
   return activeSession.recommendationReasons[String(trackId)] ?? null
+})
+const currentFeedback = computed(() => {
+  const feedback = session.value?.explicitFeedback
+    .filter((item) => item.trackId === Number(currentTrack.value?.id))
+    .at(-1)
+  return feedback?.type === 'less-like-this'
+    ? t('playbackInfo.lessFeedback')
+    : feedback?.type === 'more-like-this'
+      ? texts.value.boosted
+      : feedback?.type === 'go-further'
+        ? texts.value.further
+        : ''
 })
 
 const sourceSeedName = computed(() => {
@@ -1464,6 +1521,14 @@ const moreLikeThis = () => {
   const updated = boostHeartModeCurrentBranch(trackId)
   if (!updated) return
   stateStore.showToast(texts.value.boosted)
+  refreshSession()
+}
+
+const lessLikeThis = () => {
+  const trackId = Number(currentTrack.value?.id)
+  if (!Number.isFinite(trackId) || trackId <= 0 || !customAlgorithmEnabled.value) return
+  if (!reduceHeartModeCurrentBranch(trackId)) return
+  stateStore.showToast(t('playbackInfo.lessFeedback'))
   refreshSession()
 }
 
@@ -2272,9 +2337,18 @@ onBeforeUnmount(() => {
 
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 13px;
+}
+.explicit-feedback {
+  margin: 10px 0;
+  line-height: 1.6;
+  font-size: 12px;
+  color: var(--color-primary);
+}
+.explicit-feedback small {
+  color: var(--color-secondary);
 }
 
 .heart-action-button {

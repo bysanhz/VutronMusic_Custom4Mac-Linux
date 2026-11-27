@@ -37,6 +37,7 @@
     "format": "prettier .",
     "format:fix": "prettier . --write",
     "test": "npm run build:pre && playwright test",
+    "test:playback": "playwright test tests/playback-improvements.spec.ts tests/local-asset-resilience.spec.ts tests/netease-audio-protocol.spec.ts tests/netease-failure.spec.ts tests/player-playback-integration.spec.ts --workers=1",
     "test:linux": "npm run build:pre && xvfb-run --auto-servernum --server-args='-screen 0, 1280x960x24' -- playwright test",
     "vue:type-check": "vue-tsc --noEmit",
     "format:check": "prettier . --check"

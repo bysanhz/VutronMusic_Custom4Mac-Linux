@@ -1,3 +1,5 @@
+import { findLyricIndex } from './lyricTimeline'
+
 type LyricTiming = {
   start: number
   end: number
@@ -39,26 +41,8 @@ export const initializePlayerLyricWatchdog = (
   if (initialized || typeof window === 'undefined') return
   initialized = true
 
-  const getExpectedIndex = (progress: number) => {
-    if (!player.lyrics.length) return -1
-
-    const target = progress + (Number(player.lyricOffset) || 0)
-    let index = -1
-
-    for (let i = 0; i < player.lyrics.length; i++) {
-      const start = Number(player.lyrics[i]?.start)
-      if (!Number.isFinite(start)) continue
-      if (start > target) break
-      index = i
-    }
-
-    const finalEnd = Number(player.lyrics.at(-1)?.end)
-    if (Number.isFinite(finalEnd) && target > finalEnd) {
-      return player.lyrics.length
-    }
-
-    return index
-  }
+  const getExpectedIndex = (progress: number) =>
+    findLyricIndex(player.lyrics, progress, player.lyricOffset)
 
   const timer = window.setInterval(() => {
     if (!player.playing || !player.lyrics.length) return

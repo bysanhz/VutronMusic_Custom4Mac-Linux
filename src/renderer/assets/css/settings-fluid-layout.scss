@@ -64,7 +64,7 @@
 
 #app
   .system-settings
-  .item:not(.no-flex):not(.vutronmusic-v327-settings-item):not(#osd-window-scale-baseline-setting):has(
+  .item:not(.no-flex):not(.vutronmusic-v327-settings-item):not(.window-scale-font-range-item):not(#osd-window-scale-baseline-setting):has(
     > .left
   ):has(> .right) {
   display: grid !important;
@@ -211,9 +211,10 @@
 /* ==================== 主界面缩放基准 ==================== */
 #app .system-settings .window-scale-font-range-item {
   width: calc(100% - var(--settings-content-right-gutter)) !important;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
-  align-items: center !important;
-  gap: clamp(12px, 2.5vw, 24px) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(265px, 1.25fr) !important;
+  align-items: start !important;
+  gap: 16px !important;
   margin: 8px 0 16px !important;
   padding: clamp(10px, 1.8vw, 14px) !important;
   border-radius: 12px;
@@ -231,7 +232,16 @@
 }
 
 #app .system-settings .window-scale-font-range-item > .right {
-  width: 100%;
+  width: 100% !important;
+  max-width: none;
+  justify-self: stretch !important;
+  justify-content: stretch;
+}
+
+@container settings-content (max-width: 400px) {
+  #app .system-settings .window-scale-font-range-item {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
 
 #app .system-settings .app-font-size-setting.window-scale-font-range {
@@ -358,11 +368,16 @@
 
 /* ==================== 外观预览 ==================== */
 #app .system-settings .item:has(> .appearance) {
+  display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
   align-items: start !important;
-  gap: 12px !important;
+  gap: 10px 12px !important;
   margin-top: 8px;
   margin-bottom: 18px;
+}
+
+#app .system-settings .item:has(> .appearance) > :first-child {
+  grid-column: 1 / -1;
 }
 
 #app .system-settings .item:has(> .appearance) > .appearance {

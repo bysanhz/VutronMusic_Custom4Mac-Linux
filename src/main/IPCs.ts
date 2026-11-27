@@ -19,19 +19,49 @@ import navidrome from './streaming/navidrome'
 import emby from './streaming/emby'
 import jellyfin from './streaming/jellyfin'
 import { Worker } from 'worker_threads'
+import { IdleTaskWorker } from './utils/idleTaskWorker'
 import { Track, Album, Artist, scanTrack, serviceName } from '@/types/music'
 import _ from 'lodash'
 import { requestUserAuth, scrobbleTrack, updateNowPlaying } from './utils/lastfm'
 
 let blockerId: number | null = null
 let coverWorker: Worker | null = null
-let cacheWorker: Worker | null = null
+let cacheWorker: IdleTaskWorker | null = null
 let quittingForCoverWorker = false
 
-const closeCacheWorker = async () => {
-  const worker = cacheWorker
-  cacheWorker = null
-  if (worker) await worker.terminate()
+const ensureCoverWorker = () => {
+  if (coverWorker) return coverWorker
+  const worker = createWorker('writeCover')
+  coverWorker = worker
+  worker.on('message', (msg) => {
+    if (msg.status === 'done' && quittingForCoverWorker) app.exit(0)
+  })
+  worker.on('exit', () => {
+    if (coverWorker === worker) coverWorker = null
+  })
+  return worker
+}
+
+const getCacheWorker = (win: BrowserWindow) => {
+  if (!cacheWorker) {
+    cacheWorker = new IdleTaskWorker({
+      create: () => createWorker('cacheTrack'),
+      onError: (error) => log.warn('[Cache Worker] 任务线程错误:', error),
+      onMessage: async (msg) => {
+        if (msg.type !== 'task-done') return
+        await cache.set(CacheAPIs.LocalMusic, { newTracks: [msg.data] })
+        await deleteExcessCache()
+        const tracks = cache.get(CacheAPIs.LocalMusic, { sql: "type = 'online'" })
+        const size = tracks.songs.reduce(
+          (total: number, track: any) => total + Number(track.size),
+          0
+        )
+        if (!win.isDestroyed())
+          win.webContents.send('receiveCacheInfo', { length: tracks.songs.length, size })
+      }
+    })
+  }
+  return cacheWorker
 }
 
 /*
@@ -52,13 +82,9 @@ export default class IPCs {
     initOtherIpcMain(win)
     initStreaming()
 
-    coverWorker = createWorker('writeCover')
-    coverWorker.on('message', (msg) => {
-      if (msg.status === 'done' && quittingForCoverWorker) app.exit(0)
-    })
-
     app.on('before-quit', (event) => {
-      if (quittingForCoverWorker) return
+      cacheWorker?.dispose()
+      if (quittingForCoverWorker || !coverWorker) return
       quittingForCoverWorker = true
       event.preventDefault()
       win.hide()
@@ -120,6 +146,9 @@ function initWindowIpcMain(win: BrowserWindow): void {
     'media-error',
     'recovery',
     'main-thread-delay',
+    'renderer-delay',
+    'background-timer-delay',
+    'background-playback-delay',
     'context-suspended'
   ])
   ipcMain.on('audio-health-event', (event: IpcMainEvent, payload: unknown) => {
@@ -144,9 +173,7 @@ function initWindowIpcMain(win: BrowserWindow): void {
       // NetEase IDs commonly exceed one million; preserve the actual
       // numeric track ID while still bounding untrusted renderer IPC data.
       trackId: Math.floor(safeNumber(data.trackId, Number.MAX_SAFE_INTEGER)),
-      source: ['online', 'local', 'stream'].includes(String(data.source))
-        ? data.source
-        : 'unknown',
+      source: ['online', 'local', 'stream'].includes(String(data.source)) ? data.source : 'unknown',
       progress: safeNumber(data.progress),
       bufferedAhead: safeNumber(data.bufferedAhead, 3600),
       readyState: safeNumber(data.readyState, 4),
@@ -278,30 +305,11 @@ function initTrayIpcMain(win: BrowserWindow, tray: YPMTray): void {
         }
       } else if (key === 'autoCacheTrack') {
         const autoCache = (store.get('settings.autoCacheTrack.enable') as boolean) || false
-        if (autoCache) {
-          if (cacheWorker) return
-          cacheWorker = createWorker('cacheTrack')
-          cacheWorker?.on('message', async (msg) => {
-            if (msg.type === 'task-done') {
-              const track = msg.data
-              await cache.set(CacheAPIs.LocalMusic, { newTracks: [track] })
-              await deleteExcessCache()
-              const tracks = cache.get(CacheAPIs.LocalMusic, { sql: "type = 'online'" })
-              const size = tracks.songs
-                .map((track: any) => track.size)
-                .reduce((acc: string, cur: string) => Number(acc) + Number(cur), 0)
-
-              win.webContents.send('receiveCacheInfo', { length: tracks.songs.length, size })
-            } else if (msg.type === 'finished') {
-              closeCacheWorker()
-            }
-          })
-        } else if (cacheWorker) {
-          cacheWorker.postMessage({ type: 'quit' })
-        }
+        if (!autoCache) cacheWorker?.finish()
       } else if (key === 'proxy') {
         const proxyRules = resolveRuntimeProxyUrl(
-          value, Constants.IS_DEV_ENV,
+          value,
+          Constants.IS_DEV_ENV,
           process.env.HTTPS_PROXY || process.env.https_proxy
         )
         await win.webContents.session.setProxy(proxyRules ? { proxyRules } : {})
@@ -793,6 +801,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
    * 用来获取歌曲音频流
    */
   ipcMain.on('cacheATrack', async (event, da: { id: number; url: string; source?: string }) => {
+    if (!store.get('settings.autoCacheTrack.enable')) return
     const res = await getTrackDetail(da.id.toString())
     if (!res || !res.songs?.length) {
       log.error('Get track failed, id = ', da.id)
@@ -806,7 +815,8 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
     if (!fs.existsSync(audioCachePath)) {
       fs.mkdirSync(audioCachePath)
     }
-    cacheWorker?.postMessage({ type: 'task', track, url: da.url, audioCachePath })
+    if (!store.get('settings.autoCacheTrack.enable')) return
+    getCacheWorker(win).postMessage({ type: 'task', track, url: da.url, audioCachePath })
   })
 
   ipcMain.handle('accurateMatch', (event, track, id) => {
@@ -902,7 +912,9 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
     ) => {
       const embedOption = (store.get('settings.embedCoverArt') as number) || 0
       const embedStyle = (store.get('settings.embedStyle') as number) || 0
-      coverWorker?.postMessage({ type: 'normal', ...data, embedOption, embedStyle })
+      const worker =
+        coverWorker || (embedOption && data.filePath && data.picUrl ? ensureCoverWorker() : null)
+      worker?.postMessage({ type: 'normal', ...data, embedOption, embedStyle })
     }
   )
 
@@ -944,7 +956,7 @@ async function initOtherIpcMain(win: BrowserWindow): Promise<void> {
 }
 
 async function initMprisIpcMain(win: BrowserWindow, mpris: MprisImpl): Promise<void> {
-  let dbus: ReturnType<typeof import('./dbusClient')['createDBus']> | null = null
+  let dbus: ReturnType<(typeof import('./dbusClient'))['createDBus']> | null = null
   // This optional extension must always have an answer, including while its
   // module is loading or when a desktop session has no supported D-Bus service.
   ipcMain.handle('askExtensionStatus', async () => dbus?.status ?? false)

@@ -16,6 +16,7 @@ import './assets/css/settings-fluid-layout.scss'
 import './assets/css/interaction-theme.scss'
 import './assets/css/rainbow-theme.scss'
 import './assets/css/monochrome-theme.scss'
+import './assets/css/settings-theme.scss'
 import './assets/css/resize-performance.scss'
 // Install cover image error capture before any pages mount.
 import './utils/diagnosticsSnapshotSettings'

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { build } from 'esbuild'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { prepareNeteaseRequestParams } from '../src/main/appServer/neteaseRequestParams'
 
@@ -10,19 +10,23 @@ test('audio protocol adaptation preserves explicit options and other endpoints',
   const cookie = { MUSIC_U: 'test-account' }
   expect(prepareNeteaseRequestParams('song/url/v1', query, cookie)).toEqual({
     ...query,
-    crypto: 'eapi',
+    crypto: 'weapi',
     cookie
   })
   expect(query).not.toHaveProperty('crypto')
   expect(
     prepareNeteaseRequestParams('song/url/v1', { ...query, crypto: 'xeapi' }, cookie).crypto
   ).toBe('xeapi')
+  expect(
+    prepareNeteaseRequestParams('song/url/v1', { ...query, crypto: 'eapi' }, cookie).crypto
+  ).toBe('eapi')
   expect(prepareNeteaseRequestParams('song/detail', { ids: '123' }, cookie)).not.toHaveProperty(
     'crypto'
   )
 })
 
-test('real API handler obtains an official audio response without CLI XEAPI initialization', async () => {
+test('real API handler uses WEAPI with account cookies and preserves the returned quality', async () => {
+  mkdirSync(resolve('tmp'), { recursive: true })
   const dir = mkdtempSync(resolve('tmp/netease-audio-protocol-'))
   try {
     const adapter = join(dir, 'params.cjs')
@@ -42,25 +46,27 @@ test('real API handler obtains an official audio response without CLI XEAPI init
       const apiRoot=path.dirname(require.resolve('@neteasecloudmusicapienhanced/api/package.json'));
       const axios=require(require.resolve('axios',{paths:[apiRoot]}));
       const requests=[];
+      const crypto=require(path.join(apiRoot,'util/crypto'));
+      const encryptWeapi=crypto.weapi;
+      let payload;
+      crypto.weapi=data=>{payload=JSON.parse(JSON.stringify(data));return encryptWeapi(data)};
       axios.defaults.adapter=async config=>{
         requests.push(new URL(config.url).pathname);
-        const crypto=require(path.join(apiRoot,'util/crypto'));
-        const payload=crypto.eapiReqDecrypt(new URLSearchParams(config.data).get('params'));
-        assert.equal(payload.data.level,'hires');
-        assert.equal(payload.data.ids,'[123]');
+        assert.equal(payload.level,'hires');
+        assert.equal(payload.ids,'[123]');
+        assert.match(config.headers.Cookie,/MUSIC_U=test-account/);
+        assert.ok(new URLSearchParams(config.data).get('encSecKey'));
         return {status:200,statusText:'OK',headers:{},config,data:{code:200,data:[{
           id:123,url:'https://example.com/audio.flac',level:'hires',freeTrialInfo:null
         }]}};
       };
       (async()=>{
         const api=require('@neteasecloudmusicapienhanced/api');
-        await assert.rejects(api.song_url_v1({id:'123',level:'hires'}),/xeapi public key is missing/);
-        assert.equal(requests.length,0);
         const prepare=require(${JSON.stringify(adapter)}).prepareNeteaseRequestParams;
-        const result=await api.song_url_v1(prepare('song/url/v1',{id:'123',level:'hires'},{}));
+        const result=await api.song_url_v1(prepare('song/url/v1',{id:'123',level:'hires'},{MUSIC_U:'test-account'}));
         assert.equal(result.status,200);
         assert.equal(result.body.data[0].level,'hires');
-        assert.deepEqual(requests,['/eapi/song/enhance/player/url/v1']);
+        assert.deepEqual(requests,['/weapi/song/enhance/player/url/v1']);
         assert.equal(fs.existsSync(path.join(${JSON.stringify(dir)},'xeapi_public_key')),false);
         console.log('embedded-audio-protocol-passed');
       })().catch(e=>{console.error(e);process.exitCode=1});

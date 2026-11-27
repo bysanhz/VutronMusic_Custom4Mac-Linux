@@ -1040,7 +1040,7 @@ test.describe('desktop feature integration', () => {
   })
 
   test('keeps update diagnostics actions readable in dark mode', () => {
-    const latestVersion = readSource('src/renderer/components/LatestVersion.vue')
+    const latestVersion = readSource('src/renderer/components/UpdateDiagnostics.vue')
 
     expect(latestVersion).toContain('.diagnostic-panel {')
     expect(latestVersion).toContain('.diagnostic-panel__actions {')
@@ -1313,7 +1313,7 @@ test.describe('desktop feature integration', () => {
     const shared = readSource('src/renderer/utils/v327FeatureShared.ts')
     const select = readSource('src/renderer/components/CustomSelect.vue')
     const playbackSpeed = readSource('src/renderer/components/PlaybackSpeedButton.vue')
-    const diagnostics = readSource('src/renderer/components/LatestVersion.vue')
+    const diagnostics = readSource('src/renderer/components/UpdateDiagnostics.vue')
     const compact = readSource('src/renderer/components/CompactCoverControls.vue')
 
     expect(settings).toContain('setFeatureLanguage(value as SupportedLanguage)')
@@ -1392,7 +1392,7 @@ test.describe('desktop feature integration', () => {
     expect(assistant).toContain('v-model="selectedProfileMode"')
     expect(assistant).toContain('profileCoreControls')
     expect(assistant).toContain('profile-advanced-grid')
-    expect(assistant).toContain("type HeartModePanelPage = 'main' | 'settings' | 'guide'")
+    expect(assistant).toContain("type HeartModePanelPage = 'main' | 'settings' | 'blocklist' | 'guide'")
     expect(assistant).toContain('class="panel-tabs"')
     expect(assistant).toContain('role="tablist"')
     expect(assistant).toMatch(/class="panel-tab(?:\s+[^"]*)?"/)
@@ -1429,8 +1429,8 @@ test.describe('desktop feature integration', () => {
     expect(zhLocale).toContain('"seedCountHint"')
 
     expect(main).toContain('const startBasicHeartModeQueue = async')
-    expect(main).toContain('slice(0, HEART_MODE_TARGET_COUNT)')
-    expect(main).toContain("replacePlaylist('intelligence', playlistID, trackIDs, 0)")
+    expect(main).toMatch(/\.slice\(\s*0,\s*HEART_MODE_TARGET_COUNT\s*\)/)
+    expect(main).toContain("replacePlaylist('intelligence', playlistID, playableTrackIDs, 0)")
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) {')
     expect(main).toContain('clearCurrentHeartModeSession()')
     expect(main).toContain('if (!heartModeCustomAlgorithmEnabled.value) return')

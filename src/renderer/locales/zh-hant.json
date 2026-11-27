@@ -825,7 +825,7 @@
       "minutes": "分鐘"
     },
     "unblock": {
-      "enable": "啟用音源替換",
+      "enable": "官方無法使用時嘗試備用音源",
       "source": {
         "text": "備選音源",
         "desc1": "音源的具體代號，",
@@ -1351,5 +1351,133 @@
     "background": "背景設定",
     "lyrics": "歌詞設定",
     "saveTheme": "儲存播放器主題"
+  },
+  "playbackInfo": {
+    "details": "播放詳情",
+    "close": "關閉",
+    "qualityUnknownShort": "音質未確認",
+    "unknownQuality": "實際音質待確認",
+    "unknownQualityHint": "來源未提供可靠音質資訊，不按設定值或位元率推斷。",
+    "substituted": "請求{requested}，本曲實際回傳{actual}。",
+    "openSettings": "開啟音質設定",
+    "diagnostics": "播放診斷",
+    "refresh": "重新整理",
+    "technicalDetails": "技術詳情",
+    "retryCount": "音源重試次數",
+    "businessCode": "業務碼",
+    "requestMethod": "請求方式",
+    "build": "組建版本",
+    "lastRequest": "上次音源請求",
+    "sessionPresent": "已有登入工作階段；此處未連線驗證會員權益。",
+    "sessionUnknown": "尚無已知登入工作階段；此處未連線驗證。",
+    "diagnosticsUnavailable": "診斷資訊暫時無法取得，可稍後重新整理。",
+    "quickSettings": "常用設定",
+    "audioSettings": "音質與輸出",
+    "lyricSettings": "歌詞與桌面控制",
+    "shortcutSettings": "快捷鍵",
+    "diagnosticSettings": "診斷與版本",
+    "settingsSearch": "搜尋設定項目",
+    "noSettings": "沒有符合的設定項目",
+    "lessLikeThis": "少來點這種",
+    "lessFeedback": "已減少這個方向的推薦，將在後續補歌時生效。",
+    "feedbackScope": "回饋只影響本輪後續推薦，目前歌曲繼續播放。",
+    "quality": {
+      "standard": "標準",
+      "higher": "較高",
+      "exhigh": "極高",
+      "lossless": "無損",
+      "hires": "Hi-Res",
+      "jyeffect": "高清臻音",
+      "sky": "沉浸環繞聲",
+      "vivid": "臻音全景聲",
+      "jymaster": "超清母帶"
+    },
+    "source": {
+      "local": "本機檔案",
+      "cache": "本機快取",
+      "stream": "音樂伺服器",
+      "netease": "網易雲",
+      "alternative": "備用音源",
+      "unknown": "來源待確認"
+    },
+    "issue": {
+      "offline": "裝置目前離線，請檢查網路連線。",
+      "loading": "正在取得音源…",
+      "retrying": "正在恢復播放…",
+      "healthy": "最近一次官方音源請求成功。",
+      "alternative": "已取得備用音源，請留意實際來源與音質。",
+      "unknown": "暫無目前歌曲的音源診斷紀錄。",
+      "risk-control": "音源請求觸發伺服器風控，降低音質無法解決。",
+      "login-required": "登入狀態失效或介面要求登入，請重新確認登入。",
+      "permission": "目前帳號無法取得所請求的完整音源或音質。",
+      "rate-limited": "伺服器限制請求頻率，請稍後再試。",
+      "missing": "歌曲或本機檔案不存在。",
+      "identity": "音源與歌曲資訊不符合，已拒絕播放。",
+      "decode": "音源解碼失敗，已嘗試其他來源。",
+      "network": "音源連線失敗，請檢查網路或代理。",
+      "timeout": "音源請求逾時，請稍後重試。",
+      "unavailable": "目前沒有可用音源。"
+    }
+  },
+  "settingsLayout": {
+    "intro": "選擇分類，或搜尋具體設定項目。",
+    "results": "搜尋結果",
+    "categories": "設定分類",
+    "sourceTitle": "官方音源優先，備用音源兜底",
+    "sourceDescription": "先嘗試網易雲官方位址，沒有可用位址時再從其他來源匹配同一首歌。",
+    "sourceHint": "日常使用通常無需修改進階選項；備用音源可能匹配失敗，實際音質以取得的檔案為準。",
+    "sourceAdvanced": "進階音源設定",
+    "sourceAdvancedHint": "一般無需修改。平台順序、格式偏好和其他平台的登入憑證只影響備用音源，與網易雲帳號登入分開。",
+    "sections": {
+      "general": {
+        "title": "外觀與視窗",
+        "description": "主題、語言、介面顯示和視窗行為。"
+      },
+      "lyric": {
+        "title": "歌詞與桌面",
+        "description": "歌詞頁面、桌面歌詞和系統匣歌詞。"
+      },
+      "music": {
+        "title": "播放與音質",
+        "description": "音質、輸出裝置和播放行為。"
+      },
+      "unblock": {
+        "title": "備用音源",
+        "description": "官方音源無法使用時，嘗試從其他來源匹配歌曲。"
+      },
+      "shortcut": {
+        "title": "快捷鍵",
+        "description": "鍵盤操作和全域快捷鍵。"
+      },
+      "misc": {
+        "title": "連線與服務",
+        "description": "串流帳號、應用整合和網路代理。"
+      },
+      "update": {
+        "title": "維護與更新",
+        "description": "軟體更新、播放問題排查和設定備份。"
+      },
+      "library": {
+        "title": "音樂庫與快取",
+        "description": "本機音樂、歌曲清單顯示和歌曲快取。"
+      }
+    },
+    "groups": {
+      "appearance": "主題與外觀",
+      "interface": "介面顯示",
+      "window": "視窗與系統匣",
+      "lyricPage": "歌詞頁面",
+      "audio": "音質與輸出",
+      "playback": "播放行為",
+      "local": "本機音樂",
+      "trackList": "歌曲清單",
+      "cache": "歌曲快取",
+      "stream": "串流服務",
+      "integrations": "應用整合",
+      "network": "網路代理",
+      "version": "版本與更新",
+      "troubleshooting": "疑難排解",
+      "backup": "設定備份"
+    }
   }
 }

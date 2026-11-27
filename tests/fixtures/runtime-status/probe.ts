@@ -1,5 +1,5 @@
 import { createApp, h } from 'vue'
-import { createPinia } from 'pinia'
+import { createPinia, defineStore } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SideNav from '../../../src/renderer/components/SideNav.vue'
@@ -16,7 +16,13 @@ const router = createRouter({
   routes: [{ path: '/', component: { render: () => null } }]
 })
 const i18n = createI18n({ legacy: false, locale: 'zh', messages: { zh, en, zht } })
-app.use(createPinia()).use(i18n).use(router)
+const pinia = createPinia()
+app.use(pinia).use(i18n).use(router)
+// The full app initializes its player before opening diagnostics. Keep audio
+// setup out of this popover fixture while supplying that existing idle state.
+defineStore('player', {
+  state: () => ({ currentTrack: null, playbackRecovery: { phase: 'idle', attempt: 0 } })
+})(pinia)
 ;(window as any).runtimeProbe = {
   unmount: () => app.unmount(),
   language: (value: string) => {

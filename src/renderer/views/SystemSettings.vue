@@ -1,1152 +1,1267 @@
 <template>
-  <div ref="settingsRoot" class="system-settings" :style="mainStyle" @click="clickOutside">
-    <div v-if="user.userId" class="user-info rainbow-surface-profile">
-      <div class="left">
-        <img class="avatar" :src="user.avatarUrl" loading="lazy" />
-        <div class="info">
-          <div class="nickname">{{ user.nickname }}</div>
-          <div class="extra-info">
-            <span v-if="user.vipType !== 0" class="vip"
-              ><img class="cvip" :src="imageUrl" loading="lazy" />
-              <span class="text">{{ t('settings.general.vipLabel') }}</span>
-            </span>
-            <span v-else class="text">{{ user.signature }}</span>
-          </div>
+  <div
+    ref="settingsRoot"
+    class="system-settings"
+    :data-settings-section="tab"
+    :style="mainStyle"
+    @click="clickOutside"
+  >
+    <header class="settings-header">
+      <div
+        ><h1>{{ t('nav.settings') }}</h1
+        ><p>{{ t('settingsLayout.intro') }}</p></div
+      >
+      <div class="settings-search">
+        <input
+          v-model="settingsQuery"
+          type="search"
+          :placeholder="t('playbackInfo.settingsSearch')"
+          :aria-label="t('playbackInfo.settingsSearch')"
+          aria-controls="settings-search-results"
+          @keydown.enter.prevent="searchResults[0] && selectSearchResult(searchResults[0])"
+          @keydown.esc="settingsQuery = ''"
+        />
+        <ul
+          v-if="settingsQuery.trim()"
+          id="settings-search-results"
+          class="settings-search-results"
+          :aria-label="t('settingsLayout.results')"
+        >
+          <li v-for="(result, index) in searchResults" :key="index"
+            ><button type="button" @click="selectSearchResult(result)"
+              ><strong>{{ result.title }}</strong
+              ><small>{{ result.sectionLabel }}</small></button
+            ></li
+          >
+          <li v-if="!searchResults.length" class="settings-search-empty" role="status">{{
+            t('playbackInfo.noSettings')
+          }}</li>
+        </ul>
+      </div>
+    </header>
+    <div class="settings-workspace">
+      <aside class="slide-container" :aria-label="t('settingsLayout.categories')">
+        <div class="slideBar">
+          <button
+            v-for="section in settingsSections"
+            :key="section.key"
+            type="button"
+            :class="[
+              'tab',
+              'rainbow-settings-tab',
+              `rainbow-settings-${section.key}`,
+              { active: tab === section.key }
+            ]"
+            :aria-current="tab === section.key ? 'page' : undefined"
+            @click="updateTab(section.index)"
+            >{{ section.label }}</button
+          >
         </div>
-      </div>
-      <div class="right">
-        <button @click="doLogout">
-          <svg-icon icon-class="logout" />
-          {{ $t('settings.general.logout') }}
-        </button>
-      </div>
-    </div>
-    <div class="slide-container">
-      <div class="slideBar">
-        <div class="tab slide" :style="{ top: slideTop + 'px' }"><div class="iconfont"></div></div>
-        <div class="tab rainbow-settings-tab rainbow-settings-general" :class="{ active: tab === 'general' }" @click="updateTab(0)">{{
-          $t('settings.nav.general')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-lyric" :class="{ active: tab === 'lyric' }" @click="updateTab(1)">{{
-          isWindows ? $t('settings.nav.osdLyric') : $t('settings.nav.lyricSetting')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-music" :class="{ active: tab === 'music' }" @click="updateTab(2)">{{
-          $t('settings.nav.music')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-unblock" :class="{ active: tab === 'unblock' }" @click="updateTab(3)">{{
-          $t('settings.nav.unblock')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-shortcut" :class="{ active: tab === 'shortcut' }" @click="updateTab(4)">{{
-          $t('settings.nav.shortcut')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-misc" :class="{ active: tab === 'misc' }" @click="updateTab(5)">{{
-          $t('settings.nav.misc')
-        }}</div>
-        <div class="tab rainbow-settings-tab rainbow-settings-update" :class="{ active: tab === 'update' }" @click="updateTab(6)">{{
-          $t('settings.nav.update')
-        }}</div>
-      </div>
-    </div>
-    <div class="main-container">
-      <div class="container">
-        <div v-show="tab === 'general'" key="general">
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.showBanner') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="showBanner"
-                  v-model="general.showBanner"
-                  type="checkbox"
-                  name="showBanner"
-                />
-                <label for="showBanner"></label>
-              </div>
-            </div>
-          </div>
-          <div v-if="isWindows" class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.forceFactor') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input id="forceFactor" v-model="forceFactor" type="checkbox" name="forceFactor" />
-                <label for="forceFactor"></label>
-              </div>
-            </div>
-          </div>
-          <div v-if="isElectron && isLinux" class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.useCustomTitlebar') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="linux-title-bar"
-                  v-model="useCustomTitlebar"
-                  type="checkbox"
-                  name="linux-title-bar"
-                />
-                <label for="linux-title-bar"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.language.text') }}</div>
-            </div>
-            <div class="right">
-              <CustomSelect v-model="selectLanguage" :options="languageOption" />
-            </div>
-          </div>
-          <!-- ======== newADD start====== -->
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.appFontSize.text') }}</div>
-              <div class="description">{{ $t('settings.general.appFontSize.desc') }}</div>
-            </div>
-            <div class="right">
-              <div class="app-font-size-setting">
-                <button class="font-size-btn" @click="decreaseAppGlobalFontSize">A-</button>
-                <div class="font-size-value">{{ appGlobalFontSize }}</div>
-                <button class="font-size-btn" @click="increaseAppGlobalFontSize">A+</button>
-              </div>
-            </div>
-          </div>
-          <!-- =========== newADD end ======== -->
-          <div v-if="!isMac" class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.closeAppOption.text') }}</div>
-            </div>
-            <div class="right">
-              <CustomSelect v-model="closeAppOption" :options="closeOptions" />
-            </div>
-          </div>
-          <div v-if="!isMac" class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.general.trayColor.text') }}</div>
-            </div>
-            <div class="right">
-              <CustomSelect v-model="trayColor" :options="trayColorOptions" />
-            </div>
-          </div>
-          <div class="item">
-            <div>{{ $t('settings.nav.appearance') }}：</div>
-            <div
-              class="appearance"
-              :class="{ selected: appearance === 'light' }"
-              @click="updateAppearance('light')"
-            >
-              <img src="../assets/images/light.jpg" />
-              {{ $t('settings.theme.light') }}</div
-            >
-            <div
-              class="appearance"
-              :class="{ selected: appearance === 'dark' }"
-              @click="updateAppearance('dark')"
-              ><img src="../assets/images/dark.jpg" /> {{ $t('settings.theme.dark') }}</div
-            >
-            <div
-              class="appearance"
-              :class="{ selected: appearance === 'auto' }"
-              @click="updateAppearance('auto')"
-              ><img src="../assets/images/auto.png" /> {{ $t('settings.theme.auto') }}</div
-            >
-          </div>
-          <div class="item">
-            <div>{{ $t('settings.theme.themeColor') }}：</div>
-            <div class="colors">
-              <div
-                v-for="color of standardThemeColors"
-                :key="color.name"
-                class="color theme-color"
-                @click="changeColor(color)"
-              >
-                <div v-show="color.selected" class="selected-icon"></div>
+      </aside>
+      <div
+        class="main-container settings-content-scroll"
+        role="region"
+        :aria-label="activeSection.label"
+        tabindex="0"
+      >
+        <header ref="sectionHeading" class="settings-section-heading"
+          ><h2>{{ activeSection.label }}</h2
+          ><p>{{ activeSection.description }}</p></header
+        >
+        <div class="container">
+          <div v-show="tab === 'general'" key="general" data-settings-page="general">
+            <section class="settings-group" data-settings-group="appearance">
+              <h3>{{ t('settingsLayout.groups.appearance') }}</h3>
+              <div class="item">
+                <div>{{ $t('settings.nav.appearance') }}：</div>
                 <div
-                  class="theme-color-item"
-                  :class="{ 'rainbow-theme-swatch': color.name === 'rainbow' }"
-                  :style="color.name === 'rainbow' ? undefined : { backgroundColor: color.color }"
-                ></div>
-                {{ $t(`settings.theme.${color.name}`) }}
+                  class="appearance"
+                  :class="{ selected: appearance === 'light' }"
+                  @click="updateAppearance('light')"
+                >
+                  <img src="../assets/images/light.jpg" />
+                  {{ $t('settings.theme.light') }}</div
+                >
+                <div
+                  class="appearance"
+                  :class="{ selected: appearance === 'dark' }"
+                  @click="updateAppearance('dark')"
+                  ><img src="../assets/images/dark.jpg" /> {{ $t('settings.theme.dark') }}</div
+                >
+                <div
+                  class="appearance"
+                  :class="{ selected: appearance === 'auto' }"
+                  @click="updateAppearance('auto')"
+                  ><img src="../assets/images/auto.png" /> {{ $t('settings.theme.auto') }}</div
+                >
               </div>
-              <div
-                class="color theme-color custom-theme-color"
-                @click.capture="applyCustomizeColor"
-              >
-                <div v-show="customizeColor.selected" class="selected-icon"></div>
-                <pick-colors
-                  v-model:value="customizeColor.color"
-                  class="theme-color-picker"
-                  :width="54"
-                  :height="54"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  @update:value="selectCustomizeColor"
-                />
-                {{ $t(`settings.theme.${customizeColor.name}`) }}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-show="tab === 'lyric'" key="lyric">
-          <div v-if="!isWindows" class="lyric-tab">
-            <button
-              v-if="isElectron && !isWindows"
-              :class="{ 'lyric-button': true, 'lyric-button--selected': lyricTab === 'trayLyric' }"
-              @click="lyricTab = 'trayLyric'"
-              >{{ $t('settings.nav.trayLyric') }}</button
+              <div class="item">
+                <div>{{ $t('settings.theme.themeColor') }}：</div>
+                <div class="colors">
+                  <div
+                    v-for="color of standardThemeColors"
+                    :key="color.name"
+                    class="color theme-color"
+                    @click="changeColor(color)"
+                  >
+                    <div v-show="color.selected" class="selected-icon"></div>
+                    <div
+                      class="theme-color-item"
+                      :class="{ 'rainbow-theme-swatch': color.name === 'rainbow' }"
+                      :style="
+                        color.name === 'rainbow' ? undefined : { backgroundColor: color.color }
+                      "
+                    ></div>
+                    {{ $t(`settings.theme.${color.name}`) }}
+                  </div>
+                  <div
+                    class="color theme-color custom-theme-color"
+                    @click.capture="applyCustomizeColor"
+                  >
+                    <div v-show="customizeColor.selected" class="selected-icon"></div>
+                    <pick-colors
+                      v-model:value="customizeColor.color"
+                      class="theme-color-picker"
+                      :width="54"
+                      :height="54"
+                      :theme="currentTheme ?? 'light'"
+                      format="rgb"
+                      @update:value="selectCustomizeColor"
+                    />
+                    {{ $t(`settings.theme.${customizeColor.name}`) }}
+                  </div>
+                </div>
+              </div></section
             >
-            <button
-              :class="{ 'lyric-button': true, 'lyric-button--selected': lyricTab === 'osdLyric' }"
-              @click="lyricTab = 'osdLyric'"
-              >{{ $t('settings.nav.osdLyric') }}</button
-            >
-          </div>
-          <div v-show="lyricTab === 'osdLyric'">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.isLock') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input id="isLock" v-model="isLock" type="checkbox" name="isLock" />
-                  <label for="isLock"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.isWordByWord') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="isWordByWord"
-                    v-model="isWordByWord"
-                    type="checkbox"
-                    name="isWordByWord"
-                  />
-                  <label for="isWordByWord"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.showButtonWhenLock.text') }}</div>
-                <div class="description">
-                  {{ $t('settings.osdLyric.showButtonWhenLock.desc') }}
-                </div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="showButtonWhenLock"
-                    v-model="showButtonWhenLock"
-                    type="checkbox"
-                    name="showButtonWhenLock"
-                  />
-                  <label for="showButtonWhenLock"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title"> {{ $t('settings.osdLyric.staticTime.text') }} </div>
-                <div class="description"> {{ $t('settings.osdLyric.staticTime.desc') }} </div>
-                <div class="description"> {{ $t('settings.osdLyric.staticTime.desc2') }} </div>
-              </div>
-              <div class="right">
-                <input
-                  v-model="staticTime"
-                  :disabled="!showButtonWhenLock"
-                  type="number"
-                  step="100"
-                  class="text-input margin-right-0"
-                />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title"> {{ $t('settings.osdLyric.font') }} </div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="font" :options="fontList" :searchable="true">
-                  <template #option="{ option }">
-                    <div :style="{ fontFamily: option.value as string }">{{ option.label }}</div>
-                  </template>
-                </CustomSelect>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title"> {{ $t('settings.osdLyric.fontSize') }} </div>
-              </div>
-              <div class="right">
-                <input
-                  v-model="inputFontSizeValue"
-                  type="number"
-                  class="text-input margin-right-0"
-                  @input="inputFontSizeDebounce"
-                />
-              </div>
-            </div>
-            <!-- ======== newADD start====== -->
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.textAlign.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="align" :options="osdLyricAlignOptions" />
-              </div>
-            </div>
-            <!-- =========== newADD end ======== -->
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.type.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="type" :options="typeOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.mode.text') }}</div>
-                <div class="description">{{ $t('settings.osdLyric.mode.desc') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="mode" :options="modeOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.osdLyric.translationMode.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="translationMode" :options="translateOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="color">
-                <pick-colors
-                  v-model:value="backgroundColor"
-                  :width="100"
-                  :height="100"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  show-alpha
-                />
-                <div class="text">{{ $t('settings.osdLyric.colors.background') }}</div>
-              </div>
-              <div class="color">
-                <pick-colors
-                  v-model:value="playedLrcColor"
-                  :width="100"
-                  :height="100"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  show-alpha
-                />
-                <div class="text">{{ $t('settings.osdLyric.colors.played') }}</div>
-              </div>
-              <div class="color">
-                <pick-colors
-                  v-model:value="unplayLrcColor"
-                  :width="100"
-                  :height="100"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  show-alpha
-                />
-                <div class="text">{{ $t('settings.osdLyric.colors.unplayed') }}</div>
-              </div>
-              <div class="color">
-                <pick-colors
-                  v-model:value="textShadow"
-                  :width="100"
-                  :height="100"
-                  :theme="currentTheme ?? 'light'"
-                  format="rgb"
-                  show-alpha
-                />
-                <div class="text">{{ $t('settings.osdLyric.colors.shadow') }}</div>
-              </div>
-            </div>
-          </div>
-          <div v-if="!isWindows" v-show="lyricTab === 'trayLyric'">
-            <div v-if="isMac">
+
+            <section class="settings-group" data-settings-group="interface">
+              <h3>{{ t('settingsLayout.groups.interface') }}</h3>
               <div class="item">
                 <div class="left">
-                  <div class="title">
-                    {{ $t('settings.tray.showLyric') }}
-                  </div>
+                  <div class="title">{{ $t('settings.general.showBanner') }}</div>
                 </div>
                 <div class="right">
                   <div class="toggle">
-                    <input id="show-lyric" v-model="showLyric" type="checkbox" name="show-lyric" />
-                    <label for="show-lyric"></label>
+                    <input
+                      id="showBanner"
+                      v-model="general.showBanner"
+                      type="checkbox"
+                      name="showBanner"
+                    />
+                    <label for="showBanner"></label>
                   </div>
                 </div>
               </div>
               <div class="item">
                 <div class="left">
-                  <div class="title">
-                    {{ $t('settings.tray.showControl') }}
+                  <div class="title">{{ $t('settings.general.language.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="selectLanguage" :options="languageOption" />
+                </div> </div
+            ></section>
+
+            <section class="settings-group" data-settings-group="window">
+              <h3>{{ t('settingsLayout.groups.window') }}</h3>
+              <div v-if="isWindows" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.forceFactor') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="forceFactor"
+                      v-model="forceFactor"
+                      type="checkbox"
+                      name="forceFactor"
+                    />
+                    <label for="forceFactor"></label>
+                  </div>
+                </div>
+              </div>
+              <div v-if="isElectron && isLinux" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.useCustomTitlebar') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="linux-title-bar"
+                      v-model="useCustomTitlebar"
+                      type="checkbox"
+                      name="linux-title-bar"
+                    />
+                    <label for="linux-title-bar"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.appFontSize.text') }}</div>
+                  <div class="description">{{ $t('settings.general.appFontSize.desc') }}</div>
+                </div>
+                <div class="right">
+                  <div class="app-font-size-setting">
+                    <button class="font-size-btn" @click="decreaseAppGlobalFontSize">A-</button>
+                    <div class="font-size-value">{{ appGlobalFontSize }}</div>
+                    <button class="font-size-btn" @click="increaseAppGlobalFontSize">A+</button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="!isMac" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.closeAppOption.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="closeAppOption" :options="closeOptions" />
+                </div>
+              </div>
+              <div v-if="!isMac" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.trayColor.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="trayColor" :options="trayColorOptions" />
+                </div> </div></section
+          ></div>
+          <div v-show="tab === 'lyric'" key="lyric" data-settings-page="lyric">
+            <section class="settings-group" data-settings-group="lyricPage">
+              <h3>{{ t('settingsLayout.groups.lyricPage') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.clickToLyric') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="click-to-lyric-page"
+                      v-model="clickToLyric"
+                      type="checkbox"
+                      name="click-to-lyric-page"
+                    />
+                    <label for="click-to-lyric-page"></label>
+                  </div>
+                </div> </div
+            ></section>
+            <div v-if="!isWindows" class="lyric-tab">
+              <button
+                v-if="isElectron && !isWindows"
+                :class="{
+                  'lyric-button': true,
+                  'lyric-button--selected': lyricTab === 'trayLyric'
+                }"
+                @click="lyricTab = 'trayLyric'"
+                >{{ $t('settings.nav.trayLyric') }}</button
+              >
+              <button
+                :class="{ 'lyric-button': true, 'lyric-button--selected': lyricTab === 'osdLyric' }"
+                @click="lyricTab = 'osdLyric'"
+                >{{ $t('settings.nav.osdLyric') }}</button
+              >
+            </div>
+            <div v-show="lyricTab === 'osdLyric'" data-settings-subsection="osdLyric">
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.isLock') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input id="isLock" v-model="isLock" type="checkbox" name="isLock" />
+                    <label for="isLock"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.isWordByWord') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="isWordByWord"
+                      v-model="isWordByWord"
+                      type="checkbox"
+                      name="isWordByWord"
+                    />
+                    <label for="isWordByWord"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.showButtonWhenLock.text') }}</div>
+                  <div class="description">
+                    {{ $t('settings.osdLyric.showButtonWhenLock.desc') }}
                   </div>
                 </div>
                 <div class="right">
                   <div class="toggle">
                     <input
-                      id="show-control"
-                      v-model="showControl"
+                      id="showButtonWhenLock"
+                      v-model="showButtonWhenLock"
                       type="checkbox"
-                      name="show-control"
+                      name="showButtonWhenLock"
                     />
-                    <label for="show-control"></label>
+                    <label for="showButtonWhenLock"></label>
                   </div>
                 </div>
               </div>
               <div class="item">
                 <div class="left">
-                  <div class="title"> {{ $t('settings.tray.lyricFrameWidth') }} </div>
+                  <div class="title"> {{ $t('settings.osdLyric.staticTime.text') }} </div>
+                  <div class="description"> {{ $t('settings.osdLyric.staticTime.desc') }} </div>
+                  <div class="description"> {{ $t('settings.osdLyric.staticTime.desc2') }} </div>
                 </div>
                 <div class="right">
                   <input
-                    v-model="inputValue"
+                    v-model="staticTime"
+                    :disabled="!showButtonWhenLock"
                     type="number"
+                    step="100"
                     class="text-input margin-right-0"
-                    @input="inputDebounce()"
                   />
                 </div>
               </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title"> {{ $t('settings.osdLyric.font') }} </div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="font" :options="fontList" :searchable="true">
+                    <template #option="{ option }">
+                      <div :style="{ fontFamily: option.value as string }">{{ option.label }}</div>
+                    </template>
+                  </CustomSelect>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title"> {{ $t('settings.osdLyric.fontSize') }} </div>
+                </div>
+                <div class="right">
+                  <input
+                    v-model="inputFontSizeValue"
+                    type="number"
+                    class="text-input margin-right-0"
+                    @input="inputFontSizeDebounce"
+                  />
+                </div>
+              </div>
+              <!-- ======== newADD start====== -->
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.textAlign.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="align" :options="osdLyricAlignOptions" />
+                </div>
+              </div>
+              <!-- =========== newADD end ======== -->
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.type.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="type" :options="typeOptions" />
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.mode.text') }}</div>
+                  <div class="description">{{ $t('settings.osdLyric.mode.desc') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="mode" :options="modeOptions" />
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.osdLyric.translationMode.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="translationMode" :options="translateOptions" />
+                </div>
+              </div>
+              <div class="item">
+                <div class="color">
+                  <pick-colors
+                    v-model:value="backgroundColor"
+                    :width="100"
+                    :height="100"
+                    :theme="currentTheme ?? 'light'"
+                    format="rgb"
+                    show-alpha
+                  />
+                  <div class="text">{{ $t('settings.osdLyric.colors.background') }}</div>
+                </div>
+                <div class="color">
+                  <pick-colors
+                    v-model:value="playedLrcColor"
+                    :width="100"
+                    :height="100"
+                    :theme="currentTheme ?? 'light'"
+                    format="rgb"
+                    show-alpha
+                  />
+                  <div class="text">{{ $t('settings.osdLyric.colors.played') }}</div>
+                </div>
+                <div class="color">
+                  <pick-colors
+                    v-model:value="unplayLrcColor"
+                    :width="100"
+                    :height="100"
+                    :theme="currentTheme ?? 'light'"
+                    format="rgb"
+                    show-alpha
+                  />
+                  <div class="text">{{ $t('settings.osdLyric.colors.unplayed') }}</div>
+                </div>
+                <div class="color">
+                  <pick-colors
+                    v-model:value="textShadow"
+                    :width="100"
+                    :height="100"
+                    :theme="currentTheme ?? 'light'"
+                    format="rgb"
+                    show-alpha
+                  />
+                  <div class="text">{{ $t('settings.osdLyric.colors.shadow') }}</div>
+                </div>
+              </div>
             </div>
-            <div v-else-if="isLinux">
+            <div
+              v-if="!isWindows"
+              v-show="lyricTab === 'trayLyric'"
+              data-settings-subsection="trayLyric"
+            >
+              <div v-if="isMac">
+                <div class="item">
+                  <div class="left">
+                    <div class="title">
+                      {{ $t('settings.tray.showLyric') }}
+                    </div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="show-lyric"
+                        v-model="showLyric"
+                        type="checkbox"
+                        name="show-lyric"
+                      />
+                      <label for="show-lyric"></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">
+                      {{ $t('settings.tray.showControl') }}
+                    </div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="show-control"
+                        v-model="showControl"
+                        type="checkbox"
+                        name="show-control"
+                      />
+                      <label for="show-control"></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title"> {{ $t('settings.tray.lyricFrameWidth') }} </div>
+                  </div>
+                  <div class="right">
+                    <input
+                      v-model="inputValue"
+                      type="number"
+                      class="text-input margin-right-0"
+                      @input="inputDebounce()"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="isLinux">
+                <div class="item">
+                  <div class="left">
+                    <div class="title"
+                      >{{ $t('settings.extension.status') }}：{{
+                        extensionCheckResult
+                          ? $t('settings.extension.enabled')
+                          : $t('settings.extension.disabled')
+                      }}</div
+                    >
+                    <div class="description"
+                      >{{ $t('settings.extension.installPrefix') }}
+                      <a @click="openOnBrowser('https://github.com/stark81/media-controls')">{{
+                        $t('settings.extension.here')
+                      }}</a>
+                      {{ $t('settings.extension.downloadSuffix') }}</div
+                    >
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.extension.showLyric.text') }}</div>
+                    <div class="description">{{ $t('settings.extension.showLyric.desc') }}</div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="enable-extension"
+                        v-model="enableExtension"
+                        type="checkbox"
+                        name="enable-extension"
+                      />
+                      <label for="enable-extension"></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-show="tab === 'music'" key="music" data-settings-page="music">
+            <section class="settings-group" data-settings-group="audio">
+              <h3>{{ t('settingsLayout.groups.audio') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.musicQuality.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="musicQuality" :options="musicQualityOptions" />
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.outputDevice.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="selectedOutputDevice" :options="devicesOptions" />
+                </div> </div
+            ></section>
+
+            <section class="settings-group" data-settings-group="playback">
+              <h3>{{ t('settingsLayout.groups.playback') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('player.fade.fadeDuration') }}</div>
+                  <div class="description">{{ $t('player.fade.fadeDurationDesc') }}</div>
+                </div>
+                <div class="right">
+                  <input
+                    v-model.number="general.fadeDuration"
+                    type="number"
+                    step="0.1"
+                    class="text-input margin-right-0"
+                  />
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.showSongChorus') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="show-song-chorus"
+                      v-model="showChorus"
+                      type="checkbox"
+                      name="show-song-chorus"
+                    />
+                    <label for="show-song-chorus"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.jumpToLyricBegin') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="jump-to-lyric-begin"
+                      v-model="general.jumpToLyricBegin"
+                      type="checkbox"
+                      name="jump-to-lyric-begin"
+                    />
+                    <label for="jump-to-lyric-begin"></label>
+                  </div>
+                </div>
+              </div>
+              <div v-if="isElectron" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.perventSuspend') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="pervent-suspend"
+                      v-model="general.preventSuspension"
+                      type="checkbox"
+                      name="pervent-suspend"
+                    />
+                    <label for="pervent-suspend"></label>
+                  </div>
+                </div> </div></section
+          ></div>
+          <div v-show="tab === 'library'" key="library" data-settings-page="library">
+            <section v-if="isElectron" class="settings-group" data-settings-group="local">
+              <h3>{{ t('settingsLayout.groups.local') }}</h3>
+              <template v-if="isElectron">
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('localMusic.enableLocalMusic') }}</div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="local-enable"
+                        v-model="enble"
+                        type="checkbox"
+                        name="local-enable"
+                      />
+                      <label for="local-enable"></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">
+                      <label>{{ $t('localMusic.localMusicFolder.text') }}：</label>
+                      <template v-if="scanDir.length === 1">
+                        <label>{{ scanDir[0] }}</label>
+                      </template>
+                      <template v-else>
+                        <div v-for="(value, n) in scanDir" :key="value" class="hover" :title="value"
+                          >{{ n + 1 }}
+                        </div>
+                      </template>
+                    </div>
+                    <div class="description">{{ $t('localMusic.localMusicFolder.desc') }}</div>
+                  </div>
+                  <div class="right">
+                    <button class="input-btn" @click="selectDirModal = true">{{
+                      $t('common.input')
+                    }}</button>
+                    <button @click="chooseDir(true)">{{ $t('common.select') }}</button>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('localMusic.clearLocalMusic.text') }}</div>
+                    <div class="description">{{ $t('localMusic.clearLocalMusic.desc') }}</div>
+                  </div>
+                  <div class="right">
+                    <button @click="deleteLocalMusic">{{ $t('common.confirm') }}</button>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('localMusic.embedCoverArt.text') }}</div>
+                  </div>
+                  <div class="right">
+                    <CustomSelect
+                      v-model="localMusic.embedCoverArt"
+                      :options="embedCoverArtOption"
+                    />
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('localMusic.embedStyle.text') }}</div>
+                  </div>
+                  <div class="right">
+                    <CustomSelect v-model="localMusic.embedStyle" :options="embedStyleOption" />
+                  </div>
+                </div>
+                <div class="item no-flex">
+                  <div class="left">
+                    <div class="title">{{ $t('localMusic.trackInfoOrder.text') }}</div>
+                    <div class="description">{{ $t('localMusic.trackInfoOrder.desc') }}</div>
+                  </div>
+                  <VueDraggable v-model="trackInfoOrder">
+                    <div v-for="(item, index) in trackInfoOrder" :key="item" class="info-order">{{
+                      (index + 1).toString() + ' - ' + $t(`localMusic.trackInfoOrder.${item}`)
+                    }}</div>
+                  </VueDraggable>
+                </div></template
+              ></section
+            >
+
+            <section class="settings-group" data-settings-group="trackList">
+              <h3>{{ t('settingsLayout.groups.trackList') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.general.showTimeOrID.text') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="showTrackInfo" :options="trackInfoOptions" />
+                </div> </div
+            ></section>
+
+            <section class="settings-group" data-settings-group="cache">
+              <h3>{{ t('settingsLayout.groups.cache') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.autoCacheTrack.enable') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input
+                      id="autoCacheTrack"
+                      v-model="autoCacheTrack.enable"
+                      type="checkbox"
+                      name="autoCacheTrack"
+                    />
+                    <label for="autoCacheTrack"></label>
+                  </div>
+                </div>
+              </div>
               <div class="item">
                 <div class="left">
                   <div class="title"
-                    >{{ $t('settings.extension.status') }}：{{
-                      extensionCheckResult
-                        ? $t('settings.extension.enabled')
-                        : $t('settings.extension.disabled')
-                    }}</div
+                    >{{ $t('settings.autoCacheTrack.path') }}: {{ autoCacheTrack.path }}</div
                   >
-                  <div class="description"
-                    >{{ $t('settings.extension.installPrefix') }}
-                    <a @click="openOnBrowser('https://github.com/stark81/media-controls')">{{
-                      $t('settings.extension.here')
-                    }}</a>
-                    {{ $t('settings.extension.downloadSuffix') }}</div
-                  >
+                </div>
+                <div class="right" :style="{ minWidth: '120px' }">
+                  <button :style="{ marginRight: '16px' }" @click="autoCacheTrack.path = ''">{{
+                    $t('common.reset')
+                  }}</button>
+                  <button @click="chooseDir(false)">{{
+                    autoCacheTrack.path ? $t('common.change') : $t('common.select')
+                  }}</button>
                 </div>
               </div>
               <div class="item">
                 <div class="left">
-                  <div class="title">{{ $t('settings.extension.showLyric.text') }}</div>
-                  <div class="description">{{ $t('settings.extension.showLyric.desc') }}</div>
+                  <div class="title">{{ $t('settings.autoCacheTrack.sizeLimit') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="cacheSizeLimitSelection" :options="sizeLimitOptions" />
+                </div>
+              </div>
+              <div v-if="cacheSizeLimitSelection === 'custom'" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.autoCacheTrack.customLimit') }}</div>
+                  <div class="description">{{ $t('settings.autoCacheTrack.customLimitDesc') }}</div>
+                </div>
+                <div class="right">
+                  <div class="cache-custom-limit">
+                    <input
+                      v-model.number="customCacheLimitGb"
+                      type="number"
+                      min="0.1"
+                      max="1024"
+                      step="0.1"
+                      inputmode="decimal"
+                      @change="commitCustomCacheLimit"
+                    />
+                    <span>GB</span>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title"
+                    >{{
+                      $t('settings.autoCacheTrack.sizeCached', { song: cacheTracksInfo.length })
+                    }}
+                    ({{ cacheSize }})</div
+                  >
+                </div>
+                <div class="right">
+                  <button class="clear-cache" @click="clearCache">{{
+                    $t('settings.autoCacheTrack.clearCache')
+                  }}</button>
+                </div>
+              </div></section
+            >
+          </div>
+          <div
+            v-if="isElectron"
+            v-show="tab === 'unblock'"
+            key="unblock"
+            data-settings-page="unblock"
+          >
+            <div class="settings-explainer">
+              <strong>{{ t('settingsLayout.sourceTitle') }}</strong>
+              <p>{{ t('settingsLayout.sourceDescription') }}</p>
+              <small>{{ t('settingsLayout.sourceHint') }}</small>
+            </div>
+            <div class="item">
+              <div class="left">
+                <div class="title">{{ $t('settings.unblock.enable') }}</div>
+              </div>
+              <div class="right">
+                <div class="toggle">
+                  <input
+                    id="unblock-netease"
+                    v-model="unblockNeteaseMusic.enable"
+                    :aria-label="t('settings.unblock.enable')"
+                    type="checkbox"
+                    name="unblock-netease"
+                  />
+                  <label for="unblock-netease"></label>
+                </div>
+              </div>
+            </div>
+            <details class="settings-advanced">
+              <summary>{{ t('settingsLayout.sourceAdvanced') }}</summary>
+              <p class="settings-advanced-hint">{{ t('settingsLayout.sourceAdvancedHint') }}</p>
+              <fieldset class="settings-dependent" :disabled="!unblockNeteaseMusic.enable">
+                <legend class="visually-hidden">{{ t('settingsLayout.sourceAdvanced') }}</legend>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.unblock.enableFlac.text') }}</div>
+                    <div class="description">{{ $t('settings.unblock.enableFlac.desc') }}</div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="unblock-flac"
+                        v-model="unblockNeteaseMusic.enableFlac"
+                        :aria-label="t('settings.unblock.enableFlac.text')"
+                        type="checkbox"
+                        name="unblock-flac"
+                      />
+                      <label for="unblock-flac"></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.unblock.sourceSearchMode.text') }}</div>
+                  </div>
+                  <div class="right">
+                    <CustomSelect
+                      v-model="unblockNeteaseMusic.orderFirst"
+                      :disabled="!unblockNeteaseMusic.enable"
+                      :options="orderFirstOptions"
+                    />
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.unblock.source.text') }}</div>
+                    <div class="description">
+                      <label>{{ $t('settings.unblock.source.desc1') }}</label>
+                      <a
+                        @click="
+                          openOnBrowser(
+                            'https://github.com/UnblockNeteaseMusic/server#%E9%9F%B3%E6%BA%90%E6%B8%85%E5%8D%95'
+                          )
+                        "
+                      >
+                        {{ $t('settings.unblock.source.linkText') }}</a
+                      ><br />
+                      {{ $t('settings.unblock.source.desc2') }}<br />
+                      {{ $t('settings.unblock.source.desc3') }}
+                    </div>
+                  </div>
+                  <div class="right">
+                    <textarea
+                      v-model="unblockSource"
+                      :aria-label="t('settings.unblock.source.text')"
+                      rows="2"
+                      class="text-input margin-right-0"
+                      :placeholder="t('settings.unblockSourcePlaceholder')"
+                      @input="updateUnblockSource"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.unblock.jooxCookie.text') }}</div>
+                    <div class="description">
+                      <a
+                        @click="
+                          openOnBrowser(
+                            'https://github.com/UnblockNeteaseMusic/server#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F'
+                          )
+                        "
+                        >{{ $t('settings.unblock.qqCookie.desc1') }}</a
+                      >
+                      <label>, {{ $t('settings.unblock.qqCookie.desc2') }}</label>
+                    </div>
+                  </div>
+                  <div class="right">
+                    <input
+                      v-model="unblockNeteaseMusic.jooxCookie"
+                      :aria-label="t('settings.unblock.jooxCookie.text')"
+                      type="password"
+                      autocomplete="off"
+                      :spellcheck="false"
+                      class="text-input margin-right-0"
+                      placeholder="wmid=..; session_key=.."
+                    />
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.unblock.qqCookie.text') }}</div>
+                    <div class="description">
+                      <a
+                        @click="
+                          openOnBrowser(
+                            'https://github.com/UnblockNeteaseMusic/server#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F'
+                          )
+                        "
+                        >{{ $t('settings.unblock.qqCookie.desc1') }}</a
+                      >
+                      <label>, {{ $t('settings.unblock.qqCookie.desc2') }}</label>
+                    </div>
+                  </div>
+                  <div class="right">
+                    <input
+                      v-model="unblockNeteaseMusic.qqCookie"
+                      :aria-label="t('settings.unblock.qqCookie.text')"
+                      type="password"
+                      autocomplete="off"
+                      :spellcheck="false"
+                      class="text-input margin-right-0"
+                      placeholder="uin=..; qm_keyst=..;"
+                    />
+                  </div>
+                </div>
+              </fieldset>
+            </details>
+          </div>
+          <div
+            v-if="isElectron"
+            v-show="tab === 'shortcut'"
+            key="shortcut"
+            data-settings-page="shortcut"
+          >
+            <div class="item">
+              <div class="left">
+                <div class="title"> {{ $t('settings.shortcut.enableGlobalShortcut') }} </div>
+              </div>
+              <div class="right">
+                <div class="toggle">
+                  <input
+                    id="enable-global-shortcut"
+                    v-model="enableGlobalShortcut"
+                    type="checkbox"
+                    name="enable-global-shortcut"
+                  />
+                  <label for="enable-global-shortcut"></label>
+                </div>
+              </div>
+            </div>
+            <div
+              id="shortcut-table"
+              :class="{ 'global-disabled': !enableGlobalShortcut }"
+              tabindex="0"
+              @keydown="handleShortcutKeydown"
+            >
+              <div class="row row-head">
+                <div class="col">{{ $t('settings.shortcut.function') }}</div>
+                <div class="col">{{ $t('settings.shortcut.shortcut') }}</div>
+                <div class="col">{{ $t('settings.shortcut.globalShortcut') }}</div>
+              </div>
+              <div v-for="shortcut in shortcuts" :key="shortcut.id" class="row">
+                <div class="col">{{ $t(`settings.shortcut.${shortcut.id}`) }}</div>
+                <div class="col">
+                  <div
+                    class="keyboard-input"
+                    :class="{
+                      active: shortcutInput.id === shortcut.id && shortcutInput.type === 'shortcut'
+                    }"
+                    @click.stop="readyToRecordShortcut(shortcut.id, 'shortcut')"
+                    >{{
+                      shortcutInput.id === shortcut.id &&
+                      shortcutInput.type === 'shortcut' &&
+                      recordedShortcutComputed !== ''
+                        ? formatShortcut(recordedShortcutComputed)
+                        : formatShortcut(shortcut.shortcut)
+                    }}</div
+                  >
+                </div>
+                <div class="col">
+                  <div
+                    class="keyboard-input"
+                    :class="{
+                      active:
+                        shortcutInput.id === shortcut.id && shortcutInput.type === 'globalShortcut'
+                    }"
+                    @click.stop="readyToRecordShortcut(shortcut.id, 'globalShortcut')"
+                    >{{
+                      shortcutInput.id === shortcut.id &&
+                      shortcutInput.type === 'globalShortcut' &&
+                      recordedShortcutComputed !== ''
+                        ? formatShortcut(recordedShortcutComputed)
+                        : formatShortcut(shortcut.globalShortcut)
+                    }}</div
+                  >
+                </div>
+              </div>
+            </div>
+            <button class="restore-default-shortcut" @click="restoreDefaultShortcuts">{{
+              $t('settings.shortcut.resetShortcut')
+            }}</button>
+          </div>
+          <div v-show="tab === 'misc'" key="misc" data-settings-page="misc">
+            <section class="settings-group" data-settings-group="stream">
+              <h3>{{ t('settingsLayout.groups.stream') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.stream.enable') }}</div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input id="stream" v-model="enable" type="checkbox" name="stream" />
+                    <label for="stream"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div>{{ $t('settings.stream.service') }}：</div>
+                <!-- :class="{ itemSelected: service.selected }" -->
+                <div
+                  v-for="service of services"
+                  :key="service.name"
+                  :title="serviceTitle(service)"
+                  class="stream-item"
+                  @click.right="loginOrlogout(service)"
+                >
+                  <img :src="getImagePath(service.name)" />
+                  <div class="service-name">
+                    <div
+                      class="service-status"
+                      :title="$t(`settings.stream.${service.status}`)"
+                      :style="{ background: getStatusColor(service) }"
+                    ></div>
+                    <div>{{ service.name }}</div>
+                  </div>
+                </div>
+              </div></section
+            >
+
+            <section class="settings-group" data-settings-group="integrations">
+              <h3>{{ t('settingsLayout.groups.integrations') }}</h3>
+              <template v-if="isElectron">
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.misc.enableAmuseServer') }}</div>
+                    <div v-if="stateStore.amuseServerRunning" class="description">
+                      {{ $t('settings.amuseServer.running') }}
+                    </div>
+                    <div v-else-if="stateStore.amuseServerErrorMsg" class="description">
+                      {{ $t('settings.amuseServer.error', [stateStore.amuseServerErrorMsg]) }}
+                    </div>
+                    <div v-else class="description">
+                      {{ $t('settings.amuseServer.notRunning') }}
+                    </div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="enableAmuseServer"
+                        v-model="misc.enableAmuseServer"
+                        type="checkbox"
+                        name="enableAmuseServer"
+                      />
+                      <label for="enableAmuseServer"></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="left">
+                    <div class="title">{{ $t('settings.misc.enableDiscordRichPresence') }}</div>
+                  </div>
+                  <div class="right">
+                    <div class="toggle">
+                      <input
+                        id="enableDiscordRichPresence"
+                        v-model="misc.enableDiscordRichPresence"
+                        type="checkbox"
+                        name="enableDiscordRichPresence"
+                      />
+                      <label for="enableDiscordRichPresence"></label>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div class="item">
+                <div class="left">
+                  <div class="title">
+                    {{
+                      misc.lastfm.enable
+                        ? $t('settings.misc.FmStatusConnected', { username: misc.lastfm.name })
+                        : $t('settings.misc.connectToFM')
+                    }}
+                  </div>
+                </div>
+                <div class="right">
+                  <button v-if="misc.lastfm.enable" @click="lastfmDisconnect">{{
+                    $t('settings.misc.disconnectToFM')
+                  }}</button>
+                  <button v-else @click="lastfmConnect">{{ $t('settings.misc.authToFM') }}</button>
+                </div>
+              </div></section
+            >
+
+            <section class="settings-group" data-settings-group="network">
+              <h3>{{ t('settingsLayout.groups.network') }}</h3>
+              <div class="item">
+                <div class="left item-row" :class="{ disabled: proxyType === ProxyType.Disable }">
+                  <CustomSelect v-model="proxyType" :options="proxyTypeOption" />
+                  <input
+                    v-model="proxyServe"
+                    :disabled="proxyType === ProxyType.Disable"
+                    class="text-input margin-right-0"
+                    :placeholder="$t('settings.misc.proxy.address')"
+                  />
+                  <input
+                    v-model="port"
+                    :disabled="proxyType === ProxyType.Disable"
+                    class="text-input margin-right-0"
+                    :placeholder="$t('settings.misc.proxy.port')"
+                  />
+                </div>
+                <div class="right">
+                  <button @click="updateProxy">{{ $t('settings.misc.updateProxy') }}</button>
+                </div>
+              </div>
+              <div class="item">
+                <div class="left">
+                  <div class="title"> {{ $t('settings.misc.realIp.text') }}： </div>
+                </div>
+                <div class="right">
+                  <div class="toggle">
+                    <input id="real-ip" v-model="realIp.enable" type="checkbox" name="real-ip" />
+                    <label for="real-ip"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="item" :class="{ disabled: !realIp.enable }">
+                <input
+                  v-model="realIp.ip"
+                  :disabled="!realIp.enable"
+                  class="text-input margin-right-0"
+                  :placeholder="$t('settings.misc.realIp.ip')"
+                /> </div></section
+          ></div>
+          <div v-if="isElectron" v-show="tab === 'update'" key="update" data-settings-page="update">
+            <section class="settings-group" data-settings-group="version">
+              <h3>{{ t('settingsLayout.groups.version') }}</h3>
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.update.receiveBetas') }}</div>
+                  <div class="description">{{ $t('settings.update.receiveBetasDescription') }}</div>
                 </div>
                 <div class="right">
                   <div class="toggle">
                     <input
-                      id="enable-extension"
-                      v-model="enableExtension"
+                      id="receive-beta-updates"
+                      v-model="receiveBetaUpdates"
                       type="checkbox"
-                      name="enable-extension"
+                      name="receive-beta-updates"
                     />
-                    <label for="enable-extension"></label>
+                    <label for="receive-beta-updates"></label>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div v-show="tab === 'music'" key="music">
-          <div class="lyric-tab">
-            <button
-              :class="{ 'lyric-button': true, 'lyric-button--selected': musicTab === 'netease' }"
-              @click="musicTab = 'netease'"
-              >{{ $t('settings.nav.netease') }}</button
-            >
-            <button
-              v-if="isElectron"
-              :class="{ 'lyric-button': true, 'lyric-button--selected': musicTab === 'local' }"
-              @click="musicTab = 'local'"
-              >{{ $t('settings.nav.local') }}</button
-            >
-            <button
-              :class="{ 'lyric-button': true, 'lyric-button--selected': musicTab === 'stream' }"
-              @click="musicTab = 'stream'"
-              >{{ $t('settings.nav.stream') }}</button
-            >
-            <button
-              :class="{ 'lyric-button': true, 'lyric-button--selected': musicTab === 'player' }"
-              @click="musicTab = 'player'"
-              >{{ $t('settings.nav.player') }}</button
-            >
-          </div>
-          <div v-show="musicTab === 'netease'">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.autoCacheTrack.enable') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="autoCacheTrack"
-                    v-model="autoCacheTrack.enable"
-                    type="checkbox"
-                    name="autoCacheTrack"
-                  />
-                  <label for="autoCacheTrack"></label>
+              <div class="item">
+                <div class="left">
+                  <div class="title"
+                    >{{ $t('settings.update.currentVersion') + '：' + appVersion }}
+                    <label v-if="latestVersion?.isUpdateAvailable" class="update-ext">{{
+                      $t(
+                        isDownloading
+                          ? 'settings.update.updating'
+                          : 'settings.update.updateAvailable'
+                      )
+                    }}</label>
+                  </div>
+                  <div class="description">{{ $t('settings.update.manualOnly') }}</div
+                  ><p class="build-identity">{{ t('playbackInfo.build') }}: {{ buildLabel }}</p>
+                </div>
+                <div class="right">
+                  <button
+                    :class="{ loading: updateStatus, disabled: isDownloading }"
+                    @click="handleUpdate"
+                    >{{
+                      latestVersion?.isUpdateAvailable
+                        ? $t(
+                            latestVersion?.manualDownload
+                              ? 'settings.update.goToDownload'
+                              : 'settings.update.downloadUpdate'
+                          )
+                        : $t(
+                            updateStatus
+                              ? 'settings.update.updateChecking'
+                              : 'settings.update.updateCheck'
+                          )
+                    }}</button
+                  >
                 </div>
               </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title"
-                  >{{ $t('settings.autoCacheTrack.path') }}: {{ autoCacheTrack.path }}</div
-                >
-              </div>
-              <div class="right" :style="{ minWidth: '120px' }">
-                <button :style="{ marginRight: '16px' }" @click="autoCacheTrack.path = ''">{{
-                  $t('common.reset')
-                }}</button>
-                <button @click="chooseDir(false)">{{
-                  autoCacheTrack.path ? $t('common.change') : $t('common.select')
-                }}</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.autoCacheTrack.sizeLimit') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="cacheSizeLimitSelection" :options="sizeLimitOptions" />
-              </div>
-            </div>
-            <div v-if="cacheSizeLimitSelection === 'custom'" class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.autoCacheTrack.customLimit') }}</div>
-                <div class="description">{{ $t('settings.autoCacheTrack.customLimitDesc') }}</div>
-              </div>
-              <div class="right">
-                <div class="cache-custom-limit">
-                  <input
-                    v-model.number="customCacheLimitGb"
-                    type="number"
-                    min="0.1"
-                    max="1024"
-                    step="0.1"
-                    inputmode="decimal"
-                    @change="commitCustomCacheLimit"
-                  />
-                  <span>GB</span>
+              <div v-if="latestVersion?.updateInfo" class="item">
+                <div class="left">
+                  <div class="title">{{
+                    $t('settings.update.latestVersion') +
+                    '：' +
+                    (latestVersion?.updateInfo?.version || 'unknown')
+                  }}</div>
                 </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.musicQuality.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="musicQuality" :options="musicQualityOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title"
-                  >{{
-                    $t('settings.autoCacheTrack.sizeCached', { song: cacheTracksInfo.length })
+                <div class="right">
+                  {{
+                    Utils.formatDate(
+                      latestVersion?.updateInfo?.releaseDate || '',
+                      'YYYY-MM-DD HH:mm:ss'
+                    )
                   }}
-                  ({{ cacheSize }})</div
-                >
-              </div>
-              <div class="right">
-                <button class="clear-cache" @click="clearCache">{{
-                  $t('settings.autoCacheTrack.clearCache')
-                }}</button>
-              </div>
-            </div>
-          </div>
-          <div v-if="isElectron" v-show="musicTab === 'local'">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('localMusic.enableLocalMusic') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input id="local-enable" v-model="enble" type="checkbox" name="local-enable" />
-                  <label for="local-enable"></label>
                 </div>
               </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">
-                  <label>{{ $t('localMusic.localMusicFolder.text') }}：</label>
-                  <template v-if="scanDir.length === 1">
-                    <label>{{ scanDir[0] }}</label>
-                  </template>
-                  <template v-else>
-                    <div v-for="(value, n) in scanDir" :key="value" class="hover" :title="value"
-                      >{{ n + 1 }}
-                    </div>
-                  </template>
-                </div>
-                <div class="description">{{ $t('localMusic.localMusicFolder.desc') }}</div>
-              </div>
-              <div class="right">
-                <button class="input-btn" @click="selectDirModal = true">{{
-                  $t('common.input')
-                }}</button>
-                <button @click="chooseDir(true)">{{ $t('common.select') }}</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('localMusic.clearLocalMusic.text') }}</div>
-                <div class="description">{{ $t('localMusic.clearLocalMusic.desc') }}</div>
-              </div>
-              <div class="right">
-                <button @click="deleteLocalMusic">{{ $t('common.confirm') }}</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('localMusic.embedCoverArt.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="localMusic.embedCoverArt" :options="embedCoverArtOption" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('localMusic.embedStyle.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="localMusic.embedStyle" :options="embedStyleOption" />
-              </div>
-            </div>
-            <div class="item no-flex">
-              <div class="left">
-                <div class="title">{{ $t('localMusic.trackInfoOrder.text') }}</div>
-                <div class="description">{{ $t('localMusic.trackInfoOrder.desc') }}</div>
-              </div>
-              <VueDraggable v-model="trackInfoOrder">
-                <div v-for="(item, index) in trackInfoOrder" :key="item" class="info-order">{{
-                  (index + 1).toString() + ' - ' + $t(`localMusic.trackInfoOrder.${item}`)
-                }}</div>
-              </VueDraggable>
-            </div>
-          </div>
-          <div v-show="musicTab === 'stream'">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.stream.enable') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input id="stream" v-model="enable" type="checkbox" name="stream" />
-                  <label for="stream"></label>
+              <div v-if="latestVersion?.updateInfo?.releaseNotes" class="item">
+                <div class="left">
+                  <div class="title">{{ $t('settings.update.changelog') }}：</div>
                 </div>
               </div>
-            </div>
-            <div class="item">
-              <div>{{ $t('settings.stream.service') }}：</div>
-              <!-- :class="{ itemSelected: service.selected }" -->
-              <div
-                v-for="service of services"
-                :key="service.name"
-                :title="serviceTitle(service)"
-                class="stream-item"
-                @click.right="loginOrlogout(service)"
-              >
-                <img :src="getImagePath(service.name)" />
-                <div class="service-name">
-                  <div
-                    class="service-status"
-                    :title="$t(`settings.stream.${service.status}`)"
-                    :style="{ background: getStatusColor(service) }"
-                  ></div>
-                  <div>{{ service.name }}</div>
+              <LatestVersion />
+            </section>
+
+            <section class="settings-group" data-settings-group="troubleshooting">
+              <h3>{{ t('settingsLayout.groups.troubleshooting') }}</h3>
+              <PlaybackDiagnostics v-if="tab === 'update'" />
+              <UpdateDiagnostics v-if="tab === 'update'" :app-version="appVersion" />
+              <div class="item">
+                <div class="left">
+                  <div class="title">{{ $t('player.resetPlayer') }}</div>
+                </div>
+                <div class="right">
+                  <button @click="resetPlayer()">{{ $t('common.confirm') }}</button>
                 </div>
               </div>
-            </div>
-          </div>
-          <div v-show="musicTab === 'player'">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.showTimeOrID.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="showTrackInfo" :options="trackInfoOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('player.fade.fadeDuration') }}</div>
-                <div class="description">{{ $t('player.fade.fadeDurationDesc') }}</div>
-              </div>
-              <div class="right">
-                <input
-                  v-model.number="general.fadeDuration"
-                  type="number"
-                  step="0.1"
-                  class="text-input margin-right-0"
-                />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.outputDevice.text') }}</div>
-              </div>
-              <div class="right">
-                <CustomSelect v-model="selectedOutputDevice" :options="devicesOptions" />
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('player.resetPlayer') }}</div>
-              </div>
-              <div class="right">
-                <button @click="resetPlayer()">{{ $t('common.confirm') }}</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.showSongChorus') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="show-song-chorus"
-                    v-model="showChorus"
-                    type="checkbox"
-                    name="show-song-chorus"
-                  />
-                  <label for="show-song-chorus"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.clickToLyric') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="click-to-lyric-page"
-                    v-model="clickToLyric"
-                    type="checkbox"
-                    name="click-to-lyric-page"
-                  />
-                  <label for="click-to-lyric-page"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.jumpToLyricBegin') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="jump-to-lyric-begin"
-                    v-model="general.jumpToLyricBegin"
-                    type="checkbox"
-                    name="jump-to-lyric-begin"
-                  />
-                  <label for="jump-to-lyric-begin"></label>
-                </div>
-              </div>
-            </div>
-            <div v-if="isElectron" class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.general.perventSuspend') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="pervent-suspend"
-                    v-model="general.preventSuspension"
-                    type="checkbox"
-                    name="pervent-suspend"
-                  />
-                  <label for="pervent-suspend"></label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-if="isElectron" v-show="tab === 'unblock'" key="unblock">
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.enable') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="unblock-netease"
-                  v-model="unblockNeteaseMusic.enable"
-                  type="checkbox"
-                  name="unblock-netease"
-                />
-                <label for="unblock-netease"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.enableFlac.text') }}</div>
-              <div class="description">{{ $t('settings.unblock.enableFlac.desc') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="unblock-flac"
-                  v-model="unblockNeteaseMusic.enableFlac"
-                  type="checkbox"
-                  name="unblock-flac"
-                />
-                <label for="unblock-flac"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.sourceSearchMode.text') }}</div>
-            </div>
-            <div class="right">
-              <CustomSelect v-model="unblockNeteaseMusic.orderFirst" :options="orderFirstOptions" />
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.source.text') }}</div>
-              <div class="description">
-                <label>{{ $t('settings.unblock.source.desc1') }}</label>
-                <a
-                  @click="
-                    openOnBrowser(
-                      'https://github.com/UnblockNeteaseMusic/server#%E9%9F%B3%E6%BA%90%E6%B8%85%E5%8D%95'
-                    )
-                  "
-                >
-                  {{ $t('settings.unblock.source.linkText') }}</a
-                ><br />
-                {{ $t('settings.unblock.source.desc2') }}<br />
-                {{ $t('settings.unblock.source.desc3') }}
-              </div>
-            </div>
-            <div class="right">
-              <input
-                v-model="unblockSource"
-                class="text-input margin-right-0"
-                :placeholder="t('settings.unblockSourcePlaceholder')"
-                @input="updateUnblockSource"
-              />
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.jooxCookie.text') }}</div>
-              <div class="description">
-                <a
-                  @click="
-                    openOnBrowser(
-                      'https://github.com/UnblockNeteaseMusic/server#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F'
-                    )
-                  "
-                  >{{ $t('settings.unblock.qqCookie.desc1') }}</a
-                >
-                <label>, {{ $t('settings.unblock.qqCookie.desc2') }}</label>
-              </div>
-            </div>
-            <div class="right">
-              <input
-                v-model="unblockNeteaseMusic.jooxCookie"
-                class="text-input margin-right-0"
-                placeholder="wmid=..; session_key=.."
-              />
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.unblock.qqCookie.text') }}</div>
-              <div class="description">
-                <a
-                  @click="
-                    openOnBrowser(
-                      'https://github.com/UnblockNeteaseMusic/server#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F'
-                    )
-                  "
-                  >{{ $t('settings.unblock.qqCookie.desc1') }}</a
-                >
-                <label>, {{ $t('settings.unblock.qqCookie.desc2') }}</label>
-              </div>
-            </div>
-            <div class="right">
-              <input
-                v-model="unblockNeteaseMusic.qqCookie"
-                class="text-input margin-right-0"
-                placeholder="uin=..; qm_keyst=..;"
-              />
-            </div>
-          </div>
-        </div>
-        <div v-if="isElectron" v-show="tab === 'shortcut'" key="shortcut">
-          <div class="item">
-            <div class="left">
-              <div class="title"> {{ $t('settings.shortcut.enableGlobalShortcut') }} </div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="enable-global-shortcut"
-                  v-model="enableGlobalShortcut"
-                  type="checkbox"
-                  name="enable-global-shortcut"
-                />
-                <label for="enable-global-shortcut"></label>
-              </div>
-            </div>
-          </div>
-          <div
-            id="shortcut-table"
-            :class="{ 'global-disabled': !enableGlobalShortcut }"
-            tabindex="0"
-            @keydown="handleShortcutKeydown"
-          >
-            <div class="row row-head">
-              <div class="col">{{ $t('settings.shortcut.function') }}</div>
-              <div class="col">{{ $t('settings.shortcut.shortcut') }}</div>
-              <div class="col">{{ $t('settings.shortcut.globalShortcut') }}</div>
-            </div>
-            <div v-for="shortcut in shortcuts" :key="shortcut.id" class="row">
-              <div class="col">{{ $t(`settings.shortcut.${shortcut.id}`) }}</div>
-              <div class="col">
-                <div
-                  class="keyboard-input"
-                  :class="{
-                    active: shortcutInput.id === shortcut.id && shortcutInput.type === 'shortcut'
-                  }"
-                  @click.stop="readyToRecordShortcut(shortcut.id, 'shortcut')"
-                  >{{
-                    shortcutInput.id === shortcut.id &&
-                    shortcutInput.type === 'shortcut' &&
-                    recordedShortcutComputed !== ''
-                      ? formatShortcut(recordedShortcutComputed)
-                      : formatShortcut(shortcut.shortcut)
-                  }}</div
-                >
-              </div>
-              <div class="col">
-                <div
-                  class="keyboard-input"
-                  :class="{
-                    active:
-                      shortcutInput.id === shortcut.id && shortcutInput.type === 'globalShortcut'
-                  }"
-                  @click.stop="readyToRecordShortcut(shortcut.id, 'globalShortcut')"
-                  >{{
-                    shortcutInput.id === shortcut.id &&
-                    shortcutInput.type === 'globalShortcut' &&
-                    recordedShortcutComputed !== ''
-                      ? formatShortcut(recordedShortcutComputed)
-                      : formatShortcut(shortcut.globalShortcut)
-                  }}</div
-                >
-              </div>
-            </div>
-          </div>
-          <button class="restore-default-shortcut" @click="restoreDefaultShortcuts">{{
-            $t('settings.shortcut.resetShortcut')
-          }}</button>
-        </div>
-        <div v-show="tab === 'misc'" key="misc">
-          <template v-if="isElectron">
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.misc.enableAmuseServer') }}</div>
-                <div v-if="stateStore.amuseServerRunning" class="description">
-                  {{ $t('settings.amuseServer.running') }}
-                </div>
-                <div v-else-if="stateStore.amuseServerErrorMsg" class="description">
-                  {{ $t('settings.amuseServer.error', [stateStore.amuseServerErrorMsg]) }}
-                </div>
-                <div v-else class="description">
-                  {{ $t('settings.amuseServer.notRunning') }}
-                </div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="enableAmuseServer"
-                    v-model="misc.enableAmuseServer"
-                    type="checkbox"
-                    name="enableAmuseServer"
-                  />
-                  <label for="enableAmuseServer"></label>
-                </div>
-              </div>
-            </div>
-            <div class="item">
-              <div class="left">
-                <div class="title">{{ $t('settings.misc.enableDiscordRichPresence') }}</div>
-              </div>
-              <div class="right">
-                <div class="toggle">
-                  <input
-                    id="enableDiscordRichPresence"
-                    v-model="misc.enableDiscordRichPresence"
-                    type="checkbox"
-                    name="enableDiscordRichPresence"
-                  />
-                  <label for="enableDiscordRichPresence"></label>
-                </div>
-              </div>
-            </div>
-          </template>
-          <div class="item">
-            <div class="left">
-              <div class="title">
-                {{
-                  misc.lastfm.enable
-                    ? $t('settings.misc.FmStatusConnected', { username: misc.lastfm.name })
-                    : $t('settings.misc.connectToFM')
-                }}
-              </div>
-            </div>
-            <div class="right">
-              <button v-if="misc.lastfm.enable" @click="lastfmDisconnect">{{
-                $t('settings.misc.disconnectToFM')
-              }}</button>
-              <button v-else @click="lastfmConnect">{{ $t('settings.misc.authToFM') }}</button>
-            </div>
-          </div>
-          <div class="item" :style="{ display: 'block' }">
-            <div>{{ $t('settings.misc.proxyProtocol') }}：</div>
-          </div>
-          <div class="item">
-            <div class="left item-row" :class="{ disabled: proxyType === ProxyType.Disable }">
-              <CustomSelect v-model="proxyType" :options="proxyTypeOption" />
-              <input
-                v-model="proxyServe"
-                :disabled="proxyType === ProxyType.Disable"
-                class="text-input margin-right-0"
-                :placeholder="$t('settings.misc.proxy.address')"
-              />
-              <input
-                v-model="port"
-                :disabled="proxyType === ProxyType.Disable"
-                class="text-input margin-right-0"
-                :placeholder="$t('settings.misc.proxy.port')"
-              />
-            </div>
-            <div class="right">
-              <button @click="updateProxy">{{ $t('settings.misc.updateProxy') }}</button>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title"> {{ $t('settings.misc.realIp.text') }}： </div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input id="real-ip" v-model="realIp.enable" type="checkbox" name="real-ip" />
-                <label for="real-ip"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item" :class="{ disabled: !realIp.enable }">
-            <input
-              v-model="realIp.ip"
-              :disabled="!realIp.enable"
-              class="text-input margin-right-0"
-              :placeholder="$t('settings.misc.realIp.ip')"
-            />
-          </div>
-        </div>
-        <div v-if="isElectron" v-show="tab === 'update'" key="update">
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.update.receiveBetas') }}</div>
-              <div class="description">{{ $t('settings.update.receiveBetasDescription') }}</div>
-            </div>
-            <div class="right">
-              <div class="toggle">
-                <input
-                  id="receive-beta-updates"
-                  v-model="receiveBetaUpdates"
-                  type="checkbox"
-                  name="receive-beta-updates"
-                />
-                <label for="receive-beta-updates"></label>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title"
-                >{{ $t('settings.update.currentVersion') + '：' + appVersion }}
-                <label v-if="latestVersion?.isUpdateAvailable" class="update-ext">{{
-                  $t(isDownloading ? 'settings.update.updating' : 'settings.update.updateAvailable')
-                }}</label>
-              </div>
-              <div class="description">{{ $t('settings.update.manualOnly') }}</div>
-            </div>
-            <div class="right">
-              <button
-                :class="{ loading: updateStatus, disabled: isDownloading }"
-                @click="handleUpdate"
-                >{{
-                  latestVersion?.isUpdateAvailable
-                    ? $t(
-                        latestVersion?.manualDownload
-                          ? 'settings.update.goToDownload'
-                          : 'settings.update.downloadUpdate'
-                      )
-                    : $t(
-                        updateStatus
-                          ? 'settings.update.updateChecking'
-                          : 'settings.update.updateCheck'
-                      )
-                }}</button
-              >
-            </div>
-          </div>
-          <div id="vutronmusic-update-diagnostics-anchor" class="item">
-            <div class="left">
-              <div class="title">{{
-                $t('settings.update.latestVersion') +
-                '：' +
-                (latestVersion?.updateInfo?.version || 'unknown')
-              }}</div>
-            </div>
-            <div class="right">
-              {{
-                Utils.formatDate(
-                  latestVersion?.updateInfo?.releaseDate || '',
-                  'YYYY-MM-DD HH:mm:ss'
-                )
-              }}
-            </div>
-          </div>
-          <div class="item">
-            <div class="left">
-              <div class="title">{{ $t('settings.update.changelog') }}：</div>
-            </div>
-          </div>
-          <LatestVersion />
-        </div>
+            </section>
+
+            <section class="settings-group" data-settings-group="backup">
+              <h3>{{ t('settingsLayout.groups.backup') }}</h3>
+              <div id="vutronmusic-settings-backup-anchor" hidden></div>
+            </section> </div
+        ></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, computed, inject, onMounted, onBeforeUnmount, reactive, watch } from 'vue'
+import {
+  ref,
+  toRefs,
+  computed,
+  inject,
+  onMounted,
+  onBeforeUnmount,
+  reactive,
+  watch,
+  nextTick
+} from 'vue'
 import pickColors, { Theme } from 'vue-pick-colors'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '../store/settings'
@@ -1155,17 +1270,15 @@ import { useLocalMusicStore } from '../store/localMusic'
 import { useNormalStateStore } from '../store/state'
 import { useOsdLyricStore } from '../store/osdLyric'
 import { useStreamMusicStore } from '../store/streamingMusic'
-import { useDataStore } from '../store/data'
 import { storeToRefs } from 'pinia'
-import { doLogout } from '../utils/auth'
-import SvgIcon from '../components/SvgIcon.vue'
 import CustomSelect from '../components/CustomSelect.vue'
 import LatestVersion from '../components/LatestVersion.vue'
+import UpdateDiagnostics from '../components/UpdateDiagnostics.vue'
 import Utils from '../utils'
 import { VueDraggable } from 'vue-draggable-plus'
-// @ts-ignore
-import imageUrl from '../utils/settingImg.dataurl?raw'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import PlaybackDiagnostics from '../components/PlaybackDiagnostics.vue'
+import { BUILD_INFO } from '../../shared/buildInfo'
 import { serviceType, serviceName, Appearance, ProxyType } from '@/types/music.d'
 import {
   observeV327SettingsRoot,
@@ -1174,6 +1287,7 @@ import {
 } from '../utils/v327FeatureShared'
 
 const router = useRouter()
+const route = useRoute()
 const { locale, t } = useI18n()
 
 const settingsStore = useSettingsStore()
@@ -1226,8 +1340,6 @@ const {
 } = toRefs(stateStore)
 const { showToast, checkUpdate, getFontList } = stateStore
 
-const dataStore = useDataStore()
-const { user } = storeToRefs(dataStore)
 
 const osdLyric = useOsdLyricStore()
 const {
@@ -1579,15 +1691,124 @@ const getAllOutputDevices = () => {
 }
 
 const tab = ref('general')
+watch(tab, (section) => {
+  if (section === 'music') getAllOutputDevices()
+})
 const lyricTab = ref(isWindows ? 'osdLyric' : 'trayLyric')
-const musicTab = ref('netease')
-const updateTab = (index: number) => {
-  const tabs = ['general', 'lyric', 'music', 'unblock', 'shortcut', 'misc', 'update'] // 'appearance'
-  const tabName = tabs[index]
-  tab.value = tabName
-  slideTop.value = index * 40
+const settingsQuery = ref('')
+const sectionHeading = ref<HTMLElement | null>(null)
+const sectionKeys = [
+  'general',
+  'music',
+  'lyric',
+  'library',
+  'unblock',
+  'shortcut',
+  'misc',
+  'update'
+]
+const settingsSections = computed(() =>
+  sectionKeys.flatMap((key, index) =>
+    !isElectron && ['unblock', 'shortcut', 'update'].includes(key)
+      ? []
+      : [
+          {
+            key,
+            index,
+            label: t(`settingsLayout.sections.${key}.title`),
+            description: t(`settingsLayout.sections.${key}.description`)
+          }
+        ]
+  )
+)
+const activeSection = computed(
+  () =>
+    settingsSections.value.find((section) => section.key === tab.value) || settingsSections.value[0]
+)
+type SettingSearchResult = {
+  section: string
+  sectionLabel: string
+  title: string
+  target?: HTMLElement
+  subsection?: string
 }
-const slideTop = ref(0)
+const searchResults = ref<SettingSearchResult[]>([])
+let searchHighlightTimer: ReturnType<typeof setTimeout> | undefined
+let highlightedSetting: HTMLElement | null = null
+const updateTab = (index: number, scroll = true) => {
+  const key = sectionKeys[index]
+  if (!settingsSections.value.some((section) => section.key === key)) return
+  tab.value = key
+  if (scroll) void nextTick(() => sectionHeading.value?.scrollIntoView({ block: 'start' }))
+}
+const refreshSettingsSearch = async () => {
+  await nextTick()
+  const query = settingsQuery.value.trim().toLocaleLowerCase()
+  if (!query || !settingsRoot.value) {
+    searchResults.value = []
+    return
+  }
+  const results: SettingSearchResult[] = []
+  const categoryResults: SettingSearchResult[] = []
+  for (const section of settingsSections.value) {
+    if (`${section.label} ${section.description}`.toLocaleLowerCase().includes(query))
+      categoryResults.push({
+        section: section.key,
+        sectionLabel: section.label,
+        title: section.label
+      })
+    const page = settingsRoot.value.querySelector(`[data-settings-page="${section.key}"]`)
+    for (const target of page?.querySelectorAll<HTMLElement>('.item') || []) {
+      const title =
+        target.querySelector('.title')?.textContent?.trim() ||
+        target.firstElementChild?.textContent?.trim()
+      if (!title) continue
+      const description = target.querySelector('.description')?.textContent || ''
+      if (!`${title} ${description}`.toLocaleLowerCase().includes(query)) continue
+      results.push({
+        section: section.key,
+        sectionLabel: section.label,
+        title,
+        target,
+        subsection: target.closest<HTMLElement>('[data-settings-subsection]')?.dataset
+          .settingsSubsection
+      })
+    }
+  }
+  searchResults.value = [...results, ...categoryResults].slice(0, 12)
+}
+watch([settingsQuery, locale], refreshSettingsSearch)
+const selectSearchResult = async (result: SettingSearchResult) => {
+  updateTab(sectionKeys.indexOf(result.section), false)
+  if (result.section === 'lyric' && result.subsection) lyricTab.value = result.subsection
+  settingsQuery.value = ''
+  let disclosure = result.target?.closest('details')
+  while (disclosure && settingsRoot.value?.contains(disclosure)) {
+    disclosure.open = true
+    disclosure = disclosure.parentElement?.closest('details') || null
+  }
+  await nextTick()
+  highlightedSetting?.classList.remove('setting-search-match')
+  if (searchHighlightTimer) clearTimeout(searchHighlightTimer)
+  const target = result.target || sectionHeading.value
+  target?.scrollIntoView({ block: result.target ? 'center' : 'start' })
+  if (result.target) {
+    highlightedSetting = result.target
+    highlightedSetting.classList.add('setting-search-match')
+    highlightedSetting.tabIndex = -1
+    highlightedSetting.focus({ preventScroll: true })
+    searchHighlightTimer = setTimeout(
+      () => highlightedSetting?.classList.remove('setting-search-match'),
+      2500
+    )
+  }
+}
+const buildLabel = `${BUILD_INFO.revision}${BUILD_INFO.modified ? ' *' : ''}${BUILD_INFO.builtAt ? ' · ' + new Date(BUILD_INFO.builtAt).toLocaleString() : ''}`
+const openQuickSetting = (section: string) => updateTab(sectionKeys.indexOf(section), false)
+watch(
+  () => route.query.section,
+  (section) => openQuickSetting(String(section || 'general'))
+)
 
 const getCacheTracksInfo = () => {
   window.mainApi?.invoke('getCacheTracksInfo').then((res) => {
@@ -1826,16 +2047,17 @@ const settingsRoot = ref<HTMLElement | null>(null)
 let stopObservingSettings: (() => void) | undefined
 
 onMounted(() => {
+  openQuickSetting(String(route.query.section || 'general'))
   if (settingsRoot.value) stopObservingSettings = observeV327SettingsRoot(settingsRoot.value)
   mainStyle.value = {
-    marginTop: isMac || !useCustomTitlebar.value ? '20px' : '0'
+    marginTop: isMac || !useCustomTitlebar.value ? '20px' : '0',
+    '--settings-top-margin': isMac || !useCustomTitlebar.value ? '20px' : '0px'
   }
   if (!Number.isFinite(Number(autoCacheTrack.value.customSizeLimit))) {
     autoCacheTrack.value.customSizeLimit = 10240
   }
   getCacheTracksInfo()
   updatePadding(64)
-  getAllOutputDevices()
   getVersion()
   getFontList()
   // 开始监听 body 元素的属性变化
@@ -1845,6 +2067,9 @@ onMounted(() => {
   })
 })
 onBeforeUnmount(() => {
+  if (searchHighlightTimer) clearTimeout(searchHighlightTimer)
+  searchResults.value = []
+  highlightedSetting = null
   stopObservingSettings?.()
   updatePadding(96)
   observer.disconnect()
@@ -1857,84 +2082,6 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .system-settings {
   width: 100%;
-}
-.user-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-secondary-bg);
-  color: var(--color-text);
-  padding: 16px 20px;
-  border-radius: 16px;
-  margin-top: 20px;
-  img.avatar {
-    border-radius: 50%;
-    height: 64px;
-    width: 64px;
-  }
-  img.cvip {
-    height: 13px;
-    margin-right: 4px;
-  }
-  .left {
-    display: flex;
-    align-items: center;
-    .info {
-      margin-left: 24px;
-    }
-    .nickname {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    .extra-info {
-      font-size: 13px;
-      .text {
-        opacity: 0.68;
-      }
-      .vip {
-        display: flex;
-        align-items: center;
-      }
-    }
-  }
-  .right {
-    .svg-icon {
-      height: 18px;
-      width: 18px;
-      margin-right: 4px;
-    }
-    button {
-      display: flex;
-      align-items: center;
-      font-size: 18px;
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: 10px;
-      padding: 8px 12px;
-      opacity: 0.68;
-      color: var(--color-text);
-      transition: 0.2s;
-      margin: {
-        right: 12px;
-        left: 12px;
-      }
-      &:hover {
-        opacity: 1;
-        background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
-        color: var(--color-primary);
-      }
-      &:active {
-        opacity: 1;
-        transform: scale(0.92);
-        transition: 0.2s;
-      }
-    }
-  }
-}
-.slide-container {
-  position: relative;
-  z-index: 1;
 }
 .main-container {
   position: relative;
@@ -1969,48 +2116,6 @@ onBeforeUnmount(() => {
     .lyric-tab {
       margin-bottom: 10px;
     }
-  }
-}
-.iconfont {
-  width: 100%;
-  height: 16px;
-  background-color: var(--color-primary);
-  transition: background-color 0.3s;
-}
-.slideBar {
-  max-width: 120px;
-  position: absolute;
-  left: 30px;
-  top: 30px;
-  font-size: 16px;
-  font-weight: 600;
-  .tab {
-    height: 40px;
-    display: flex;
-    align-items: center;
-    margin-left: 0px;
-    transition: all, 0.3s;
-    // font-size: 14px;
-    opacity: 0.7;
-    cursor: pointer;
-    &:hover {
-      opacity: 1;
-      color: var(--color-primary);
-    }
-  }
-  .slide {
-    position: absolute;
-    width: 4px;
-    border-radius: 1px;
-    transition: all 0.3s;
-  }
-  .active {
-    opacity: 1;
-    color: var(--color-primary);
-    margin-left: 10px;
-    transition:
-      margin 0.3s,
-      color 0.3s;
   }
 }
 #shortcut-table {
@@ -2552,4 +2657,9 @@ input.text-input {
   font-weight: 700;
 }
 /* =========== newADD end ======== */
+.build-identity {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: var(--color-secondary);
+}
 </style>

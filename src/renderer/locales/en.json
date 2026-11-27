@@ -825,7 +825,7 @@
       "minutes": "Minutes"
     },
     "unblock": {
-      "enable": "Enable UnblockMusic",
+      "enable": "Try alternative sources when the official source is unavailable",
       "source": {
         "text": "Alternative Audio Source",
         "desc1": "Specific codes for audio sources.",
@@ -1351,5 +1351,133 @@
     "background": "Background Settings",
     "lyrics": "Lyrics Settings",
     "saveTheme": "Save Player Theme"
+  },
+  "playbackInfo": {
+    "details": "Playback details",
+    "close": "Close",
+    "qualityUnknownShort": "Unverified",
+    "unknownQuality": "Actual quality unverified",
+    "unknownQualityHint": "This source has no reliable quality metadata. Your preference and bitrate do not establish actual quality.",
+    "substituted": "Requested {requested}; this track returned {actual}.",
+    "openSettings": "Open audio settings",
+    "diagnostics": "Playback diagnostics",
+    "refresh": "Refresh",
+    "technicalDetails": "Technical details",
+    "retryCount": "Source retries",
+    "businessCode": "Service code",
+    "requestMethod": "Request protocol",
+    "build": "Build",
+    "lastRequest": "Last source request",
+    "sessionPresent": "A saved login session exists; membership has not been checked online here.",
+    "sessionUnknown": "No known login session; not checked online here.",
+    "diagnosticsUnavailable": "Diagnostics unavailable. Try refreshing later.",
+    "quickSettings": "Common settings",
+    "audioSettings": "Quality & output",
+    "lyricSettings": "Lyrics & desktop controls",
+    "shortcutSettings": "Shortcuts",
+    "diagnosticSettings": "Diagnostics & version",
+    "settingsSearch": "Search settings",
+    "noSettings": "No matching setting",
+    "lessLikeThis": "Less like this",
+    "lessFeedback": "Future recommendations in this session will favor this direction less.",
+    "feedbackScope": "Feedback affects future recommendations in this session; the current track keeps playing.",
+    "quality": {
+      "standard": "Standard",
+      "higher": "Higher",
+      "exhigh": "HQ",
+      "lossless": "Lossless",
+      "hires": "Hi-Res",
+      "jyeffect": "Spatial Audio",
+      "sky": "Surround Audio",
+      "vivid": "Vivid Audio",
+      "jymaster": "Master"
+    },
+    "source": {
+      "local": "Local file",
+      "cache": "Local cache",
+      "stream": "Music server",
+      "netease": "NetEase",
+      "alternative": "Alternative source",
+      "unknown": "Unknown source"
+    },
+    "issue": {
+      "offline": "Device is offline. Check your connection.",
+      "loading": "Loading audio…",
+      "retrying": "Recovering playback…",
+      "healthy": "The most recent official source request succeeded.",
+      "alternative": "An alternative source is ready. Check its source and actual quality.",
+      "unknown": "No source diagnostics for this track yet.",
+      "risk-control": "The service rejected this request as risky; lowering quality will not fix it.",
+      "login-required": "Login expired or required. Check your login.",
+      "permission": "The account cannot access this full source or quality.",
+      "rate-limited": "The service is limiting requests. Try again later.",
+      "missing": "Track or local file not found.",
+      "identity": "The source does not match this track and was rejected.",
+      "decode": "Audio decoding failed; another source was attempted.",
+      "network": "Source connection failed. Check your network or proxy.",
+      "timeout": "The source request timed out. Try again later.",
+      "unavailable": "No playable source is currently available."
+    }
+  },
+  "settingsLayout": {
+    "intro": "Choose a category or search for a setting.",
+    "results": "Search results",
+    "categories": "Settings categories",
+    "sourceTitle": "Official source first, alternatives as a fallback",
+    "sourceDescription": "The player tries NetEase first, then looks for the same song elsewhere if no playable official source is available.",
+    "sourceHint": "Advanced options usually need no changes. Matching may fail; actual quality depends on the file obtained.",
+    "sourceAdvanced": "Advanced source settings",
+    "sourceAdvancedHint": "Usually no changes are needed. Provider order, format preferences and credentials apply only to alternative sources, separately from your NetEase login.",
+    "sections": {
+      "general": {
+        "title": "Appearance & window",
+        "description": "Theme, language, interface and window behavior."
+      },
+      "lyric": {
+        "title": "Lyrics & desktop",
+        "description": "Lyrics page, desktop lyrics and tray lyrics."
+      },
+      "music": {
+        "title": "Playback & quality",
+        "description": "Audio quality, output device and playback behavior."
+      },
+      "unblock": {
+        "title": "Alternative sources",
+        "description": "Try another source when the official source is unavailable."
+      },
+      "shortcut": {
+        "title": "Shortcuts",
+        "description": "Keyboard controls and global shortcuts."
+      },
+      "misc": {
+        "title": "Connections & services",
+        "description": "Streaming accounts, integrations and network proxy."
+      },
+      "update": {
+        "title": "Maintenance & updates",
+        "description": "Updates, playback diagnostics and settings backup."
+      },
+      "library": {
+        "title": "Library & cache",
+        "description": "Local music, track list display and song cache."
+      }
+    },
+    "groups": {
+      "appearance": "Theme & appearance",
+      "interface": "Interface",
+      "window": "Window & tray",
+      "lyricPage": "Lyrics page",
+      "audio": "Quality & output",
+      "playback": "Playback behavior",
+      "local": "Local library",
+      "trackList": "Track list",
+      "cache": "Song cache",
+      "stream": "Streaming services",
+      "integrations": "App integrations",
+      "network": "Network proxy",
+      "version": "Version & updates",
+      "troubleshooting": "Troubleshooting",
+      "backup": "Settings backup"
+    }
   }
 }

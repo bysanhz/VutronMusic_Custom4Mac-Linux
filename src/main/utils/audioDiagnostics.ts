@@ -10,6 +10,11 @@ export type AudioRequestDiagnostic = {
   phase: string
   status?: number
   level?: string
+  requestedLevel?: string
+  actualLevel?: string
+  protocol?: string
+  upstreamCode?: number
+  failure?: import('../../shared/playbackRecovery').PlaybackFailure
   apiAttempts?: number
   available?: boolean
   restricted?: boolean

@@ -123,7 +123,6 @@ body,
 }
 
 #app .system-settings .window-scale-font-range-item {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
   align-items: center !important;
   gap: clamp(12px, 2.5vw, 24px) !important;
   margin: 8px 0 16px !important;

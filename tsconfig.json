@@ -23,10 +23,5 @@
     "typeRoots": ["node_modules/@types"],
     "allowJs": true
   },
-  "include": ["src/*.ts", "src/renderer", "src/types"],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+  "include": ["src/*.ts", "src/renderer", "src/types", "src/shared"]
 }

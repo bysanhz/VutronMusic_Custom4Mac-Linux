@@ -22,7 +22,10 @@ import { db, Tables } from '../db'
 import log from '../log'
 import { Worker } from 'worker_threads'
 import { TrackInfoOrder, lyricLine } from '@/types/music'
-import { isNeteaseTransportFailure, summarizeNeteaseFailure } from './neteaseFailure'
+import { shouldStopNeteaseQualityFallback, summarizeNeteaseFailure } from './neteaseFailure'
+import { resolveTrackAsset } from './trackAssetResolver'
+import { audioLevel, audioQualityFromResponse } from '../../shared/playbackInfo'
+import { classifyPlaybackFailure } from '../../shared/playbackRecovery'
 
 export const isFileExist = (file: string) => {
   return fs.existsSync(file)
@@ -54,15 +57,15 @@ export const getLyricFromMetadata = (metadata: IAudioMetadata) => {
         : (common.lyrics[0].text ?? '')
     }
   }
-  if (lyrics || lyrics !== undefined) return lyrics
+  if (lyrics) return lyrics
   for (const tag of format.tagTypes ?? []) {
     if (tag === 'vorbis') {
       // flac
       lyrics = (native.vorbis?.find((item) => item.id === 'LYRICS')?.value ?? '') as string
     } else if (tag === 'ID3v2.3') {
-      lyrics = (native['ID3v2.3'].find((item) => item.id === 'USLT')?.value as any)?.text ?? ''
+      lyrics = (native['ID3v2.3']?.find((item) => item.id === 'USLT')?.value as any)?.text ?? ''
     } else if (tag === 'ID3v2.4') {
-      lyrics = (native['ID3v2.4'].find((item) => item.id === 'USLT')?.value as any)?.text ?? ''
+      lyrics = (native['ID3v2.4']?.find((item) => item.id === 'USLT')?.value as any)?.text ?? ''
     } else if (tag === 'APEv2') {
       // APEv2好像并没有固定的歌词标签，todo...
     }
@@ -146,7 +149,7 @@ const getLyricFromPath = async (filePath: string) => {
   let result: lyricLine[] = []
   const buffer = await fs.promises.readFile(filePath)
   const detected = jschardet.detect(buffer)
-  const lyrics = iconv.decode(buffer, detected.encoding)
+  const lyrics = iconv.decode(buffer, detected.encoding || 'utf-8')
   if (lyrics) {
     result = parseLyricString(lyrics)
   }
@@ -160,8 +163,8 @@ export const getPicFromApi = async (url: string, signal?: AbortSignal) => {
 }
 
 export const getPicFromEmbedded = async (filePath: string) => {
-  let pic: Buffer
-  let format: string
+  let pic: Buffer | null = null
+  let format = ''
   const metadata = await parseFile(decodeURI(filePath))
   if (metadata.common.picture && metadata.common.picture.length > 0) {
     pic = Buffer.from(metadata.common.picture[0].data)
@@ -175,44 +178,50 @@ export const getPicFromPath = async (filePath: string) => {
   let format: string = ''
   pic = await fs.promises.readFile(filePath)
   const type = await fileTypeFromBuffer(pic)
-  format = type.mime
+  format = type?.mime || ''
   return { pic, format }
 }
 
-export const getPic = async (track: any): Promise<{ pic: Buffer; format: string }> => {
+export const getPic = async (track: any): Promise<{ pic: Buffer | null; format: string }> => {
   const trackInfoOrder = (store.get('settings.trackInfoOrder') as TrackInfoOrder[]) || [
     'path',
     'online',
     'embedded'
   ]
 
-  let res: { pic: Buffer<ArrayBufferLike>; format: string }
   const url = track.album?.picUrl || track.al?.picUrl
-
-  for (const order of trackInfoOrder) {
-    if (order === 'online' && track.matched) {
-      res = await getPicFromApi(url)
-    } else if (order === 'path' && track.filePath) {
-      const prefixs = ['.jpg', '.png', '.jpeg', '.webp']
-      for (const prefix of prefixs) {
-        const filePath = track.filePath.replace(/\.[^/.]+$/, prefix)
-        res = await fs.promises
-          .access(filePath, fs.constants.F_OK)
-          .then(async () => {
-            return await getPicFromPath(filePath)
-          })
-          .catch(() => {
-            return { pic: null, format: '' }
-          })
-        if (res?.pic) break
-      }
-    } else if (order === 'embedded' && track.filePath) {
-      res = await getPicFromEmbedded(track.filePath)
+  const isCover = (value: any): value is { pic: Buffer; format: string } =>
+    Buffer.isBuffer(value?.pic) && value.pic.length > 0 && /^image\//.test(value.format)
+  const result = await resolveTrackAsset(
+    trackInfoOrder,
+    {
+      online: async () => (track.matched ? getPicFromApi(url) : null),
+      path: async () => {
+        if (!track.filePath) return null
+        for (const prefix of ['.jpg', '.png', '.jpeg', '.webp']) {
+          const filePath = track.filePath.replace(/\.[^/.]+$/, prefix)
+          const cover = await getPicFromPath(filePath).catch(() => null)
+          if (isCover(cover)) return cover
+        }
+        return null
+      },
+      embedded: async () => (track.filePath ? getPicFromEmbedded(track.filePath) : null)
+    },
+    isCover,
+    (source) => log.warn('[LocalAsset] 封面来源读取失败，继续尝试下一来源', { source })
+  )
+  if (result) return result
+  // Preserve the final online lookup for tracks whose source order omitted it,
+  // without repeating a failed online request that was already attempted.
+  if (!track.matched || !trackInfoOrder.includes('online')) {
+    try {
+      const cover = await getPicFromApi(url)
+      if (isCover(cover)) return cover
+    } catch {
+      log.warn('[LocalAsset] 在线封面读取失败')
     }
-    if (res?.pic) return res
   }
-  res = await getPicFromApi(url)
-  return res
+  return { pic: null, format: '' }
 }
 
 export const getPicColor = async (pic: Buffer | null) => {
@@ -235,11 +244,12 @@ export const getPicColor = async (pic: Buffer | null) => {
 }
 
 export const getLyricFromApi = async (id: number): Promise<lyricLine[]> => {
-  return await request({
+  const result = await request({
     url: '/lyric/new',
     method: 'get',
     params: { id }
   }).catch(() => [])
+  return Array.isArray(result) ? result : []
 }
 
 export const getLyric = async (track: {
@@ -253,31 +263,22 @@ export const getLyric = async (track: {
     'embedded'
   ]
 
-  let lyrics: lyricLine[] = null
-
-  for (const order of trackInfoOrder) {
-    if (order === 'online') {
-      if (track.matched) {
-        lyrics = await getLyricFromApi(track.id)
-      }
-    } else if (order === 'embedded') {
-      if (track.filePath) {
-        lyrics = await getLyricFromEmbedded(track.filePath)
-      }
-    } else if (order === 'path') {
-      if (track.filePath) {
-        const filePath = track.filePath.replace(/\.[^/.]+$/, '.lrc')
-        lyrics = await fs.promises
-          .access(filePath, fs.constants.F_OK)
-          .then(async () => {
-            return await getLyricFromPath(filePath)
-          })
-          .catch(() => [])
-      }
-    }
-    if (lyrics.length) return lyrics
-  }
-  return lyrics
+  return (
+    (await resolveTrackAsset(
+      trackInfoOrder,
+      {
+        online: async () => (track.matched ? getLyricFromApi(track.id) : null),
+        embedded: async () => (track.filePath ? getLyricFromEmbedded(track.filePath) : null),
+        path: async () => {
+          if (!track.filePath) return null
+          const filePath = track.filePath.replace(/\.[^/.]+$/, '.lrc')
+          return getLyricFromPath(filePath).catch(() => [])
+        }
+      },
+      (value): value is lyricLine[] => Array.isArray(value) && value.length > 0,
+      (source) => log.warn('[LocalAsset] 歌词来源读取失败，继续尝试下一来源', { source })
+    )) || []
+  )
 }
 
 export const handleNeteaseResult = async (name: string, result: any) => {
@@ -623,41 +624,55 @@ const normalizeNeteaseQuality = (quality: unknown): NetEaseSoundQuality => {
 
 const getAudioSourceFromNetease = async (
   track: any,
-  diagnostic: AudioRequestDiagnostic
+  diagnostic: AudioRequestDiagnostic,
+  signal?: AbortSignal
 ): Promise<{ [key: string]: any }> => {
-  const requestedLevel = normalizeNeteaseQuality(store.get('settings.musicQuality'))
+  const requestedLevel = normalizeNeteaseQuality(diagnostic.requestedLevel)
+  diagnostic.protocol = 'weapi'
   const startIndex = NETEASE_QUALITY_ORDER.indexOf(requestedLevel)
   const fallbackLevels = NETEASE_QUALITY_ORDER.slice(Math.max(0, startIndex))
 
   for (const level of fallbackLevels) {
+    signal?.throwIfAborted()
     diagnostic.apiAttempts = (diagnostic.apiAttempts || 0) + 1
     try {
       const result = await request({
         url: '/song/url/v1',
         method: 'get',
-        params: { id: track.id, level }
+        params: { id: track.id, level },
+        signal
       })
       const item = result?.data?.[0]
       diagnostic.level = level
+      diagnostic.actualLevel = audioLevel(item?.level)
       diagnostic.status = Number(item?.code || result?.code) || 0
       diagnostic.available = Boolean(item?.url)
       diagnostic.restricted = Boolean(item?.freeTrialInfo)
       const br = item?.br || 128000
       const gain = item?.gain || 0
       const peak = item?.peak || 1
-      if (!item?.url || item.freeTrialInfo !== null) continue
+      if (!item?.url || item.freeTrialInfo !== null) {
+        diagnostic.failure = item?.freeTrialInfo ? 'permission' : 'unavailable'
+        continue
+      }
+      diagnostic.failure = undefined
+      diagnostic.error = undefined
 
       return {
         url: item.url.replace(/^http:/, 'https:'),
         br,
         gain,
         peak,
-        level: item.level || level
+        level: item.level,
+        audioQuality: audioQualityFromResponse(requestedLevel, item)
       }
     } catch (error) {
+      signal?.throwIfAborted()
       diagnostic.error = audioFailureCode(error)
       const failure = summarizeNeteaseFailure(error)
-      if (isNeteaseTransportFailure(failure)) {
+      diagnostic.upstreamCode = failure.upstreamCode
+      diagnostic.failure = classifyPlaybackFailure(error)
+      if (shouldStopNeteaseQualityFallback(failure)) {
         log.warn(`[NetEase] ${level} 音源请求失败，停止音质降级并尝试备用音源`, failure)
         break
       }
@@ -674,13 +689,16 @@ const getAudioSourceFromNetease = async (
 
 const recentAudioUrlHashes = new Map<string, string>()
 
-export const getAudioSource = async (track: any, excludedSource = '') => {
+export const getAudioSource = async (track: any, excludedSource = '', signal?: AbortSignal) => {
+  signal?.throwIfAborted()
+  const requestedLevel = normalizeNeteaseQuality(store.get('settings.musicQuality'))
   const startedAt = Date.now()
   const diagnostic = beginAudioDiagnostic({
     kind: 'source',
     trackId: String(track.id),
     source: 'netease',
-    phase: 'api'
+    phase: 'api',
+    requestedLevel
   })
   const enableUNM =
     (store.get('settings.unblockNeteaseMusic.enable') as boolean | undefined) ?? true
@@ -690,16 +708,21 @@ export const getAudioSource = async (track: any, excludedSource = '') => {
   const trackInfo =
     excludedSource === 'netease'
       ? { url: '', br: 128000, gain: 0, peak: 1, level: 'standard' }
-      : await getAudioSourceFromNetease(track, diagnostic)
+      : await getAudioSourceFromNetease(track, diagnostic, signal)
+  signal?.throwIfAborted()
 
   // 官方音源不可用时才进入 UNM。UNM 失败会返回 null，不能再直接访问 res.url。
   if (!trackInfo.url && enableUNM) {
     const res = await getAudioSourceFromUnblock(track, excludedSource)
+    signal?.throwIfAborted()
     if (res?.url) {
       // UNM 可能返回仅支持 HTTP 的第三方源；Renderer 不再直连，
       // 因此保留原始协议并交由主进程代理处理。
       trackInfo.url = String(res.url)
       source = res.source || 'unblock'
+      trackInfo.audioQuality = {
+        requested: requestedLevel
+      }
     }
   }
 
@@ -708,6 +731,9 @@ export const getAudioSource = async (track: any, excludedSource = '') => {
   }
 
   trackInfo.source = source
+  trackInfo.audioQuality ||= {
+    requested: requestedLevel
+  }
   diagnostic.source = source
   diagnostic.available = Boolean(trackInfo.url)
   diagnostic.phase = trackInfo.url ? 'resolved' : 'unavailable'
@@ -727,11 +753,12 @@ export const getAudioSource = async (track: any, excludedSource = '') => {
   return trackInfo
 }
 
-export const getTrackDetail = (ids: string) => {
+export const getTrackDetail = (ids: string, signal?: AbortSignal) => {
   return request({
     url: '/song/detail',
     method: 'get',
-    params: { ids }
+    params: { ids },
+    signal
   })
 }
 

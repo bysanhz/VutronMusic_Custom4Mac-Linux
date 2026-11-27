@@ -50,6 +50,12 @@ jobs:
           yarn playwright test tests/audio-playback-health.spec.ts tests/netease-listen-ledger.spec.ts tests/player-track-state-race.spec.ts tests/diagnostics-settings.spec.ts tests/netease-listen-duration.spec.ts tests/netease-scrobble-timing.spec.ts tests/sleep-timer-controls.spec.ts
 
 
+      - name: Verify actual audio quality, recovery policies and embedded API protocol
+        if: ${{ always() }}
+        run: >-
+          yarn playwright test tests/playback-improvements.spec.ts tests/local-asset-resilience.spec.ts tests/netease-audio-protocol.spec.ts tests/netease-failure.spec.ts tests/cover-transport.spec.ts tests/idle-task-worker.spec.ts tests/linux-cover-resize.spec.ts
+
+
       - name: Run security and feature regression tests
         if: ${{ always() }}
         run: >-

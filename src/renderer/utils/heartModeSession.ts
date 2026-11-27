@@ -19,7 +19,7 @@ export type HeartModeSteering = {
   familiarityOffset: number
 }
 
-export type HeartModeExplicitFeedbackType = 'more-like-this' | 'go-further'
+export type HeartModeExplicitFeedbackType = 'more-like-this' | 'less-like-this' | 'go-further'
 
 export type HeartModeExplicitFeedback = {
   sessionId: string
@@ -437,8 +437,9 @@ export const applyHeartModeFeedbackToSession = (
   return next
 }
 
-export const boostHeartModeCurrentBranch = (
+export const adjustHeartModeCurrentBranch = (
   trackID: number,
+  direction: 1 | -1,
   now = Date.now()
 ): HeartModeBranchState | null => {
   hydrate()
@@ -452,15 +453,15 @@ export const boostHeartModeCurrentBranch = (
   const previous = currentSession.branchStates[key] ?? createDefaultBranchState(seedId)
   const next: HeartModeBranchState = {
     ...previous,
-    explicitBoostCount: previous.explicitBoostCount + 1,
-    branchScore: clamp(previous.branchScore + 0.25 * (1 - previous.branchScore), -1, 1)
+    explicitBoostCount: previous.explicitBoostCount + (direction > 0 ? 1 : 0),
+    branchScore: clamp(previous.branchScore + 0.25 * (direction - previous.branchScore), -1, 1)
   }
   currentSession.branchStates[key] = next
   const explicitFeedback: HeartModeExplicitFeedback = {
     sessionId: currentSession.id,
     trackId: id,
     sourceSeedId: seedId,
-    type: 'more-like-this',
+    type: direction > 0 ? 'more-like-this' : 'less-like-this',
     createdAt: now
   }
   currentSession.explicitFeedback = [...currentSession.explicitFeedback, explicitFeedback].slice(
@@ -469,6 +470,12 @@ export const boostHeartModeCurrentBranch = (
   persist()
   return next
 }
+
+export const boostHeartModeCurrentBranch = (trackID: number, now = Date.now()) =>
+  adjustHeartModeCurrentBranch(trackID, 1, now)
+
+export const reduceHeartModeCurrentBranch = (trackID: number, now = Date.now()) =>
+  adjustHeartModeCurrentBranch(trackID, -1, now)
 
 export const steerHeartModeFurther = (
   trackID: number,

@@ -7,9 +7,28 @@ import Vue from '@vitejs/plugin-vue'
 import fs, { rmSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { builtinModules } from 'module'
+import { execFileSync } from 'node:child_process'
+import { version } from './package.json'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 
 const isDevEnv = process.env.NODE_ENV === 'development'
+const readGit = (args: string[]) => {
+  try {
+    return execFileSync('git', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+  } catch {
+    return ''
+  }
+}
+const buildInfo = {
+  version,
+  revision: readGit(['rev-parse', '--short=12', 'HEAD']) || 'unknown',
+  builtAt: new Date().toISOString(),
+  modified: Boolean(readGit(['status', '--porcelain']))
+}
+const buildDefine = { __VUTRON_BUILD_INFO__: JSON.stringify(buildInfo) }
 
 const getWorkerEntries = () => {
   const workersDir = resolve('src/main/workers')
@@ -45,6 +64,7 @@ export default defineConfig(({ mode }) => {
         startup()
       },
       vite: {
+        define: buildDefine,
         root: resolve('.'),
         build: {
           assetsDir: '.',
@@ -105,6 +125,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     define: {
+      ...buildDefine,
       __VUE_I18N_FULL_INSTALL__: true,
       __VUE_I18N_LEGACY_API__: false,
       __INTLIFY_PROD_DEVTOOLS__: false,
@@ -142,6 +163,16 @@ export default defineConfig(({ mode }) => {
       }
     },
     plugins: [
+      {
+        name: 'vutron-build-info',
+        generateBundle() {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'build-info.json',
+            source: JSON.stringify(buildInfo, null, 2)
+          })
+        }
+      },
       Vue(),
       createSvgIconsPlugin({
         iconDirs: [resolve(process.cwd(), 'src/renderer/assets/icons')],

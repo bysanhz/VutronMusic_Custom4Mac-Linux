@@ -6,6 +6,7 @@ import { getTrackDetail, getPic, getPicFromApi } from '../utils'
 import navidrome from '../streaming/navidrome'
 import jellyfin from '../streaming/jellyfin'
 import emby from '../streaming/emby'
+import { serveLocalCover } from '../utils/coverImageResponse'
 
 const httpHandler: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.get(
@@ -28,12 +29,7 @@ const httpHandler: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         ;(track.album || track.al).picUrl = url.toString()
       }
 
-      const result = await getPic(track)
-
-      const pic = result.pic
-      const format = result.format
-
-      return new Response(new Uint8Array(pic), { headers: { 'Content-Type': format } })
+      return serveLocalCover(() => getPic(track))
     }
   )
 
@@ -88,11 +84,7 @@ const httpHandler: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         url = navidrome.getPic(id, Number(size))
       }
 
-      const result = await getPicFromApi(url)
-      const pic = result.pic
-      const format = result.format
-
-      return new Response(new Uint8Array(pic), { headers: { 'Content-Type': format } })
+      return serveLocalCover(() => getPicFromApi(url))
     }
   )
 }

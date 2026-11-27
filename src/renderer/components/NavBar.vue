@@ -76,10 +76,33 @@
           :suggestions="true"
           @keydown-enter="doSearch($event)"
         />
-        <img class="avatar" :src="avatarUrl" loading="lazy" @click="showUserProfileMenu" />
+        <button
+          type="button"
+          class="account-button"
+          :aria-label="isLooseLoggedIn ? data.user.value.nickname : t('login.login')"
+          aria-haspopup="menu"
+          :aria-expanded="accountMenuOpen"
+          @click="showUserProfileMenu"
+        >
+          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
+        </button>
       </div>
     </nav>
-    <ContextMenu ref="userProfileMenu">
+    <ContextMenu ref="userProfileMenu" @close-menu="accountMenuOpen = false">
+      <div v-if="isLooseLoggedIn" class="account-summary">
+        <img class="account-avatar" :src="avatarUrl" alt="" loading="lazy" />
+        <div class="account-details">
+          <strong>{{ data.user.value.nickname }}</strong>
+          <span v-if="Number(data.user.value.vipType) > 0" class="account-vip">
+            <img :src="vipImageUrl" alt="" />
+            {{ t('settings.general.vipLabel') }}
+          </span>
+          <span v-else-if="data.user.value.signature" class="account-signature">{{
+            data.user.value.signature
+          }}</span>
+        </div>
+      </div>
+      <hr v-if="isLooseLoggedIn" />
       <div v-if="!isLooseLoggedIn" class="item" @click="toLogin">
         <svg-icon icon-class="login" />
         {{ $t('login.login') }}
@@ -115,6 +138,7 @@ import { storeToRefs } from 'pinia'
 import { doLogout } from '../utils/auth'
 import { openExternal } from '../utils'
 import { useI18n } from 'vue-i18n'
+import vipImageUrl from '../utils/settingImg.dataurl?raw'
 
 const { t } = useI18n()
 const { searchTab, exploreTab } = storeToRefs(useNormalStateStore())
@@ -143,6 +167,7 @@ const avatarUrl = computed(() => {
 })
 
 const userProfileMenu = ref<InstanceType<typeof ContextMenu>>()
+const accountMenuOpen = ref(false)
 
 defineExpose({ searchBoxRef })
 
@@ -182,7 +207,10 @@ const logout = () => {
 }
 
 const showUserProfileMenu = (event: MouseEvent): void => {
-  userProfileMenu.value?.openMenu(event)
+  const anchor = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const wasOpen = accountMenuOpen.value
+  userProfileMenu.value?.openMenu(event, { top: anchor.bottom + 8, left: anchor.right })
+  accountMenuOpen.value = !wasOpen
 }
 
 const doSearch = (keyword: string) => {
@@ -265,10 +293,28 @@ nav.has-custom-titlebar {
   align-items: center;
   justify-content: flex-end;
   -webkit-user-drag: none;
+  .account-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    margin-left: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 4px;
+    }
+  }
   .avatar {
     user-select: none;
     height: 30px;
-    margin-left: 12px;
+    width: 30px;
+    object-fit: cover;
     vertical-align: -7px;
     border-radius: 50%;
     cursor: pointer;
@@ -277,6 +323,50 @@ nav.has-custom-titlebar {
     &:hover {
       filter: brightness(80%);
     }
+  }
+}
+
+.account-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  min-width: 180px;
+  max-width: 100%;
+  box-sizing: border-box;
+  color: var(--color-text);
+  .account-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .account-details {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    strong {
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+  }
+  .account-vip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-secondary);
+    img {
+      height: 12px;
+    }
+  }
+  .account-signature {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-secondary);
+    overflow-wrap: anywhere;
   }
 }
 </style>

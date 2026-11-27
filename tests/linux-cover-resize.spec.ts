@@ -34,3 +34,24 @@ test('preserves PNG transparency while producing a centered square', async () =>
   expect(decoded.data[0]).toBe(255)
   expect(decoded.data[3]).toBe(255)
 })
+
+test('crops a panoramic cover before scaling its short edge', async () => {
+  const source = new PNG({ width: 4096, height: 2 })
+  source.data.fill(0)
+  for (let y = 0; y < 2; y++) {
+    for (let x = 2047; x <= 2048; x++) {
+      const pixel = (y * 4096 + x) * 4
+      source.data[pixel] = 255
+      source.data[pixel + 3] = 255
+    }
+  }
+  const result = await resizeCover(PNG.sync.write(source), 'image/png', 512)
+  const decoded = PNG.sync.read(result.pic)
+  expect([decoded.width, decoded.height]).toEqual([512, 512])
+  expect([...decoded.data.subarray(0, 4)]).toEqual([255, 0, 0, 255])
+  expect([...decoded.data.subarray(-4)]).toEqual([255, 0, 0, 255])
+})
+
+test('rejects an excessive output size before allocating the destination', async () => {
+  await expect(resizeCover(Buffer.alloc(0), 'image/png', 8192)).rejects.toThrow('输出尺寸')
+})

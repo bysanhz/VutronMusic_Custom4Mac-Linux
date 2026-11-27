@@ -1,5 +1,30 @@
 import { isNeteaseAssetUrl } from '../../shared/neteaseAssetUrl'
 
+type CoverImage = { pic: Buffer | null; format: string }
+
+/** Validate before calling nativeImage; absent artwork is an ordinary image failure. */
+export const serveLocalCover = async (
+  load: () => Promise<CoverImage | null>,
+  transform?: (cover: { pic: Buffer; format: string }) => CoverImage
+): Promise<Response> => {
+  const headers = { 'Cache-Control': 'no-store' }
+  try {
+    const cover = await load()
+    if (!cover || !Buffer.isBuffer(cover.pic) || !cover.pic.length) {
+      return new Response(null, { status: 404, headers })
+    }
+    const result = transform ? transform({ pic: cover.pic, format: cover.format }) : cover
+    if (!Buffer.isBuffer(result.pic) || !result.pic.length || !/^image\//.test(result.format)) {
+      return new Response(null, { status: 502, headers })
+    }
+    return new Response(new Uint8Array(result.pic), {
+      headers: { 'Content-Type': result.format }
+    })
+  } catch {
+    return new Response(null, { status: 502, headers })
+  }
+}
+
 /** A failed artwork request must not masquerade as a successful placeholder. */
 export const serveCoverImage = async (
   url: string,

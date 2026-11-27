@@ -101,6 +101,7 @@
         <div class="blank"></div>
       </div>
       <div class="right">
+        <PlaybackDetails />
         <button-icon
           class="rainbow-queue-control"
           :title="$t('player.nextUp')"
@@ -184,6 +185,7 @@ import SliderVue from 'vue-3-slider-component'
 import VueSlider from './VueSlider.vue'
 import PlaybackSpeedButton from './PlaybackSpeedButton.vue'
 import SleepTimerButton from './SleepTimerButton.vue'
+import PlaybackDetails from './PlaybackDetails.vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
 import { useDataStore } from '../store/data'

@@ -1,6 +1,14 @@
 <template>
-  <div ref="rootRef" class="select-wrapper">
-    <div class="custom-select" @click="toggleDropdown">
+  <div ref="rootRef" class="select-wrapper" :class="{ 'is-disabled': disabled }">
+    <div
+      class="custom-select"
+      role="button"
+      :tabindex="disabled ? -1 : 0"
+      :aria-disabled="disabled"
+      :aria-expanded="dropdownVisible"
+      @click="toggleDropdown"
+      @keydown="onTriggerKeyDown"
+    >
       <span class="custom-text" :style="selectedOptionStyle" @click.stop="toggleDropdown">
         <slot name="selected" :option="selectedOption">
           {{ selectedLabel }}
@@ -92,6 +100,7 @@ const props = withDefaults(
   defineProps<{
     modelValue: string | number | boolean | null | undefined
     options: SelectOption[]
+    disabled?: boolean
     searchable?: boolean
     noDataText?: string
     placeholder?: string
@@ -102,6 +111,7 @@ const props = withDefaults(
     filterMethod?: (keyword: string, option: SelectOption) => boolean
   }>(),
   {
+    disabled: false,
     searchable: false,
     placeholder: '',
     noDataText: '',
@@ -195,8 +205,11 @@ const calculateDropdownPosition = async () => {
   const dropdownHeight = dropdownRef.value.offsetHeight
   const viewportHeight = window.innerHeight
 
-  const spaceBelow = viewportHeight - selectRect.bottom
-  const spaceAbove = selectRect.top
+  const scrollBounds = rootRef.value.closest('.settings-content-scroll')?.getBoundingClientRect()
+  const visibleBottom = Math.min(viewportHeight, scrollBounds?.bottom ?? viewportHeight)
+  const visibleTop = Math.max(0, scrollBounds?.top ?? 0)
+  const spaceBelow = Math.max(0, visibleBottom - selectRect.bottom)
+  const spaceAbove = Math.max(0, selectRect.top - visibleTop)
 
   if (
     props.direction === 'up' ||
@@ -231,6 +244,7 @@ const calculateDropdownPosition = async () => {
 }
 
 const toggleDropdown = async () => {
+  if (props.disabled) return
   dropdownVisible.value = !dropdownVisible.value
 
   if (dropdownVisible.value) {
@@ -248,6 +262,7 @@ const toggleDropdown = async () => {
 }
 
 const selectOption = (value: string | number | boolean) => {
+  if (props.disabled) return
   $emit('update:modelValue', value)
   dropdownVisible.value = false
   resetSearch()
@@ -326,6 +341,22 @@ const onKeyDown = async (event: KeyboardEvent) => {
   }
 }
 
+const onTriggerKeyDown = async (event: KeyboardEvent) => {
+  if (props.disabled) return
+  if (dropdownVisible.value) {
+    if (event.key === ' ' || (event.key === 'Enter' && highlightedIndex.value < 0)) {
+      event.preventDefault()
+      closeDropdown()
+    } else {
+      await onKeyDown(event)
+    }
+  } else if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
+    event.preventDefault()
+    await toggleDropdown()
+    if (event.key.startsWith('Arrow')) await onKeyDown(event)
+  }
+}
+
 const handleClickOutside = (event: MouseEvent) => {
   if (rootRef.value && !rootRef.value.contains(event.target as Node)) {
     dropdownVisible.value = false
@@ -356,6 +387,13 @@ const handleVisibilityChange = () => {
   }
 }
 
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (disabled) dropdownVisible.value = false
+  }
+)
+
 watch(dropdownVisible, (visible) => {
   if (visible) {
     enableScrolling.value = false
@@ -378,6 +416,13 @@ watch(dropdownVisible, (visible) => {
 </script>
 
 <style lang="scss" scoped>
+.is-disabled {
+  opacity: 0.5;
+  .custom-select {
+    cursor: default;
+  }
+}
+
 .select-wrapper {
   position: relative;
   width: 100%;

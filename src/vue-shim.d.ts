@@ -4,3 +4,8 @@ declare module '*.vue' {
   const component: ReturnType<typeof defineComponent>
   export default component
 }
+
+declare module '*.dataurl?raw' {
+  const content: string
+  export default content
+}

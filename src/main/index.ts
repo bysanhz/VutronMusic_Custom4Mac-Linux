@@ -45,7 +45,7 @@ import log from './log'
 import { lyricLine } from '@/types/music'
 import { resolveRuntimeProxyUrl } from '../shared/proxySettings'
 import { getUsableTrackCoverUrl } from '../shared/trackCover'
-import { serveCoverImage } from './utils/coverImageResponse'
+import { serveCoverImage, serveLocalCover } from './utils/coverImageResponse'
 import { sanitizeWindowScaleBaseline } from './windowScaleBaseline'
 import { resolveMainWindowGeometry, type SavedMainWindowGeometry } from './mainWindowGeometry'
 
@@ -235,11 +235,7 @@ class BackGround {
           y: storedWindow.y as number
         })
       : screen.getPrimaryDisplay()
-    const geometry = resolveMainWindowGeometry(
-      storedWindow,
-      mainBaseline,
-      display.workArea
-    )
+    const geometry = resolveMainWindowGeometry(storedWindow, mainBaseline, display.workArea)
     const option = {
       title: Constants.APP_NAME,
       show: false,
@@ -262,7 +258,8 @@ class BackGround {
 
     this.win = new BrowserWindow(option)
     const proxyRules = resolveRuntimeProxyUrl(
-      store.get('settings.proxy'), Constants.IS_DEV_ENV,
+      store.get('settings.proxy'),
+      Constants.IS_DEV_ENV,
       process.env.HTTPS_PROXY || process.env.https_proxy
     )
     await this.win.webContents.session.setProxy(proxyRules ? { proxyRules } : {})
@@ -709,10 +706,7 @@ class BackGround {
         const filePath = pathname.slice(1)
         const track = { matched: false, filePath, album: { picUrl: 'atom://get-default-pic' } }
 
-        const result = await getPic(track)
-        return new Response(new Uint8Array(result.pic), {
-          headers: { 'Content-Type': result.format }
-        })
+        return serveLocalCover(() => getPic(track))
       } else if (host === 'get-color') {
         const urlString = decodeURIComponent(pathname.slice(1))
         const [url, savePic] = urlString.split('/save-pic=')
@@ -752,37 +746,53 @@ class BackGround {
             ids = searchParams.get('id')
             res = cache.get(CacheAPIs.Track, { ids })
 
-            const track = res.songs[0]
-            const url = new URL((track.album || track.al).picUrl)
-            url.searchParams.set('param', `${size}y${size}`)
-            ;(track.album || track.al).picUrl = track.matched
-              ? url.toString()
-              : 'atom://get-default-pic'
+            return serveLocalCover(
+              async () => {
+                const cachedTrack = res?.songs?.[0]
+                if (!cachedTrack) return null
+                // Do not mutate the cache or require an online album URL for local files.
+                const track = {
+                  ...cachedTrack,
+                  album: cachedTrack.album ? { ...cachedTrack.album } : undefined,
+                  al: cachedTrack.al ? { ...cachedTrack.al } : undefined
+                }
+                const album = track.album || track.al
+                if (album?.picUrl && track.matched) {
+                  try {
+                    const url = new URL(album.picUrl)
+                    url.searchParams.set('param', `${size}y${size}`)
+                    album.picUrl = url.toString()
+                  } catch {
+                    album.picUrl = ''
+                  }
+                }
+                return getPic(track)
+              },
+              (result) => {
+                let { pic, format } = result
+                const image = nativeImage.createFromBuffer(pic)
+                if (!image.isEmpty()) {
+                  const { width, height } = image.getSize()
+                  const side = Math.min(width, height)
+                  const square = image.crop({
+                    x: Math.floor((width - side) / 2),
+                    y: Math.floor((height - side) / 2),
+                    width: side,
+                    height: side
+                  })
+                  const scaled = square.resize({ width: size, height: size, quality: 'good' })
+                  if (format.includes('jpeg') || format.includes('jpg')) {
+                    pic = scaled.toJPEG(85)
+                    format = 'image/jpeg'
+                  } else {
+                    pic = scaled.toPNG()
+                    format = 'image/png'
+                  }
+                }
 
-            const result = await getPic(track)
-            let pic = result.pic
-            let format = result.format
-            const image = nativeImage.createFromBuffer(pic)
-            if (!image.isEmpty()) {
-              const { width, height } = image.getSize()
-              const side = Math.min(width, height)
-              const square = image.crop({
-                x: Math.floor((width - side) / 2),
-                y: Math.floor((height - side) / 2),
-                width: side,
-                height: side
-              })
-              const scaled = square.resize({ width: size, height: size, quality: 'good' })
-              if (format.includes('jpeg') || format.includes('jpg')) {
-                pic = scaled.toJPEG(85)
-                format = 'image/jpeg'
-              } else {
-                pic = scaled.toPNG()
-                format = 'image/png'
+                return { pic, format }
               }
-            }
-
-            return new Response(new Uint8Array(pic), { headers: { 'Content-Type': format } })
+            )
 
           case 'stream':
             const mime = require('mime-types')
@@ -848,8 +858,13 @@ class BackGround {
                 if (track.type !== 'local' && track.cache) {
                   const mismatch = await cachedAudioMismatch(track)
                   if (mismatch) {
-                    beginAudioDiagnostic({ kind: 'source', trackId: String(track.id),
-                      source: 'cache', phase: 'identity-rejected', error: mismatch })
+                    beginAudioDiagnostic({
+                      kind: 'source',
+                      trackId: String(track.id),
+                      source: 'cache',
+                      phase: 'identity-rejected',
+                      error: mismatch
+                    })
                     // Keep the user's file; never replay mismatched bytes under this song ID.
                     track = { ...track, cache: false, url: '' }
                   }
@@ -857,7 +872,7 @@ class BackGround {
                 const hasCover = Boolean(getUsableTrackCoverUrl(track))
 
                 if (track?.type !== 'local' && !hasCover) {
-                  const detail = await getTrackDetail(ids).catch(() => null)
+                  const detail = await getTrackDetail(ids, request.signal).catch(() => null)
                   const hydrated = detail?.songs?.[0]
                   if (hydrated) {
                     const coverUrl = getUsableTrackCoverUrl(hydrated)
@@ -883,22 +898,24 @@ class BackGround {
                 }
 
                 if (track.type !== 'local' && !track.cache) {
-                  const { url, br, gain, peak, source } = await getAudioSource(
+                  const { url, br, gain, peak, source, audioQuality } = await getAudioSource(
                     track,
-                    rejectedSource
+                    rejectedSource,
+                    request.signal
                   )
                   track.url = url
                   track.source = source
                   track.gain = gain
                   track.peak = peak
                   track.br = br
+                  track.audioQuality = audioQuality
                 }
                 return new Response(JSON.stringify(track), {
                   headers: { 'content-type': 'application/json' }
                 })
               }
 
-              res = await getTrackDetail(ids)
+              res = await getTrackDetail(ids, request.signal)
               if (!res || !res.songs?.length) {
                 log.warn('[Player] 歌曲信息不存在', ids)
                 return new Response(JSON.stringify({ code: 404, message: 'Track not found' }), {
@@ -908,12 +925,17 @@ class BackGround {
               }
 
               const track = res.songs[0]
-              const { url, br, gain, peak, source } = await getAudioSource(track, rejectedSource)
+              const { url, br, gain, peak, source, audioQuality } = await getAudioSource(
+                track,
+                rejectedSource,
+                request.signal
+              )
               track.url = url
               track.source = source
               track.gain = gain
               track.peak = peak
               track.br = br
+              track.audioQuality = audioQuality
 
               return new Response(JSON.stringify(track), {
                 headers: { 'content-type': 'application/json' }
@@ -1044,7 +1066,6 @@ class BackGround {
       }
       IPCs.initialize(this.win, this.tray, this.mpris, lrc)
       this.initOSDWindow()
-
 
       createMenu(this.win)
       if (Constants.IS_MAC) {

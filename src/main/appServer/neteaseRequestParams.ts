@@ -19,10 +19,11 @@ export const prepareNeteaseRequestParams = (
 ): Record<string, any> => {
   const params: Record<string, any> = { ...query }
 
-  // API 4.40 defaults this endpoint to XEAPI, whose key is initialized by
-  // its CLI, not when we embed its handlers in Fastify. The endpoint still
-  // supports EAPI with the same quality levels and account permissions.
-  if (name === 'song/url/v1' && !params.crypto) params.crypto = 'eapi'
+  // Pin an embedded-compatible protocol instead of inheriting the package's
+  // CLI-dependent default. With the same authenticated account, EAPI on this
+  // endpoint can return -460 at every quality while WEAPI returns full audio.
+  // WEAPI still enforces upstream account rights and may return a lower level.
+  if (name === 'song/url/v1' && !params.crypto) params.crypto = 'weapi'
 
   if (name === 'top/playlist' && (!params.cat || params.cat === '全部')) {
     params.cookie = {}

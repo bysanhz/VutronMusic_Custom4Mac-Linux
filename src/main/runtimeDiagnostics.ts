@@ -4,6 +4,7 @@ import path from 'path'
 import { name, version } from '../../package.json'
 import store from './store'
 import { getAudioRequestDiagnostics } from './utils/audioDiagnostics'
+import { BUILD_INFO } from '../shared/buildInfo'
 import { MemoryTrendSampler, summarizeRuntimeMemory } from './utils/memoryTrend'
 import { readLinuxAppProcessMemory } from './linuxProcessMemory'
 import { readRendererHeapUsage } from './utils/rendererHeapSampler'
@@ -167,6 +168,7 @@ const installRuntimeDiagnostics = (): void => {
       app: {
         name: APP_NAME,
         version,
+        build: BUILD_INFO,
         packaged: app.isPackaged,
         userDataDirectory: userDataDirectoryName,
         logDirectory: 'logs'

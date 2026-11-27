@@ -417,7 +417,10 @@ const isCurrentRoute = (path: string): boolean => {
     transform: translateX(-4px);
   }
 
-  button {
+  // Keep navigation sizing, tooltips and press animations out of the status panel.
+  > button,
+  > .history-navigation > button,
+  > .network-widget > .network-button {
     height: 40px;
     width: 60px;
     padding: 0;
@@ -454,7 +457,7 @@ const isCurrentRoute = (path: string): boolean => {
       transition: 0.2s;
     }
   }
-  button::before {
+  > button[data-tip]::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -464,7 +467,7 @@ const isCurrentRoute = (path: string): boolean => {
     transform: translateY(-50%);
     z-index: 1;
   }
-  button::after {
+  > button[data-tip]::after {
     content: attr(data-tip);
     background-color: var(--color-secondary-bg);
     color: var(--color-text);
@@ -482,12 +485,12 @@ const isCurrentRoute = (path: string): boolean => {
     box-shadow: 0 8px 20px rgb(0 0 0 / 12%);
     transform: translateY(-50%);
   }
-  button::after,
-  button::before {
+  > button[data-tip]::after,
+  > button[data-tip]::before {
     display: none;
   }
-  button:hover:after,
-  button:hover::before {
+  > button[data-tip]:hover::after,
+  > button[data-tip]:hover::before {
     display: block;
   }
   .history-navigation .history-button {
@@ -524,7 +527,7 @@ const isCurrentRoute = (path: string): boolean => {
     }
   }
 
-  button.active {
+  > button.active {
     background: color-mix(in srgb, var(--color-primary) 15%, transparent);
     color: var(--color-primary);
     .icon {
@@ -584,20 +587,23 @@ const isCurrentRoute = (path: string): boolean => {
     box-sizing: border-box;
     width: min(310px, calc(100vw - 140px));
     max-height: calc(100vh - 180px);
+    overflow-x: hidden;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     overscroll-behavior: contain;
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 14px;
-    background: color-mix(in srgb, var(--color-body-bg) 88%, transparent);
-    backdrop-filter: saturate(150%) blur(20px);
-    -webkit-backdrop-filter: saturate(150%) blur(20px);
+    // Avoid nested backdrop filters inside the transformed sidebar. An opaque
+    // surface also keeps live page updates from repainting through the popover.
+    background: var(--color-body-bg);
     box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
     color: var(--color-text);
     font-size: 13px;
     line-height: 1.4;
     text-transform: none;
     user-select: text;
+    -webkit-app-region: no-drag;
 
     .runtime-tabs {
       display: flex;
@@ -609,8 +615,10 @@ const isCurrentRoute = (path: string): boolean => {
 
       button {
         flex: 1;
+        min-width: 0;
         min-height: 30px;
         margin: 0;
+        padding: 0 8px;
         border: 1px solid transparent;
         border-radius: 6px;
         background: transparent;
@@ -703,11 +711,14 @@ const isCurrentRoute = (path: string): boolean => {
       margin-top: 8px;
 
       span {
+        min-width: 0;
         color: var(--color-secondary);
       }
 
       strong {
+        flex: 0 0 auto;
         text-align: right;
+        font-variant-numeric: tabular-nums;
       }
     }
 

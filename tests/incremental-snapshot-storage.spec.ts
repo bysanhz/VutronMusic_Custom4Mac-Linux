@@ -136,3 +136,45 @@ test('orphaned checkpoints fail visibly instead of being overwritten by an empty
   storage.setItem('ledger:checkpoint-v1', '{}')
   expect(() => new IncrementalSnapshotStorage(storage, 'ledger').read()).toThrow('no base')
 })
+
+test('unchanged metadata is not broadcast with every current-song checkpoint', () => {
+  const storage = backend()
+  const initial = {
+    entries: [{ id: 'current', seconds: 1 }],
+    remoteBaselines: { archive: 'x'.repeat(6000) }
+  }
+  const persistence = new IncrementalSnapshotStorage<typeof initial>(storage, 'ledger')
+  persistence.write(initial)
+  const changed = { ...initial, entries: [{ id: 'current', seconds: 5 }] }
+  persistence.write(changed)
+  expect(storage.getItem(persistence.overlayKey)!.length).toBeLessThan(500)
+  const resumed = new IncrementalSnapshotStorage<typeof initial>(storage, 'ledger')
+  expect(resumed.read()).toEqual(changed)
+  const newer = { ...changed, remoteBaselines: { archive: 'changed' } }
+  resumed.write(newer)
+  expect(new IncrementalSnapshotStorage<typeof initial>(storage, 'ledger').read()).toEqual(newer)
+})
+
+test('repeated updates compact previously changed entries without losing history', () => {
+  const storage = backend()
+  const initial = {
+    entries: Array.from({ length: 100 }, (_, id) => ({
+      id: String(id),
+      seconds: 1,
+      name: 'x'.repeat(100)
+    }))
+  }
+  const persistence = new IncrementalSnapshotStorage<typeof initial>(storage, 'ledger')
+  persistence.write(initial)
+  const originalRevision = JSON.parse(storage.getItem('ledger')!).__checkpointRevision
+  const changed = {
+    entries: initial.entries.map((entry, index) => ({ ...entry, seconds: index < 20 ? 2 : 1 }))
+  }
+  for (let i = 3; i < 50; i++) {
+    changed.entries[0].seconds = i
+    persistence.write(changed)
+  }
+  expect(JSON.parse(storage.getItem('ledger')!).__checkpointRevision).not.toBe(originalRevision)
+  expect(new IncrementalSnapshotStorage<typeof initial>(storage, 'ledger').read()).toEqual(changed)
+  expect(JSON.parse(storage.getItem(persistence.overlayKey)!).entries).toHaveLength(1)
+})

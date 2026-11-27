@@ -145,7 +145,7 @@ const handleMenuClick = (event: MouseEvent) => {
   if ((event.target as HTMLElement).closest('.item')) closeMenu()
 }
 
-const openMenu = (event: MouseEvent) => {
+const openMenu = (event: MouseEvent, anchor?: { top: number; left: number }) => {
   event.preventDefault()
   const nextOpener = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
 
@@ -162,7 +162,7 @@ const openMenu = (event: MouseEvent) => {
   addDocumentListeners()
 
   nextTick(() => {
-    setMenu(event.clientY, event.clientX)
+    setMenu(anchor?.top ?? event.clientY, anchor?.left ?? event.clientX)
     const items = getItems()
     items.forEach((item) => {
       item.setAttribute('role', item.getAttribute('role') || 'menuitem')

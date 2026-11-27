@@ -255,9 +255,16 @@ const playerBarInset = computed(() =>
 )
 const mainStyle = computed(() => {
   const safeBottom = playerBarInset.value ? PLAYER_SAFE_BOTTOM : 0
+  const topPadding = hasCustomTitleBar.value ? 84 : 64
+  const bottomPadding =
+    route.name === 'settings'
+      ? Math.max(padding.value, playerBarInset.value + 16)
+      : Math.max(padding.value, safeBottom)
   return {
-    paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',
-    paddingBottom: Math.max(padding.value, safeBottom) + 'px'
+    paddingTop: topPadding + 'px',
+    paddingBottom: bottomPadding + 'px',
+    '--main-content-top': topPadding + 'px',
+    '--main-content-bottom': bottomPadding + 'px'
   }
 })
 

@@ -154,7 +154,11 @@ const runCacheTask = async (track: Record<string, any>, url: string, audioCacheP
   // HTTP 200 并不等于拿到了音频。错误页/登录页送进 TagLib 会产生 INVALID_FORMAT。
   // 先结合 Content-Type、文件头与 file-type 做快速校验，再进入元数据写入。
   const validatedContentType = await validateAudioPayload(audio.buffer, audio.contentType)
-  const metadata = await parseBuffer(audio.buffer, { mimeType: validatedContentType }, { skipCovers: true })
+  const metadata = await parseBuffer(
+    audio.buffer,
+    { mimeType: validatedContentType },
+    { skipCovers: true }
+  )
   const mismatch = audioIdentityMismatch(track, metadataIdentity(metadata), false)
   if (mismatch) throw new Error(`AUDIO_IDENTITY_${mismatch.toUpperCase()}`)
   const resolvedUrl = new URL(audio.url)
@@ -174,6 +178,7 @@ const runCacheTask = async (track: Record<string, any>, url: string, audioCacheP
 
 type CacheTask = {
   type: 'task'
+  __taskRevision?: number
   track: Record<string, any>
   url: string
   audioCachePath: string
@@ -183,12 +188,15 @@ const taskQueue: CacheTask[] = []
 const queuedTaskKeys = new Set<string>()
 let running = false
 let quitRequested = false
+let lastTaskRevision = 0
 
 const getTaskKey = (task: CacheTask) => `${String(task.track?.id || 'track')}::${task.url}`
 
 const notifyFinishedWhenIdle = () => {
-  if (quitRequested && !running && taskQueue.length === 0) {
-    cachePort?.postMessage({ type: 'finished' })
+  if (!running && taskQueue.length === 0) {
+    cachePort?.postMessage(
+      quitRequested ? { type: 'finished' } : { type: 'idle', revision: lastTaskRevision }
+    )
   }
 }
 
@@ -224,6 +232,7 @@ cachePort?.on('message', (data: CacheTask | { type: 'quit' }) => {
   try {
     if (data.type === 'task') {
       if (quitRequested) return
+      lastTaskRevision = data.__taskRevision ?? lastTaskRevision
       const taskKey = getTaskKey(data)
       if (queuedTaskKeys.has(taskKey)) return
       queuedTaskKeys.add(taskKey)

@@ -350,12 +350,12 @@ a {
     }
   }
 
-  button::before {
+  > button[data-tip]::before {
     border-width: clamp(5px, 0.8vw, 8px) !important;
     transform: translate(var(--responsive-side-button-width), -50%) !important;
   }
 
-  button::after {
+  > button[data-tip]::after {
     height: var(--responsive-side-tip-height) !important;
     line-height: var(--responsive-side-tip-height) !important;
     padding: 0 clamp(10px, 1.6vw, 16px) !important;
@@ -394,6 +394,10 @@ a {
   .right-part .avatar {
     height: clamp(24px, min(3.2vw, 4vh), 30px) !important;
     width: clamp(24px, min(3.2vw, 4vh), 30px) !important;
+    margin-left: 0 !important;
+  }
+
+  .right-part .account-button {
     margin-left: clamp(7px, 1.2vw, 12px) !important;
   }
 
@@ -516,6 +520,9 @@ a {
   .right .volume {
     display: grid;
     place-items: center;
+  }
+  .right:has(> .playback-details) {
+    grid-template-columns: max-content repeat(5, var(--player-center-slot));
   }
 
   .lyrics-button {

@@ -39,6 +39,7 @@ export interface scanTrack {
 }
 
 export interface Track {
+  audioQuality?: import('../shared/playbackInfo').AudioQuality
   id: number
   name: string
   dt: number

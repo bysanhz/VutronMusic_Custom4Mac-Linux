@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createServer, type ViteDevServer } from 'vite'
 import Vue from '@vitejs/plugin-vue'
+import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import { buildSync } from 'esbuild'
 import { readLinuxAppProcessMemory } from '../src/main/linuxProcessMemory'
 
@@ -19,7 +20,13 @@ test.beforeAll(async () => {
     cacheDir: join(directory, 'vite-cache'),
     configFile: false,
     root: resolve('tests/fixtures/player-playback'),
-    plugins: [Vue()],
+    plugins: [
+      Vue(),
+      createSvgIconsPlugin({
+        iconDirs: [resolve('src/renderer/assets/icons')],
+        symbolId: 'icon-[dir]-[name]'
+      })
+    ],
     resolve: {
       alias: {
         '@': resolve('src'),
@@ -78,6 +85,7 @@ test.beforeAll(async () => {
           await new Promise(r=>setTimeout(r,f.delays[id]||0))
           const wrong=f.modes[id]==='mismatched-qq'&&!rejectedSource
           return new Response(JSON.stringify({id,name:'Fixture '+id,type:'online',source:wrong?'qq':rejectedSource?'pyncmd':'netease',
+            audioQuality:{requested:'hires',actual:'lossless',format:'WAV',bitrate:705600},
             url:f.modes[id]==='unavailable'?'':'http://audio.test/'+id+(wrong?'-wrong':'')+'.wav?v='+f.requests.length,
             dt:20000,duration:20000,ar:[{name:'Fixture artist'}],al:{id:1,name:'Fixture album',picUrl:''}}),
             {headers:{'content-type':'application/json'}})
@@ -176,6 +184,506 @@ test('plays a real media element through Web Audio, survives rapid switches and 
   expect(await trackId()).toBe(3)
   expect(await playing()).toBe(true)
   expect(await page.evaluate(() => (window as any).playbackProbe.contextCount())).toBe(1)
+  expect(errors).toEqual([])
+})
+
+test('playback details expose actual quality and source, explain substitutions and support keyboard dismissal', async () => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1000, 720))
+  await play([1])
+  await expect.poll(playing).toBe(true)
+  const details = page.locator('.playback-details')
+  await expect(details.locator('summary')).toContainText('Lossless')
+  await expect(details.locator('summary')).toContainText('NetEase')
+  await details.locator('summary').click()
+  await expect(details.locator('.quality-note')).toContainText(
+    'Requested Hi-Res; this track returned Lossless.'
+  )
+  await expect(details.locator('.audio-format')).toContainText('WAV')
+  await expect(details.locator('.diagnosis-result')).toHaveText(
+    'The most recent official source request succeeded.'
+  )
+  await details.locator(':scope > summary').press('Escape')
+  await expect(details).not.toHaveAttribute('open', '')
+  expect(errors).toEqual([])
+})
+
+test('the real player bar and settings remain usable at desktop widths in light and dark themes', async ({}, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1400, 900))
+  await page.goto(page.url() + '?ui=1')
+  await expect
+    .poll(() => page.evaluate(() => (window as any).vutronmusic?.media?.contextState))
+    .toBe('suspended')
+  await play([1])
+  await expect.poll(playing).toBe(true)
+  const badge = page.locator('.playback-details > summary')
+  await expect(badge).toContainText('Lossless')
+  expect((await badge.boundingBox())!.width).toBeGreaterThan(70)
+  await badge.click()
+  await expect(page.locator('.quality-note')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('playback-details-light.png') })
+  await page.evaluate(() => document.body.setAttribute('data-theme', 'dark'))
+  await page.screenshot({ path: testInfo.outputPath('playback-details-dark.png') })
+  await page.getByRole('button', { name: 'Open audio settings' }).click()
+  await expect(page.locator('.settings-header')).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('diagnostics')
+  await page.getByRole('button', { name: 'Maintenance & updates', exact: true }).click()
+  await expect(page.locator('.system-settings .playback-diagnostics')).toBeVisible()
+  await expect(page.locator('.build-identity')).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('not-a-setting')
+  await expect(page.getByText('No matching setting')).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('')
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(900, 700))
+  const box = await badge.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.x).toBeGreaterThanOrEqual(0)
+  expect(box!.x + box!.width).toBeLessThanOrEqual(900)
+  const content = page.locator('.settings-content-scroll')
+  const headerBefore = (await page.locator('.settings-header').boundingBox())!
+  const directoryBefore = (await page.locator('.settings-workspace > aside').boundingBox())!
+  await content.hover()
+  await page.mouse.wheel(0, 420)
+  await expect.poll(() => content.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+  expect((await page.locator('.settings-header').boundingBox())!.y).toBeCloseTo(headerBefore.y, 0)
+  expect((await page.locator('.settings-workspace > aside').boundingBox())!.y).toBeCloseTo(
+    directoryBefore.y,
+    0
+  )
+  expect(await page.locator('#main').evaluate((el) => el.scrollTop)).toBe(0)
+  await page.screenshot({ path: testInfo.outputPath('settings-diagnostics-compact.png') })
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('Output Device')
+  await page.getByRole('searchbox', { name: 'Search settings' }).press('Enter')
+  const matchBox = (await page.locator('.setting-search-match').boundingBox())!
+  const contentBox = (await content.boundingBox())!
+  expect(matchBox.y).toBeGreaterThanOrEqual(contentBox.y)
+  expect(matchBox.y + matchBox.height).toBeLessThanOrEqual(contentBox.y + contentBox.height)
+  expect((await page.locator('.settings-header').boundingBox())!.y).toBeCloseTo(headerBefore.y, 0)
+  expect(errors).toEqual([])
+})
+
+test('account details live in the avatar menu and scale explanations sit beside their controls', async ({}, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
+  await page.goto(page.url() + '?ui=1')
+  await page.waitForFunction(() => Boolean((window as any).playbackProbe))
+  await page.evaluate(async () => {
+    const probe = (window as any).playbackProbe
+    probe.data.user = {
+      userId: 42,
+      nickname: '测试账号',
+      vipType: 10,
+      signature: '测试签名',
+      avatarUrl:
+        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"/%3E'
+    }
+    await probe.navigate('/settings')
+  })
+  await expect(page.locator('.settings-header')).toBeVisible()
+  await expect(page.locator('.system-settings .user-info')).toHaveCount(0)
+  const avatar = page.getByRole('button', { name: '测试账号', exact: true })
+  await avatar.focus()
+  await page.keyboard.press('Enter')
+  const menu = page.getByRole('menu')
+  await expect(menu).toBeVisible()
+  await expect(menu.locator('.account-summary')).toContainText('测试账号')
+  await expect(menu.locator('.account-vip')).toContainText('Vinyl VIP')
+  await page.screenshot({ path: testInfo.outputPath('account-menu.png') })
+  await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toBeFocused()
+  const menuBox = (await menu.boundingBox())!
+  expect(menuBox.x).toBeGreaterThan(800)
+  expect(menuBox.y).toBeGreaterThan(20)
+  await page.keyboard.press('Escape')
+  await expect(avatar).toBeFocused()
+  await expect(avatar).toHaveAttribute('aria-expanded', 'false')
+  await avatar.click()
+  await expect(menu).toBeVisible()
+  await avatar.click()
+  await expect(menu).toBeHidden()
+  await page.evaluate(() => (window as any).playbackProbe.mountScaleSettings())
+  const scale = page.locator('.window-scale-font-range-item')
+  await expect(scale).toBeVisible()
+  await expect(scale.locator('[data-window-scale-reset="main"]')).toBeVisible()
+  for (const width of [1300, 900]) {
+    await app.evaluate(
+      ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 920),
+      width
+    )
+    await scale.scrollIntoViewIfNeeded()
+    const left = (await scale.locator(':scope > .left').boundingBox())!
+    const right = (await scale.locator(':scope > .right').boundingBox())!
+    expect(left.x + left.width).toBeLessThanOrEqual(right.x)
+    expect(Math.abs(left.y - right.y)).toBeLessThan(2)
+    expect(await scale.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1)
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((theme) => document.body.setAttribute('data-theme', theme), theme)
+      await page.screenshot({
+        path: testInfo.outputPath(`scale-side-by-side-${width}-${theme}.png`)
+      })
+    }
+  }
+  await page.evaluate(() => {
+    ;(window as any).playbackProbe.data.user.vipType = 0
+  })
+  await avatar.click()
+  await expect(menu.locator('.account-vip')).toHaveCount(0)
+  await expect(menu.locator('.account-summary')).toContainText('测试签名')
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => {
+    ;(window as any).playbackProbe.data.user.userId = null
+  })
+  await page.locator('.account-button').click()
+  await expect(menu.locator('.account-summary')).toHaveCount(0)
+  await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toHaveCount(0)
+  await expect(menu).toContainText('Login')
+  expect(errors).toEqual([])
+})
+
+test('settings search opens nested controls and alternative sources keep advanced preferences', async ({}, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1400, 900))
+  await page.goto(page.url() + '?ui=1')
+  await play([1])
+  await page.locator('.playback-details > summary').click()
+  await page.getByRole('button', { name: 'Open audio settings' }).click()
+  const search = page.getByRole('searchbox', { name: 'Search settings' })
+  const categories = page.locator('.settings-workspace > aside')
+  await expect(categories.getByRole('button')).toHaveCount(8)
+  await expect(page.locator('.quick-settings')).toHaveCount(0)
+  await expect(page.locator('[data-settings-page="music"] .lyric-tab')).toHaveCount(0)
+  await expect(page.locator('[data-settings-page="library"] #autoCacheTrack')).toHaveCount(1)
+  await expect(page.locator('[data-settings-page="misc"] #stream')).toHaveCount(1)
+  await expect(page.locator('[data-settings-page="lyric"] #click-to-lyric-page')).toHaveCount(1)
+  await expect(
+    page.locator('[data-settings-page="update"] #vutronmusic-settings-backup-setting')
+  ).toHaveCount(1)
+  await expect(page.locator('#vutronmusic-settings-backup-setting')).toHaveCount(1)
+  await expect(page.locator('.build-identity')).toHaveCount(1)
+  await categories.getByRole('button', { name: 'Maintenance & updates', exact: true }).click()
+  await expect(page.locator('.diagnostic-panel__actions')).toHaveCount(1)
+  await expect(page.locator('#vutronmusic-update-diagnostics-setting')).toHaveCount(0)
+  await categories.getByRole('button', { name: 'Alternative sources', exact: true }).click()
+  await expect(page.locator('.settings-explainer')).toBeVisible()
+  const advanced = page.locator('.settings-advanced')
+  await expect(advanced).not.toHaveAttribute('open', '')
+  await search.fill('JOOX')
+  await search.press('Enter')
+  await expect(advanced).toHaveAttribute('open', '')
+  await expect(advanced.locator('input[placeholder^="wmid"]')).toHaveAttribute('type', 'password')
+  await expect(page.locator('.setting-search-match')).toContainText('JOOX')
+  await search.fill('Output Device')
+  await search.press('Enter')
+  await expect(page.locator('[data-settings-page="music"]')).toBeVisible()
+  await expect(page.locator('.setting-search-match')).toContainText('Output Device')
+  await categories.getByRole('button', { name: 'Alternative sources', exact: true }).click()
+  await page.locator('label[for="unblock-netease"]').click()
+  await expect(page.locator('#unblock-netease')).not.toBeChecked()
+  await expect(page.locator('#unblock-flac')).toBeDisabled()
+  await expect(advanced.locator('textarea')).toBeDisabled()
+  await expect(advanced.locator('.custom-select')).toHaveAttribute('aria-disabled', 'true')
+  const before = await page.evaluate(() => ({
+    ...(window as any).playbackProbe.settings.unblockNeteaseMusic
+  }))
+  await advanced.locator('.custom-select').dispatchEvent('click')
+  await expect(advanced.locator('.custom-dropdown')).toHaveCount(0)
+  await page.locator('label[for="unblock-netease"]').click()
+  await expect(page.locator('#unblock-flac')).toBeEnabled()
+  const after = await page.evaluate(() => ({
+    ...(window as any).playbackProbe.settings.unblockNeteaseMusic
+  }))
+  expect(after).toEqual({ ...before, enable: true })
+  const sourceOrder = advanced.locator('.custom-select')
+  await sourceOrder.focus()
+  await sourceOrder.press('Enter')
+  await expect(advanced.locator('.custom-dropdown')).toBeVisible()
+  await sourceOrder.press('ArrowUp')
+  await sourceOrder.press('Enter')
+  await expect(advanced.locator('.custom-dropdown')).toHaveCount(0)
+  expect(
+    await page.evaluate(() => (window as any).playbackProbe.settings.unblockNeteaseMusic.orderFirst)
+  ).toBe(false)
+  await page.screenshot({ path: testInfo.outputPath('source-settings-expanded.png') })
+  expect(errors).toEqual([])
+})
+
+test('rainbow settings use readable category accents across themes and desktop widths', async ({}, testInfo) => {
+  await page.goto(page.url() + '?ui=1')
+  await play([1])
+  await page.locator('.playback-details > summary').click()
+  await page.getByRole('button', { name: 'Open audio settings' }).click()
+  await page.evaluate(() => {
+    for (const color of (window as any).playbackProbe.settings.theme.colors) {
+      color.selected = color.name === 'rainbow'
+    }
+  })
+  await expect(page.locator('html')).toHaveAttribute('data-accent-theme', 'rainbow')
+  const categories = page.locator('.settings-workspace > aside')
+  const labels = [
+    'Appearance & window',
+    'Playback & quality',
+    'Lyrics & desktop',
+    'Library & cache',
+    'Alternative sources',
+    'Shortcuts',
+    'Connections & services',
+    'Maintenance & updates'
+  ]
+  for (const mode of ['light', 'dark']) {
+    await page.evaluate((mode) => document.body.setAttribute('data-theme', mode), mode)
+    for (const width of [1400, 900]) {
+      await app.evaluate(
+        ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 900),
+        width
+      )
+      for (const label of labels) {
+        const button = categories.getByRole('button', { name: label, exact: true })
+        await button.click()
+        await expect(button).toHaveAttribute('aria-current', 'page')
+        await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+        expect(
+          await button.evaluate((element) => ({
+            dot: getComputedStyle(element, '::before').content,
+            barWidth: getComputedStyle(element, '::after').width,
+            barHeight: getComputedStyle(element, '::after').height
+          }))
+        ).toEqual({ dot: 'none', barWidth: '4px', barHeight: '16px' })
+        await expect(page.locator('.settings-section-heading > h2')).toHaveText(label)
+        const colors = await button.evaluate((element) => {
+          const root = document.querySelector('.system-settings')!
+          return {
+            text: getComputedStyle(element).color,
+            accent: getComputedStyle(root).getPropertyValue('--color-primary').trim(),
+            body: getComputedStyle(document.body).getPropertyValue('--color-body-bg').trim()
+          }
+        })
+        // Compare resolved colors rather than the textual CSS variable representations.
+        const contrast = await page.evaluate(({ text, body }) => {
+          const luminance = (color: string) => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')!
+            ctx.fillStyle = color
+            ctx.fillRect(0, 0, 1, 1)
+            const channels = [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map((v) => {
+              const s = v / 255
+              return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+            })
+            return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+          }
+          const a = luminance(text),
+            b = luminance(body)
+          return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+        }, colors)
+        expect(contrast).toBeGreaterThanOrEqual(4.5)
+        expect(
+          await button.evaluate((element, accent) => {
+            const probe = document.createElement('span')
+            probe.style.color = accent
+            element.append(probe)
+            const match = getComputedStyle(probe).color === getComputedStyle(element).color
+            probe.remove()
+            return match
+          }, colors.accent)
+        ).toBe(true)
+        const heading = (await page.locator('.settings-section-heading').boundingBox())!
+        const directory = (await categories.boundingBox())!
+        expect(directory.x + directory.width).toBeLessThan(heading.x)
+        expect(
+          await categories.locator('.slideBar').evaluate((el) => getComputedStyle(el).flexDirection)
+        ).toBe('column')
+        expect(heading.x).toBeGreaterThanOrEqual(0)
+        expect(heading.x + heading.width).toBeLessThanOrEqual(width)
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+        ).toBe(true)
+      }
+      await categories.getByRole('button', { name: 'Alternative sources', exact: true }).click()
+      await page.screenshot({ path: testInfo.outputPath(`source-settings-${mode}-${width}.png`) })
+    }
+    await page.locator('.playback-details > summary').click()
+    await expect(page.locator('.playback-popover')).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath(`rainbow-playback-${mode}.png`) })
+    await page.locator('.playback-details > summary').press('Escape')
+  }
+  await page.getByRole('searchbox', { name: 'Search settings' }).fill('Language')
+  await page.getByRole('searchbox', { name: 'Search settings' }).press('Enter')
+  await page.locator('.setting-search-match .custom-select').click()
+  await page
+    .locator('.custom-dropdown .custom-select-item')
+    .getByText('简体中文', { exact: true })
+    .click()
+  await expect(page.locator('html')).toHaveAttribute('data-accent-theme', 'rainbow')
+  await categories.getByRole('button', { name: '备用音源', exact: true }).click()
+  for (const mode of ['light', 'dark']) {
+    await page.evaluate((mode) => document.body.setAttribute('data-theme', mode), mode)
+    await page.screenshot({
+      path: testInfo.outputPath(`source-settings-zh-${mode}.png`),
+      animations: 'disabled'
+    })
+  }
+  expect(errors).toEqual([])
+})
+
+test('appearance settings do not enumerate devices until audio settings are opened', async ({}, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(900, 700))
+  await page.goto(page.url() + '?ui=1')
+  const navigate = (path: string) =>
+    page.evaluate((path) => (window as any).playbackProbe.navigate(path), path)
+  await navigate('/settings')
+  await expect(page.locator('[data-settings-page="general"]')).toBeVisible()
+  expect(await page.evaluate(() => (window as any).playbackProbe.outputDeviceEnumerations())).toBe(
+    0
+  )
+  const sampleDevices = () =>
+    app.evaluate(({ app }) =>
+      app.getAppMetrics().map((p) => ({
+        type: p.type,
+        name: p.name || p.serviceName,
+        workingSetMiB: p.memory.workingSetSize / 1024
+      }))
+    )
+  const beforeDevices = await sampleDevices()
+  await page.getByRole('button', { name: 'Playback & quality', exact: true }).click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as any).playbackProbe.outputDeviceEnumerationsCompleted())
+    )
+    .toBe(1)
+  const afterDevices = await sampleDevices()
+  writeFileSync(
+    testInfo.outputPath('device-processes.json'),
+    JSON.stringify({ before: beforeDevices, after: afterDevices }, null, 2)
+  )
+  await page.getByRole('button', { name: 'Appearance & window', exact: true }).click()
+  expect(await page.evaluate(() => (window as any).playbackProbe.outputDeviceEnumerations())).toBe(
+    1
+  )
+  expect(errors).toEqual([])
+})
+
+test('cached HomePage cannot restart its banner after navigation or a late request', async () => {
+  await page.goto(page.url() + '?ui=1')
+  await page.evaluate(() => {
+    const intervals = new Set<number>()
+    const nativeSet = window.setInterval.bind(window)
+    const nativeClear = window.clearInterval.bind(window)
+    ;(window as any).bannerIntervals = intervals
+    window.setInterval = ((handler: TimerHandler, timeout?: number, ...args: any[]) => {
+      const id = nativeSet(handler, timeout, ...args)
+      if (timeout === 8000) intervals.add(id)
+      return id
+    }) as typeof window.setInterval
+    window.clearInterval = (id?: number) => {
+      if (id !== undefined) intervals.delete(id)
+      nativeClear(id)
+    }
+  })
+  let requests = 0
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/netease/banner?*', async (route) => {
+    requests++
+    if (requests === 1) await pending
+    await route.fulfill({
+      json: {
+        code: 200,
+        banners: [
+          {
+            id: 1,
+            typeTitle: 'Fixture',
+            imageUrl:
+              'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+          }
+        ]
+      }
+    })
+  })
+  const navigate = (path: string) =>
+    page.evaluate((path) => (window as any).playbackProbe.navigate(path), path)
+  const intervalCount = () => page.evaluate(() => (window as any).bannerIntervals.size)
+  await navigate('/home')
+  await expect.poll(() => requests).toBe(1)
+  await navigate('/settings')
+  const lateBanner = page.waitForResponse((response) => response.url().includes('/netease/banner?'))
+  release()
+  await (await lateBanner).finished()
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  )
+  await expect(page.locator('.system-settings')).toBeVisible()
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  expect(await intervalCount()).toBe(0)
+  await navigate('/home')
+  await expect(page.locator('.home-page')).toBeVisible()
+  await expect.poll(intervalCount).toBe(1)
+  await navigate('/settings')
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  expect(await intervalCount()).toBe(0)
+  expect(errors).toEqual([])
+})
+
+test('resume preserves playback intent and position while a paused session stays paused', async () => {
+  await play([1])
+  await expect.poll(playing).toBe(true)
+  await page.evaluate(() => {
+    ;(window as any).playbackProbe.player.seek = 5
+  })
+  await page.evaluate(() => (window as any).playbackProbe.handlers.resume())
+  await expect.poll(playing).toBe(true)
+  await expect
+    .poll(() => page.evaluate(() => (window as any).vutronmusic.progress))
+    .toBeGreaterThanOrEqual(5)
+  await page.evaluate(() => (window as any).playbackProbe.player.playOrPause())
+  await expect.poll(playing).toBe(false)
+  await page.evaluate(() => (window as any).playbackProbe.handlers.resume())
+  await expect.poll(() => app.evaluate(() => (globalThis as any).fixture.requests.length)).toBe(3)
+  expect(await playing()).toBe(false)
+})
+
+test('explicit negative recommendation feedback affects only the current branch and leaves the profile and queue intact', async () => {
+  const result = await page.evaluate(() => {
+    const p = (window as any).playbackProbe
+    const { heartProfile: hp, heartSession: hs } = p
+    hp.setHeartModeCustomAlgorithmEnabled(true)
+    const before = JSON.stringify(hp.heartModeProfile.value)
+    hs.createHeartModeSession({
+      profile: hp.heartModeProfile.value,
+      seedIds: [10, 20],
+      playlistId: 1,
+      sourceSeedByTrackID: { '1': 10, '2': 20 },
+      enqueuedTrackIDs: [1, 2],
+      pendingTrackIDs: [3]
+    })
+    for (let i = 0; i < 20; i++) hs.reduceHeartModeCurrentBranch(1)
+    const state = hs.getCurrentHeartModeSession()
+    return {
+      score: state.branchStates['10'].branchScore,
+      other: state.branchStates['20'].branchScore,
+      profileUnchanged: before === JSON.stringify(hp.heartModeProfile.value),
+      queue: state.enqueuedTrackIDs,
+      feedback: state.explicitFeedback.at(-1).type
+    }
+  })
+  expect(result.score).toBeGreaterThanOrEqual(-1)
+  expect(result.score).toBeLessThan(-0.9)
+  expect(result.other).toBe(0)
+  expect(result.profileUnchanged).toBe(true)
+  expect(result.queue).toEqual([1, 2])
+  expect(result.feedback).toBe('less-like-this')
+})
+
+test('rejecting a wrong-duration source during resume preserves the saved position', async () => {
+  await play([1])
+  await expect.poll(playing).toBe(true)
+  await page.evaluate(() => {
+    ;(window as any).playbackProbe.player.seek = 5
+  })
+  await setMode(1, 'mismatched-qq')
+  await page.evaluate(() => (window as any).playbackProbe.handlers.resume())
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as any).fixture.rejectedSources))
+    .toEqual(['', '', 'qq'])
+  await expect.poll(playing).toBe(true)
+  await expect
+    .poll(() => page.evaluate(() => (window as any).vutronmusic.progress))
+    .toBeGreaterThanOrEqual(5)
   expect(errors).toEqual([])
 })
 
