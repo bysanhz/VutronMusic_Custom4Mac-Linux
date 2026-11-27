@@ -264,8 +264,10 @@ test('avatar opens account insights, account actions stay available and scale ex
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
   await page.goto(page.url() + '?ui=1')
   let hasMembership = true
-  await page.route('**/netease/vip/info?*', (route) =>
-    route.fulfill({
+  let membershipGate: Promise<void> | null = null
+  await page.route('**/netease/vip/info?*', async (route) => {
+    await membershipGate
+    return route.fulfill({
       json: {
         code: 200,
         data: {
@@ -275,7 +277,7 @@ test('avatar opens account insights, account actions stay available and scale ex
         }
       }
     })
-  )
+  })
   await page.waitForFunction(() => Boolean((window as any).playbackProbe))
   await page.evaluate(async () => {
     const probe = (window as any).playbackProbe
@@ -291,9 +293,10 @@ test('avatar opens account insights, account actions stay available and scale ex
   })
   await expect(page.locator('.settings-header')).toBeVisible()
   await expect(page.locator('.system-settings .user-info')).toHaveCount(0)
-  const avatar = page.locator('.account-menu-button')
+  await expect(page.locator('.account-menu-button')).toHaveCount(0)
+  const avatar = page.locator('.account-button')
   await avatar.focus()
-  await page.keyboard.press('Enter')
+  await avatar.click({ button: 'right' })
   const menu = page.getByRole('menu')
   await expect(menu).toBeVisible()
   await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toBeFocused()
@@ -303,18 +306,24 @@ test('avatar opens account insights, account actions stay available and scale ex
   await page.keyboard.press('Escape')
   await expect(avatar).toBeFocused()
   await expect(avatar).toHaveAttribute('aria-expanded', 'false')
-  await avatar.click()
+  await avatar.click({ button: 'right' })
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('menuitem')).toHaveCount(3)
+  await avatar.click({ button: 'right' })
   await expect(menu).toBeVisible()
   await avatar.click()
   await expect(menu).toBeHidden()
-  await page.locator('.account-button').click()
   await expect(page.locator('.hero-nickname')).toHaveText('测试账号')
   await expect(page.locator('.membership-badge')).toContainText('Vinyl VIP')
   await expect(page.locator('.membership-badge')).toContainText('Lv.6')
   const account = page.locator('.hero-account')
   const image = (await account.locator('.hero-avatar').boundingBox())!
   const refresh = (await account.locator('.refresh-button').boundingBox())!
-  expect(refresh.y).toBeGreaterThan(image.y + image.height)
+  expect(Math.abs(refresh.y + refresh.height / 2 - image.y - image.height / 2)).toBeLessThan(2)
+  await expect(account.locator('.refresh-button')).toHaveAttribute('aria-label', 'Refresh')
+  await expect(account.locator('.refresh-icon')).toBeVisible()
+  await expect(account.locator('.refresh-button')).toBeEnabled()
+  await page.evaluate(() => document.documentElement.setAttribute('data-accent-theme', 'rainbow'))
   for (const width of [1300, 900]) {
     await app.evaluate(
       ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 920),
@@ -325,12 +334,26 @@ test('avatar opens account insights, account actions stay available and scale ex
     ).toBeLessThanOrEqual(1)
     for (const theme of ['light', 'dark']) {
       await page.evaluate((theme) => document.body.setAttribute('data-theme', theme), theme)
-      await page.screenshot({ path: testInfo.outputPath(`insights-account-${width}-${theme}.png`) })
+      await page.screenshot({
+        path: testInfo.outputPath(`insights-account-${width}-${theme}.png`),
+        animations: 'disabled'
+      })
     }
   }
+  await page.evaluate(() => document.documentElement.removeAttribute('data-accent-theme'))
   hasMembership = false
+  let releaseMembership!: () => void
+  membershipGate = new Promise<void>((resolve) => {
+    releaseMembership = resolve
+  })
   await account.locator('.refresh-button').click()
+  await expect(account.locator('.refresh-button')).toBeDisabled()
+  await expect(account.locator('.refresh-button')).toHaveAttribute('aria-busy', 'true')
+  await expect(account.locator('.refresh-button')).toHaveAccessibleName(/Refreshing/)
+  releaseMembership()
+  membershipGate = null
   await expect(page.locator('.membership-badge')).toHaveText('Standard account')
+  await expect(account.locator('.refresh-button')).toBeEnabled()
   // Loading failure is distinct from an ordinary account, even with cached vipType=10.
   await page.route('**/netease/vip/info?*', (route) => route.fulfill({ json: { code: 500 } }))
   await account.locator('.refresh-button').click()
@@ -362,7 +385,7 @@ test('avatar opens account insights, account actions stay available and scale ex
   await page.evaluate(() => {
     ;(window as any).playbackProbe.data.user.userId = null
   })
-  await avatar.click()
+  await avatar.click({ button: 'right' })
   await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toHaveCount(0)
   await expect(menu).toContainText('Login')
   expect(errors).toEqual([])

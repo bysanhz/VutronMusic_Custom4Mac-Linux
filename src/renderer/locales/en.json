@@ -622,6 +622,10 @@
       "update": "Update"
     },
     "general": {
+      "appFont": {
+        "text": "Main window font",
+        "desc": "Applies immediately and is saved. Desktop lyrics keep their own font."
+      },
       "language": {
         "text": "Language",
         "zhHans": "简体中文",

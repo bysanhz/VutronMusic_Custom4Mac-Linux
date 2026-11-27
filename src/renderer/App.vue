@@ -217,6 +217,7 @@ const appGlobalFontSize = ref(readAppGlobalFontSize())
 const appFontStyle = computed(() => {
   return {
     // ======== newADD start======
+    '--app-font-family': general.value.appFontFamily || undefined,
     // 主界面基准字号，例如 16px、14px、10px。
     '--app-global-font-size': `${appGlobalFontSize.value}px`,
 

@@ -158,8 +158,18 @@
                 </div>
                 <div class="right">
                   <CustomSelect v-model="selectLanguage" :options="languageOption" />
-                </div> </div
-            ></section>
+                </div>
+              </div>
+              <div class="item" data-setting="app-font-family">
+                <div class="left">
+                  <div class="title">{{ t('settings.general.appFont.text') }}</div>
+                  <div class="description">{{ t('settings.general.appFont.desc') }}</div>
+                </div>
+                <div class="right">
+                  <CustomSelect v-model="appFontFamily" :options="appFontOptions" searchable />
+                </div>
+              </div>
+            </section>
 
             <section class="settings-group" data-settings-group="window">
               <h3>{{ t('settingsLayout.groups.window') }}</h3>
@@ -1340,6 +1350,20 @@ const {
 } = toRefs(stateStore)
 const { showToast, checkUpdate, getFontList } = stateStore
 
+// Save the real CSS family chain, so the chosen font works immediately on restart
+// without enumerating system fonts until the settings page is opened.
+const appFontOptions = computed(() =>
+  fontList.value.map((option) => ({
+    ...option,
+    value: option.value === 'system-ui' ? '' : option.fontFamily
+  }))
+)
+const appFontFamily = computed({
+  get: () => general.value.appFontFamily || '',
+  set: (value: string) => {
+    general.value.appFontFamily = value
+  }
+})
 
 const osdLyric = useOsdLyricStore()
 const {
@@ -2172,6 +2196,13 @@ onBeforeUnmount(() => {
     outline: none;
   }
 }
+[data-setting='app-font-family'] :deep(.custom-dropdown) {
+  width: min(320px, calc(100vw - 48px));
+  min-width: 100%;
+  left: auto !important;
+  right: 0;
+}
+
 .item.no-flex {
   display: unset;
 }

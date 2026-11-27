@@ -57,7 +57,7 @@ const windowClose = () => {
   .title {
     padding: 8px;
     font-size: 12px;
-    font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    font-family: inherit;
   }
   .controls {
     height: 32px;

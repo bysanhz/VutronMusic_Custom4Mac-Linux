@@ -41,7 +41,8 @@
 
 #app,
 input {
-  font-family:
+  font-family: var(
+    --app-font-family,
     'Inter',
     -apple-system,
     BlinkMacSystemFont,
@@ -57,7 +58,8 @@ input {
     Noto Sans CJK SC,
     WenQuanYi Micro Hei,
     sans-serif,
-    microsoft uighur;
+    microsoft uighur
+  );
 }
 body {
   background-color: var(--color-body-bg);

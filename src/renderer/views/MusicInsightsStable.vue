@@ -16,30 +16,69 @@
           />
           <svg-icon v-else icon-class="user" />
         </div>
-        <strong class="hero-nickname">{{
-          user.nickname || t(accountId === 'anonymous' ? 'insights.account.notLoggedIn' : 'insights.account.title')
-        }}</strong>
-        <span
-          class="membership-badge"
-          :class="membership.kind"
-          role="status"
-          :title="membershipExpiry"
-        >
-          <span class="membership-name">{{
-            membershipLoading ? t('insights.account.loading') : t(`insights.account.${membership.kind}`)
-          }}</span>
-          <span v-if="!membershipLoading && membership.level !== null" class="membership-level"
-            >Lv.{{ membership.level }}</span
+        <div class="hero-account-details">
+          <strong class="hero-nickname">{{
+            user.nickname ||
+            t(accountId === 'anonymous' ? 'insights.account.notLoggedIn' : 'insights.account.title')
+          }}</strong>
+          <span
+            class="membership-badge"
+            :class="membership.kind"
+            role="status"
+            :title="membershipExpiry"
           >
-        </span>
+            <svg
+              v-if="!membershipLoading && ['vip', 'svip', 'music'].includes(membership.kind)"
+              class="membership-mark"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m3 9 4-5h10l4 5-9 12L3 9Z M3 9h18 M7 4l5 17 5-17" />
+            </svg>
+            <span class="membership-name">{{
+              membershipLoading
+                ? t('insights.account.loading')
+                : t(`insights.account.${membership.kind}`)
+            }}</span>
+            <span v-if="!membershipLoading && membership.level !== null" class="membership-level"
+              >Lv.{{ membership.level }}</span
+            >
+          </span>
+        </div>
         <button
           type="button"
           class="refresh-button"
+          :class="{ 'is-refreshing': refreshing }"
           :disabled="refreshing"
-          :title="activeTab === 'footprint' ? t('insights.footprint.refreshHint') : ''"
+          :aria-busy="refreshing"
+          :aria-label="refreshing ? t('common.refreshing') : t('common.refresh')"
+          :title="
+            refreshing
+              ? t('common.refreshing')
+              : activeTab === 'footprint'
+                ? t('insights.footprint.refreshHint')
+                : t('common.refresh')
+          "
           @click="refreshCurrent"
         >
-          {{ refreshing ? t('common.refreshing') : t('common.refresh') }}
+          <svg
+            class="refresh-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -1671,91 +1710,153 @@ onBeforeUnmount(() => {
     line-height: 1.65;
     opacity: 0.66;
   }
-
-  .refresh-button {
-    position: relative;
-    z-index: 1;
-    background: color-mix(in srgb, var(--color-body-bg) 82%, transparent);
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--color-text) 5%, transparent);
-  }
 }
 
 .hero-intro {
+  align-self: center;
   min-width: 0;
   flex: 1;
 }
 
 .hero-account {
-  --membership-ink: var(--mono-accent-ink, color-mix(in srgb, var(--color-primary) 80%, var(--color-text)));
-  flex: 0 0 168px;
+  --membership-ink: #87632c;
+  flex: 0 1 284px;
   min-width: 0;
-  max-width: 220px;
-  display: flex;
-  flex-direction: column;
+  max-width: 320px;
+  align-self: center;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 32px;
   align-items: center;
-  gap: 8px;
-  text-align: center;
+  gap: 12px;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-body-bg) 56%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 3%, transparent);
+
   .hero-avatar {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     overflow: hidden;
     display: grid;
     place-items: center;
     background: var(--color-secondary-bg);
     color: var(--color-secondary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-body-bg) 85%, transparent);
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
     .svg-icon {
-      width: 30px;
-      height: 30px;
+      width: 26px;
+      height: 26px;
     }
   }
+  .hero-account-details {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
   .hero-nickname {
-    max-width: 100%;
-    font-size: 16px;
-    overflow-wrap: anywhere;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.35;
   }
   .membership-badge {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    justify-content: center;
     flex-wrap: wrap;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    line-height: 1.4;
+    gap: 5px;
+    font-size: 11px;
+    line-height: 1.5;
     color: var(--color-secondary);
-    background: var(--color-secondary-bg);
     &.vip,
     &.svip,
     &.music {
       color: var(--membership-ink);
-      background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
+    }
+    .membership-mark {
+      flex: 0 0 13px;
+      width: 13px;
+      height: 13px;
     }
     .membership-name {
-      font-weight: 650;
+      font-weight: 600;
+      overflow-wrap: anywhere;
     }
     .membership-level {
-      padding: 2px 6px;
-      border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
-      border-radius: 5px;
-      color: var(--membership-ink);
-      background: color-mix(in srgb, var(--color-primary) 16%, var(--color-body-bg));
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding-left: 6px;
+      border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+      color: var(--color-secondary);
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 500;
       font-variant-numeric: tabular-nums;
-      line-height: 1.3;
-      letter-spacing: 0.02em;
+      white-space: nowrap;
     }
   }
   .refresh-button {
-    margin-top: 4px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+    border-radius: 50%;
+    color: var(--color-secondary);
+    background: color-mix(in srgb, var(--color-body-bg) 65%, transparent);
+    transition:
+      color 0.18s ease,
+      border-color 0.18s ease,
+      background-color 0.18s ease;
+
+    .refresh-icon {
+      width: 16px;
+      height: 16px;
+    }
+    &:hover:not(:disabled) {
+      color: var(--color-primary);
+      border-color: color-mix(in srgb, var(--color-primary) 32%, transparent);
+      background: color-mix(in srgb, var(--color-primary) 8%, var(--color-body-bg));
+    }
+    &:active:not(:disabled) {
+      background: color-mix(in srgb, var(--color-primary) 15%, var(--color-body-bg));
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 3px;
+    }
+    &.is-refreshing {
+      color: var(--color-primary);
+      opacity: 0.7;
+      .refresh-icon {
+        animation: insights-refresh-turn 1s linear infinite;
+      }
+    }
+  }
+}
+
+body[data-theme='dark'] .hero-account {
+  --membership-ink: #dfc38d;
+}
+
+@keyframes insights-refresh-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-account .refresh-button.is-refreshing .refresh-icon {
+    animation: none;
   }
 }
 
@@ -2827,8 +2928,9 @@ input {
 
   .hero-account {
     flex-basis: auto;
-    align-self: center;
+    align-self: stretch;
     width: 100%;
+    max-width: none;
   }
 
   .footprint-head {

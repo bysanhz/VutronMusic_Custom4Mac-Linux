@@ -47,6 +47,7 @@ export const useSettingsStore = defineStore(
     })
     const general = reactive({
       language: 'zh',
+      appFontFamily: '',
       updateChannel: 'stable' as 'stable' | 'beta',
       subTitleDefault: true,
       showTrackTimeOrID: 'time',

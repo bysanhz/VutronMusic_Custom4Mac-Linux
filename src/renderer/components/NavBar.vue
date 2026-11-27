@@ -85,19 +85,12 @@
               : t('login.login')
           "
           :title="isLooseLoggedIn ? t('insights.title') : t('login.login')"
-          @click="openAccountPage"
-        >
-          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
-        </button>
-        <button
-          type="button"
-          class="account-menu-button"
-          :aria-label="t('insights.account.actions')"
           aria-haspopup="menu"
           :aria-expanded="accountMenuOpen"
-          @click="showUserProfileMenu"
+          @click="openAccountPage"
+          @contextmenu.prevent="showUserProfileMenu"
         >
-          <svg-icon icon-class="arrow-down" />
+          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
         </button>
       </div>
     </nav>
@@ -206,9 +199,9 @@ const logout = () => {
 
 const showUserProfileMenu = (event: MouseEvent): void => {
   const anchor = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const wasOpen = accountMenuOpen.value
+  userProfileMenu.value?.closeMenu()
   userProfileMenu.value?.openMenu(event, { top: anchor.bottom + 8, left: anchor.right })
-  accountMenuOpen.value = !wasOpen
+  accountMenuOpen.value = true
 }
 
 const openAccountPage = (): void => {
@@ -326,32 +319,6 @@ nav.has-custom-titlebar {
     -webkit-user-drag: none;
     &:hover {
       filter: brightness(80%);
-    }
-  }
-  .account-menu-button {
-    display: grid;
-    place-items: center;
-    width: 22px;
-    height: 30px;
-    margin-left: 2px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--color-secondary);
-    cursor: pointer;
-    -webkit-app-region: no-drag;
-    .svg-icon {
-      width: 12px;
-      height: 12px;
-    }
-    &:hover,
-    &:focus-visible {
-      background: var(--color-secondary-bg);
-      color: var(--color-text);
-    }
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
     }
   }
 }

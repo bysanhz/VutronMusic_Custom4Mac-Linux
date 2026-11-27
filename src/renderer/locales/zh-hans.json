@@ -622,6 +622,10 @@
       "update": "软件更新"
     },
     "general": {
+      "appFont": {
+        "text": "主窗口字体",
+        "desc": "选择后立即生效并保存，桌面歌词字体独立设置。"
+      },
       "language": {
         "text": "语言",
         "zhHans": "简体中文",

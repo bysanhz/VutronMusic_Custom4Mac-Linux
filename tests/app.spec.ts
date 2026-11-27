@@ -98,6 +98,8 @@ test.beforeAll(async ({}, testInfo) => {
   page.on('pageerror', (error) => errors.push(error.message))
   await page.waitForLoadState('domcontentloaded')
   await page.waitForFunction(() => Boolean(window.vutronmusic && window.mainApi))
+  // Fresh test profiles must quit directly instead of opening the Linux close dialog.
+  await page.evaluate(() => window.mainApi?.send('setStoreSettings', { closeAppOption: 'exit' }))
 })
 
 test.afterAll(async () => {
@@ -118,14 +120,60 @@ test('production settings survive repeated route changes without duplicate diagn
     await page.locator('.rainbow-nav-settings').click()
     await expect(page.locator('.system-settings')).toBeVisible()
     await page.locator('.rainbow-settings-tab').last().click()
-    await expect(page.locator('#vutronmusic-update-diagnostics-setting')).toHaveCount(1)
-    await expect(page.locator('#vutronmusic-update-diagnostics-setting')).toBeVisible()
+    await expect(page.locator('.system-settings .diagnostic-panel')).toHaveCount(1)
+    await expect(page.locator('.system-settings .diagnostic-panel')).toBeVisible()
     await page.locator('.rainbow-settings-tab').nth(5).click()
-    // Settings tabs use v-show; the update entry remains mounted but hidden.
-    await expect(page.locator('#vutronmusic-update-diagnostics-setting')).toBeHidden()
+    // Diagnostics are mounted only while the maintenance tab is active.
+    await expect(page.locator('.system-settings .diagnostic-panel')).toHaveCount(0)
     await page.locator('.rainbow-nav-home').click()
     await expect(page.locator('.system-settings')).toHaveCount(0)
   }
+  expect(errors).toEqual([])
+})
+
+test('main window font previews, applies immediately and survives reload independently of desktop lyrics', async ({}, testInfo) => {
+  const fonts = await page.evaluate(() => window.mainApi?.invoke('getFontList'))
+  const font =
+    fonts.find((item: any) => item.familyName === 'DejaVu Sans Mono') ||
+    fonts.find((item: any) => item.familyName && item.familyName !== 'system-ui')
+  expect(font).toBeTruthy()
+  const desktopFont = await page.evaluate(() => localStorage.getItem('osdLyric'))
+  const headingFont = () =>
+    page.locator('.settings-header h1').evaluate((el) => getComputedStyle(el).fontFamily)
+  await page.locator('.rainbow-nav-settings').click()
+  await page.locator('.rainbow-settings-tab').first().click()
+  const originalFont = await headingFont()
+  const row = page.locator('[data-setting="app-font-family"]')
+  await row.locator('.custom-select').click()
+  await row
+    .locator('.custom-search-input')
+    .fill(font.postScriptName || font.name || font.familyName)
+  const option = row.locator('.custom-select-item').first()
+  await expect(option.locator('.font-preview-sample')).toContainText('English')
+  await page.screenshot({ path: testInfo.outputPath('main-font-dropdown.png') })
+  await option.click()
+  await expect.poll(headingFont).toContain(font.familyName)
+  await page.screenshot({ path: testInfo.outputPath('main-font-selected.png') })
+  await expect
+    .poll(() =>
+      page.locator('.settings-search input').evaluate((el) => getComputedStyle(el).fontFamily)
+    )
+    .toContain(font.familyName)
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('settings')!).general.appFontFamily)
+  ).toContain(font.familyName)
+  await page.reload()
+  await page.waitForFunction(() => Boolean(window.vutronmusic && window.mainApi))
+  await expect
+    .poll(() => page.locator('#app').last().evaluate((el) => getComputedStyle(el).fontFamily))
+    .toContain(font.familyName)
+  await page.locator('.rainbow-nav-settings').click()
+  await page.locator('.rainbow-settings-tab').first().click()
+  await expect(row.locator('.custom-text')).not.toHaveText('系统默认')
+  await row.locator('.custom-select').click()
+  await row.locator('.custom-select-item').first().click()
+  await expect.poll(headingFont).toBe(originalFont)
+  expect(await page.evaluate(() => localStorage.getItem('osdLyric'))).toBe(desktopFont)
   expect(errors).toEqual([])
 })
 

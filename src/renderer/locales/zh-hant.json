@@ -622,6 +622,10 @@
       "update": "軟體更新"
     },
     "general": {
+      "appFont": {
+        "text": "主視窗字型",
+        "desc": "選擇後立即生效並儲存，桌面歌詞字型獨立設定。"
+      },
       "language": {
         "text": "語言",
         "zhHans": "简体中文",
