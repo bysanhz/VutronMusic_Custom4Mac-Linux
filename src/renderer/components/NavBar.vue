@@ -95,6 +95,10 @@
       </div>
     </nav>
     <ContextMenu ref="userProfileMenu" @close-menu="accountMenuOpen = false">
+      <div class="item" @click="handleRoute('/settings')">
+        <svg-icon icon-class="settings" />
+        {{ $t('nav.settings') }}
+      </div>
       <div v-if="!isLooseLoggedIn" class="item" @click="toLogin">
         <svg-icon icon-class="login" />
         {{ $t('login.login') }}
@@ -257,7 +261,15 @@ nav.has-custom-titlebar {
 .search-tabs {
   display: flex;
   flex: 2;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
   justify-content: center;
+  justify-content: safe center;
   align-items: center;
   .item {
     flex: none;

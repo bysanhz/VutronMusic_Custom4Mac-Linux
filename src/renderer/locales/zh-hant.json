@@ -1030,7 +1030,7 @@
       "validUntil": "有效期限至 {date}"
     },
     "title": "音樂洞察",
-    "description": "把聽歌足跡和雲端硬碟能力集中在一個穩定的網易雲工具頁。",
+    "description": "查看聽歌足跡，管理雲端音樂。",
     "tabs": {
       "footprint": "聽歌足跡",
       "style": "曲風漫遊",

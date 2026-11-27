@@ -1,4 +1,4 @@
-import { createApp, h, defineAsyncComponent, KeepAlive } from 'vue'
+import { createApp, h, defineAsyncComponent, KeepAlive, ref } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { createI18n } from 'vue-i18n'
@@ -10,6 +10,7 @@ import { createRouter, createMemoryHistory, RouterView } from 'vue-router'
 import PlayerBar from '../../../src/renderer/components/PlayerBar.vue'
 import NavBar from '../../../src/renderer/components/NavBar.vue'
 import { useDataStore } from '../../../src/renderer/store/data'
+import { useStreamMusicStore } from '../../../src/renderer/store/streamingMusic'
 import '../../../src/renderer/assets/css/global.scss'
 import '../../../src/renderer/assets/css/fluid-window.scss'
 import '../../../src/renderer/assets/css/settings-fluid-layout.scss'
@@ -17,6 +18,7 @@ import '../../../src/renderer/assets/css/interaction-theme.scss'
 import '../../../src/renderer/assets/css/rainbow-theme.scss'
 import '../../../src/renderer/assets/css/monochrome-theme.scss'
 import '../../../src/renderer/assets/css/settings-theme.scss'
+import '../../../src/renderer/assets/css/text-layout.scss'
 import 'virtual:svg-icons-register'
 import en from '../../../src/renderer/locales/en.json'
 import zh from '../../../src/renderer/locales/zh-hans.json'
@@ -94,9 +96,16 @@ if (!(window as any).mainApi)
       if (channel === 'get-listen-ledger-backup' && (window as any).startupGate)
         return await (window as any).startupGate
       if (channel === 'getLocalMusic') return { songs: [], playlists: [] }
+      if (channel === 'get-stream-songs' || channel === 'get-stream-playlists') return []
       if (channel === 'get-lastfm-session') return { name: '' }
       if (channel === 'systemPing')
-        return { navidrome: 'logout', emby: 'logout', jellyfin: 'logout' }
+        return (
+          (window as any).fixtureStreamStatus || {
+            navidrome: 'logout',
+            emby: 'logout',
+            jellyfin: 'logout'
+          }
+        )
       return null
     },
     send: (channel: string, data: unknown) => sent.push({ channel, data }),
@@ -131,6 +140,9 @@ window.fetch = (input, init) => {
   if (String(input).startsWith('atom://local-asset')) requests.push(String(input))
   return nativeFetch(input, init)
 }
+const navBarRef = ref()
+const mainRef = ref<HTMLElement>()
+let setScaleLanguage: ((value: string) => void) | undefined
 const app = createApp({
   setup() {
     const player = usePlayerStore()
@@ -140,13 +152,26 @@ const app = createApp({
     ;(window as any).playbackProbe = {
       player,
       settings,
+      stream: useStreamMusicStore(),
       data: useDataStore(),
+      language: (value: string) => {
+        app.config.globalProperties.$i18n.locale = value
+        setScaleLanguage?.(value)
+      },
       mountScaleSettings: async () => {
-        const [{ initializeBaselineWindowScale }, { initializeWindowScaleCalibrationV2 }] =
-          await Promise.all([
-            import('../../../src/renderer/utils/baselineWindowScale'),
-            import('../../../src/renderer/utils/windowScaleCalibrationV2')
-          ])
+        const [
+          { initializeBaselineWindowScale },
+          { initializeWindowScaleCalibrationV2 },
+          { default: scaleI18n }
+        ] = await Promise.all([
+          import('../../../src/renderer/utils/baselineWindowScale'),
+          import('../../../src/renderer/utils/windowScaleCalibrationV2'),
+          import('../../../src/renderer/plugins/i18n')
+        ])
+        setScaleLanguage = (value: string) => {
+          scaleI18n.global.locale.value = value as 'en' | 'zh' | 'zht'
+        }
+        setScaleLanguage(app.config.globalProperties.$i18n.locale)
         initializeBaselineWindowScale()
         initializeWindowScaleCalibrationV2(router)
       },
@@ -175,14 +200,18 @@ const app = createApp({
             'div',
             {
               id: 'app',
-              style: 'color:var(--color-text)'
+              style: {
+                color: 'var(--color-text)',
+                '--app-font-family': settings.general.appFontFamily || undefined
+              }
             },
             [
-              h(NavBar),
+              h(NavBar, { ref: navBarRef }),
               h(
                 'main',
                 {
                   id: 'main',
+                  ref: mainRef,
                   style:
                     'padding:84px 30px 80px 130px;box-sizing:border-box;height:100vh;overflow:auto;--main-content-top:84px;--main-content-bottom:80px'
                 },
@@ -206,6 +235,12 @@ const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
 app.provide('updatePadding', () => {})
+app.provide('navBarRef', navBarRef)
+app.provide('mainRef', mainRef)
+app.provide('hasCustomTitleBar', ref(false))
+app.provide('updateUserSelect', () => {})
+app.provide('restorePosition', () => {})
+app.provide('scrollMainTo', (top: number) => mainRef.value?.scrollTo({ top }))
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
@@ -215,7 +250,71 @@ const router = createRouter({
       path: '/insights',
       component: () => import('../../../src/renderer/views/MusicInsightsStable.vue')
     },
-    { path: '/home', component: () => import('../../../src/renderer/views/HomePage.vue') }
+    {
+      path: '/home',
+      name: 'HomePage',
+      component: () => import('../../../src/renderer/views/HomePage.vue')
+    },
+    {
+      path: '/explore',
+      name: 'explore',
+      component: () => import('../../../src/renderer/views/ExplorePage.vue')
+    },
+    {
+      path: '/library',
+      name: 'library',
+      component: () => import('../../../src/renderer/views/LibraryMusic.vue')
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('../../../src/renderer/views/SearchPage.vue')
+    },
+    {
+      path: '/localMusic',
+      name: 'localMusic',
+      component: () => import('../../../src/renderer/views/LocalMusic.vue')
+    },
+    {
+      path: '/stream',
+      name: 'stream',
+      component: () => import('../../../src/renderer/views/StreamPage.vue')
+    },
+    {
+      path: '/streamLogin/:service',
+      name: 'streamLogin',
+      component: () => import('../../../src/renderer/views/StreamLogin.vue')
+    },
+    {
+      path: '/playlist/:id',
+      name: 'playlist',
+      component: () => import('../../../src/renderer/views/PlaylistPage.vue')
+    },
+    {
+      path: '/album/:id',
+      name: 'album',
+      component: () => import('../../../src/renderer/views/AlbumPage.vue')
+    },
+    {
+      path: '/artist/:id',
+      name: 'ArtistPage',
+      component: () => import('../../../src/renderer/views/ArtistPage.vue')
+    },
+    {
+      path: '/user/:id',
+      name: 'user',
+      component: () => import('../../../src/renderer/views/UserPage.vue')
+    },
+    {
+      path: '/login/account',
+      name: 'loginAccount',
+      component: () => import('../../../src/renderer/views/LoginAccount.vue')
+    },
+    {
+      path: '/next',
+      name: 'next',
+      component: () => import('../../../src/renderer/views/NextUp.vue')
+    }
   ]
 })
 app.use(router)

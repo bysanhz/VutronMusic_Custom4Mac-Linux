@@ -76,7 +76,7 @@ const injectStyle = () => {
         minmax(56px, 68px)
         18px
         24px !important;
-      grid-template-rows: 30px;
+      grid-template-rows: minmax(30px, auto);
       align-items: center;
       gap: 4px !important;
     }

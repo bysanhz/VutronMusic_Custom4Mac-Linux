@@ -1030,7 +1030,7 @@
       "validUntil": "Valid until {date}"
     },
     "title": "Music Insights",
-    "description": "A stable NetEase toolkit for listening history and cloud music.",
+    "description": "View your listening history and manage cloud music.",
     "tabs": {
       "footprint": "Listening Footprint",
       "style": "Style Explorer",

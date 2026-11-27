@@ -1030,7 +1030,7 @@
       "validUntil": "有效期至 {date}"
     },
     "title": "音乐洞察",
-    "description": "把听歌足迹和云盘能力集中在一个稳定的网易云工具页。",
+    "description": "查看听歌足迹，管理云盘音乐。",
     "tabs": {
       "footprint": "听歌足迹",
       "style": "曲风漫游",

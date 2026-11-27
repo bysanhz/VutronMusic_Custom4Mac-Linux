@@ -1,0 +1,93 @@
+/* Let translated text and user-selected fonts determine content height. */
+#app .album-page > .playlist-info {
+  max-width: 100%;
+  > .info {
+    min-width: 0;
+    .buttons {
+      flex-wrap: wrap;
+      row-gap: 12px;
+    }
+    :is(.subtitle, .artist, .date-and-count) {
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
+#app :is(.local-music, .streaming-music) > .section-one {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px 32px;
+  height: auto;
+  min-height: 240px;
+  padding: 32px clamp(24px, 5vw, 80px);
+  container-type: inline-size;
+
+  > .left {
+    position: static;
+    grid-column: 1;
+    grid-row: 1 / -1;
+    width: auto !important;
+    min-width: 0;
+    height: auto;
+    overflow: visible;
+    > svg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    .content {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: auto;
+      min-height: 176px;
+      padding: 0;
+      gap: 24px;
+      overflow-wrap: anywhere;
+    }
+    .content-info {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px 24px;
+      > div {
+        min-width: 0;
+      }
+    }
+  }
+  > .right-top,
+  > .right-bottom {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    grid-column: 2;
+  }
+  > .right-top {
+    grid-row: 1;
+  }
+  > .right-bottom {
+    grid-row: 2;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+  }
+}
+
+@container (max-width: 500px) {
+  #app :is(.local-music, .streaming-music) > .section-one {
+    > .left {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+    > .right-top {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    > .right-bottom {
+      grid-column: 1 / -1;
+      grid-row: 3;
+    }
+  }
+}

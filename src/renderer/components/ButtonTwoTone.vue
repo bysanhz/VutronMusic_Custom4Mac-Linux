@@ -58,13 +58,17 @@ const buttonStyle = computed(() => {
 
 <style lang="scss" scoped>
 button {
-  height: 40px;
+  min-height: 40px;
+  height: auto;
   min-width: 40px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  line-height: 18px;
+  line-height: 1.25;
   font-weight: 600;
   background: color-mix(in oklab, var(--color-primary) var(--bg-alpha), white);
   color: var(--color-primary);
@@ -72,6 +76,7 @@ button {
   transition: 0.2s;
   user-select: none;
   .svg-icon {
+    flex: 0 0 16px;
     width: 16px;
     height: 16px;
   }

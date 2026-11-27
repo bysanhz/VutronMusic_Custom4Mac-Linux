@@ -7,6 +7,7 @@ import Vue from '@vitejs/plugin-vue'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import { buildSync } from 'esbuild'
 import { readLinuxAppProcessMemory } from '../src/main/linuxProcessMemory'
+import { inspectFontLayout } from './helpers/fontLayoutAudit'
 
 let server: ViteDevServer
 let directory: string
@@ -207,6 +208,338 @@ test('playback details expose actual quality and source, explain substitutions a
   expect(errors).toEqual([])
 })
 
+test('audit major pages across languages, fonts and desktop widths', async (_fixtures, testInfo) => {
+  test.setTimeout(180000)
+  page.on('pageerror', (error) => errors.push(error.stack || error.message))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
+  await page.goto(page.url() + '?ui=1')
+  const title = 'A longer title for a playlist, album or artist collection'
+  const image =
+    'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"/%3E'
+  const artist = {
+    id: 10,
+    name: title,
+    picUrl: image,
+    img1v1Url: image,
+    alias: [],
+    trans: '',
+    musicSize: 100,
+    albumSize: 10,
+    mvSize: 5,
+    briefDesc: 'An example biography with enough text to check wrapping across fonts.'
+  }
+  const album = {
+    id: 20,
+    name: title,
+    picUrl: image,
+    artist,
+    artists: [artist],
+    publishTime: Date.now(),
+    size: 1,
+    type: 'Album',
+    description: 'A short description of this collection.'
+  }
+  const profile = {
+    userId: 42,
+    nickname: 'Layout audit account',
+    avatarUrl: image,
+    signature: 'A profile description with several words to wrap.',
+    follows: 12,
+    followeds: 45,
+    eventCount: 3
+  }
+  const song = {
+    id: 1,
+    name: title,
+    dt: 200000,
+    duration: 200000,
+    ar: [artist],
+    artists: [artist],
+    al: album,
+    album,
+    fee: 0
+  }
+  await page.route('**/netease/**', async (route) => {
+    const endpoint = new URL(route.request().url()).pathname
+    const playlist = {
+      id: 30,
+      name: title,
+      coverImgUrl: image,
+      creator: profile,
+      tracks: [song],
+      trackIds: [{ id: 1 }],
+      trackCount: 1,
+      subscribedCount: 1234,
+      description: 'A description of the playlist.',
+      createTime: Date.now(),
+      playCount: 123456,
+      tags: []
+    }
+    const body: any = {
+      code: 200,
+      data: [],
+      songs: [song],
+      album,
+      artist,
+      hotSongs: [song],
+      hotAlbums: [album],
+      artists: [],
+      mvs: [],
+      list: [],
+      playlists: [],
+      playlist: endpoint.endsWith('/user/playlist') ? [] : playlist,
+      profile,
+      level: 8,
+      peopleCanSeeMyPlayRecord: true,
+      ids: [],
+      recommend: [],
+      banners: [],
+      tags: [],
+      sub: [],
+      categories: {},
+      albums: [],
+      weekData: [],
+      allData: [],
+      count: 0,
+      more: false,
+      result: {
+        songs: [song],
+        songCount: 1,
+        albums: [],
+        artists: [],
+        playlists: [],
+        userprofiles: []
+      }
+    }
+    if (endpoint.endsWith('/search/default')) body.data = { showKeyword: 'Search music' }
+    if (endpoint.endsWith('/playlist/catlist')) body.categories = {}
+    if (endpoint.endsWith('/vip/info'))
+      body.data = {
+        redVipLevel: 7,
+        associator: { expireTime: Date.now() + 86400000 },
+        musicPackage: { expireTime: 0 }
+      }
+    await route.fulfill({ json: body })
+  })
+  await page.route('https://**/*', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"/>'
+    })
+  )
+  await page.waitForFunction(() => Boolean((window as any).playbackProbe))
+  await page.evaluate((profile) => {
+    const probe = (window as any).playbackProbe
+    probe.data.user = profile
+    ;(window as any).fixtureStreamStatus = {
+      navidrome: 'login',
+      jellyfin: 'logout',
+      emby: 'logout'
+    }
+    probe.stream.enable = true
+    probe.stream.services[0].status = 'login'
+    document.cookie = 'MUSIC_U=layout-fixture;path=/'
+  }, profile)
+  await page.evaluate((song) => {
+    const probe = (window as any).playbackProbe
+    probe.player.currentTrack = { ...song, type: 'online', source: 'netease' }
+    probe.player.enabled = true
+  }, song)
+  const pages: Array<[string, string, string?]> = [
+    ['/insights', '.insights-page'],
+    ['/insights', '.insights-page', 'cloud'],
+    ['/home', '.home-page'],
+    ['/library', '.library'],
+    ['/localMusic', '.local-music'],
+    ['/stream', '.streaming-music'],
+    ['/explore?tab=playlist&category=推荐歌单', '.explore-page'],
+    ['/explore?tab=artist', '.explore-page'],
+    ['/search?keywords=Long%20search%20title', '.search-page'],
+    ['/playlist/30', '.playlist'],
+    ['/album/20', '.album-page'],
+    ['/next', '.next-tracks'],
+    ['/artist/10', '.artist-page'],
+    ['/user/42', '.user-page'],
+    ['/login/account', '.login'],
+    ['/streamLogin/jellyfin', '.stream-container'],
+    ...['general', 'music', 'lyric', 'library', 'unblock', 'shortcut', 'misc', 'update'].map(
+      (section) => ['/settings', '.system-settings', section] as [string, string, string]
+    )
+  ]
+  const failures: unknown[] = []
+  const samples: unknown[] = []
+  for (const [url, selector, section] of pages) {
+    await page.evaluate((url) => (window as any).playbackProbe.navigate(url), url)
+    if (section === 'cloud') await page.locator('.insights-page .tabs button').nth(1).click()
+    if (url === '/settings')
+      await page
+        .locator('.settings-workspace > aside button')
+        .nth(
+          ['general', 'music', 'lyric', 'library', 'unblock', 'shortcut', 'misc', 'update'].indexOf(
+            section!
+          )
+        )
+        .click()
+    if (url === '/settings' && section === 'general') {
+      await page.evaluate(() => (window as any).playbackProbe.mountScaleSettings())
+      await expect(page.locator('.window-scale-font-row')).toHaveCount(3)
+    }
+    try {
+      await page.locator(selector).first().waitFor({ state: 'visible', timeout: 5000 })
+    } catch {
+      failures.push({ url, section, reason: 'page did not render', errors: errors.slice() })
+      continue
+    }
+    for (const [width, zoom] of [
+      [1300, 1],
+      [900, 1],
+      [1300, 1.5]
+    ]) {
+      await app.evaluate(
+        ({ BrowserWindow }, { width, zoom }) => {
+          const win = BrowserWindow.getAllWindows()[0]
+          win.setSize(width, 920)
+          win.webContents.setZoomFactor(zoom)
+        },
+        { width, zoom }
+      )
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate((theme) => document.body.setAttribute('data-theme', theme), theme)
+        for (const language of ['zh', 'en', 'zht']) {
+          for (const font of [
+            '',
+            'system-ui',
+            '"Arial Black"',
+            'Georgia',
+            'Menlo',
+            '"Xingkai SC"'
+          ]) {
+            await page.evaluate(
+              async ({ language, font }) => {
+                const probe = (window as any).playbackProbe
+                probe.language(language)
+                probe.settings.general.appFontFamily = font
+                await new Promise(requestAnimationFrame)
+                await document.fonts.ready
+              },
+              { language, font }
+            )
+            const result = await page.evaluate(inspectFontLayout)
+            const sample = { url, section, width, zoom, theme, language, font, ...result }
+            samples.push(sample)
+            if (
+              result.mainOverflow > 2 ||
+              result.navOverflow > 2 ||
+              result.playerOverflow > 2 ||
+              result.issues.length
+            )
+              failures.push(sample)
+            if (
+              url === '/insights' &&
+              !section &&
+              width === 1300 &&
+              zoom === 1 &&
+              theme === 'light' &&
+              !font &&
+              ['zh', 'en'].includes(language)
+            ) {
+              await page.locator('.footprint-head').screenshot({
+                path: testInfo.outputPath(`footprint-layout-${language}.png`),
+                animations: 'disabled'
+              })
+            }
+          }
+        }
+      }
+    }
+    writeFileSync(
+      testInfo.outputPath('font-layout-audit.json'),
+      JSON.stringify({ samples, failures, errors }, null, 2)
+    )
+  }
+  writeFileSync(
+    testInfo.outputPath('font-layout-audit.json'),
+    JSON.stringify({ samples, failures, errors }, null, 2)
+  )
+  expect(failures, `Inspect ${testInfo.outputPath('font-layout-audit.json')}`).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('dynamic window scale controls wrap translated labels without overlapping the step buttons', async (_fixtures, testInfo) => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
+  await page.goto(page.url() + '?ui=1')
+  await page.waitForFunction(() => Boolean((window as any).playbackProbe))
+  await page.evaluate(async () => {
+    const probe = (window as any).playbackProbe
+    await probe.navigate('/settings')
+    await probe.mountScaleSettings()
+  })
+  const setting = page.locator('.window-scale-font-range-item')
+  await expect(setting.locator('.window-scale-font-row')).toHaveCount(3)
+  const samples: unknown[] = []
+  for (const [width, zoom] of [
+    [1300, 1],
+    [900, 1],
+    [1300, 1.5]
+  ]) {
+    await app.evaluate(
+      ({ BrowserWindow }, { width, zoom }) => {
+        const win = BrowserWindow.getAllWindows()[0]
+        win.setSize(width, 920)
+        win.webContents.setZoomFactor(zoom)
+      },
+      { width, zoom }
+    )
+    for (const language of ['en', 'zh', 'zht']) {
+      for (const font of ['', 'system-ui', '"Arial Black"', 'Georgia', 'Menlo', '"Xingkai SC"']) {
+        await page.evaluate(
+          async ({ language, font }) => {
+            const probe = (window as any).playbackProbe
+            probe.language(language)
+            probe.settings.general.appFontFamily = font
+            await new Promise(requestAnimationFrame)
+            await document.fonts.ready
+            await new Promise(requestAnimationFrame)
+          },
+          { language, font }
+        )
+        await setting.scrollIntoViewIfNeeded()
+        const rows = await setting.locator('.window-scale-font-row').evaluateAll((elements) =>
+          elements.map((row) => {
+            const label = row.querySelector<HTMLElement>('.window-scale-font-label')!
+            const control = row.querySelector('button')!.getBoundingClientRect()
+            const box = label.getBoundingClientRect()
+            return {
+              text: label.textContent,
+              overflow: label.scrollWidth - label.clientWidth,
+              overlap: box.right - control.x,
+              rowHeight: row.getBoundingClientRect().height,
+              labelHeight: box.height
+            }
+          })
+        )
+        samples.push({ width, zoom, language, font, rows })
+        writeFileSync(
+          testInfo.outputPath('scale-label-layout.json'),
+          JSON.stringify(samples, null, 2)
+        )
+        expect(
+          rows.every(
+            (row) => row.overflow <= 1 && row.overlap <= 1 && row.labelHeight <= row.rowHeight + 1
+          )
+        ).toBe(true)
+        if (zoom === 1 && width === 900 && !font) {
+          await setting.screenshot({
+            path: testInfo.outputPath(`scale-label-${language}.png`),
+            animations: 'disabled'
+          })
+        }
+      }
+    }
+  }
+  expect(errors).toEqual([])
+})
+
 test('the real player bar and settings remain usable at desktop widths in light and dark themes', async ({}, testInfo) => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1400, 900))
   await page.goto(page.url() + '?ui=1')
@@ -299,7 +632,7 @@ test('avatar opens account insights, account actions stay available and scale ex
   await avatar.click({ button: 'right' })
   const menu = page.getByRole('menu')
   await expect(menu).toBeVisible()
-  await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toBeFocused()
+  await expect(page.getByRole('menuitem', { name: 'Settings', exact: true })).toBeFocused()
   const menuBox = (await menu.boundingBox())!
   expect(menuBox.x).toBeGreaterThan(800)
   expect(menuBox.y).toBeGreaterThan(20)
@@ -308,7 +641,7 @@ test('avatar opens account insights, account actions stay available and scale ex
   await expect(avatar).toHaveAttribute('aria-expanded', 'false')
   await avatar.click({ button: 'right' })
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem')).toHaveCount(3)
+  await expect(menu.getByRole('menuitem')).toHaveCount(4)
   await avatar.click({ button: 'right' })
   await expect(menu).toBeVisible()
   await avatar.click()
@@ -316,10 +649,21 @@ test('avatar opens account insights, account actions stay available and scale ex
   await expect(page.locator('.hero-nickname')).toHaveText('测试账号')
   await expect(page.locator('.membership-badge')).toContainText('Vinyl VIP')
   await expect(page.locator('.membership-badge')).toContainText('Lv.6')
+  await page.evaluate(() => (window as any).playbackProbe.language('zh'))
+  await expect(page.locator('.membership-name')).toHaveText('黑胶VIP')
+  await page.locator('.hero').screenshot({
+    path: testInfo.outputPath('insights-account-calligraphy-zh.png'),
+    animations: 'disabled'
+  })
+  await page.evaluate(() => (window as any).playbackProbe.language('en'))
+  await expect(page.locator('.membership-name')).toHaveText('Vinyl VIP')
   const account = page.locator('.hero-account')
   const image = (await account.locator('.hero-avatar').boundingBox())!
   const refresh = (await account.locator('.refresh-button').boundingBox())!
-  expect(Math.abs(refresh.y + refresh.height / 2 - image.y - image.height / 2)).toBeLessThan(2)
+  const hero = (await page.locator('.hero').boundingBox())!
+  expect(refresh.y).toBeGreaterThanOrEqual(hero.y)
+  expect(refresh.y).toBeLessThan(image.y + image.height / 2)
+  expect(hero.x + hero.width - refresh.x - refresh.width).toBeLessThan(24)
   await expect(account.locator('.refresh-button')).toHaveAttribute('aria-label', 'Refresh')
   await expect(account.locator('.refresh-icon')).toBeVisible()
   await expect(account.locator('.refresh-button')).toBeEnabled()
@@ -358,7 +702,9 @@ test('avatar opens account insights, account actions stay available and scale ex
   await page.route('**/netease/vip/info?*', (route) => route.fulfill({ json: { code: 500 } }))
   await account.locator('.refresh-button').click()
   await expect(page.locator('.membership-badge')).toHaveText('Membership unavailable')
-  await page.evaluate(() => (window as any).playbackProbe.navigate('/settings'))
+  await avatar.click({ button: 'right' })
+  await menu.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+  await expect(menu).toBeHidden()
   await expect(page.locator('.settings-header')).toBeVisible()
   await page.evaluate(() => (window as any).playbackProbe.mountScaleSettings())
   const scale = page.locator('.window-scale-font-range-item')

@@ -27,25 +27,27 @@
             role="status"
             :title="membershipExpiry"
           >
-            <svg
-              v-if="!membershipLoading && ['vip', 'svip', 'music'].includes(membership.kind)"
-              class="membership-mark"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m3 9 4-5h10l4 5-9 12L3 9Z M3 9h18 M7 4l5 17 5-17" />
-            </svg>
-            <span class="membership-name">{{
-              membershipLoading
-                ? t('insights.account.loading')
-                : t(`insights.account.${membership.kind}`)
-            }}</span>
+            <span class="membership-label">
+              <svg
+                v-if="!membershipLoading && ['vip', 'svip', 'music'].includes(membership.kind)"
+                class="membership-mark"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m3 9 4-5h10l4 5-9 12L3 9Z M3 9h18 M7 4l5 17 5-17" />
+              </svg>
+              <span class="membership-name">{{
+                membershipLoading
+                  ? t('insights.account.loading')
+                  : t(`insights.account.${membership.kind}`)
+              }}</span>
+            </span>
             <span v-if="!membershipLoading && membership.level !== null" class="membership-level"
-              >Lv.{{ membership.level }}</span
+              ><span class="membership-level-prefix">Lv.</span><strong>{{ membership.level }}</strong></span
             >
           </span>
         </div>
@@ -81,22 +83,51 @@
           </svg>
         </button>
       </div>
-    </div>
-
-    <div class="tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="rainbow-web-tab"
-        :class="{
-          active: activeTab === tab.id,
-          'rainbow-web-tab-1': tab.id === 'footprint',
-          'rainbow-web-tab-6': tab.id === 'cloud'
-        }"
-        @click="activeTab = tab.id"
+      <div class="tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          class="rainbow-web-tab"
+          :class="{
+            active: activeTab === tab.id,
+            'rainbow-web-tab-1': tab.id === 'footprint',
+            'rainbow-web-tab-6': tab.id === 'cloud'
+          }"
+          @click="activeTab = tab.id"
+        >
+          <svg
+            class="insights-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path v-if="tab.id === 'footprint'" d="M5 20v-7 M12 20V8 M19 20V3" />
+            <path
+              v-else
+              d="M7 19a5 5 0 1 1 1.1-9.88A6.5 6.5 0 0 1 20.7 12 3.5 3.5 0 0 1 19.5 19H7Z"
+            />
+          </svg>
+          {{ tab.label }}
+        </button>
+      </div>
+      <svg
+        class="hero-waveform"
+        viewBox="0 0 160 44"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3.5"
+        stroke-linecap="round"
+        aria-hidden="true"
+        focusable="false"
       >
-        {{ tab.label }}
-      </button>
+        <path
+          d="M5 15v14 M15 19v6 M25 17v10 M35 9v26 M45 18v8 M55 15v14 M65 7v30 M75 14v16 M85 18v8 M95 12v20 M105 5v34 M115 11v22 M125 17v10 M135 18v8 M145 20v4 M155 19v6"
+        />
+      </svg>
     </div>
 
     <section v-show="activeTab === 'footprint'" class="panel">
@@ -1678,6 +1709,11 @@ onBeforeUnmount(() => {
 }
 
 .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+  grid-template-areas: 'intro account' 'tabs waveform';
+  align-items: center;
+  row-gap: 28px;
   position: relative;
   overflow: hidden;
   padding: 32px 36px;
@@ -1695,6 +1731,7 @@ onBeforeUnmount(() => {
     );
   border: 1px solid color-mix(in srgb, var(--color-primary) 11%, transparent);
   box-shadow: 0 12px 28px color-mix(in srgb, var(--color-text) 6%, transparent);
+  margin-bottom: 24px;
 
   h1 {
     margin: 4px 0 10px;
@@ -1710,49 +1747,55 @@ onBeforeUnmount(() => {
     line-height: 1.65;
     opacity: 0.66;
   }
+
+  .tabs {
+    grid-area: tabs;
+    margin: 0;
+    align-self: end;
+  }
 }
 
 .hero-intro {
+  grid-area: intro;
   align-self: center;
   min-width: 0;
   flex: 1;
 }
 
 .hero-account {
+  --membership-script: 'Xingkai SC', 'Xingkai TC', STXingkai, 'Kaiti SC', STKaiti, KaiTi, cursive;
+  grid-area: account;
+  justify-self: end;
+  width: 100%;
   --membership-ink: #87632c;
   flex: 0 1 284px;
   min-width: 0;
-  max-width: 320px;
+  max-width: 360px;
   align-self: center;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 32px;
+  grid-template-columns: 112px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
   box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--color-body-bg) 56%, transparent);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 3%, transparent);
 
   .hero-avatar {
-    width: 48px;
-    height: 48px;
+    width: 112px;
+    height: 112px;
     border-radius: 50%;
     overflow: hidden;
     display: grid;
     place-items: center;
     background: var(--color-secondary-bg);
     color: var(--color-secondary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-body-bg) 85%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-body-bg) 85%, transparent);
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
     .svg-icon {
-      width: 26px;
-      height: 26px;
+      width: 56px;
+      height: 56px;
     }
   }
   .hero-account-details {
@@ -1774,7 +1817,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 8px;
     font-size: 11px;
     line-height: 1.5;
     color: var(--color-secondary);
@@ -1782,6 +1825,26 @@ onBeforeUnmount(() => {
     &.svip,
     &.music {
       color: var(--membership-ink);
+      .membership-name,
+      .membership-level {
+        font-family: var(--membership-script);
+        font-weight: 400;
+      }
+      .membership-name {
+        font-size: 14px;
+        letter-spacing: 0.03em;
+      }
+      .membership-label {
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--membership-ink) 12%, transparent);
+      }
+    }
+    .membership-label {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      gap: 5px;
     }
     .membership-mark {
       flex: 0 0 13px;
@@ -1793,16 +1856,30 @@ onBeforeUnmount(() => {
       overflow-wrap: anywhere;
     }
     .membership-level {
-      padding-left: 6px;
-      border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+      display: inline-flex;
+      align-items: baseline;
+      gap: 1px;
       color: var(--color-secondary);
-      font-size: 11px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 400;
       font-variant-numeric: tabular-nums;
+      letter-spacing: 0.03em;
       white-space: nowrap;
+      .membership-level-prefix {
+        font-size: 12px;
+      }
+      strong {
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1;
+      }
     }
   }
   .refresh-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1;
     display: grid;
     place-items: center;
     width: 32px;
@@ -1842,6 +1919,24 @@ onBeforeUnmount(() => {
       }
     }
   }
+}
+
+.hero-waveform {
+  grid-area: waveform;
+  justify-self: end;
+  align-self: center;
+  width: 160px;
+  height: 44px;
+  color: var(--color-primary);
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.insights-tab-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 7px;
+  vertical-align: -2px;
 }
 
 body[data-theme='dark'] .hero-account {
@@ -2016,6 +2111,7 @@ button:disabled {
 
 .sync-status-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 5px;
@@ -2161,6 +2257,8 @@ button:disabled {
 }
 
 .sync-light-detail strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 12px;
   font-weight: 700;
 }
@@ -2185,7 +2283,10 @@ button:disabled {
 }
 
 .clear-sync-button {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
   padding: 4px 6px;
   border: 1px solid color-mix(in srgb, #b45309 28%, transparent);
   border-radius: 9px;
@@ -2194,7 +2295,10 @@ button:disabled {
   cursor: pointer;
   font-size: 10px;
   font-weight: 650;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .sync-report-unavailable {
@@ -2275,7 +2379,8 @@ button:disabled {
 
 .sync-status-help {
   display: grid;
-  gap: 0;
+  grid-template-columns: fit-content(38%) minmax(0, 1fr);
+  gap: 0 8px;
   max-width: 680px;
   margin: 12px 0 0;
   padding: 4px 12px;
@@ -2284,11 +2389,13 @@ button:disabled {
   background: color-mix(in srgb, var(--color-primary) 5%, transparent);
   font-size: 11px;
   line-height: 1.45;
+  container-type: inline-size;
 }
 
 .sync-status-help > div {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -2299,6 +2406,8 @@ button:disabled {
 }
 
 .sync-status-help dt {
+  min-width: 70px;
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2316,6 +2425,17 @@ button:disabled {
   min-width: 0;
   margin: 0;
   opacity: 0.76;
+  overflow-wrap: anywhere;
+}
+
+@container (max-width: 260px) {
+  .sync-status-help > div {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding-block: 8px;
+  }
 }
 
 .metric-grid:not(.compact) .metric-card:nth-child(4) strong {
@@ -2588,10 +2708,18 @@ button:disabled {
   gap: 10px;
 
   label {
+    display: grid;
     min-width: 0;
+    gap: 5px;
+    input {
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
   }
 
   small {
+    overflow-wrap: anywhere;
     margin-top: -1px;
     font-size: 10px;
     line-height: 1.4;
@@ -2923,7 +3051,13 @@ input {
 
 @media (max-width: 640px) {
   .hero {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'intro' 'account' 'tabs';
+    row-gap: 20px;
+  }
+
+  .hero-waveform {
+    display: none;
   }
 
   .hero-account {

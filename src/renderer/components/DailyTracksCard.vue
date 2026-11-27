@@ -265,7 +265,8 @@ img {
   .title-line {
     display: block;
     max-width: 100%;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .title--cjk-grid {

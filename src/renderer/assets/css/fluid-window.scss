@@ -173,7 +173,7 @@ body,
     minmax(56px, 68px)
     18px
     24px;
-  grid-template-rows: 30px;
+  grid-template-rows: minmax(30px, auto);
   align-items: center;
   gap: 4px;
   width: 100%;
@@ -182,7 +182,10 @@ body,
 
 
 #app .window-scale-font-label {
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
   text-align: left;
   font-weight: 650;
   opacity: 0.68;
