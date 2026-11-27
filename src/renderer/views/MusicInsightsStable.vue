@@ -1,19 +1,47 @@
 <template>
   <div class="insights-page">
     <div class="hero rainbow-surface-hero">
-      <div>
+      <div class="hero-intro">
         <div class="eyebrow">NETEASE INSIGHTS</div>
         <h1>{{ t('insights.title') }}</h1>
         <p>{{ t('insights.description') }}</p>
       </div>
-      <button
-        class="refresh-button"
-        :disabled="refreshing"
-        :title="activeTab === 'footprint' ? t('insights.footprint.refreshHint') : ''"
-        @click="refreshCurrent"
-      >
-        {{ refreshing ? t('common.refreshing') : t('common.refresh') }}
-      </button>
+      <div class="hero-account" :aria-label="t('insights.account.title')">
+        <div class="hero-avatar">
+          <img
+            v-if="user.avatarUrl && !avatarFailed"
+            :src="user.avatarUrl"
+            alt=""
+            @error="avatarFailed = true"
+          />
+          <svg-icon v-else icon-class="user" />
+        </div>
+        <strong class="hero-nickname">{{
+          user.nickname || t(accountId === 'anonymous' ? 'insights.account.notLoggedIn' : 'insights.account.title')
+        }}</strong>
+        <span
+          class="membership-badge"
+          :class="membership.kind"
+          role="status"
+          :title="membershipExpiry"
+        >
+          <span class="membership-name">{{
+            membershipLoading ? t('insights.account.loading') : t(`insights.account.${membership.kind}`)
+          }}</span>
+          <span v-if="!membershipLoading && membership.level !== null" class="membership-level"
+            >Lv.{{ membership.level }}</span
+          >
+        </span>
+        <button
+          type="button"
+          class="refresh-button"
+          :disabled="refreshing"
+          :title="activeTab === 'footprint' ? t('insights.footprint.refreshHint') : ''"
+          @click="refreshCurrent"
+        >
+          {{ refreshing ? t('common.refreshing') : t('common.refresh') }}
+        </button>
+      </div>
     </div>
 
     <div class="tabs">
@@ -556,6 +584,8 @@ import {
   isRealtimeListenReportForMonth,
   isSuccessfulResponse
 } from '../services/neteaseModern'
+import { vipMembership } from '../api/auth'
+import { readNeteaseMembership, unknownMembership } from '../services/neteaseMembership'
 
 const { locale, t } = useI18n()
 
@@ -629,6 +659,53 @@ const confirmListenThresholdOnEnter = (event: KeyboardEvent): void => {
   ;(event.target as HTMLInputElement).blur()
 }
 const accountId = computed(() => String(user.value.userId || 'anonymous'))
+const membership = ref(unknownMembership())
+const membershipLoading = ref(false)
+const avatarFailed = ref(false)
+let membershipRevision = 0
+let membershipController: AbortController | null = null
+const membershipExpiry = computed(() =>
+  membership.value.expiresAt === null
+    ? ''
+    : t('insights.account.validUntil', {
+        date: new Date(membership.value.expiresAt).toLocaleDateString(locale.value)
+      })
+)
+const refreshMembership = async (): Promise<void> => {
+  const revision = ++membershipRevision
+  const requestedAccount = accountId.value
+  membershipController?.abort()
+  membershipController = null
+  if (requestedAccount === 'anonymous') {
+    membership.value = unknownMembership()
+    membershipLoading.value = false
+    return
+  }
+  const controller = new AbortController()
+  membershipController = controller
+  membershipLoading.value = true
+  try {
+    const result = await vipMembership(requestedAccount, controller.signal)
+    if (revision !== membershipRevision || accountId.value !== requestedAccount) return
+    membership.value = readNeteaseMembership(result)
+  } catch {
+    if (revision === membershipRevision) membership.value = unknownMembership()
+  } finally {
+    if (revision === membershipRevision) {
+      membershipLoading.value = false
+      membershipController = null
+    }
+  }
+}
+watch(
+  accountId,
+  () => {
+    membership.value = unknownMembership()
+    avatarFailed.value = false
+    void refreshMembership()
+  },
+  { immediate: true }
+)
 
 const startOfToday = computed(() => {
   const value = new Date(clockNow.value)
@@ -1408,8 +1485,12 @@ const refreshCurrent = async (): Promise<void> => {
   if (refreshing.value) return
   refreshing.value = true
   try {
-    if (activeTab.value === 'footprint') await refreshFootprintWithConfirmation()
-    else await safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
+    await Promise.all([
+      refreshMembership(),
+      activeTab.value === 'footprint'
+        ? refreshFootprintWithConfirmation()
+        : safeRequest(dataStore.fetchCloudDisk(), '刷新云盘')
+    ])
   } finally {
     refreshing.value = false
   }
@@ -1523,6 +1604,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  membershipRevision++
+  membershipController?.abort()
   window.removeEventListener('vutronmusic-netease-scrobble', handleNeteaseScrobble)
   window.removeEventListener('pointerdown', handleCloudTrackPickerOutsidePointer)
   stopPendingSyncPolling()
@@ -1594,6 +1677,85 @@ onBeforeUnmount(() => {
     z-index: 1;
     background: color-mix(in srgb, var(--color-body-bg) 82%, transparent);
     box-shadow: 0 6px 16px color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+}
+
+.hero-intro {
+  min-width: 0;
+  flex: 1;
+}
+
+.hero-account {
+  --membership-ink: var(--mono-accent-ink, color-mix(in srgb, var(--color-primary) 80%, var(--color-text)));
+  flex: 0 0 168px;
+  min-width: 0;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  .hero-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--color-secondary-bg);
+    color: var(--color-secondary);
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .svg-icon {
+      width: 30px;
+      height: 30px;
+    }
+  }
+  .hero-nickname {
+    max-width: 100%;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+  .membership-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-secondary);
+    background: var(--color-secondary-bg);
+    &.vip,
+    &.svip,
+    &.music {
+      color: var(--membership-ink);
+      background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
+    }
+    .membership-name {
+      font-weight: 650;
+    }
+    .membership-level {
+      padding: 2px 6px;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+      border-radius: 5px;
+      color: var(--membership-ink);
+      background: color-mix(in srgb, var(--color-primary) 16%, var(--color-body-bg));
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+    }
+  }
+  .refresh-button {
+    margin-top: 4px;
   }
 }
 
@@ -2661,6 +2823,12 @@ input {
 @media (max-width: 640px) {
   .hero {
     flex-direction: column;
+  }
+
+  .hero-account {
+    flex-basis: auto;
+    align-self: center;
+    width: 100%;
   }
 
   .footprint-head {

@@ -260,9 +260,22 @@ test('the real player bar and settings remain usable at desktop widths in light 
   expect(errors).toEqual([])
 })
 
-test('account details live in the avatar menu and scale explanations sit beside their controls', async ({}, testInfo) => {
+test('avatar opens account insights, account actions stay available and scale explanations sit beside controls', async ({}, testInfo) => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
   await page.goto(page.url() + '?ui=1')
+  let hasMembership = true
+  await page.route('**/netease/vip/info?*', (route) =>
+    route.fulfill({
+      json: {
+        code: 200,
+        data: {
+          associator: { expireTime: hasMembership ? Date.now() + 86400000 : 0 },
+          musicPackage: { expireTime: 0 },
+          redVipLevel: 6
+        }
+      }
+    })
+  )
   await page.waitForFunction(() => Boolean((window as any).playbackProbe))
   await page.evaluate(async () => {
     const probe = (window as any).playbackProbe
@@ -278,14 +291,11 @@ test('account details live in the avatar menu and scale explanations sit beside 
   })
   await expect(page.locator('.settings-header')).toBeVisible()
   await expect(page.locator('.system-settings .user-info')).toHaveCount(0)
-  const avatar = page.getByRole('button', { name: '测试账号', exact: true })
+  const avatar = page.locator('.account-menu-button')
   await avatar.focus()
   await page.keyboard.press('Enter')
   const menu = page.getByRole('menu')
   await expect(menu).toBeVisible()
-  await expect(menu.locator('.account-summary')).toContainText('测试账号')
-  await expect(menu.locator('.account-vip')).toContainText('Vinyl VIP')
-  await page.screenshot({ path: testInfo.outputPath('account-menu.png') })
   await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toBeFocused()
   const menuBox = (await menu.boundingBox())!
   expect(menuBox.x).toBeGreaterThan(800)
@@ -297,6 +307,36 @@ test('account details live in the avatar menu and scale explanations sit beside 
   await expect(menu).toBeVisible()
   await avatar.click()
   await expect(menu).toBeHidden()
+  await page.locator('.account-button').click()
+  await expect(page.locator('.hero-nickname')).toHaveText('测试账号')
+  await expect(page.locator('.membership-badge')).toContainText('Vinyl VIP')
+  await expect(page.locator('.membership-badge')).toContainText('Lv.6')
+  const account = page.locator('.hero-account')
+  const image = (await account.locator('.hero-avatar').boundingBox())!
+  const refresh = (await account.locator('.refresh-button').boundingBox())!
+  expect(refresh.y).toBeGreaterThan(image.y + image.height)
+  for (const width of [1300, 900]) {
+    await app.evaluate(
+      ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0].setSize(width, 920),
+      width
+    )
+    expect(
+      await page.locator('.hero').evaluate((el) => el.scrollWidth - el.clientWidth)
+    ).toBeLessThanOrEqual(1)
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate((theme) => document.body.setAttribute('data-theme', theme), theme)
+      await page.screenshot({ path: testInfo.outputPath(`insights-account-${width}-${theme}.png`) })
+    }
+  }
+  hasMembership = false
+  await account.locator('.refresh-button').click()
+  await expect(page.locator('.membership-badge')).toHaveText('Standard account')
+  // Loading failure is distinct from an ordinary account, even with cached vipType=10.
+  await page.route('**/netease/vip/info?*', (route) => route.fulfill({ json: { code: 500 } }))
+  await account.locator('.refresh-button').click()
+  await expect(page.locator('.membership-badge')).toHaveText('Membership unavailable')
+  await page.evaluate(() => (window as any).playbackProbe.navigate('/settings'))
+  await expect(page.locator('.settings-header')).toBeVisible()
   await page.evaluate(() => (window as any).playbackProbe.mountScaleSettings())
   const scale = page.locator('.window-scale-font-range-item')
   await expect(scale).toBeVisible()
@@ -320,17 +360,9 @@ test('account details live in the avatar menu and scale explanations sit beside 
     }
   }
   await page.evaluate(() => {
-    ;(window as any).playbackProbe.data.user.vipType = 0
-  })
-  await avatar.click()
-  await expect(menu.locator('.account-vip')).toHaveCount(0)
-  await expect(menu.locator('.account-summary')).toContainText('测试签名')
-  await page.keyboard.press('Escape')
-  await page.evaluate(() => {
     ;(window as any).playbackProbe.data.user.userId = null
   })
-  await page.locator('.account-button').click()
-  await expect(menu.locator('.account-summary')).toHaveCount(0)
+  await avatar.click()
   await expect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toHaveCount(0)
   await expect(menu).toContainText('Login')
   expect(errors).toEqual([])

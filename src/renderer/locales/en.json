@@ -1012,6 +1012,19 @@
     "clearQueue": "Clear queue"
   },
   "insights": {
+    "account": {
+      "title": "NetEase account",
+      "open": "Open music insights for {name}",
+      "actions": "Account actions",
+      "notLoggedIn": "Not signed in",
+      "loading": "Loading membership…",
+      "vip": "Vinyl VIP",
+      "svip": "Vinyl SVIP",
+      "music": "Music package",
+      "none": "Standard account",
+      "unknown": "Membership unavailable",
+      "validUntil": "Valid until {date}"
+    },
     "title": "Music Insights",
     "description": "A stable NetEase toolkit for listening history and cloud music.",
     "tabs": {

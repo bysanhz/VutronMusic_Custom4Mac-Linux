@@ -1012,6 +1012,19 @@
     "clearQueue": "清除队列"
   },
   "insights": {
+    "account": {
+      "title": "网易云账号",
+      "open": "打开 {name} 的音乐洞察",
+      "actions": "账号操作",
+      "notLoggedIn": "未登录",
+      "loading": "正在读取会员信息…",
+      "vip": "黑胶VIP",
+      "svip": "黑胶SVIP",
+      "music": "音乐包",
+      "none": "普通用户",
+      "unknown": "会员信息暂不可用",
+      "validUntil": "有效期至 {date}"
+    },
     "title": "音乐洞察",
     "description": "把听歌足迹和云盘能力集中在一个稳定的网易云工具页。",
     "tabs": {

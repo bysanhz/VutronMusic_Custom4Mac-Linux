@@ -211,6 +211,10 @@ const router = createRouter({
   routes: [
     { path: '/', component: { render: () => null } },
     { path: '/settings', component: SettingsPage },
+    {
+      path: '/insights',
+      component: () => import('../../../src/renderer/views/MusicInsightsStable.vue')
+    },
     { path: '/home', component: () => import('../../../src/renderer/views/HomePage.vue') }
   ]
 })

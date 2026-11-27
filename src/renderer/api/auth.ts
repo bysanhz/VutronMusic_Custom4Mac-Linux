@@ -117,6 +117,17 @@ export function userAccount() {
   })
 }
 
+/** Read-only membership details; the user account level is a separate concept. */
+export function vipMembership(uid: number | string, signal?: AbortSignal) {
+  return request({
+    url: '/vip/info',
+    method: 'get',
+    params: { uid, timestamp: Date.now() },
+    timeout: 8000,
+    signal
+  })
+}
+
 export function getQrImg(key: string) {
   return request({
     url: '/login/qr/create',

@@ -1012,6 +1012,19 @@
     "clearQueue": "清除佇列"
   },
   "insights": {
+    "account": {
+      "title": "網易雲帳號",
+      "open": "開啟 {name} 的音樂洞察",
+      "actions": "帳號操作",
+      "notLoggedIn": "未登入",
+      "loading": "正在讀取會員資訊…",
+      "vip": "黑膠VIP",
+      "svip": "黑膠SVIP",
+      "music": "音樂包",
+      "none": "一般用戶",
+      "unknown": "暫時無法取得會員資訊",
+      "validUntil": "有效期限至 {date}"
+    },
     "title": "音樂洞察",
     "description": "把聽歌足跡和雲端硬碟能力集中在一個穩定的網易雲工具頁。",
     "tabs": {

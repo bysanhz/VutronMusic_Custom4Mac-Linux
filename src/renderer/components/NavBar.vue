@@ -79,30 +79,29 @@
         <button
           type="button"
           class="account-button"
-          :aria-label="isLooseLoggedIn ? data.user.value.nickname : t('login.login')"
+          :aria-label="
+            isLooseLoggedIn
+              ? t('insights.account.open', { name: data.user.value.nickname })
+              : t('login.login')
+          "
+          :title="isLooseLoggedIn ? t('insights.title') : t('login.login')"
+          @click="openAccountPage"
+        >
+          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
+        </button>
+        <button
+          type="button"
+          class="account-menu-button"
+          :aria-label="t('insights.account.actions')"
           aria-haspopup="menu"
           :aria-expanded="accountMenuOpen"
           @click="showUserProfileMenu"
         >
-          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
+          <svg-icon icon-class="arrow-down" />
         </button>
       </div>
     </nav>
     <ContextMenu ref="userProfileMenu" @close-menu="accountMenuOpen = false">
-      <div v-if="isLooseLoggedIn" class="account-summary">
-        <img class="account-avatar" :src="avatarUrl" alt="" loading="lazy" />
-        <div class="account-details">
-          <strong>{{ data.user.value.nickname }}</strong>
-          <span v-if="Number(data.user.value.vipType) > 0" class="account-vip">
-            <img :src="vipImageUrl" alt="" />
-            {{ t('settings.general.vipLabel') }}
-          </span>
-          <span v-else-if="data.user.value.signature" class="account-signature">{{
-            data.user.value.signature
-          }}</span>
-        </div>
-      </div>
-      <hr v-if="isLooseLoggedIn" />
       <div v-if="!isLooseLoggedIn" class="item" @click="toLogin">
         <svg-icon icon-class="login" />
         {{ $t('login.login') }}
@@ -138,7 +137,6 @@ import { storeToRefs } from 'pinia'
 import { doLogout } from '../utils/auth'
 import { openExternal } from '../utils'
 import { useI18n } from 'vue-i18n'
-import vipImageUrl from '../utils/settingImg.dataurl?raw'
 
 const { t } = useI18n()
 const { searchTab, exploreTab } = storeToRefs(useNormalStateStore())
@@ -211,6 +209,12 @@ const showUserProfileMenu = (event: MouseEvent): void => {
   const wasOpen = accountMenuOpen.value
   userProfileMenu.value?.openMenu(event, { top: anchor.bottom + 8, left: anchor.right })
   accountMenuOpen.value = !wasOpen
+}
+
+const openAccountPage = (): void => {
+  userProfileMenu.value?.closeMenu()
+  if (isLooseLoggedIn.value) void router.push('/insights')
+  else toLogin()
 }
 
 const doSearch = (keyword: string) => {
@@ -324,49 +328,32 @@ nav.has-custom-titlebar {
       filter: brightness(80%);
     }
   }
-}
-
-.account-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  min-width: 180px;
-  max-width: 100%;
-  box-sizing: border-box;
-  color: var(--color-text);
-  .account-avatar {
-    width: 42px;
-    height: 42px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  .account-details {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    strong {
-      font-size: 15px;
-      overflow-wrap: anywhere;
-    }
-  }
-  .account-vip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
+  .account-menu-button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 30px;
+    margin-left: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
     color: var(--color-secondary);
-    img {
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    .svg-icon {
+      width: 12px;
       height: 12px;
     }
-  }
-  .account-signature {
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--color-secondary);
-    overflow-wrap: anywhere;
+    &:hover,
+    &:focus-visible {
+      background: var(--color-secondary-bg);
+      color: var(--color-text);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+    }
   }
 }
+
 </style>
