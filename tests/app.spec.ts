@@ -325,3 +325,38 @@ test('opt-in production idle memory observation without forced GC', async ({}, t
   })
   expect(errors).toEqual([])
 })
+
+test('explicit quit releases the instance lock even when window close asks or minimizes to tray', async () => {
+  test.skip(process.platform === 'darwin', 'Verifies the Linux and Windows close preference')
+  let appProcess = app.process()
+  for (const preference of ['minimizeToTray', 'ask']) {
+    if (appProcess.exitCode !== null) {
+      const env = { ...process.env, NODE_ENV: 'production' }
+      delete env.ELECTRON_RUN_AS_NODE
+      app = await _electron.launch({
+        args: [join(directory, 'bootstrap.mjs'), '--no-sandbox'],
+        env
+      })
+      appProcess = app.process()
+      page = await app.firstWindow()
+      await page.waitForFunction(() => Boolean(window.mainApi))
+    }
+    await page.evaluate(async (closeAppOption) => {
+      window.mainApi?.send('setStoreSettings', { closeAppOption })
+      await window.mainApi?.invoke('get-runtime-diagnostics')
+    }, preference)
+    if (preference === 'minimizeToTray') {
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+      expect(
+        await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())
+      ).toBe(false)
+      expect(appProcess.exitCode).toBeNull()
+    }
+    const closed = app.waitForEvent('close', { timeout: 10000 })
+    await app.evaluate(({ app }) => {
+      setTimeout(() => app.quit(), 0)
+    })
+    await closed
+    await expect.poll(() => appProcess.exitCode).toBe(0)
+  }
+})

@@ -162,7 +162,7 @@ class BackGround {
   fastifyApp: FastifyInstance | null = null
   amuseFastifyApp: FastifyInstance | null = null
   createAmuseFastifyAppPromise: Promise<void> = Promise.resolve()
-  willQuitApp: boolean = !Constants.IS_MAC
+  willQuitApp: boolean = false
   checkInterval: any = null
   isInWindow: boolean = false
   lastKnownMousePosition = { x: 0, y: 0 }
@@ -1159,7 +1159,10 @@ class BackGround {
           e.preventDefault()
           this.win.hide()
         }
-      } else {
+      } else if (!this.willQuitApp) {
+        // The close-to-tray preference applies to the window's close button.
+        // Explicit quit (including the dev server shutting down) must release
+        // the single-instance lock instead of leaving a detached process.
         closeOnLinux(e, this.win)
       }
     })

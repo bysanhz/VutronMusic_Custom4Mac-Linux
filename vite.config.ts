@@ -164,6 +164,26 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       {
+        name: 'vutron-dev-shutdown',
+        apply: 'serve',
+        configureServer(server) {
+          // Node's default SIGINT exit skips the Electron plugin's exit hook.
+          // Close Vite explicitly, then let that hook stop its Electron child.
+          let closing = false
+          const shutdown = async () => {
+            if (closing) return
+            closing = true
+            try {
+              await server.close()
+            } finally {
+              process.exit(0)
+            }
+          }
+          process.once('SIGINT', shutdown)
+          server.httpServer?.once('close', () => process.off('SIGINT', shutdown))
+        }
+      },
+      {
         name: 'vutron-build-info',
         generateBundle() {
           this.emitFile({
