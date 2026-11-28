@@ -317,6 +317,7 @@ a {
  * 仅作用于主窗口 #app，不会影响独立的桌面歌词 BrowserWindow。
  */
 #app {
+  --main-content-left: 130px;
   --responsive-control-icon: clamp(12px, min(1.6vw, 2.1vh), 16px);
   --responsive-control-padding: clamp(5px, min(0.8vw, 1.05vh), 8px);
   --responsive-control-margin: clamp(2px, min(0.4vw, 0.55vh), 4px);
@@ -391,6 +392,10 @@ a {
     margin: 0 clamp(4px, 1vw, 10px) !important;
     border-radius: clamp(6px, 0.8vw, 8px) !important;
     font-size: clamp(13px, min(1.8vw, 2.35vh), 18px) !important;
+  }
+
+  .search-tabs .item:first-child {
+    margin-left: 0 !important;
   }
 
   .right-part .avatar {

@@ -8,6 +8,7 @@
         tooltip-pos="hoverValue"
         :tooltip="hoverText"
         :max="currentTrackDuration"
+        :disabled="!hasTrack"
         :marks="marks"
         :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
         :process-style="{ background: 'var(--color-playback-accent, var(--color-primary))' }"
@@ -28,16 +29,17 @@
     </div>
     <div class="controls" @click="switchLyricPage">
       <div class="left">
-        <img v-cover-fallback="pic" :src="pic" loading="lazy" @click.stop="goToAlbum" />
+        <img v-cover-fallback="pic" :src="pic || 'atom://get-default-pic'" loading="lazy" @click.stop="goToAlbum" />
         <div class="track-info">
           <div
-            :class="['title', { haslist: hasListSource() }]"
-            :title="source"
-            @click.stop="hasListSource() && goToList()"
+            :class="['title', { haslist: hasTrack && hasListSource() }]"
+            :title="hasTrack ? source : ''"
+            @click.stop="hasTrack && hasListSource() && goToList()"
           >
-            <span>{{ currentTrack?.name }}</span>
+            <span>{{ currentTrack?.name || t('player.emptyTitle') }}</span>
           </div>
           <div class="albumAndLyric">
+            <span v-if="!hasTrack">{{ t('player.emptyHint') }}</span>
             <span
               v-for="(ar, index) in artists"
               :key="`${ar.id ?? 'unknown'}-${index}`"
@@ -57,7 +59,8 @@
           <button-icon
             class="like-button"
             :class="{ active: isLiked, liked: isLiked, disabled: heartDisabled }"
-            :title="heartDisabled ? $t('player.noAllowCauseLocal') : $t('player.like')"
+            :disabled="heartDisabled"
+            :title="!hasTrack ? t('player.emptyHint') : heartDisabled ? t('player.noAllowCauseLocal') : t('player.like')"
             @click.stop="likeTrack"
           >
             <svg-icon icon-class="heart-solid"></svg-icon>
@@ -65,6 +68,8 @@
           <button-icon
             v-show="!isPersonalFM"
             class="rainbow-skip-control"
+            :class="{ disabled: !hasTrack }"
+            :disabled="!hasTrack"
             :title="$t('player.previous')"
             @click.stop="playPrev"
             ><svg-icon icon-class="previous"
@@ -77,6 +82,8 @@
           /></button-icon>
           <button-icon
             class="play"
+            :class="{ disabled: !hasTrack }"
+            :disabled="!hasTrack"
             :title="playing ? $t('player.pause') : $t('player.play')"
             @click.stop="playOrPause"
           >
@@ -84,6 +91,8 @@
           /></button-icon>
           <button-icon
             class="rainbow-skip-control"
+            :class="{ disabled: !hasTrack }"
+            :disabled="!hasTrack"
             :title="$t('player.next')"
             @click.stop="_playNextTrack(isPersonalFM)"
             ><svg-icon icon-class="next"
@@ -225,6 +234,7 @@ const {
 } = storeToRefs(playerStore)
 
 const playerBarRef = ref()
+const hasTrack = computed(() => Boolean(currentTrack.value))
 const hoverX = ref('0')
 const hoverText = ref('')
 
@@ -250,7 +260,7 @@ const formatTime = (time: number) => {
 }
 
 const artists = computed(() => {
-  return currentTrack.value?.artists ?? currentTrack.value?.ar
+  return currentTrack.value?.artists ?? currentTrack.value?.ar ?? []
 })
 
 const position = computed({
@@ -258,6 +268,7 @@ const position = computed({
     return seek.value
   },
   set(value) {
+    if (!hasTrack.value) return
     if (!general.value.jumpToLyricBegin) {
       seek.value = value
       return
@@ -298,12 +309,13 @@ const goToArtist = (artist: any) => {
 
 const goToAlbum = () => {
   const album = currentTrack.value?.album || currentTrack.value?.al
-  if (album.matched !== false) {
+  if (album?.id && album.matched !== false) {
     router.push(`/album/${album.id}`)
   }
 }
 
 const switchLyricPage = () => {
+  if (!hasTrack.value) return
   const enable = general.value.clickToLyric
   if (!enable) return
   showLyrics.value = !showLyrics.value
@@ -359,7 +371,7 @@ const formatVolume = computed(() => {
 })
 
 const heartDisabled = computed(() => {
-  return currentTrack.value?.type === 'local' && !currentTrack.value?.matched
+  return !hasTrack.value || (currentTrack.value?.type === 'local' && !currentTrack.value?.matched)
 })
 
 watch(showLyrics, (value) => {

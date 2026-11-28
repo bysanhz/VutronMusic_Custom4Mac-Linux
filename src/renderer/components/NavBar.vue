@@ -1,10 +1,9 @@
 <template>
   <div>
-    <nav :class="{ 'has-custom-titlebar': useCustomBar || isWin }" :style="navStyle">
+    <nav :class="{ 'has-custom-titlebar': useCustomBar || isWin }">
       <LinuxTitleBar v-if="useCustomBar" />
       <Win32TitleBar v-if="isWin" />
 
-      <div class="nav-left-spacer" aria-hidden="true"></div>
       <div v-if="route.name === 'search'" class="search-tabs">
         <div :class="{ active: searchTab === 'track' }" class="item rainbow-web-tab rainbow-web-tab-1" @click="searchTab = 'track'">{{
           $t('nav.track')
@@ -151,12 +150,6 @@ const useCustomBar = ref(false)
 const isLooseLoggedIn = computed(() => Boolean(data.user.value?.userId))
 const isLinux = computed(() => window.env?.isLinux || false)
 const isWin = computed(() => window.env?.isWindows)
-const navStyle = computed(() => {
-  return {
-    paddingLeft: isLinux.value || isWin.value ? '20px' : '6vw'
-  }
-})
-
 const avatarUrl = computed(() => {
   return `${data.user.value.avatarUrl}`
 })
@@ -238,7 +231,8 @@ nav {
   justify-content: space-between;
   align-items: center;
   height: 64px;
-  padding: 0 30px 0 0;
+  padding: 0 30px 0 var(--main-content-left, 130px);
+  column-gap: 12px;
   box-sizing: content-box;
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
@@ -252,15 +246,9 @@ nav.has-custom-titlebar {
   -webkit-app-region: no-drag;
 }
 
-.nav-left-spacer {
-  flex: 0.8;
-  min-width: 0;
-  pointer-events: none;
-}
-
 .search-tabs {
   display: flex;
-  flex: 2;
+  flex: 1;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -268,8 +256,7 @@ nav.has-custom-titlebar {
   &::-webkit-scrollbar {
     display: none;
   }
-  justify-content: center;
-  justify-content: safe center;
+  justify-content: flex-start;
   align-items: center;
   .item {
     flex: none;
@@ -297,7 +284,8 @@ nav.has-custom-titlebar {
 }
 
 .right-part {
-  flex: 1;
+  flex: 0 0 auto;
+  margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;

@@ -1243,9 +1243,10 @@
               <div class="item">
                 <div class="left">
                   <div class="title">{{ $t('player.resetPlayer') }}</div>
+                  <div class="description">{{ t('player.resetPlayerDescription') }}</div>
                 </div>
                 <div class="right">
-                  <button @click="resetPlayer()">{{ $t('common.confirm') }}</button>
+                  <button type="button" @click="confirmResetPlayer">{{ t('player.resetPlayerAction') }}</button>
                 </div>
               </div>
             </section>
@@ -1386,6 +1387,12 @@ const {
 const playerStore = usePlayerStore()
 const { resetPlayer } = playerStore
 const { outputDevice, currentTrack } = storeToRefs(playerStore)
+
+const confirmResetPlayer = () => {
+  if (!window.confirm(t('player.resetPlayerConfirm'))) return
+  resetPlayer()
+  showToast(t('player.resetPlayerDone'))
+}
 
 const localMusicStore = useLocalMusicStore()
 const { resetLocalMusic } = localMusicStore

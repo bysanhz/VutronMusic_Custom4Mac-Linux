@@ -13,7 +13,7 @@
         </keep-alive>
       </router-view>
     </div>
-    <PlayerBar v-if="enabled" v-show="showPlayerBar" />
+    <PlayerBar v-show="showPlayerBar" />
     <HeartModeAssistant />
     <ShowToast />
     <AddTrackToPlaylistModal />
@@ -251,9 +251,7 @@ const showPlayerBar = computed(() => {
 
 const PLAYER_BAR_HEIGHT = 64
 const PLAYER_SAFE_BOTTOM = 120
-const playerBarInset = computed(() =>
-  enabled.value && showPlayerBar.value ? PLAYER_BAR_HEIGHT : 0
-)
+const playerBarInset = computed(() => showPlayerBar.value ? PLAYER_BAR_HEIGHT : 0)
 const mainStyle = computed(() => {
   const safeBottom = playerBarInset.value ? PLAYER_SAFE_BOTTOM : 0
   const topPadding = hasCustomTitleBar.value ? 84 : 64
@@ -486,7 +484,7 @@ onBeforeUnmount(() => {
 }
 
 #main {
-  padding: 0px 30px 0px 130px;
+  padding: 0px 30px 0px var(--main-content-left, 130px);
   box-sizing: border-box;
   scrollbar-width: none;
   color: var(--color-text);

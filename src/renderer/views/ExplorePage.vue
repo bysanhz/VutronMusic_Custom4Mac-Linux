@@ -1247,6 +1247,13 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--color-secondary-bg) 78%, transparent);
 }
 
+.buttons.playlist-filter-bar {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 0;
+  background: transparent;
+}
+
 .compact-buttons {
   flex-wrap: nowrap;
 }

@@ -2725,7 +2725,11 @@ export const usePlayerStore = defineStore(
       if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
       trackLoadRevision += 1
       list.value = []
+      _playNextList.value = []
+      playingNext.value = false
       enabled.value = false
+      stateStore.showLyrics = false
+      playlistSource.value = { type: 'album', id: 0 }
       currentTrackIndex.value = 0
       currentTrack.value = null
       neteasePlaybackClock.suspend()
@@ -2738,6 +2742,7 @@ export const usePlayerStore = defineStore(
       neteaseSessionSlices = []
       setProvisionalNeteaseListen()
       progress.value = 0
+      _progress.value = 0
       _shuffleList.value = []
       _list.value = []
       isPersonalFM.value = false

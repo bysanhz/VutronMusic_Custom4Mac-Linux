@@ -92,6 +92,28 @@ export const inspectFontLayout = () => {
     }
   }
   const nav = document.querySelector('nav')!
+  const tabs = nav.querySelector<HTMLElement>('.search-tabs')
+  const firstTab = tabs?.querySelector<HTMLElement>('.item')
+  if (tabs && firstTab && tabs.scrollLeft === 0) {
+    const contentLeft =
+      main.getBoundingClientRect().left + parseFloat(getComputedStyle(main).paddingLeft)
+    const offset = Math.abs(firstTab.getBoundingClientRect().left - contentLeft)
+    if (offset > 1)
+      issues.push({
+        element: 'nav .search-tabs',
+        text: firstTab.textContent || '',
+        reason: 'tabs misaligned with content',
+        pixels: offset
+      })
+    const controls = nav.querySelector('.right-part')!.getBoundingClientRect()
+    if (tabs.getBoundingClientRect().right > controls.left + 1)
+      issues.push({
+        element: 'nav .search-tabs',
+        text: '',
+        reason: 'tabs overlap account controls',
+        pixels: tabs.getBoundingClientRect().right - controls.left
+      })
+  }
   const player = document.querySelector('.player')!
   return {
     playerOverflow: player.scrollWidth - player.clientWidth,

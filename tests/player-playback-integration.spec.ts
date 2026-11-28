@@ -80,6 +80,7 @@ test.beforeAll(async () => {
     app.whenReady().then(()=>{
       protocol.handle('atom', async request=>{
         const u = new URL(request.url), f=globalThis.fixture
+        if(u.host==='get-default-pic') return new Response('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="gray"/></svg>',{headers:{'content-type':'image/svg+xml'}})
         if(u.host==='local-asset') {
           const id=Number(u.searchParams.get('id')); f.requests.push(id)
           const rejectedSource=u.searchParams.get('rejectSource')||'';f.rejectedSources.push(rejectedSource)
@@ -208,7 +209,72 @@ test('playback details expose actual quality and source, explain substitutions a
   expect(errors).toEqual([])
 })
 
-test('audit major pages across languages, fonts and desktop widths', async (_fixtures, testInfo) => {
+test('reset requires confirmation and leaves an empty player ready for the next song', async () => {
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
+  await page.goto(page.url() + '?ui=1')
+  await page.waitForFunction(() => Boolean((window as any).playbackProbe))
+  await page.evaluate(async () => {
+    const probe = (window as any).playbackProbe
+    probe.language('en')
+    await probe.navigate('/settings?section=update')
+  })
+  const resetSetting = page.locator('[data-settings-group="troubleshooting"] .item').filter({
+    has: page.getByText('Reset Player State', { exact: true })
+  })
+  await expect(resetSetting.locator('.description')).toContainText('volume to 100%')
+  await play([1, 2])
+  await expect.poll(playing).toBe(true)
+  await page.evaluate(() => {
+    const p = (window as any).playbackProbe.player
+    p.volume = 0.35
+    p.repeatMode = 'one'
+    p.biquadParams[31] = 3
+    p._playNextList = [3]
+    p.seek = 4
+  })
+  const resetButton = resetSetting.getByRole('button', { name: 'Reset…', exact: true })
+  let confirmation = ''
+  page.once('dialog', async (dialog) => {
+    confirmation = dialog.message()
+    await dialog.dismiss()
+  })
+  await resetButton.click()
+  expect(confirmation).toContain('volume to 100%')
+  await expect.poll(trackId).toBe(1)
+  expect(await page.evaluate(() => (window as any).playbackProbe.player.volume)).toBe(0.35)
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await resetButton.click()
+  const bar = page.locator('.player')
+  await expect(bar).toBeVisible()
+  await expect(bar.locator('.track-info')).toContainText('Nothing playing')
+  await expect(bar.locator('.play')).toBeDisabled()
+  for (const button of await bar.locator('.rainbow-skip-control').all())
+    await expect(button).toBeDisabled()
+  expect(await page.evaluate(() => {
+    const probe = (window as any).playbackProbe
+    const p = probe.player
+    return {
+      enabled: p.enabled, track: p.currentTrack, list: p.list, next: p._playNextList,
+      volume: p.volume, repeat: p.repeatMode, progress: p.seek,
+      equalizer: Object.values(p.biquadParams),
+      audioSource: probe.audioElements[0].getAttribute('src')
+    }
+  })).toEqual({
+    enabled: false, track: null, list: [], next: [], volume: 1, repeat: 'off', progress: 0,
+    equalizer: Array(10).fill(0), audioSource: null
+  })
+  // Even a programmatic artwork click must be harmless with no album loaded.
+  await bar.locator('.left img').dispatchEvent('click')
+  await play([2])
+  await expect.poll(trackId).toBe(2)
+  await expect.poll(playing).toBe(true)
+  await expect(bar.locator('.play')).toBeEnabled()
+  await expect(bar.locator('.track-info')).toContainText('Fixture 2')
+  expect(errors).toEqual([])
+})
+
+test('audit major pages across languages, fonts and desktop widths', async ({ browserName: _browserName }, testInfo) => {
   test.setTimeout(180000)
   page.on('pageerror', (error) => errors.push(error.stack || error.message))
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
@@ -331,6 +397,9 @@ test('audit major pages across languages, fonts and desktop widths', async (_fix
   await page.evaluate((profile) => {
     const probe = (window as any).playbackProbe
     probe.data.user = profile
+    probe.settings.general.enabledPlaylistCategories = [
+      '推荐歌单', '精品歌单', '全部', '官方', '流行', 'ACG', '后摇', '日语', '古风', '工作'
+    ]
     ;(window as any).fixtureStreamStatus = {
       navidrome: 'login',
       jellyfin: 'logout',
@@ -428,6 +497,18 @@ test('audit major pages across languages, fonts and desktop widths', async (_fix
             const sample = { url, section, width, zoom, theme, language, font, ...result }
             samples.push(sample)
             if (
+              url === '/explore?tab=playlist&category=推荐歌单' &&
+              width === 1300 &&
+              zoom === 1.5 &&
+              theme === 'light' &&
+              !font &&
+              ['zh', 'en'].includes(language)
+            )
+              await page.screenshot({
+                path: testInfo.outputPath(`explore-alignment-${language}.png`),
+                animations: 'disabled'
+              })
+            if (
               result.mainOverflow > 2 ||
               result.navOverflow > 2 ||
               result.playerOverflow > 2 ||
@@ -465,7 +546,7 @@ test('audit major pages across languages, fonts and desktop widths', async (_fix
   expect(errors).toEqual([])
 })
 
-test('dynamic window scale controls wrap translated labels without overlapping the step buttons', async (_fixtures, testInfo) => {
+test('dynamic window scale controls wrap translated labels without overlapping the step buttons', async ({ browserName: _browserName }, testInfo) => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1300, 920))
   await page.goto(page.url() + '?ui=1')
   await page.waitForFunction(() => Boolean((window as any).playbackProbe))
